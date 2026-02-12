@@ -301,6 +301,8 @@ const Documents = ({ user, onLogout }) => {
       });
       toast.success(`Documento ${numeroNfe} excluído com sucesso`);
       fetchDocuments();
+      // Notificar outros componentes sobre a mudança
+      notifyDocumentsChanged();
     } catch (err) {
       console.error('Erro ao excluir:', err);
       toast.error('Erro ao excluir documento');
