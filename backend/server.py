@@ -8828,13 +8828,16 @@ async def get_dashboard_stats(
                     credito_icms += v_icms  # Inclui no crédito se flag desativada
             elif is_beneficio_fiscal:
                 # Produto afetado pelo benefício fiscal - desconsiderar crédito
-                credito_icms_beneficio_desconsiderado += v_icms
-                produtos_beneficio_excluidos.append({
-                    'descricao': descricao[:50],
-                    'ncm': ncm,
-                    'valor_icms': v_icms
-                })
-                logger.debug(f"BENEFICIO: Produto excluído - {descricao[:30]} - ICMS: {v_icms}")
+                # Só adicionar à lista se realmente tinha ICMS a creditar (> 0)
+                if v_icms > 0:
+                    credito_icms_beneficio_desconsiderado += v_icms
+                    produtos_beneficio_excluidos.append({
+                        'descricao': descricao[:50],
+                        'ncm': ncm,
+                        'valor_icms': v_icms,
+                        'cfop': cfop
+                    })
+                    logger.debug(f"BENEFICIO: Produto excluído - {descricao[:30]} - ICMS: {v_icms}")
             else:
                 credito_icms += v_icms
             
