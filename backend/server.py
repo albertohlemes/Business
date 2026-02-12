@@ -619,8 +619,10 @@ class CompanyCreate(BaseModel):
     # === BENEFÍCIO FISCAL ICMS ===
     beneficio_fiscal_icms: bool = False
     tipo_beneficio_fiscal: str = ""
+    tipo_estabelecimento_beneficio: str = ""
     produtos_sem_credito_icms: List[str] = []
     produtos_sem_credito_descricao: str = ""
+    palavras_exclusao_personalizadas: List[str] = []
     # Presunção geral
     percentual_presuncao_irpj: float = 8.0
     percentual_presuncao_csll: float = 12.0
