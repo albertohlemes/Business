@@ -6121,6 +6121,12 @@ async def upload_xml_batch(
                         product['cfop_original_emissor'] = cfop_original
                         product['emissao_propria'] = True
                         logger.info(f"EMISSÃO PRÓPRIA: Preservando CFOP {cfop_original} do produto {product.get('descricao', '')[:30]}")
+                    elif is_devolucao_fornecedor:
+                        # IMPORTANTE: Notas de terceiros com natureza entrada que serão desconsideradas
+                        # NÃO devem ser reclassificadas pela IA - preservar CFOP original
+                        product['cfop_original_emissor'] = cfop_original
+                        product['preservar_cfop_terceiro'] = True
+                        logger.info(f"TERCEIRO ENTRADA: Preservando CFOP {cfop_original} do produto {product.get('descricao', '')[:30]} - será desconsiderado")
                     elif cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
                         produtos_operacao_distinta.append((product, cfop_original))
                     else:
@@ -7867,6 +7873,12 @@ async def upload_xml_with_progress(
                         product['cfop_original_emissor'] = cfop_original
                         product['emissao_propria'] = True
                         logger.info(f"EMISSÃO PRÓPRIA: Preservando CFOP {cfop_original} do produto {product.get('descricao', '')[:30]}")
+                    elif is_devolucao_fornecedor:
+                        # IMPORTANTE: Notas de terceiros com natureza entrada que serão desconsideradas
+                        # NÃO devem ser reclassificadas pela IA - preservar CFOP original
+                        product['cfop_original_emissor'] = cfop_original
+                        product['preservar_cfop_terceiro'] = True
+                        logger.info(f"TERCEIRO ENTRADA: Preservando CFOP {cfop_original} do produto {product.get('descricao', '')[:30]} - será desconsiderado")
                     elif cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
                         produtos_operacao_distinta.append((product, cfop_original))
                     else:
