@@ -1122,24 +1122,42 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       case 3:
         // Função para determinar impostos automaticamente
         const getImpostosAutomaticos = () => {
-          const impostos = { icms: false, icms_st: false, pis_cofins: false, iss: false };
+          const impostos = { icms: false, icms_st: false, ipi: false, pis_cofins: false, iss: false };
           const regime = formData.regime_tributario;
           const atividade = formData.tipo_atividade;
           
           if (regime === 'simples_nacional') {
-            // Simples Nacional - impostos já inclusos, mas pode ter ST
-            if (['comercio', 'industria', 'mista'].includes(atividade)) {
-              impostos.icms_st = true; // ST pode ser cobrado mesmo no Simples
+            // Simples Nacional - impostos já inclusos no DAS
+            // Apenas ST pode ser cobrado separadamente para indústria
+            if (atividade === 'industria') {
+              impostos.icms_st = true;
             }
           } else if (regime === 'lucro_presumido' || regime === 'lucro_real') {
-            if (['comercio', 'industria', 'mista'].includes(atividade)) {
+            // Indústria ou Equiparado: TODOS os impostos
+            if (atividade === 'industria') {
               impostos.icms = true;
               impostos.icms_st = true;
+              impostos.ipi = true;
               impostos.pis_cofins = true;
             }
-            if (['servicos', 'mista'].includes(atividade)) {
-              impostos.iss = true;
+            // Comércio: ICMS e PIS/COFINS (sem IPI e sem ICMS ST)
+            else if (atividade === 'comercio') {
+              impostos.icms = true;
               impostos.pis_cofins = true;
+              // Não marca IPI nem ICMS ST para comércio em geral
+            }
+            // Serviço: Só PIS/COFINS e ISS
+            else if (atividade === 'servicos') {
+              impostos.pis_cofins = true;
+              impostos.iss = true;
+              // Não marca ICMS, ICMS ST nem IPI
+            }
+            // Mista: Combina conforme atividades (comércio + serviço)
+            else if (atividade === 'mista') {
+              impostos.icms = true;        // Tem comércio
+              impostos.pis_cofins = true;  // Sempre
+              impostos.iss = true;         // Tem serviço
+              // Não marca IPI nem ICMS ST por padrão (não é indústria)
             }
           }
           return impostos;
