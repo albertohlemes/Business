@@ -528,9 +528,16 @@ const Dashboard = ({ user, onLogout }) => {
                             </div>
                           )}
                           {stats.creditos.icms_beneficio_desconsiderado > 0 && (
-                            <div className="flex justify-between text-xs bg-purple-500/10 -mx-2 px-2 py-1 rounded">
-                              <span className="text-purple-400">Benefício Fiscal (dedução):</span>
-                              <span className="font-medium text-purple-400">{formatCurrency(stats.creditos.icms_beneficio_desconsiderado)}</span>
+                            <div className="bg-purple-500/10 -mx-2 px-2 py-1 rounded space-y-1">
+                              <div className="flex justify-between text-xs">
+                                <span className="text-purple-400">Benefício Fiscal (dedução):</span>
+                                <span className="font-medium text-purple-400">{formatCurrency(stats.creditos.icms_beneficio_desconsiderado)}</span>
+                              </div>
+                              {stats.creditos.total_produtos_beneficio_excluidos > 0 && (
+                                <div className="text-xs text-purple-300/70">
+                                  {stats.creditos.total_produtos_beneficio_excluidos} produtos sem crédito (benefício fiscal)
+                                </div>
+                              )}
                             </div>
                           )}
                           <div className="flex justify-between text-sm">
