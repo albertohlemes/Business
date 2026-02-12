@@ -525,6 +525,7 @@ const ImpostosRetidos = ({ user, onLogout }) => {
                     />
                   </div>
                 </div>
+                )}
 
                 {/* Visualização por Grupos de Imposto */}
                 {activeTab === 'tomados' && dados.servicos_tomados && (
