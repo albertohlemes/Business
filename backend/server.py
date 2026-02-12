@@ -16706,11 +16706,11 @@ Regras de CFOP:
 - 1102/2102: Compra para comercialização (REVENDA)
 - 1401/2401: Compra para industrialização com ST (INSUMO_ST)
 - 1403/2403: Compra para comercialização com ST (REVENDA_ST)
-- 1407/2407: Compra para uso/consumo com ST (DESPESA_ST)
-- 1556/2556: Compra para uso/consumo (DESPESA)
+- 1406/2406: Compra de ativo imobilizado (ATIVO_IMOBILIZADO)
+- 1407/2407: Compra para uso/consumo (DESPESA)
 - 1653/2653: Compra de combustível (COMBUSTIVEL)
 
-Categorias válidas: revenda, insumo, despesa, combustivel, revenda_st, insumo_st, despesa_st
+Categorias válidas: revenda, insumo, despesa, ativo_imobilizado, combustivel, revenda_st, insumo_st
 
 Responda APENAS com um JSON válido no formato:
 {
