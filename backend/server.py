@@ -2262,12 +2262,12 @@ def _parse_single_nfse(nfse: Dict[str, Any]) -> Dict[str, Any]:
         'cep': endereco_tomador_data.get('Cep', ''),
         'pais': 'BRASIL',
         'cod_pais': '1058',
-        'telefone': tomador.get('Contato', {}).get('Telefone', '') or ''
+        'telefone': (tomador.get('Contato') or {}).get('Telefone', '') or ''
     }
     
     # Dados do serviço
-    servico = nfse.get('Servico', {}) or nfse.get('DeclaracaoPrestacaoServico', {}).get('Servico', {})
-    valores = servico.get('Valores', {})
+    servico = nfse.get('Servico', {}) or (nfse.get('DeclaracaoPrestacaoServico') or {}).get('Servico', {}) or {}
+    valores = servico.get('Valores', {}) or {}
     
     valor_servicos = float(valores.get('ValorServicos', 0) or servico.get('ValorServicos', 0) or 0)
     valor_iss = float(valores.get('ValorIss', 0) or 0)
