@@ -13956,7 +13956,13 @@ def obter_cfop_por_categoria(categoria: str, cfop_atual: str) -> str:
         prefixo = {'5': '1', '6': '2', '7': '3'}.get(prefixo, '1')
     
     # Verificar se é operação com ST (4xx indica ST para entrada, ou vem de 54xx/64xx de saída)
-    is_st = cfop_atual[1] == '4' if len(cfop_atual) >= 2 else False
+    # Considera tanto CFOPs de entrada (14xx, 24xx) quanto de saída (54xx, 64xx)
+    is_st = False
+    if len(cfop_atual) >= 2:
+        segundo_digito = cfop_atual[1]
+        # Para CFOPs de entrada: 14xx, 24xx
+        # Para CFOPs de saída: 54xx, 64xx (que serão convertidos para entrada)
+        is_st = segundo_digito == '4'
     
     # Mapeamento base (sem ST)
     mapeamento_base = {
