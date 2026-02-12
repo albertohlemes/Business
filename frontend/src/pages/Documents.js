@@ -4039,12 +4039,31 @@ const Documents = ({ user, onLogout }) => {
                 <button
                   onClick={handleZipConfirm}
                   disabled={zipSelectedFiles.length === 0}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className={`flex items-center gap-2 px-6 py-2.5 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
+                    zipSelectedFiles.length >= 500 
+                      ? 'bg-purple-500 hover:bg-purple-600' 
+                      : 'bg-emerald-500 hover:bg-emerald-600'
+                  }`}
                 >
                   <Upload className="w-4 h-4" />
-                  Importar {zipSelectedFiles.length} XMLs
+                  {zipSelectedFiles.length >= 500 ? (
+                    <>Processar em Background ({zipSelectedFiles.length})</>
+                  ) : (
+                    <>Importar {zipSelectedFiles.length} XMLs</>
+                  )}
                 </button>
               </div>
+              {/* Aviso sobre modo background */}
+              {zipSelectedFiles.length >= 500 && (
+                <div className="px-4 pb-4">
+                  <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                    <p className="text-sm text-purple-300">
+                      <strong>Modo Background:</strong> Para {zipSelectedFiles.length} arquivos, o processamento será feito em segundo plano. 
+                      Você pode fechar esta página e voltar depois para ver o resultado.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
