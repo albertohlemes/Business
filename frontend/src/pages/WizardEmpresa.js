@@ -1704,11 +1704,34 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 <div className="bg-[#141414] rounded-lg p-4">
                   <h3 className="text-[#C8A951] font-medium mb-3">Benefício Fiscal</h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <span className="text-[#666]">Redução:</span>
-                    <span className="text-white">{formData.percentual_reducao_icms}%</span>
                     <span className="text-[#666]">Tipo:</span>
-                    <span className="text-white capitalize">{formData.tipo_beneficio?.replace('_', ' ') || '-'}</span>
+                    <span className="text-white capitalize">
+                      {TIPOS_BENEFICIO_FISCAL.find(t => t.value === formData.tipo_beneficio_fiscal)?.label || '-'}
+                    </span>
+                    <span className="text-[#666]">Percentual:</span>
+                    <span className="text-white">
+                      {formData.tipo_beneficio_fiscal === 'credito_presumido' 
+                        ? `${formData.credito_presumido_icms_percent}% (crédito presumido)`
+                        : `${formData.percentual_reducao_icms}% (redução)`}
+                    </span>
+                    <span className="text-[#666]">Estabelecimento:</span>
+                    <span className="text-white">
+                      {TIPOS_ESTABELECIMENTO_BENEFICIO.find(e => e.value === formData.tipo_estabelecimento_beneficio)?.label || '-'}
+                    </span>
+                    <span className="text-[#666]">Exclusões:</span>
+                    <span className="text-red-400">
+                      {(formData.produtos_sem_credito_icms || []).length} palavras-chave
+                    </span>
                   </div>
+                  {(formData.produtos_sem_credito_icms || []).length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-[#2A2A2A]">
+                      <span className="text-xs text-[#666]">Produtos sem crédito: </span>
+                      <span className="text-xs text-red-400">
+                        {(formData.produtos_sem_credito_icms || []).slice(0, 10).join(', ')}
+                        {(formData.produtos_sem_credito_icms || []).length > 10 && ` (+${(formData.produtos_sem_credito_icms || []).length - 10} mais)`}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
