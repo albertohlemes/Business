@@ -1703,21 +1703,85 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 <div>
                   <p className="text-blue-400 font-medium">Produtos sem Direito a Crédito de ICMS</p>
                   <p className="text-sm text-blue-400/70 mt-1">
-                    Cadastre nomes de produtos ou NCMs (mesmo incompletos) que não dão direito a crédito de ICMS.
-                    A IA utilizará essas informações na análise de benefícios fiscais nos menus de análises.
+                    Selecione o tipo de estabelecimento para sugestões automáticas de produtos/NCMs que não dão direito a crédito.
+                    A IA utilizará essas informações na análise de benefícios fiscais.
                   </p>
                 </div>
               </div>
             </div>
             
-            {/* Campo único para adicionar produtos/NCMs */}
+            {/* Tipos de Estabelecimento com ícones */}
             <div className="bg-[#141414] rounded-lg p-4">
-              <h3 className="text-white font-medium mb-3 flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-orange-400" />
-                Produtos/NCMs sem Crédito
-              </h3>
-              <p className="text-xs text-[#666] mb-4">
-                Digite o nome do produto ou NCM (pode ser parcial, ex: "carne", "02", "2202") e pressione Enter ou clique em Adicionar.
+              <h3 className="text-white font-medium mb-3">Tipo de Estabelecimento</h3>
+              <p className="text-xs text-[#666] mb-4">Selecione para preencher automaticamente os produtos sem crédito</p>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                {TIPOS_ESTABELECIMENTO_BENEFICIO.map(estab => (
+                  <button
+                    key={estab.value}
+                    type="button"
+                    onClick={() => {
+                      handleChange('tipo_estabelecimento_beneficio', estab.value);
+                      // Ao selecionar, já adiciona as sugestões automaticamente
+                      if (estab.sugestao_exclusao !== 'PERSONALIZADO') {
+                        handleChange('produtos_sem_credito_icms', [...estab.palavras_excluir]);
+                        toast.success(`${estab.palavras_excluir.length} itens sugeridos para ${estab.label}!`);
+                      } else {
+                        handleChange('produtos_sem_credito_icms', []);
+                      }
+                    }}
+                    className={`p-4 rounded-lg border text-center transition-all ${
+                      formData.tipo_estabelecimento_beneficio === estab.value
+                        ? 'border-[#C8A951] bg-[#C8A951]/10'
+                        : 'border-[#2A2A2A] bg-[#1E1E1E] hover:border-[#3A3A3A]'
+                    }`}
+                    data-testid={`btn-estab-${estab.value}`}
+                  >
+                    <span className="text-3xl block mb-2">{estab.icon}</span>
+                    <span className="text-white text-xs font-medium block">{estab.label}</span>
+                  </button>
+                ))}
+              </div>
+              
+              {/* Descrição do estabelecimento selecionado */}
+              {formData.tipo_estabelecimento_beneficio && (
+                <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg mb-4">
+                  <p className="text-sm text-orange-400">
+                    <strong>{TIPOS_ESTABELECIMENTO_BENEFICIO.find(e => e.value === formData.tipo_estabelecimento_beneficio)?.icon}</strong>{' '}
+                    <strong>{TIPOS_ESTABELECIMENTO_BENEFICIO.find(e => e.value === formData.tipo_estabelecimento_beneficio)?.label}:</strong>{' '}
+                    {TIPOS_ESTABELECIMENTO_BENEFICIO.find(e => e.value === formData.tipo_estabelecimento_beneficio)?.description}
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            {/* Campo para adicionar produtos/NCMs */}
+            <div className="bg-[#141414] rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-white font-medium flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-orange-400" />
+                  Produtos/NCMs sem Crédito ({(formData.produtos_sem_credito_icms || []).length} itens)
+                </h3>
+                {formData.tipo_estabelecimento_beneficio && formData.tipo_estabelecimento_beneficio !== 'outros' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const estab = TIPOS_ESTABELECIMENTO_BENEFICIO.find(e => e.value === formData.tipo_estabelecimento_beneficio);
+                      if (estab) {
+                        handleChange('produtos_sem_credito_icms', [...estab.palavras_excluir]);
+                        toast.success('Sugestões restauradas!');
+                      }
+                    }}
+                    className="text-xs text-[#C8A951] hover:text-[#D4B95F] flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    Restaurar sugestões
+                  </button>
+                )}
+              </div>
+              
+              <p className="text-xs text-[#666] mb-3">
+                Digite o nome do produto ou NCM (pode ser parcial, ex: "carne", "02", "2202") e pressione Enter
               </p>
               
               <div className="flex gap-2 mb-4">
@@ -1738,7 +1802,6 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                   }}
                   className="flex-1 px-4 py-3 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
                   placeholder="Ex: carne, 02, 2202, frango, picanha..."
-                  data-testid="input-produto-ncm"
                 />
                 <button
                   type="button"
@@ -1757,9 +1820,9 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
               </div>
               
               {/* Lista de itens cadastrados */}
-              <div className="flex flex-wrap gap-2 min-h-[60px] p-3 bg-[#0C0C0C] rounded-lg border border-[#2A2A2A]">
+              <div className="flex flex-wrap gap-2 min-h-[80px] max-h-[200px] overflow-y-auto p-3 bg-[#0C0C0C] rounded-lg border border-[#2A2A2A]">
                 {(formData.produtos_sem_credito_icms || []).length === 0 ? (
-                  <span className="text-[#666] text-sm">Nenhum produto/NCM cadastrado</span>
+                  <span className="text-[#666] text-sm">Nenhum produto/NCM cadastrado - selecione um tipo de estabelecimento acima</span>
                 ) : (
                   (formData.produtos_sem_credito_icms || []).map((item, index) => (
                     <span
@@ -1781,12 +1844,6 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                   ))
                 )}
               </div>
-              
-              {(formData.produtos_sem_credito_icms || []).length > 0 && (
-                <p className="text-xs text-[#666] mt-2">
-                  {(formData.produtos_sem_credito_icms || []).length} item(ns) cadastrado(s)
-                </p>
-              )}
             </div>
             
             {/* Exemplos */}
