@@ -1689,247 +1689,110 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
         );
         
       case 5:
-        // Função para obter palavras sugeridas baseado no tipo de estabelecimento
-        const getPalavrasExclusao = () => {
-          const estabelecimento = TIPOS_ESTABELECIMENTO_BENEFICIO.find(e => e.value === formData.tipo_estabelecimento_beneficio);
-          if (!estabelecimento) return [];
-          return estabelecimento.palavras_excluir || [];
-        };
-        
-        // Combinar palavras sugeridas + personalizadas
-        const todasPalavrasExclusao = [
-          ...getPalavrasExclusao(),
-          ...(formData.palavras_exclusao_personalizadas || [])
-        ];
-        
         return (
           <div className="space-y-6">
-            {/* Toggle Principal */}
-            <div className="bg-[#141414] rounded-lg p-4">
-              <div className="flex items-center justify-between mb-4">
+            {/* Explicação */}
+            <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="text-white font-medium">Benefício Fiscal de ICMS</h3>
-                  <p className="text-sm text-[#666]">Empresa possui redução de base de cálculo ou crédito presumido?</p>
+                  <p className="text-blue-400 font-medium">Produtos sem Direito a Crédito de ICMS</p>
+                  <p className="text-sm text-blue-400/70 mt-1">
+                    Cadastre nomes de produtos ou NCMs (mesmo incompletos) que não dão direito a crédito de ICMS.
+                    A IA utilizará essas informações na análise de benefícios fiscais nos menus de análises.
+                  </p>
                 </div>
+              </div>
+            </div>
+            
+            {/* Campo único para adicionar produtos/NCMs */}
+            <div className="bg-[#141414] rounded-lg p-4">
+              <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-orange-400" />
+                Produtos/NCMs sem Crédito
+              </h3>
+              <p className="text-xs text-[#666] mb-4">
+                Digite o nome do produto ou NCM (pode ser parcial, ex: "carne", "02", "2202") e pressione Enter ou clique em Adicionar.
+              </p>
+              
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  value={formData.produtos_sem_credito_descricao || ''}
+                  onChange={(e) => handleChange('produtos_sem_credito_descricao', e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const item = (formData.produtos_sem_credito_descricao || '').trim().toLowerCase();
+                      if (item && !(formData.produtos_sem_credito_icms || []).includes(item)) {
+                        handleChange('produtos_sem_credito_icms', [...(formData.produtos_sem_credito_icms || []), item]);
+                        handleChange('produtos_sem_credito_descricao', '');
+                        toast.success(`"${item}" adicionado!`);
+                      }
+                    }
+                  }}
+                  className="flex-1 px-4 py-3 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                  placeholder="Ex: carne, 02, 2202, frango, picanha..."
+                  data-testid="input-produto-ncm"
+                />
                 <button
-                  onClick={() => handleChange('beneficio_fiscal_icms', !formData.beneficio_fiscal_icms)}
-                  className={`w-14 h-7 rounded-full transition-colors relative ${
-                    formData.beneficio_fiscal_icms ? 'bg-[#C8A951]' : 'bg-[#2A2A2A]'
-                  }`}
-                  data-testid="toggle-beneficio-fiscal"
+                  type="button"
+                  onClick={() => {
+                    const item = (formData.produtos_sem_credito_descricao || '').trim().toLowerCase();
+                    if (item && !(formData.produtos_sem_credito_icms || []).includes(item)) {
+                      handleChange('produtos_sem_credito_icms', [...(formData.produtos_sem_credito_icms || []), item]);
+                      handleChange('produtos_sem_credito_descricao', '');
+                      toast.success(`"${item}" adicionado!`);
+                    }
+                  }}
+                  className="px-6 py-3 bg-[#C8A951]/20 text-[#C8A951] rounded-lg hover:bg-[#C8A951]/30 transition-colors font-medium"
                 >
-                  <div
-                    className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
-                      formData.beneficio_fiscal_icms ? 'translate-x-8' : 'translate-x-1'
-                    }`}
-                  />
+                  Adicionar
                 </button>
               </div>
               
-              {formData.beneficio_fiscal_icms && (
-                <div className="space-y-6 pt-4 border-t border-[#2A2A2A]">
-                  {/* Tipo de Benefício */}
-                  <div>
-                    <label className="block text-sm font-medium text-[#A1A1AA] mb-2">
-                      Tipo de Benefício
-                    </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {TIPOS_BENEFICIO_FISCAL.map(tipo => (
-                        <button
-                          key={tipo.value}
-                          type="button"
-                          onClick={() => handleChange('tipo_beneficio_fiscal', tipo.value)}
-                          className={`p-3 rounded-lg border text-left transition-all ${
-                            formData.tipo_beneficio_fiscal === tipo.value
-                              ? 'border-[#C8A951] bg-[#C8A951]/10'
-                              : 'border-[#2A2A2A] bg-[#1E1E1E] hover:border-[#3A3A3A]'
-                          }`}
-                        >
-                          <span className="text-white text-sm font-medium">{tipo.label}</span>
-                          <p className="text-xs text-[#666] mt-1">{tipo.description}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Percentual de Redução/Crédito */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
-                        {formData.tipo_beneficio_fiscal === 'credito_presumido' ? 'Percentual de Crédito Presumido (%)' : 'Percentual de Redução (%)'}
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.tipo_beneficio_fiscal === 'credito_presumido' ? formData.credito_presumido_icms_percent : formData.percentual_reducao_icms}
-                        onChange={(e) => handleChange(
-                          formData.tipo_beneficio_fiscal === 'credito_presumido' ? 'credito_presumido_icms_percent' : 'percentual_reducao_icms', 
-                          parseFloat(e.target.value) || 0
-                        )}
-                        className="w-full px-4 py-2 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
-                        placeholder="Ex: 20"
-                        min="0"
-                        max="100"
-                        data-testid="input-percentual-reducao"
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Separador */}
-                  <div className="border-t border-[#2A2A2A] pt-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <AlertCircle className="w-5 h-5 text-orange-400" />
-                      <h4 className="text-white font-medium">Produtos sem Direito a Crédito</h4>
-                    </div>
-                    <p className="text-sm text-[#666] mb-4">
-                      Produtos da cesta básica ou específicos que não dão direito a crédito de ICMS. 
-                      Selecione o tipo de estabelecimento para sugestões automáticas.
-                    </p>
-                    
-                    {/* Tipo de Estabelecimento */}
-                    <label className="block text-sm font-medium text-[#A1A1AA] mb-2">
-                      Tipo de Estabelecimento
-                    </label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-                      {TIPOS_ESTABELECIMENTO_BENEFICIO.map(estab => (
-                        <button
-                          key={estab.value}
-                          type="button"
-                          onClick={() => {
-                            handleChange('tipo_estabelecimento_beneficio', estab.value);
-                            // Ao selecionar, já adiciona as sugestões automaticamente
-                            if (estab.sugestao_exclusao !== 'PERSONALIZADO') {
-                              handleChange('produtos_sem_credito_icms', estab.palavras_excluir);
-                            }
-                          }}
-                          className={`p-3 rounded-lg border text-center transition-all ${
-                            formData.tipo_estabelecimento_beneficio === estab.value
-                              ? 'border-[#C8A951] bg-[#C8A951]/10'
-                              : 'border-[#2A2A2A] bg-[#1E1E1E] hover:border-[#3A3A3A]'
-                          }`}
-                          data-testid={`btn-estab-${estab.value}`}
-                        >
-                          <span className="text-2xl">{estab.icon}</span>
-                          <span className="text-white text-xs font-medium block mt-1">{estab.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                    
-                    {/* Descrição do estabelecimento selecionado */}
-                    {formData.tipo_estabelecimento_beneficio && (
-                      <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg mb-4">
-                        <p className="text-sm text-orange-400">
-                          <strong>{TIPOS_ESTABELECIMENTO_BENEFICIO.find(e => e.value === formData.tipo_estabelecimento_beneficio)?.label}:</strong>{' '}
-                          {TIPOS_ESTABELECIMENTO_BENEFICIO.find(e => e.value === formData.tipo_estabelecimento_beneficio)?.description}
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* Palavras de exclusão */}
-                    {formData.tipo_estabelecimento_beneficio && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label className="block text-sm font-medium text-[#A1A1AA]">
-                            Palavras-chave para Exclusão ({(formData.produtos_sem_credito_icms || []).length} itens)
-                          </label>
-                          {formData.tipo_estabelecimento_beneficio !== 'outros' && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const estab = TIPOS_ESTABELECIMENTO_BENEFICIO.find(e => e.value === formData.tipo_estabelecimento_beneficio);
-                                if (estab) {
-                                  handleChange('produtos_sem_credito_icms', estab.palavras_excluir);
-                                  toast.success('Sugestões restauradas!');
-                                }
-                              }}
-                              className="text-xs text-[#C8A951] hover:text-[#D4B95F] flex items-center gap-1"
-                            >
-                              <RefreshCw className="w-3 h-3" />
-                              Restaurar sugestões
-                            </button>
-                          )}
-                        </div>
-                        
-                        {/* Lista de palavras */}
-                        <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-2 bg-[#1E1E1E] rounded-lg">
-                          {(formData.produtos_sem_credito_icms || []).map((palavra, index) => (
-                            <span
-                              key={`${palavra}-${index}`}
-                              className="px-3 py-1 bg-red-500/10 text-red-400 rounded-full text-sm flex items-center gap-1"
-                            >
-                              {palavra}
-                              <button 
-                                type="button"
-                                onClick={() => {
-                                  const novaLista = formData.produtos_sem_credito_icms.filter((_, i) => i !== index);
-                                  handleChange('produtos_sem_credito_icms', novaLista);
-                                }}
-                                className="hover:text-white ml-1"
-                              >
-                                ×
-                              </button>
-                            </span>
-                          ))}
-                          {(formData.produtos_sem_credito_icms || []).length === 0 && (
-                            <span className="text-[#666] text-sm">Nenhuma palavra cadastrada</span>
-                          )}
-                        </div>
-                        
-                        {/* Adicionar palavra personalizada */}
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={formData.produtos_sem_credito_descricao}
-                            onChange={(e) => handleChange('produtos_sem_credito_descricao', e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                const palavra = formData.produtos_sem_credito_descricao.trim().toLowerCase();
-                                if (palavra && !(formData.produtos_sem_credito_icms || []).includes(palavra)) {
-                                  handleChange('produtos_sem_credito_icms', [...(formData.produtos_sem_credito_icms || []), palavra]);
-                                  handleChange('produtos_sem_credito_descricao', '');
-                                  toast.success(`Palavra "${palavra}" adicionada!`);
-                                }
-                              }
-                            }}
-                            className="flex-1 px-4 py-2 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
-                            placeholder="Adicionar mais palavras (ex: sorvete, chocolate...)"
-                            data-testid="input-palavra-exclusao"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const palavra = formData.produtos_sem_credito_descricao.trim().toLowerCase();
-                              if (palavra && !(formData.produtos_sem_credito_icms || []).includes(palavra)) {
-                                handleChange('produtos_sem_credito_icms', [...(formData.produtos_sem_credito_icms || []), palavra]);
-                                handleChange('produtos_sem_credito_descricao', '');
-                                toast.success(`Palavra "${palavra}" adicionada!`);
-                              }
-                            }}
-                            className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
-                          >
-                            Adicionar
-                          </button>
-                        </div>
-                        
-                        {/* Info sobre o impacto */}
-                        <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                          <div className="flex items-start gap-2">
-                            <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                            <div className="text-sm text-blue-400">
-                              <p className="font-medium">Como funciona:</p>
-                              <ul className="list-disc list-inside mt-1 text-xs space-y-1">
-                                <li>Produtos que contenham essas palavras <strong>não gerarão crédito</strong> de ICMS</li>
-                                <li>O sistema filtra automaticamente na classificação inteligente</li>
-                                <li>Isso afeta o cálculo do ICMS a pagar e a lista de produtos no card</li>
-                              </ul>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+              {/* Lista de itens cadastrados */}
+              <div className="flex flex-wrap gap-2 min-h-[60px] p-3 bg-[#0C0C0C] rounded-lg border border-[#2A2A2A]">
+                {(formData.produtos_sem_credito_icms || []).length === 0 ? (
+                  <span className="text-[#666] text-sm">Nenhum produto/NCM cadastrado</span>
+                ) : (
+                  (formData.produtos_sem_credito_icms || []).map((item, index) => (
+                    <span
+                      key={`${item}-${index}`}
+                      className="px-3 py-1 bg-orange-500/10 text-orange-400 rounded-full text-sm flex items-center gap-2 border border-orange-500/30"
+                    >
+                      {item}
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const novaLista = formData.produtos_sem_credito_icms.filter((_, i) => i !== index);
+                          handleChange('produtos_sem_credito_icms', novaLista);
+                        }}
+                        className="hover:text-white text-lg leading-none"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))
+                )}
+              </div>
+              
+              {(formData.produtos_sem_credito_icms || []).length > 0 && (
+                <p className="text-xs text-[#666] mt-2">
+                  {(formData.produtos_sem_credito_icms || []).length} item(ns) cadastrado(s)
+                </p>
               )}
+            </div>
+            
+            {/* Exemplos */}
+            <div className="bg-[#1E1E1E] rounded-lg p-4 border border-[#2A2A2A]">
+              <p className="text-sm text-[#A1A1AA] font-medium mb-2">Exemplos de uso:</p>
+              <ul className="text-xs text-[#666] space-y-1">
+                <li>• <span className="text-orange-400">carne</span> → Exclui todos os produtos que contenham "carne" na descrição</li>
+                <li>• <span className="text-orange-400">02</span> → Exclui produtos com NCM iniciando em 02 (carnes)</li>
+                <li>• <span className="text-orange-400">2202</span> → Exclui produtos com NCM 2202 (bebidas)</li>
+                <li>• <span className="text-orange-400">arroz</span> → Exclui produtos que contenham "arroz"</li>
+              </ul>
             </div>
           </div>
         );
