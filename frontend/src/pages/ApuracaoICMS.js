@@ -770,6 +770,31 @@ const ApuracaoICMS = ({ user, onLogout }) => {
           </div>
         )}
 
+        {/* Card informativo quando benefício fiscal está marcado mas não tem dados (não salvo no servidor) */}
+        {beneficioFiscal && !selectedCompany?.beneficio_fiscal_icms && (
+          <div className="bg-gradient-to-r from-yellow-900/20 to-amber-900/20 border border-yellow-500/30 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <Star className="w-6 h-6 text-yellow-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-yellow-400 font-semibold">⭐ Benefício Fiscal ICMS - Aguardando Aplicação</h3>
+                <p className="text-sm text-[#A1A1AA]">
+                  Clique em "Aplicar e Recalcular" para salvar a configuração e visualizar os produtos com crédito desconsiderado.
+                </p>
+              </div>
+              <button
+                onClick={salvarFlags}
+                disabled={savingFlags}
+                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {savingFlags ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Aplicar
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Modal de Detalhamento do Benefício Fiscal */}
         {showBeneficioModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
