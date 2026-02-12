@@ -7478,6 +7478,18 @@ async def upload_xml_with_progress(
                 else:
                     # Cancelamento detectado por evento externo
                     result_entry['mensagem'] = 'Nota importada como CANCELADA (evento de cancelamento encontrado)'
+                
+                # Adicionar à lista de notas canceladas
+                notas_canceladas.append({
+                    "numero_nfe": parsed_data.get('numero_nfe'),
+                    "chave_nfe": parsed_data.get('chave_nfe'),
+                    "emitente": parsed_data.get('nome_emitente') or parsed_data.get('razao_social'),
+                    "cnpj_emitente": parsed_data.get('cnpj_emitente'),
+                    "valor": parsed_data.get('valor_total', 0),
+                    "data_emissao": parsed_data.get('data_emissao'),
+                    "motivo": result_entry.get('mensagem', 'Nota cancelada'),
+                    "arquivo": file.filename
+                })
             
             results.append(result_entry)
             
