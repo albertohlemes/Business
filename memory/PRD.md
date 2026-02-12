@@ -112,6 +112,50 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-12 (Sessão 25 - Refatoração Completa do Wizard + Testes 100%)
+
+**Funcionalidades Implementadas/Corrigidas:**
+
+- ✅ **Etapa 1 - Dados Básicos:**
+  - Mostra TODOS os CNAEs (principal + secundários) no cadastro
+  - Lista de CNAEs secundários com scroll
+
+- ✅ **Etapa 2 - Atividade:**
+  - Removido "Compra materiais para aplicação em serviços" (movido para Etapa 4)
+  - "É Transportador" → "Transportadora"
+  - Auto-detecção de Transportadora pelo CNAE (49, 50, 51, 52, 53)
+  - "Atividade de Locação de Bens" aparece SOMENTE para Serviços ou Mista
+
+- ✅ **Etapa 3 - Tributação:**
+  - "Apura Fator R" aparece SOMENTE quando Anexo V marcado
+  - Campos de Presunção IRPJ para Lucro Presumido
+  - Se MISTA: mostra 2 campos (Comércio 8% e Serviços 32%)
+  - Botão "Auto-preencher" para impostos baseado em regime/atividade
+
+- ✅ **Etapa 4 - Classificação:**
+  - Adicionado "Ativo Imobilizado" (ciano)
+  - Adicionado "Combustível" (vermelho)
+  - Para SERVIÇOS: "Materiais para Aplicação" substitui "Revenda"
+  - Para MISTA: mostra AMBOS (Revenda + Materiais para Aplicação)
+  - IA para gerar palavras-chave automaticamente
+
+- ✅ **Etapa 5 - Benefícios Fiscais:**
+  - Restaurados ícones de 8 tipos de estabelecimento
+  - Sugestões automáticas de produtos/NCMs sem crédito
+  - Botão "Restaurar sugestões"
+  - Campo para adicionar itens personalizados
+
+- ✅ **Testes Automatizados:**
+  - Backend: 100% (8/8 testes passaram)
+  - Frontend: 100% (6 etapas verificadas)
+  - Impacto nos cálculos verificado (ICMS, Lucro Presumido, Classificação)
+
+**Arquivos Modificados:**
+- `/app/frontend/src/pages/WizardEmpresa.js` - Refatoração completa das 6 etapas
+- `/app/backend/tests/test_wizard_empresa.py` - Novos testes criados
+
+---
+
 ### 2026-02-12 (Sessão 24 - Automação de Benefícios Fiscais no Wizard)
 
 **Funcionalidades Implementadas:**
