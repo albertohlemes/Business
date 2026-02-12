@@ -1553,21 +1553,43 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
         # ===== EXTRAIR NFe REFERENCIADA (para devoluções) =====
         nfe_referenciada = ""  # Sempre inicializar como string vazia
         
-        # Método 1: NFref tradicional
-        nfref = ide.get('NFref', {})
-        if nfref:
-            # Pode ser uma lista ou um dict único
-            if isinstance(nfref, list):
-                nfref = nfref[0] if nfref else {}
-            # A chave pode estar em refNFe (NF-e) ou em refNF (NF modelo 1/1A)
-            if isinstance(nfref, dict):
-                nfe_referenciada = nfref.get('refNFe', '') or ''
-                if not nfe_referenciada:
-                    # Tentar NF modelo 1/1A
+        # Método 1: NFref tradicional (pode ser lista ou dict)
+        nfref_raw = ide.get('NFref', None)
+        if nfref_raw:
+            # Normalizar para lista
+            if isinstance(nfref_raw, dict):
+                nfref_list = [nfref_raw]
+            elif isinstance(nfref_raw, list):
+                nfref_list = nfref_raw
+            else:
+                nfref_list = []
+            
+            for nfref in nfref_list:
+                if isinstance(nfref, dict):
+                    # Tentar refNFe (NF-e eletrônica)
+                    ref_nfe = nfref.get('refNFe', '')
+                    if ref_nfe:
+                        nfe_referenciada = ref_nfe
+                        break
+                    
+                    # Tentar refNF (NF modelo 1/1A)
                     ref_nf = nfref.get('refNF', {})
-                    if isinstance(ref_nf, dict):
+                    if isinstance(ref_nf, dict) and ref_nf:
                         # Montar identificação da NF modelo 1
                         nfe_referenciada = f"{ref_nf.get('cUF', '')}-{ref_nf.get('CNPJ', '')}-{ref_nf.get('mod', '')}-{ref_nf.get('serie', '')}-{ref_nf.get('nNF', '')}"
+                        break
+                    
+                    # Tentar refCTe (CT-e referenciado)
+                    ref_cte = nfref.get('refCTe', '')
+                    if ref_cte:
+                        nfe_referenciada = ref_cte
+                        break
+                    
+                    # Tentar refECF (ECF referenciado)
+                    ref_ecf = nfref.get('refECF', {})
+                    if isinstance(ref_ecf, dict) and ref_ecf:
+                        nfe_referenciada = f"ECF-{ref_ecf.get('nCOO', '')}"
+                        break
         
         # Método 2: DFeReferenciado nos itens (novo formato em algumas NF-e 4.0)
         if not nfe_referenciada:
@@ -1581,6 +1603,23 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                         if chave_acesso:
                             nfe_referenciada = chave_acesso
                             break
+        
+        # Método 3: Tentar extrair da natureza da operação ou informações adicionais
+        # Alguns sistemas colocam a referência nas infAdFisco ou infCpl
+        if not nfe_referenciada:
+            inf_adic = nfe.get('infAdic', {})
+            if isinstance(inf_adic, dict):
+                inf_cpl = inf_adic.get('infCpl', '') or ''
+                # Procurar padrão de chave de 44 dígitos
+                import re
+                chave_match = re.search(r'\b(\d{44})\b', inf_cpl)
+                if chave_match:
+                    nfe_referenciada = chave_match.group(1)
+                else:
+                    # Procurar "NF" ou "Nota" seguido de números
+                    nf_match = re.search(r'(?:NF|Nota|NFe?)[:\s-]*(\d+)', inf_cpl, re.IGNORECASE)
+                    if nf_match:
+                        nfe_referenciada = f"NF-{nf_match.group(1)}"
         
         # Garantir que nunca seja None
         if nfe_referenciada is None:
