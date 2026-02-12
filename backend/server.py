@@ -26713,19 +26713,22 @@ async def get_analise_horizontal(
                     else:
                         comp_normalizada = mes_ano
                     
+                    # Suportar tanto das_calculado (PGDAS) quanto valor_das (legado)
+                    valor_das = dados_das_hist.get('das_calculado', 0) or dados_das_hist.get('valor_das', 0) or 0
+                    
                     historico_das[comp_normalizada] = {
-                        'das': dados_das_hist.get('valor_das', 0) or 0,
+                        'das': valor_das,
                         'aliquota_efetiva': dados_das_hist.get('aliquota_efetiva', 0) or 0,
                         'fonte': 'pgdas'
                     }
                     
                     # Atualizar os dados mensais com o DAS do PGDAS se disponível
                     if comp_normalizada in dados_mensal:
-                        dados_mensal[comp_normalizada]['das'] = dados_das_hist.get('valor_das', 0) or 0
-                        dados_mensal[comp_normalizada]['impostos_pagar'] = dados_das_hist.get('valor_das', 0) or 0
+                        dados_mensal[comp_normalizada]['das'] = valor_das
+                        dados_mensal[comp_normalizada]['impostos_pagar'] = valor_das
                     if comp_normalizada in dados_mensal_anterior:
-                        dados_mensal_anterior[comp_normalizada]['das'] = dados_das_hist.get('valor_das', 0) or 0
-                        dados_mensal_anterior[comp_normalizada]['impostos_pagar'] = dados_das_hist.get('valor_das', 0) or 0
+                        dados_mensal_anterior[comp_normalizada]['das'] = valor_das
+                        dados_mensal_anterior[comp_normalizada]['impostos_pagar'] = valor_das
         
         return {
             "company_id": company_id,
