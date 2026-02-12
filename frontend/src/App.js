@@ -242,6 +242,10 @@ function App() {
               path="/importacao"
               element={user ? <ImportacaoPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/batch-import"
+              element={user ? <BatchImport user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
           </UploadProvider>
         </AppProvider>
