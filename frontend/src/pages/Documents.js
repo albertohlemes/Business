@@ -3854,6 +3854,137 @@ const Documents = ({ user, onLogout }) => {
             </div>
           </div>
         )}
+
+        {/* Modal de Preview do ZIP */}
+        {zipPreviewOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#C8A951]/20 flex items-center justify-center">
+                    <FileArchive className="w-5 h-5 text-[#C8A951]" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Preview do ZIP</h2>
+                    <p className="text-sm text-[#A1A1AA]">{zipFileName}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setZipPreviewOpen(false);
+                    setZipPreviewFiles([]);
+                    setZipSelectedFiles([]);
+                  }}
+                  className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3 p-4 border-b border-[#2A2A2A] bg-[#0C0C0C]">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-white">{zipPreviewFiles.length}</p>
+                  <p className="text-xs text-[#A1A1AA]">XMLs no ZIP</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-emerald-400">{zipSelectedFiles.length}</p>
+                  <p className="text-xs text-emerald-400">Selecionados</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-[#666]">{zipPreviewFiles.length - zipSelectedFiles.length}</p>
+                  <p className="text-xs text-[#666]">Ignorados</p>
+                </div>
+              </div>
+
+              {/* Selecionar todos */}
+              <div className="px-4 py-2 border-b border-[#2A2A2A] flex items-center justify-between">
+                <button
+                  onClick={toggleSelectAllZip}
+                  className="flex items-center gap-2 text-sm text-[#A1A1AA] hover:text-white transition-colors"
+                >
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                    zipSelectedFiles.length === zipPreviewFiles.length 
+                      ? 'bg-emerald-500 border-emerald-500' 
+                      : 'border-[#2A2A2A]'
+                  }`}>
+                    {zipSelectedFiles.length === zipPreviewFiles.length && (
+                      <CheckCircle className="w-3 h-3 text-white" />
+                    )}
+                  </div>
+                  {zipSelectedFiles.length === zipPreviewFiles.length ? 'Desmarcar todos' : 'Selecionar todos'}
+                </button>
+                <span className="text-xs text-[#666]">
+                  Tamanho total: {(zipPreviewFiles.reduce((acc, f) => acc + f.size, 0) / 1024 / 1024).toFixed(2)} MB
+                </span>
+              </div>
+
+              {/* Lista de arquivos */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {zipPreviewFiles.map((file, index) => (
+                  <div 
+                    key={index}
+                    onClick={() => toggleZipFileSelection(index)}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                      zipSelectedFiles.includes(index)
+                        ? 'bg-emerald-500/10 border-emerald-500/30'
+                        : 'bg-[#0C0C0C] border-[#2A2A2A] hover:border-[#3A3A3A]'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                      zipSelectedFiles.includes(index)
+                        ? 'bg-emerald-500 border-emerald-500'
+                        : 'border-[#3A3A3A]'
+                    }`}>
+                      {zipSelectedFiles.includes(index) && (
+                        <CheckCircle className="w-3 h-3 text-white" />
+                      )}
+                    </div>
+                    <FileText className={`w-4 h-4 flex-shrink-0 ${
+                      zipSelectedFiles.includes(index) ? 'text-emerald-400' : 'text-[#666]'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium truncate ${
+                        zipSelectedFiles.includes(index) ? 'text-white' : 'text-[#A1A1AA]'
+                      }`}>
+                        {file.name}
+                      </p>
+                      {file.path !== file.name && (
+                        <p className="text-xs text-[#666] truncate">{file.path}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-[#666] flex-shrink-0">
+                      {(file.size / 1024).toFixed(1)} KB
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between p-4 border-t border-[#2A2A2A] bg-[#0C0C0C]">
+                <button
+                  onClick={() => {
+                    setZipPreviewOpen(false);
+                    setZipPreviewFiles([]);
+                    setZipSelectedFiles([]);
+                  }}
+                  className="px-4 py-2 text-[#A1A1AA] hover:text-white transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleZipConfirm}
+                  disabled={zipSelectedFiles.length === 0}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  <Upload className="w-4 h-4" />
+                  Importar {zipSelectedFiles.length} XMLs
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
