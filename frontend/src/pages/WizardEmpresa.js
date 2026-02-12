@@ -5,7 +5,7 @@ import {
   Building2, ChevronRight, ChevronLeft, Check, 
   FileText, Tag, Gift, Upload, Sparkles, 
   Store, Factory, Wrench, Layers, Save,
-  AlertCircle, CheckCircle2, Info, Search, RefreshCw
+  AlertCircle, CheckCircle2, Info, Search, RefreshCw, Fuel
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
