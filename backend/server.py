@@ -7140,9 +7140,10 @@ async def upload_xml_with_progress(
             is_emissao_propria = cnpj_emitente == cnpj_empresa
             
             # Determinar qual data usar para competência (mesma lógica do upload-stream)
-            if tipo_operacao == 'saida' or is_emissao_propria:
+            # Usar 'tipo' que é o parâmetro da função (entrada/saida)
+            if tipo == 'saida' or is_emissao_propria:
                 data_para_competencia = data_emissao
-            elif tipo_operacao == 'entrada' and data_saida_entrada:
+            elif tipo == 'entrada' and data_saida_entrada:
                 data_para_competencia = data_saida_entrada
             else:
                 data_para_competencia = data_emissao
