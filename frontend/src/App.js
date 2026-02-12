@@ -237,6 +237,10 @@ function App() {
               path="/grupos-empresariais"
               element={user ? <GruposEmpresariais user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/importacao"
+              element={user ? <ImportacaoPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
           </UploadProvider>
         </AppProvider>
