@@ -1867,13 +1867,20 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                     key={estab.value}
                     type="button"
                     onClick={() => {
-                      handleChange('tipo_estabelecimento_beneficio', estab.value);
-                      // Ao selecionar, já adiciona as sugestões automaticamente
-                      if (estab.sugestao_exclusao !== 'PERSONALIZADO') {
-                        handleChange('produtos_sem_credito_icms', [...estab.palavras_excluir]);
-                        toast.success(`${estab.palavras_excluir.length} itens sugeridos para ${estab.label}!`);
-                      } else {
+                      // Toggle: se já está selecionado, desseleciona
+                      if (formData.tipo_estabelecimento_beneficio === estab.value) {
+                        handleChange('tipo_estabelecimento_beneficio', '');
                         handleChange('produtos_sem_credito_icms', []);
+                        toast.info('Seleção removida');
+                      } else {
+                        handleChange('tipo_estabelecimento_beneficio', estab.value);
+                        // Ao selecionar, já adiciona as sugestões automaticamente
+                        if (estab.sugestao_exclusao !== 'PERSONALIZADO') {
+                          handleChange('produtos_sem_credito_icms', [...estab.palavras_excluir]);
+                          toast.success(`${estab.palavras_excluir.length} itens sugeridos para ${estab.label}!`);
+                        } else {
+                          handleChange('produtos_sem_credito_icms', []);
+                        }
                       }
                     }}
                     className={`p-4 rounded-lg border text-center transition-all ${
