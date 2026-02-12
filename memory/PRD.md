@@ -112,6 +112,47 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-12 (Sessão 24 - Automação de Benefícios Fiscais no Wizard)
+
+**Funcionalidades Implementadas:**
+
+- ✅ **Automação de Benefício Fiscal ICMS no Wizard de Empresa:**
+  - 8 tipos de estabelecimento pré-definidos:
+    - 🍽️ Restaurante / Bar / Lanchonete
+    - 🥩 Casa de Carnes / Açougue
+    - 🥖 Padaria / Confeitaria
+    - 🥬 Hortifruti / Sacolão
+    - 🛒 Mercado / Mercearia
+    - 🧀 Laticínios / Frios
+    - 🍺 Distribuidora de Bebidas
+    - 📦 Outros / Personalizado
+  - Sugestão automática de palavras-chave para exclusão de crédito ICMS
+  - Palavras podem ser removidas individualmente ou restauradas
+  - Campo para adicionar palavras personalizadas
+  - Descrição contextual do estabelecimento selecionado
+
+- ✅ **Novos campos nos modelos Pydantic:**
+  - `tipo_estabelecimento_beneficio` - Tipo de estabelecimento para benefício
+  - `palavras_exclusao_personalizadas` - Palavras extras adicionadas pelo usuário
+
+- ✅ **Tipos de Benefício Fiscal organizados:**
+  - Redução de Base de Cálculo
+  - Crédito Presumido  
+  - Isenção
+  - Diferimento
+
+**Análise de Bug - Competência NF:**
+- Analisado XML com dhEmi=31/01 e dhSaiEnt=02/02
+- Lógica do servidor está CORRETA: usa dhSaiEnt para entradas
+- Competência calculada corretamente como 02/2026 (Fevereiro)
+- Tipo de operação determinado por comparação CNPJ emitente vs empresa
+
+**Arquivos Modificados:**
+- `/app/frontend/src/pages/WizardEmpresa.js` - Etapa 5 completamente reescrita
+- `/app/backend/server.py` - Novos campos nos modelos Company, CompanyCreate, CompanyUpdate
+
+---
+
 ### 2026-02-11 (Sessão 23 - Correção de Testes + Melhorias UX + PDF com Logo)
 
 **Correções Realizadas:**
