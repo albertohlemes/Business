@@ -726,7 +726,7 @@ const ApuracaoICMS = ({ user, onLogout }) => {
         )}
 
         {/* Card de Benefício Fiscal - Clicável */}
-        {selectedCompany?.beneficio_fiscal_icms && dados?.desconsiderados?.beneficio_fiscal?.valor_icms > 0 && (
+        {beneficioFiscal && dados?.desconsiderados?.beneficio_fiscal?.valor_icms > 0 && (
           <div 
             onClick={handleOpenBeneficioModal}
             className="bg-gradient-to-r from-yellow-900/30 to-amber-900/30 border border-yellow-500/50 rounded-xl p-4 mb-6 cursor-pointer hover:border-yellow-400 transition-all"
@@ -740,7 +740,7 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                   <h3 className="text-yellow-400 font-semibold flex items-center gap-2">
                     Benefício Fiscal ICMS
                     <span className="text-xs bg-yellow-500/30 px-2 py-0.5 rounded">
-                      {selectedCompany.tipo_beneficio_fiscal || 'Ativo'}
+                      {selectedCompany?.tipo_beneficio_fiscal || 'Ativo'}
                     </span>
                   </h3>
                   <p className="text-sm text-[#A1A1AA]">
