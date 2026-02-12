@@ -4049,17 +4049,41 @@ const Documents = ({ user, onLogout }) => {
                   className={`flex items-center gap-2 px-6 py-2.5 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
                     zipSelectedFiles.length >= 500 
                       ? 'bg-purple-500 hover:bg-purple-600' 
-                      : 'bg-emerald-500 hover:bg-emerald-600'
+                      : skipAiClassification
+                        ? 'bg-amber-500 hover:bg-amber-600'
+                        : 'bg-emerald-500 hover:bg-emerald-600'
                   }`}
                 >
                   <Upload className="w-4 h-4" />
                   {zipSelectedFiles.length >= 500 ? (
                     <>Processar em Background ({zipSelectedFiles.length})</>
+                  ) : skipAiClassification ? (
+                    <>Importar Rápido ({zipSelectedFiles.length})</>
                   ) : (
                     <>Importar {zipSelectedFiles.length} XMLs</>
                   )}
                 </button>
               </div>
+              
+              {/* Opção de Importação Rápida */}
+              <div className="px-4 pb-3 border-t border-[#2A2A2A]">
+                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-white/5 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={skipAiClassification}
+                    onChange={(e) => setSkipAiClassification(e.target.checked)}
+                    className="w-4 h-4 rounded border-[#3A3A3A] bg-[#0C0C0C] text-amber-500 focus:ring-amber-500"
+                  />
+                  <div>
+                    <span className="text-white font-medium">Importação Rápida</span>
+                    <span className="text-amber-400 text-xs ml-2">(sem classificação IA)</span>
+                    <p className="text-xs text-[#666] mt-0.5">
+                      Até 10x mais rápido. Produtos serão classificados depois manualmente ou em lote.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
               {/* Aviso sobre modo background */}
               {zipSelectedFiles.length >= 500 && (
                 <div className="px-4 pb-4">
