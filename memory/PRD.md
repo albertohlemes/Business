@@ -136,6 +136,12 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Erro ao importar NFS-e (campos None):**
   - Corrigido parser de NFS-e para tratar campos `CpfCnpj` e `Contato` como None/vazio
 
+- ✅ **ISS Retido no DAS - Cálculo corrigido (Anexo III/IV/V):**
+  - Para NFS-e com ISS retido, o DAS agora usa alíquota MENOS o % de ISS da repartição
+  - Exemplo: Alíquota 10.96% - ISS 32.5% = 7.40% para docs com ISS retido
+  - Nova função `calcular_das_com_iss_retido()` implementada
+  - Faturamento é separado em: com ISS retido vs sem ISS retido
+
 **Funcionalidades Implementadas:**
 
 - ✅ **Relatório de Guias de Recolhimento** (`GET /api/impostos-retidos/{company_id}/guias`):
@@ -150,7 +156,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 **Arquivos Modificados:**
 - `/app/backend/services/pgdas_extractor.py` - Extração do período de apuração
-- `/app/backend/services/simples_nacional_calculator.py` - Precisão da alíquota
+- `/app/backend/services/simples_nacional_calculator.py` - Precisão da alíquota + nova função ISS retido
 - `/app/backend/server.py` - Endpoints corrigidos e novo endpoint de guias
 - `/app/frontend/src/context/UploadContext.js` - documentsVersion
 - `/app/frontend/src/pages/Dashboard.js` - Atualização automática
