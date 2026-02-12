@@ -2232,7 +2232,7 @@ def _parse_single_nfse(nfse: Dict[str, Any]) -> Dict[str, Any]:
         'cep': endereco_prestador_data.get('Cep', ''),
         'pais': 'BRASIL',
         'cod_pais': '1058',
-        'telefone': prestador.get('Contato', {}).get('Telefone', '') or ''
+        'telefone': (prestador.get('Contato') or {}).get('Telefone', '') or ''
     }
     
     # Dados do tomador (cliente)
