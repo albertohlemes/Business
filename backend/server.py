@@ -23434,10 +23434,19 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
         
         # Totais de impostos
         "impostos_mes": {
-            "das": round(das_valor, 2),
+            "das_bruto": round(das_valor_bruto, 2),
+            "iss_retido": round(iss_retido_total, 2),
+            "das": round(das_valor, 2),  # DAS líquido (já descontado ISS retido)
             "difal": round(total_difal_mes, 2),
             "total": round(total_impostos_mes, 2),
             "percentual_sobre_vendas": percentual_impostos_sobre_vendas
+        },
+        
+        # Informação sobre ISS Retido (para exibição)
+        "iss_retido": {
+            "valor": round(iss_retido_total, 2),
+            "qtd_notas": len([n for n in nfse_prestados if n.get('iss_retido_flag', False) or (isinstance(n.get('iss_retido'), (int, float)) and n.get('iss_retido') > 0) or any(s.get('iss_retido') == True for s in n.get('servicos', []))]),
+            "orientacao": "ISS retido na fonte pelos tomadores de serviço. Este valor é descontado do DAS pois já foi retido." if iss_retido_total > 0 else ""
         },
         
         # Fator R (se aplicável e controla_fator_r ativo)
