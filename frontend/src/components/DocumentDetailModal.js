@@ -263,18 +263,22 @@ const DocumentDetailModal = ({ document, onClose }) => {
                 <FileText className="w-4 h-4 text-blue-400" />
                 <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Capa da Nota Fiscal</span>
               </div>
-              <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+              <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">Valor Total</p>
                   <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.valor_total)}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] text-[#666] uppercase">ICMS</p>
-                  <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.icms_total)}</p>
+                  <p className="text-[10px] text-[#666] uppercase">vProd</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.valor_produtos)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">ICMS-ST</p>
                   <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.total_icms_st)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">FCP-ST</p>
+                  <p className="text-sm font-bold text-yellow-400">{formatCurrency(valorCapaNF.total_fcp_st)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">IPI</p>
@@ -295,6 +299,10 @@ const DocumentDetailModal = ({ document, onClose }) => {
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">Desconto</p>
                   <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.total_desconto)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">ICMS</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.icms_total)}</p>
                 </div>
               </div>
             </div>
