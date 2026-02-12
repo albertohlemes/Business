@@ -6743,19 +6743,106 @@ async def upload_zip_with_progress(
     }
 
 
-@api_router.post("/xml/upload-zip-stream")
-async def process_zip_xmls(
-    upload_id: str = Form(...),
+@api_router.post("/xml/upload-zip-process")
+async def process_zip_upload(
+    file: UploadFile = File(...),
+    company_id: str = Form(...),
+    competencia: str = Form(...),
+    tipo: str = Form(...),
+    background_tasks: BackgroundTasks = None,
     current_user: User = Depends(get_current_user)
 ):
     """
-    Processa os XMLs extraídos de um ZIP após a inicialização.
-    Este endpoint é chamado após upload-zip para processar os arquivos.
+    Upload e processamento completo de arquivo ZIP contendo XMLs.
+    Extrai, valida e processa todos os XMLs do ZIP em uma única operação.
+    Retorna um upload_id para acompanhar o progresso.
     """
-    # Nota: Este endpoint seria usado para processar os XMLs extraídos
-    # Mas para simplicidade, vamos fazer o processamento no upload-stream normal
-    # convertendo os XMLs extraídos em UploadFiles virtuais
-    pass
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Verificar se é um arquivo ZIP
+    if not file.filename.lower().endswith('.zip'):
+        raise HTTPException(status_code=400, detail="O arquivo deve ser um ZIP")
+    
+    # Ler o conteúdo do ZIP
+    try:
+        zip_content = await file.read()
+        zip_buffer = BytesIO(zip_content)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao ler arquivo ZIP: {str(e)}")
+    
+    # Extrair XMLs do ZIP
+    xml_files = []
+    try:
+        with zipfile.ZipFile(zip_buffer, 'r') as zip_ref:
+            for file_info in zip_ref.infolist():
+                if file_info.is_dir():
+                    continue
+                
+                base_filename = os.path.basename(file_info.filename)
+                
+                if base_filename.lower().endswith('.xml'):
+                    try:
+                        xml_content = zip_ref.read(file_info.filename)
+                        xml_files.append({
+                            "filename": base_filename,
+                            "content": xml_content
+                        })
+                    except Exception as e:
+                        logger.warning(f"Erro ao ler {file_info.filename} do ZIP: {e}")
+    except zipfile.BadZipFile:
+        raise HTTPException(status_code=400, detail="Arquivo ZIP inválido ou corrompido")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao extrair ZIP: {str(e)}")
+    
+    if not xml_files:
+        raise HTTPException(status_code=400, detail="Nenhum arquivo XML encontrado no ZIP")
+    
+    total_files = len(xml_files)
+    upload_id = str(uuid.uuid4())
+    
+    # Criar sessão de upload
+    session_data = {
+        "status": "processing",
+        "total_files": total_files,
+        "processed_files": 0,
+        "processed_in_session": 0,
+        "current_file": "",
+        "current_step": f"Extraídos {total_files} XMLs. Iniciando processamento...",
+        "progress_percent": 0,
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": tipo,
+        "user_id": current_user.id,
+        "results": None,
+        "completed": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "all_results": {
+            "success": [],
+            "errors": [],
+            "duplicadas": [],
+            "rejeitadas_cnpj": [],
+            "relatorio_conversoes": [],
+            "alertas_cfop": [],
+            "notas_desconsideradas_devolucao": [],
+            "notas_canceladas": []
+        },
+        "zip_xml_files": xml_files  # Armazenar XMLs extraídos para processamento
+    }
+    
+    await save_upload_session(upload_id, session_data)
+    
+    logger.info(f"ZIP-PROCESS: Iniciado upload_id={upload_id} com {total_files} XMLs do arquivo {file.filename}")
+    
+    return {
+        "upload_id": upload_id,
+        "total_files": total_files,
+        "message": f"ZIP recebido. {total_files} XMLs extraídos e prontos para processamento."
+    }
 
 
 @api_router.get("/xml/upload-progress/{upload_id}")
