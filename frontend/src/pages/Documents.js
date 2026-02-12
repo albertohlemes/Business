@@ -3362,6 +3362,8 @@ const Documents = ({ user, onLogout }) => {
                           alert(`✅ ${deleteResponse.data.deleted_count} documento(s) excluído(s) com sucesso!`);
                           setShowDeleteModal(false);
                           fetchDocuments();
+                          // Notificar outros componentes sobre a mudança
+                          notifyDocumentsChanged();
                           
                         } catch (err) {
                           console.error('Erro ao excluir:', err);
