@@ -285,7 +285,7 @@ def calcular_aliquota_efetiva(rbt12: float, anexo: str) -> dict:
         "faixa_descricao": faixa_info["descricao"],
         "aliquota_nominal": aliquota_nominal,
         "parcela_deducao": parcela_deducao,
-        "aliquota_efetiva": round(aliquota_efetiva, 2),
+        "aliquota_efetiva": round(aliquota_efetiva, 4),  # 4 casas decimais para maior precisão
         "anexo": anexo
     }
 
