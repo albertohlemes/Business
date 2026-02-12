@@ -16512,17 +16512,23 @@ async def update_learned_rule(
         cfop_atual = str(rule.get('cfop_correto', '') or rule.get('cfop', ''))
         cfop_prefix = cfop_atual[0] if cfop_atual and cfop_atual[0] in ['1', '2', '3', '5', '6', '7'] else '1'
         
+        # Verificar se é ST pelo CFOP atual ou original do emissor
+        cfop_original_emissor = str(rule.get('cfop_original_emissor', ''))
+        cfops_st = ['1403', '1401', '1406', '1407', '2403', '2401', '2406', '2407',
+                   '5403', '5405', '6403', '6404', '6405']
+        is_st = cfop_atual in cfops_st or cfop_atual.endswith(('401', '403', '406', '407')) or cfop_original_emissor in ['5403', '5405', '6403', '6404', '6405']
+        
         # Se for entrada (1, 2, 3), manter como entrada
         if cfop_prefix in ['1', '2', '3']:
             categoria_lower = categoria.lower()
             if categoria_lower == 'revenda':
-                novo_cfop = cfop_prefix + '102'  # Compra para comercialização
+                novo_cfop = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')  # Compra para comercialização
             elif categoria_lower == 'insumo':
-                novo_cfop = cfop_prefix + '101'  # Compra para industrialização
+                novo_cfop = (cfop_prefix + '401') if is_st else (cfop_prefix + '101')  # Compra para industrialização
             elif categoria_lower == 'despesa':
-                novo_cfop = cfop_prefix + '407'  # Compra para uso/consumo
+                novo_cfop = (cfop_prefix + '407') if is_st else (cfop_prefix + '556')  # Compra para uso/consumo
             elif categoria_lower == 'ativo_imobilizado':
-                novo_cfop = cfop_prefix + '406'  # Compra de ativo imobilizado
+                novo_cfop = (cfop_prefix + '406') if is_st else (cfop_prefix + '551')  # Compra de ativo imobilizado
             elif categoria_lower == 'combustivel':
                 novo_cfop = cfop_prefix + '653'  # Compra de combustível
             elif categoria_lower in ['servico_aplicacao', 'servico']:
