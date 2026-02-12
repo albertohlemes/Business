@@ -112,6 +112,32 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-12 (Sessão 27 - Correção de Regressões no Wizard)
+
+**Bugs Corrigidos:**
+
+- ✅ **Endpoint de IA corrigido:**
+  - Corrigida importação do `emergentintegrations` (de `chat` para `LlmChat`)
+  - Corrigida variável de ambiente (de `EMERGENT_API_KEY` para `EMERGENT_LLM_KEY`)
+  - IA agora preenche AUTOMATICAMENTE os campos de classificação
+
+- ✅ **Casa de Carnes / Açougue:**
+  - Removidos itens incorretos: bacon, linguica, presunto, salsicha, mortadela, frios, embutidos
+  - Lista correta agora: carne, bovina, suina, frango, peixe, picanha, alcatra, costela, file, corte, ave
+
+**Testes Realizados (100% passou):**
+1. ✅ Mista + Lucro Presumido mostra DOIS campos de presunção
+2. ✅ IA preenche campos automaticamente (Revenda, Insumos, Despesas)
+3. ✅ Restaurante preenche com "TODOS OS PRODUTOS"
+4. ✅ Casa de Carnes preenche só com carnes frescas
+5. ✅ Simples Nacional sugere anexos automaticamente
+
+**Arquivos Modificados:**
+- `/app/backend/server.py` - Corrigido endpoint `/api/classificacao/gerar-palavras-chave`
+- `/app/frontend/src/pages/WizardEmpresa.js` - Corrigida lista de Casa de Carnes
+
+---
+
 ### 2026-02-12 (Sessão 26 - Automação de Tipo de Atividade e SINTEGRA)
 
 **Funcionalidades Implementadas:**
