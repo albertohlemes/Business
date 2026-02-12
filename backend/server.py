@@ -6231,6 +6231,16 @@ async def upload_xml_batch(
                 else:
                     # Cancelamento detectado por evento externo
                     result_entry['mensagem'] = 'Nota importada como CANCELADA (evento de cancelamento encontrado)'
+                
+                # Adicionar ao array de notas canceladas
+                notas_canceladas.append({
+                    "numero_nfe": parsed_data.get('numero_nfe'),
+                    "chave": chave_nfe,
+                    "emitente": parsed_data.get('emitente_nome', ''),
+                    "valor": parsed_data.get('valor_total', 0),
+                    "data_emissao": parsed_data.get('data_emissao', ''),
+                    "motivo": result_entry['mensagem']
+                })
             
             # Indicar se a nota foi importada como devolução do fornecedor
             if is_devolucao_fornecedor:
