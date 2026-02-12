@@ -801,6 +801,33 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
   - `/app/frontend/src/pages/Documents.js` (nova UI de drag-drop, função handleZipUpload)
   - `/app/frontend/package.json` (adicionado jszip@3.10.1)
 
+**Preview de XMLs do ZIP:**
+- ✅ **Modal de preview** mostra lista de todos XMLs extraídos do ZIP
+- ✅ **Seleção individual** de arquivos para importar/ignorar
+- ✅ **Botão "Selecionar todos"** para marcar/desmarcar em lote
+- ✅ **Informações de cada arquivo** (nome, caminho, tamanho em KB)
+- ✅ **Para ZIPs pequenos** (até 5 XMLs), processamento direto sem preview
+- ✅ **Arquivo modificado:** `/app/frontend/src/pages/Documents.js`
+
+**Correção do Dashboard Principal para Simples Nacional:**
+- ✅ **Problema:** Dashboard não calculava corretamente o DAS para empresas de serviços com ISS retido
+- ✅ **Solução:** Função `_get_simples_nacional_stats` refatorada para:
+  - Detectar tipo de atividade (serviços, comércio, mista)
+  - Calcular DAS separadamente para serviços e comércio
+  - Deduzir ISS retido na fonte do cálculo do DAS
+  - Retornar `aliquota_sem_iss` quando aplicável
+- ✅ **Novo campo:** `iss_retido` com valor, faturamento com/sem retenção
+- ✅ **Novo card:** "ISS Retido na Fonte" exibido quando há retenção
+- ✅ **Arquivo modificado:** `/app/backend/server.py`
+
+**Correção da Alíquota no Dashboard do Simples Nacional:**
+- ✅ **Problema:** Sempre mostrava "Alíquota Efetiva" mesmo quando havia ISS retido
+- ✅ **Solução:** Agora mostra "Alíquota Líquida (s/ ISS)" quando `iss_retido.valor > 0`
+- ✅ **Locais corrigidos:**
+  - Card "DAS" principal
+  - Card "Enquadramento Tributário" (Alíquota Efetiva/Líquida)
+- ✅ **Arquivo modificado:** `/app/frontend/src/pages/SimplesNacionalDashboard.js`
+
 **Melhoria no Feedback de Upload:**
 - ✅ **Barra de progresso animada** com efeito shimmer
 - ✅ **Estimativa de tempo restante** para uploads grandes
