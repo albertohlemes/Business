@@ -27699,6 +27699,102 @@ async def get_audit_summary(
     }
 
 
+# ============================================================
+# Endpoint de IA para Gerar Palavras-Chave de Classificação
+# ============================================================
+class GerarPalavrasChaveRequest(BaseModel):
+    descricao: str
+    tipo_atividade: str = 'comercio'
+    cnae_principal: Optional[str] = None
+    cnae_descricao: Optional[str] = None
+
+@api_router.post("/classificacao/gerar-palavras-chave")
+async def gerar_palavras_chave_ia(
+    request: GerarPalavrasChaveRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Gera sugestões de palavras-chave para classificação de produtos usando IA.
+    """
+    from emergentintegrations.llm.chat import chat, UserMessage
+    
+    try:
+        # Construir prompt detalhado
+        prompt = f"""Você é um especialista fiscal brasileiro. Com base na descrição da empresa abaixo, gere palavras-chave para classificação fiscal de produtos.
+
+DESCRIÇÃO DA EMPRESA:
+{request.descricao}
+
+TIPO DE ATIVIDADE: {request.tipo_atividade}
+{f"CNAE PRINCIPAL: {request.cnae_principal} - {request.cnae_descricao}" if request.cnae_principal else ""}
+
+Gere palavras-chave ESPECÍFICAS e DETALHADAS para cada categoria abaixo. Use termos que aparecem em descrições de notas fiscais.
+
+Retorne APENAS um JSON válido no seguinte formato (sem markdown, sem explicações):
+{{
+  "produtos_comercializados": ["palavra1", "palavra2", ...],
+  "insumos_producao": ["palavra1", "palavra2", ...],
+  "produtos_despesa": ["material escritorio", "material limpeza", "combustivel", ...],
+  "produtos_aplicacao_servico": ["palavra1", "palavra2", ...],
+  "ativo_imobilizado": ["computador", "impressora", "moveis", "veiculos", ...],
+  "combustivel": ["gasolina", "diesel", "etanol", "gnv", ...]
+}}
+
+REGRAS:
+- Para COMÉRCIO: foque em "produtos_comercializados" (produtos que a empresa compra para revender)
+- Para INDÚSTRIA: foque em "insumos_producao" (matérias-primas) e "produtos_comercializados" (produtos finais)
+- Para SERVIÇOS: foque em "produtos_aplicacao_servico" (materiais usados na prestação do serviço)
+- Para TODOS: inclua "produtos_despesa" (material de escritório, limpeza, copa, manutenção)
+- Inclua pelo menos 10 palavras por categoria relevante
+- Use termos em português, em minúsculas
+- Seja MUITO específico (ex: em vez de "alimento", use "arroz", "feijao", "oleo de soja")
+"""
+
+        response = await chat(
+            api_key=os.environ.get('EMERGENT_API_KEY'),
+            model="claude-sonnet",
+            messages=[UserMessage(content=prompt)]
+        )
+        
+        # Extrair JSON da resposta
+        response_text = response.content.strip()
+        
+        # Remover possíveis marcadores de código
+        if response_text.startswith('```'):
+            response_text = response_text.split('\n', 1)[1]
+        if response_text.endswith('```'):
+            response_text = response_text.rsplit('```', 1)[0]
+        if response_text.startswith('json'):
+            response_text = response_text[4:].strip()
+            
+        import json
+        sugestoes = json.loads(response_text)
+        
+        return sugestoes
+        
+    except Exception as e:
+        print(f"Erro ao gerar palavras-chave: {e}")
+        # Retornar sugestões padrão baseadas no tipo de atividade
+        sugestoes_padrao = {
+            "produtos_comercializados": [],
+            "insumos_producao": [],
+            "produtos_despesa": ["material escritorio", "material limpeza", "copa cozinha", "manutencao"],
+            "produtos_aplicacao_servico": [],
+            "ativo_imobilizado": ["computador", "impressora", "notebook", "moveis", "ar condicionado"],
+            "combustivel": ["gasolina", "diesel", "etanol"]
+        }
+        
+        if request.tipo_atividade == 'comercio':
+            sugestoes_padrao["produtos_comercializados"] = ["mercadoria revenda", "produto acabado"]
+        elif request.tipo_atividade == 'industria':
+            sugestoes_padrao["insumos_producao"] = ["materia prima", "embalagem", "insumo producao"]
+            sugestoes_padrao["produtos_comercializados"] = ["produto industrializado", "produto acabado"]
+        elif request.tipo_atividade == 'servicos':
+            sugestoes_padrao["produtos_aplicacao_servico"] = ["peca reposicao", "material aplicado", "componente"]
+            
+        return sugestoes_padrao
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
