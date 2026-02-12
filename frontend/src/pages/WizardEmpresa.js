@@ -536,8 +536,8 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       insumos: 'insumos_producao',
       despesa: 'produtos_despesa',
       servico: 'produtos_aplicacao_servico',
-      ativo_imobilizado: 'produtos_ativo_imobilizado',
-      combustivel: 'produtos_combustivel',
+      ativo_imobilizado: 'ativo_imobilizado',
+      combustivel: 'combustivel',
       sem_credito: 'produtos_sem_credito_icms',
     };
     
@@ -558,8 +558,8 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       insumos: 'insumos_producao',
       despesa: 'produtos_despesa',
       servico: 'produtos_aplicacao_servico',
-      ativo_imobilizado: 'produtos_ativo_imobilizado',
-      combustivel: 'produtos_combustivel',
+      ativo_imobilizado: 'ativo_imobilizado',
+      combustivel: 'combustivel',
       sem_credito: 'produtos_sem_credito_icms',
     };
     
