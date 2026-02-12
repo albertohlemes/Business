@@ -50,6 +50,30 @@ const ImpostosRetidos = ({ user, onLogout }) => {
     }
   };
 
+  // Buscar relatório de guias
+  const fetchGuias = async () => {
+    setLoadingGuias(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/impostos-retidos/${ctxCompany.id}/guias?competencia=${selectedCompetencia}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setGuias(response.data);
+    } catch (err) {
+      console.error('Erro ao buscar guias:', err);
+    } finally {
+      setLoadingGuias(false);
+    }
+  };
+
+  // Buscar guias quando mudar para a aba de guias
+  useEffect(() => {
+    if (activeTab === 'guias' && ctxCompany?.id && selectedCompetencia && !guias) {
+      fetchGuias();
+    }
+  }, [activeTab, ctxCompany?.id, selectedCompetencia]);
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
