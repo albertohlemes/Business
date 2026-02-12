@@ -280,12 +280,112 @@ def calcular_aliquota_efetiva(rbt12: float, anexo: str) -> dict:
     aliquota_efetiva = ((rbt12 * (aliquota_nominal / 100)) - parcela_deducao) / rbt12 * 100
     aliquota_efetiva = max(0, aliquota_efetiva)  # Não pode ser negativa
     
+    # Obter percentual de ISS da repartição para este anexo/faixa
+    percentual_iss = obter_percentual_iss_reparticao(anexo, faixa)
+    
     return {
         "faixa": faixa,
         "faixa_descricao": faixa_info["descricao"],
         "aliquota_nominal": aliquota_nominal,
         "parcela_deducao": parcela_deducao,
         "aliquota_efetiva": round(aliquota_efetiva, 4),  # 4 casas decimais para maior precisão
+        "anexo": anexo,
+        "percentual_iss": percentual_iss,  # % do ISS na repartição
+        "aliquota_sem_iss": round(aliquota_efetiva * (100 - percentual_iss) / 100, 4)  # Alíquota efetiva sem ISS
+    }
+
+
+def obter_percentual_iss_reparticao(anexo: str, faixa: int) -> float:
+    """
+    Retorna o percentual de ISS na repartição do tributo para um dado anexo e faixa.
+    Usado para calcular o DAS de documentos com ISS retido na fonte.
+    
+    Para Anexos III, IV e V (serviços), há percentual de ISS.
+    Para Anexos I e II (comércio/indústria), não há ISS (retorna 0).
+    """
+    reparticoes = {
+        "I": REPARTICAO_ANEXO_I,
+        "II": REPARTICAO_ANEXO_II,
+        "III": REPARTICAO_ANEXO_III,
+        "IV": REPARTICAO_ANEXO_IV,
+        "V": REPARTICAO_ANEXO_V
+    }
+    
+    reparticao = reparticoes.get(anexo, {})
+    faixa_rep = reparticao.get(faixa, {})
+    
+    return faixa_rep.get("iss", 0)
+
+
+def calcular_das_com_iss_retido(
+    faturamento_total: float,
+    faturamento_iss_retido: float,
+    rbt12: float,
+    anexo: str = "III"
+) -> dict:
+    """
+    Calcula o DAS considerando que parte do faturamento teve ISS retido na fonte.
+    
+    Para documentos com ISS retido:
+    - O tomador já reteve o ISS
+    - A empresa não deve pagar ISS novamente no DAS
+    - Calcula usando alíquota efetiva MENOS o percentual de ISS da repartição
+    
+    Parâmetros:
+    - faturamento_total: Faturamento total do período
+    - faturamento_iss_retido: Parte do faturamento que teve ISS retido
+    - rbt12: Receita Bruta Total dos últimos 12 meses
+    - anexo: Anexo do Simples (III, IV ou V para serviços)
+    
+    Retorna:
+    - DAS detalhado com valores separados
+    """
+    if rbt12 <= 0 or faturamento_total <= 0:
+        return {
+            "faturamento_total": 0,
+            "faturamento_iss_retido": 0,
+            "faturamento_iss_normal": 0,
+            "aliquota_efetiva": 0,
+            "aliquota_sem_iss": 0,
+            "das_iss_retido": 0,
+            "das_iss_normal": 0,
+            "das_total": 0,
+            "iss_economizado": 0
+        }
+    
+    # Calcular alíquota efetiva
+    aliq_info = calcular_aliquota_efetiva(rbt12, anexo)
+    aliquota_efetiva = aliq_info["aliquota_efetiva"]
+    percentual_iss = aliq_info["percentual_iss"]
+    aliquota_sem_iss = aliq_info["aliquota_sem_iss"]
+    
+    # Faturamento sem ISS retido (paga DAS completo)
+    faturamento_iss_normal = faturamento_total - faturamento_iss_retido
+    
+    # DAS para documentos COM ISS retido (usa alíquota sem ISS)
+    das_iss_retido = faturamento_iss_retido * (aliquota_sem_iss / 100)
+    
+    # DAS para documentos SEM ISS retido (usa alíquota completa)
+    das_iss_normal = faturamento_iss_normal * (aliquota_efetiva / 100)
+    
+    # DAS total
+    das_total = das_iss_retido + das_iss_normal
+    
+    # Quanto de ISS foi economizado (não precisa pagar pois já foi retido)
+    iss_economizado = faturamento_iss_retido * (percentual_iss * aliquota_efetiva / 100 / 100)
+    
+    return {
+        "faturamento_total": round(faturamento_total, 2),
+        "faturamento_iss_retido": round(faturamento_iss_retido, 2),
+        "faturamento_iss_normal": round(faturamento_iss_normal, 2),
+        "aliquota_efetiva": round(aliquota_efetiva, 4),
+        "percentual_iss_reparticao": percentual_iss,
+        "aliquota_sem_iss": round(aliquota_sem_iss, 4),
+        "das_iss_retido": round(das_iss_retido, 2),
+        "das_iss_normal": round(das_iss_normal, 2),
+        "das_total": round(das_total, 2),
+        "iss_economizado": round(iss_economizado, 2),
+        "faixa": aliq_info["faixa"],
         "anexo": anexo
     }
 
