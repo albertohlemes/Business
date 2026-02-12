@@ -529,17 +529,24 @@ const Dashboard = ({ user, onLogout }) => {
                             </div>
                           )}
                           {stats.creditos.icms_beneficio_desconsiderado > 0 && (
-                            <div className="bg-purple-500/10 -mx-2 px-2 py-1 rounded space-y-1">
-                              <div className="flex justify-between text-xs">
-                                <span className="text-purple-400">Benefício Fiscal (dedução):</span>
-                                <span className="font-medium text-purple-400">{formatCurrency(stats.creditos.icms_beneficio_desconsiderado)}</span>
+                            <button 
+                              onClick={() => setShowBeneficioModal(true)}
+                              className="w-full bg-purple-500/10 -mx-2 px-2 py-2 rounded space-y-1 hover:bg-purple-500/20 transition-colors cursor-pointer text-left border border-purple-500/30"
+                            >
+                              <div className="flex justify-between items-center text-xs">
+                                <div className="flex items-center gap-2">
+                                  <Gift className="w-4 h-4 text-purple-400" />
+                                  <span className="text-purple-400 font-medium">Benefício Fiscal (dedução):</span>
+                                </div>
+                                <span className="font-bold text-purple-400">{formatCurrency(stats.creditos.icms_beneficio_desconsiderado)}</span>
                               </div>
                               {stats.creditos.total_produtos_beneficio_excluidos > 0 && (
-                                <div className="text-xs text-purple-300/70">
-                                  {stats.creditos.total_produtos_beneficio_excluidos} produtos sem crédito (benefício fiscal)
+                                <div className="text-xs text-purple-300/70 flex items-center gap-1">
+                                  <span>📋 {stats.creditos.total_produtos_beneficio_excluidos} produtos sem crédito</span>
+                                  <span className="text-purple-400">• Clique para ver lista</span>
                                 </div>
                               )}
-                            </div>
+                            </button>
                           )}
                           <div className="flex justify-between text-sm">
                             <span className="text-red-400">Débito:</span>
