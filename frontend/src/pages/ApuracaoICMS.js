@@ -882,24 +882,24 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                   </div>
                 ) : beneficioDetalhes ? (
                   <>
-                    {/* Resumo */}
+                    {/* Resumo - usando dados filtrados */}
                     <div className="grid grid-cols-3 gap-4 mb-6">
                       <div className="bg-[#0C0C0C] rounded-lg p-4 border border-[#2A2A2A]">
-                        <p className="text-[#A1A1AA] text-sm">Total de Produtos</p>
-                        <p className="text-2xl font-bold text-white">{beneficioDetalhes.total_produtos || 0}</p>
+                        <p className="text-[#A1A1AA] text-sm">Produtos com ICMS</p>
+                        <p className="text-2xl font-bold text-white">{sortedBeneficioProdutos.length}</p>
                       </div>
                       <div className="bg-[#0C0C0C] rounded-lg p-4 border border-[#2A2A2A]">
                         <p className="text-[#A1A1AA] text-sm">Valor Total</p>
-                        <p className="text-2xl font-bold text-white">{formatCurrency(beneficioDetalhes.valor_total || 0)}</p>
+                        <p className="text-2xl font-bold text-white">{formatCurrency(sortedBeneficioProdutos.reduce((acc, p) => acc + (parseFloat(p.valor) || 0), 0))}</p>
                       </div>
                       <div className="bg-red-900/20 rounded-lg p-4 border border-red-500/30">
                         <p className="text-red-400 text-sm">ICMS Desconsiderado</p>
-                        <p className="text-2xl font-bold text-red-400">{formatCurrency(beneficioDetalhes.valor_icms_desconsiderado || 0)}</p>
+                        <p className="text-2xl font-bold text-red-400">{formatCurrency(sortedBeneficioProdutos.reduce((acc, p) => acc + (parseFloat(p.valor_icms) || 0), 0))}</p>
                       </div>
                     </div>
 
                     {/* Tabela por Produto */}
-                    {beneficioTab === 'produto' && beneficioDetalhes.por_produto && (
+                    {beneficioTab === 'produto' && sortedBeneficioProdutos.length > 0 && (
                       <div className="bg-[#0C0C0C] rounded-lg border border-[#2A2A2A] overflow-hidden">
                         <div className="max-h-[400px] overflow-auto">
                           <table className="w-full text-sm">
