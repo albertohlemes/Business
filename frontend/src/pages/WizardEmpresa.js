@@ -746,7 +746,7 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
               </div>
             )}
             
-            {/* Checkbox: Equiparado à Indústria */}
+            {/* Checkbox: Equiparado à Indústria - SÓ PARA COMÉRCIO */}
             {formData.tipo_atividade === 'comercio' && (
               <label className="flex items-center gap-3 cursor-pointer bg-[#141414] p-4 rounded-lg border border-[#2A2A2A]">
                 <input
@@ -758,6 +758,22 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 <div>
                   <span className="text-white font-medium">Equiparado à Indústria</span>
                   <p className="text-xs text-[#666]">Empresa que importa ou compra para industrialização por encomenda</p>
+                </div>
+              </label>
+            )}
+            
+            {/* Checkbox: Atividade de Locação - SÓ PARA SERVIÇOS */}
+            {['servicos', 'mista'].includes(formData.tipo_atividade) && (
+              <label className="flex items-center gap-3 cursor-pointer bg-[#141414] p-4 rounded-lg border border-yellow-500/30">
+                <input
+                  type="checkbox"
+                  checked={formData.atividade_locacao}
+                  onChange={(e) => handleChange('atividade_locacao', e.target.checked)}
+                  className="w-5 h-5 rounded border-[#2A2A2A] bg-[#0C0C0C] text-yellow-500 focus:ring-yellow-500"
+                />
+                <div>
+                  <span className="text-yellow-400 font-medium">Atividade de Locação de Bens</span>
+                  <p className="text-xs text-[#666]">Marque se a empresa realiza locação de bens móveis (não incide ISS)</p>
                 </div>
               </label>
             )}
