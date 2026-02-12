@@ -369,7 +369,16 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                   {formatCurrency(data.das_mes_atual?.valor_das_final)}
                 </p>
                 <p className="text-xs text-[#666] mt-1">
-                  Alíquota efetiva: <span className="text-[#C8A951] font-semibold">{formatPercent(data.enquadramento?.aliquota_efetiva)}</span>
+                  {data.iss_retido?.valor > 0 ? (
+                    <>
+                      Alíquota: <span className="text-[#C8A951] font-semibold">{formatPercent(data.enquadramento?.aliquota_sem_iss)}</span>
+                      <span className="text-[#666]"> (sem ISS retido)</span>
+                    </>
+                  ) : (
+                    <>
+                      Alíquota efetiva: <span className="text-[#C8A951] font-semibold">{formatPercent(data.enquadramento?.aliquota_efetiva)}</span>
+                    </>
+                  )}
                 </p>
               </div>
 
