@@ -6679,7 +6679,6 @@ async def upload_zip_with_progress(
                 if file_info.is_dir():
                     continue
                 
-                filename = file_info.filename.lower()
                 # Pegar apenas o nome do arquivo (sem caminho)
                 base_filename = os.path.basename(file_info.filename)
                 
