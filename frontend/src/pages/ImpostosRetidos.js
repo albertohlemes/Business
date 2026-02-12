@@ -16,8 +16,10 @@ const ImpostosRetidos = ({ user, onLogout }) => {
   const { selectedCompany: ctxCompany, selectedCompetencia } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [dados, setDados] = useState(null);
+  const [guias, setGuias] = useState(null);
+  const [loadingGuias, setLoadingGuias] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('tomados'); // 'tomados' ou 'prestados'
+  const [activeTab, setActiveTab] = useState('tomados'); // 'tomados', 'prestados' ou 'guias'
   const [searchTerm, setSearchTerm] = useState('');
 
   // Determinar se a empresa tem atividade de serviços
