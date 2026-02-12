@@ -25498,6 +25498,13 @@ async def get_impostos_retidos(
             "total_retido_como_prestador": round(total_retido_prestados, 2),
             "liquido": round(total_retido_tomados - total_retido_prestados, 2),
             "orientacao": "A empresa reteve impostos de prestadores (tem obrigação de recolher)" if total_retido_tomados > 0 else "A empresa não possui obrigações de recolhimento de impostos retidos de terceiros"
+        },
+        # Informações para Simples Nacional
+        "simples_nacional": {
+            "regime": regime,
+            "is_simples": regime == 'simples_nacional',
+            "iss_retido_abater_das": round(retencoes_prestados["iss"], 2) if regime == 'simples_nacional' else 0,
+            "orientacao_iss": "O ISS retido na fonte pelos tomadores de serviço deve ser DESCONTADO do DAS. Este valor não entra no cálculo do Simples Nacional pois já foi retido." if regime == 'simples_nacional' and retencoes_prestados["iss"] > 0 else ""
         }
     }
 
