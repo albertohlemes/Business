@@ -11,7 +11,7 @@ from datetime import datetime
 from pymongo import MongoClient
 
 class CascadeDeleteTester:
-    def __init__(self, base_url="https://taxwiz-2.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://fixeasy-6.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.admin_token = None
         self.test_company_id = None
