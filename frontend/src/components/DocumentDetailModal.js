@@ -113,20 +113,20 @@ const DocumentDetailModal = ({ document, onClose }) => {
     total_desconto: document.total_desconto || 0,
   };
 
-  // Calcular valor total usando a fórmula da NF-e:
+  // Calcular valor total esperado usando a fórmula da NF-e:
   // vNF = vProd - vDesc + vFrete + vSeg + vOutro + vIPI + vICMSST
-  // Usando os valores dos PRODUTOS (não da capa) para calcular
-  const valorTotalCalculadoProdutos = 
-    totaisProdutos.valor_produto +  // vProd (soma dos vProd dos itens)
-    totaisProdutos.v_ipi +          // IPI dos itens
-    totaisProdutos.v_icms_st +      // ICMS-ST dos itens
-    totaisProdutos.v_frete +        // Frete dos itens
-    totaisProdutos.v_seguro +       // Seguro dos itens
-    totaisProdutos.v_outras_despesas - // Outras desp dos itens
-    totaisProdutos.v_desconto;      // Desconto dos itens
+  // Usando os valores da CAPA para calcular o esperado
+  const valorTotalEsperado = 
+    (valorCapaNF.valor_produtos || totaisProdutos.valor_produto) +  // vProd
+    (valorCapaNF.total_ipi || 0) +          // IPI
+    (valorCapaNF.total_icms_st || 0) +      // ICMS-ST
+    (valorCapaNF.total_frete || 0) +        // Frete
+    (valorCapaNF.total_seguro || 0) +       // Seguro
+    (valorCapaNF.total_outras_despesas || 0) - // Outras desp
+    (valorCapaNF.total_desconto || 0);      // Desconto
 
-  // A diferença real é entre o valor da capa e o valor calculado pelos produtos
-  const diferencaValorTotal = Math.abs(valorCapaNF.valor_total - valorTotalCalculadoProdutos);
+  // A diferença é entre o valor total real e o esperado pela fórmula
+  const diferencaValorTotal = Math.abs(valorCapaNF.valor_total - valorTotalEsperado);
 
   // Classe CSS baseada na divergência
   const getDivergenceClass = (valorCapa, valorProdutos) => {
