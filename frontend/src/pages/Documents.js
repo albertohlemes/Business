@@ -565,7 +565,7 @@ const Documents = ({ user, onLogout }) => {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         },
-        timeout: 300000 // 5 minutos para enviar os arquivos
+        timeout: 600000 // 10 minutos para enviar os arquivos
       });
       
       toast.dismiss('bg-upload');
