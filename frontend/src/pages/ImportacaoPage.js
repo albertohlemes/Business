@@ -117,33 +117,31 @@ const ImportacaoPage = () => {
       const { upload_id } = await initResponse.json();
       setCurrentStep('Enviando arquivos para o servidor...');
 
-      // 2. Enviar arquivos em chunks
-      const CHUNK_SIZE = 50;
-      const totalChunks = Math.ceil(files.length / CHUNK_SIZE);
+      // 2. Enviar arquivos em lotes usando upload-stream
+      const BATCH_SIZE = 100;
+      const totalBatches = Math.ceil(files.length / BATCH_SIZE);
 
-      for (let i = 0; i < totalChunks; i++) {
-        const chunk = files.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-        const chunkFormData = new FormData();
-        chunkFormData.append('upload_id', upload_id);
-        chunkFormData.append('chunk_index', i.toString());
-        chunkFormData.append('total_chunks', totalChunks.toString());
+      for (let i = 0; i < totalBatches; i++) {
+        const batch = files.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+        const batchFormData = new FormData();
+        batchFormData.append('upload_id', upload_id);
 
-        chunk.forEach(file => {
-          chunkFormData.append('files', file);
+        batch.forEach(file => {
+          batchFormData.append('files', file);
         });
 
-        const chunkResponse = await fetch(`${API}/xml/upload-chunk`, {
+        const batchResponse = await fetch(`${API}/xml/upload-stream`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
-          body: chunkFormData
+          body: batchFormData
         });
 
-        if (!chunkResponse.ok) {
-          throw new Error(`Erro ao enviar chunk ${i + 1}`);
+        if (!batchResponse.ok) {
+          console.warn(`Erro no lote ${i + 1}, continuando...`);
         }
 
         // Atualizar progresso do envio
-        const sentFiles = Math.min((i + 1) * CHUNK_SIZE, files.length);
+        const sentFiles = Math.min((i + 1) * BATCH_SIZE, files.length);
         const uploadPercent = Math.round((sentFiles / files.length) * 30); // 30% para upload
         setProgress({ 
           current: sentFiles, 
@@ -153,7 +151,7 @@ const ImportacaoPage = () => {
         setCurrentStep(`Enviando arquivos... ${sentFiles}/${files.length}`);
       }
 
-      // 3. Iniciar processamento
+      // 3. Aguardar processamento via SSE
       setStatus('processing');
       setCurrentStep('Processando documentos fiscais...');
       
