@@ -6726,6 +6726,7 @@ async def upload_xml_with_progress(
     existing_docs_cache = set()  # Cache por chave_nfe
     existing_docs_by_num_serie = set()  # Cache por numero + serie + cnpj_emitente (para docs sem chave)
     try:
+        logger.info(f"UPLOAD-STREAM: Carregando cache para company_id={company_id}, competencia={competencia}")
         existing_cursor = db.xml_documents.find({
             "company_id": company_id,
             "competencia": competencia
@@ -6741,6 +6742,9 @@ async def upload_xml_with_progress(
                 alt_key = f"{num}|{serie}|{cnpj}"
                 existing_docs_by_num_serie.add(alt_key)
         logger.info(f"UPLOAD-STREAM: Cache de documentos existentes carregado - {len(existing_docs_cache)} por chave, {len(existing_docs_by_num_serie)} por num+serie")
+        # Log algumas chaves para debug
+        sample_keys = list(existing_docs_by_num_serie)[:5]
+        logger.info(f"UPLOAD-STREAM: Exemplos de alt_keys no cache: {sample_keys}")
     except Exception as e:
         logger.warning(f"UPLOAD-STREAM: Erro ao carregar cache de documentos existentes: {e}")
     
