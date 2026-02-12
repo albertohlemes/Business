@@ -174,6 +174,7 @@ const Layout = ({ user, onLogout, children }) => {
     // 📈 ANÁLISES
     // ═══════════════════════════════════════════════════════════
     nav.push({ type: 'separator', label: 'Análises' });
+    nav.push({ name: 'Reforma Tributária', href: '/reforma-tributaria', icon: Calculator, testId: 'nav-reforma-tributaria' });
     nav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
     nav.push({ name: 'Evolução Fiscal', href: '/analise-horizontal', icon: TrendingUp, testId: 'nav-analise-horizontal' });
     nav.push({ name: 'Vilões e Oportunidades', href: '/viloes-oportunidades', icon: AlertTriangle, testId: 'nav-viloes-oportunidades' });
