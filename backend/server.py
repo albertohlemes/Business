@@ -7134,15 +7134,28 @@ async def upload_xml_with_progress(
                     continue
             
             data_emissao = parsed_data.get('data_emissao', '')
-            if data_emissao:
+            data_saida_entrada = parsed_data.get('data_saida_entrada', '')  # dhSaiEnt
+            
+            # Detectar se é NF de emissão própria
+            is_emissao_propria = cnpj_emitente == cnpj_empresa
+            
+            # Determinar qual data usar para competência (mesma lógica do upload-stream)
+            if tipo_operacao == 'saida' or is_emissao_propria:
+                data_para_competencia = data_emissao
+            elif tipo_operacao == 'entrada' and data_saida_entrada:
+                data_para_competencia = data_saida_entrada
+            else:
+                data_para_competencia = data_emissao
+            
+            if data_para_competencia:
                 try:
-                    if 'T' in data_emissao:
-                        data_emissao_dt = datetime.fromisoformat(data_emissao.replace('Z', '+00:00'))
+                    if 'T' in data_para_competencia:
+                        data_competencia_dt = datetime.fromisoformat(data_para_competencia.replace('Z', '+00:00'))
                     else:
-                        data_emissao_dt = datetime.strptime(data_emissao[:10], '%Y-%m-%d')
+                        data_competencia_dt = datetime.strptime(data_para_competencia[:10], '%Y-%m-%d')
                     
-                    mes_nfe = str(data_emissao_dt.month).zfill(2)
-                    ano_nfe = str(data_emissao_dt.year)
+                    mes_nfe = str(data_competencia_dt.month).zfill(2)
+                    ano_nfe = str(data_competencia_dt.year)
                     competencia_nfe = f"{mes_nfe}/{ano_nfe}"
                     
                     if competencia_nfe != competencia:
@@ -7150,7 +7163,7 @@ async def upload_xml_with_progress(
                             "filename": file.filename,
                             "numero_nfe": parsed_data.get('numero_nfe', ''),
                             "motivo": f"Data da NF-e ({competencia_nfe}) não corresponde à competência selecionada ({competencia})",
-                            "data_emissao": data_emissao[:10]
+                            "data_emissao": data_para_competencia[:10]
                         })
                         continue
                 except Exception:
