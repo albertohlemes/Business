@@ -116,7 +116,7 @@ export const UploadProvider = ({ children }) => {
   }, [API]);
 
   // Iniciar upload em segundo plano
-  const startUpload = useCallback(async (files, companyId, competencia, empresaNome, tipo = 'entrada') => {
+  const startUpload = useCallback(async (files, companyId, competencia, empresaNome, tipo = 'entrada', existingUploadId = null) => {
     if (isUploading) {
       alert('Já existe um upload em andamento. Aguarde a conclusão.');
       return false;
@@ -129,7 +129,7 @@ export const UploadProvider = ({ children }) => {
     }
 
     setIsUploading(true);
-    setProgress({ current: 0, total: files.length, percent: 0 });
+    setProgress({ current: 0, total: files ? files.length : 0, percent: 0 });
     setCurrentFile('Iniciando...');
     setUploadResults(null);
     setUploadError(null);
@@ -137,29 +137,36 @@ export const UploadProvider = ({ children }) => {
     setMinimized(false);
 
     try {
-      // 1. Inicializar upload e obter ID (usando FormData)
-      const initFormData = new FormData();
-      initFormData.append('company_id', companyId);
-      initFormData.append('competencia', competencia);
-      initFormData.append('tipo', tipo);  // Usar o tipo passado como parâmetro
-      initFormData.append('total_files', files.length.toString());
+      let upload_id = existingUploadId;
       
-      console.log('UploadContext: Iniciando upload com tipo:', tipo);
-      
-      const initResponse = await fetch(`${API}/xml/upload-init`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: initFormData
-      });
+      // Se não temos um upload_id existente (ex: ZIP já processado), criar uma nova sessão
+      if (!upload_id && files) {
+        // 1. Inicializar upload e obter ID (usando FormData)
+        const initFormData = new FormData();
+        initFormData.append('company_id', companyId);
+        initFormData.append('competencia', competencia);
+        initFormData.append('tipo', tipo);  // Usar o tipo passado como parâmetro
+        initFormData.append('total_files', files.length.toString());
+        
+        console.log('UploadContext: Iniciando upload com tipo:', tipo);
+        
+        const initResponse = await fetch(`${API}/xml/upload-init`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: initFormData
+        });
 
-      if (!initResponse.ok) {
-        const errData = await initResponse.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Falha ao inicializar upload');
+        if (!initResponse.ok) {
+          const errData = await initResponse.json().catch(() => ({}));
+          throw new Error(errData.detail || 'Falha ao inicializar upload');
+        }
+
+        const initData = await initResponse.json();
+        upload_id = initData.upload_id;
       }
-
-      const { upload_id } = await initResponse.json();
+      
       uploadIdRef.current = upload_id;
 
       // 2. Conectar ao SSE para receber progresso
