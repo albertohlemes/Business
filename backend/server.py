@@ -6795,7 +6795,7 @@ async def get_job_status(
         raise HTTPException(status_code=404, detail="Job não encontrado")
     
     # Verificar acesso
-    if job.get('user_id') != current_user.id and current_user.role != 'admin':
+    if job.get('user_id') != current_user.id and current_user.role not in ['admin', 'super_admin']:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Se ainda está processando, tentar obter progresso do Celery
@@ -29367,7 +29367,7 @@ async def get_batch_import_history(
     current_user: User = Depends(get_current_user)
 ):
     """Retorna histórico de importações em lote"""
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin', 'super_admin']:
         raise HTTPException(status_code=403, detail="Apenas administradores podem ver histórico de importações em lote")
     
     history = await db.batch_import_history.find({}).sort("created_at", -1).to_list(length=limit)
@@ -29385,7 +29385,7 @@ async def get_batch_import_status(
     current_user: User = Depends(get_current_user)
 ):
     """Retorna status de uma importação em lote específica"""
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin', 'super_admin']:
         raise HTTPException(status_code=403, detail="Apenas administradores podem ver status de importações em lote")
     
     status = await db.batch_import_history.find_one({"import_id": import_id}, {"_id": 0})
@@ -29421,7 +29421,7 @@ async def batch_import_upload_estrutura(
     import re
     from pathlib import Path
     
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin', 'super_admin']:
         raise HTTPException(status_code=403, detail="Apenas administradores podem fazer importações em lote")
     
     if not file.filename.endswith('.zip'):
@@ -29658,7 +29658,7 @@ async def get_empresas_mapeamento(
     current_user: User = Depends(get_current_user)
 ):
     """Retorna lista de empresas com seus códigos para mapeamento"""
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin', 'super_admin']:
         raise HTTPException(status_code=403, detail="Apenas administradores")
     
     companies = await db.companies.find(
@@ -29684,7 +29684,7 @@ async def atualizar_codigo_empresa(
     current_user: User = Depends(get_current_user)
 ):
     """Atualiza o código de uma empresa para mapeamento de importação em lote"""
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin', 'super_admin']:
         raise HTTPException(status_code=403, detail="Apenas administradores")
     
     result = await db.companies.update_one(
