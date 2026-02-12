@@ -1,0 +1,95 @@
+{
+  "summary": "Completed comprehensive frontend testing of Wizard Empresa regressions. All 5 features tested and verified working correctly: 1) Mista + Lucro Presumido shows TWO presunção fields, 2) AI keyword generation works, 3) Restaurante fills with 'TODOS OS PRODUTOS', 4) Casa de Carnes fills with carnes frescas only (no bacon/embutidos), 5) Simples Nacional shows suggested anexos based on CNAEs.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "Feature 1: Mista + Lucro Presumido shows TWO presunção fields (Comércio/Indústria 8% and Serviços 32%)",
+    "Feature 2: AI keyword generation via 'Gerar Palavras-Chave Automaticamente' button works - fills Revenda, Insumos, Despesas fields",
+    "Feature 3: Restaurante icon (btn-estab-restaurante) fills produtos_sem_credito_icms with 'TODOS OS PRODUTOS'",
+    "Feature 4: Casa de Carnes icon (btn-estab-casa_carnes) fills with carnes frescas only (carne, bovina, suina, frango, peixe, picanha, alcatra, costela, file, corte, ave) - does NOT include bacon, linguica, presunto, mortadela, frios, embutidos",
+    "Feature 5: Simples Nacional shows 'Sugeridos com base nos CNAEs' with auto-selected anexos (I, II, III based on company CNAEs)",
+    "Wizard navigation through all 6 steps works correctly",
+    "CNPJ search fetches company data from Receita Federal",
+    "SINTEGRA integration for Inscrição Estadual works",
+    "Establishment type icons all have correct data-testid attributes (btn-estab-restaurante, btn-estab-casa_carnes, etc.)"
+  ],
+  
+  "test_report_links": [
+    "/app/test_reports/iteration_49.json"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "WizardEmpresa.js correctly implements conditional rendering for Mista + Lucro Presumido (lines 1270-1323)",
+    "TIPOS_ESTABELECIMENTO_BENEFICIO array correctly defines palavras_excluir for each establishment type",
+    "Restaurante correctly uses ['TODOS OS PRODUTOS'] for complete ICMS credit exclusion",
+    "Casa de Carnes correctly excludes bacon, linguica, presunto, mortadela, frios, embutidos from the list",
+    "sugerirAnexosPorCnaes function correctly suggests anexos based on CNAE prefixes",
+    "AI integration endpoint /api/classificacao/gerar-palavras-chave works correctly"
+  ],
+  
+  "updated_files": [],
+  
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100% (5/5 features verified)"
+  },
+  
+  "test_credentials": {
+    "email": "alberto.lemes@businessconta.com.br",
+    "password": "Business@2026"
+  },
+  
+  "seed_data_creation": "No seed data created - used existing company data and CNPJ search",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "All 5 Wizard Empresa regression features verified working: 1) Mista + Lucro Presumido shows two presunção fields, 2) AI keyword generation fills classification fields, 3) Restaurante fills 'TODOS OS PRODUTOS', 4) Casa de Carnes fills only fresh meats without bacon/embutidos, 5) Simples Nacional shows suggested anexos. Login credentials: alberto.lemes@businessconta.com.br / Business@2026. Navigate via Empresas > Nova Empresa to access wizard.",
+  
+  "features_verified": {
+    "feature_1_mista_lucro_presumido": {
+      "status": "VERIFIED",
+      "description": "When tipo_atividade='mista' AND regime_tributario='lucro_presumido', TWO presunção fields are shown",
+      "fields_shown": ["Presunção Comércio/Indústria (% IRPJ) - default 8%", "Presunção Serviços (% IRPJ) - default 32%"],
+      "code_location": "WizardEmpresa.js lines 1270-1302"
+    },
+    "feature_2_ai_keywords": {
+      "status": "VERIFIED",
+      "description": "Button 'Gerar Palavras-Chave Automaticamente' calls AI endpoint and fills classification fields",
+      "endpoint": "POST /api/classificacao/gerar-palavras-chave",
+      "fields_filled": ["produtos_comercializados", "insumos_producao", "produtos_despesa", "produtos_aplicacao_servico", "ativo_imobilizado", "combustivel"]
+    },
+    "feature_3_restaurante": {
+      "status": "VERIFIED",
+      "description": "Clicking Restaurante icon fills produtos_sem_credito_icms with 'TODOS OS PRODUTOS'",
+      "data_testid": "btn-estab-restaurante",
+      "palavras_excluir": ["TODOS OS PRODUTOS"]
+    },
+    "feature_4_casa_carnes": {
+      "status": "VERIFIED",
+      "description": "Clicking Casa de Carnes icon fills with fresh meats only, excluding bacon/embutidos",
+      "data_testid": "btn-estab-casa_carnes",
+      "palavras_excluir": ["carne", "bovina", "suina", "frango", "peixe", "picanha", "alcatra", "costela", "file", "corte", "ave"],
+      "excluded_items": ["bacon", "linguica", "presunto", "mortadela", "frios", "embutidos"]
+    },
+    "feature_5_simples_nacional_anexos": {
+      "status": "VERIFIED",
+      "description": "Selecting Simples Nacional shows 'Sugeridos com base nos CNAEs' with auto-selected anexos",
+      "suggestion_text": "Sugeridos com base nos CNAEs: I, II, III",
+      "code_location": "WizardEmpresa.js sugerirAnexosPorCnaes function"
+    }
+  }
+}
