@@ -27,8 +27,10 @@ const MODULE_ICONS = {
   settings: Settings,
 };
 
-const UserPermissions = () => {
+const UserPermissions = ({ user, onLogout }) => {
   const { user: currentUser } = useAppContext();
+  // Usar user das props ou do contexto
+  const activeUser = user || currentUser;
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [availablePermissions, setAvailablePermissions] = useState(null);
