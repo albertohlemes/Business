@@ -5970,6 +5970,9 @@ async def upload_xml_batch(
                     elif cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
                         produtos_operacao_distinta.append((product, cfop_original))
                     else:
+                        # IMPORTANTE: Preservar CFOP original do emissor ANTES de classificar
+                        # Isso é necessário para detectar corretamente ST (5403, 6403, etc.)
+                        product['cfop_original_emissor'] = cfop_original
                         produtos_para_classificar.append(product)
             
             # 2. Processar operações distintas (CFOPs especiais)
@@ -7194,6 +7197,9 @@ async def upload_xml_with_progress(
                     elif cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
                         produtos_operacao_distinta.append((product, cfop_original))
                     else:
+                        # IMPORTANTE: Preservar CFOP original do emissor ANTES de classificar
+                        # Isso é necessário para detectar corretamente ST (5403, 6403, etc.)
+                        product['cfop_original_emissor'] = cfop_original
                         produtos_para_classificar.append(product)
             
             for product, cfop_original in produtos_operacao_distinta:
