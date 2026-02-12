@@ -802,14 +802,34 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
               <div>
                 <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
                   Inscrição Estadual
+                  {loadingSintegra && (
+                    <span className="ml-2 text-xs text-blue-400">(Consultando SINTEGRA...)</span>
+                  )}
                 </label>
-                <input
-                  type="text"
-                  value={formData.inscricao_estadual}
-                  onChange={(e) => handleChange('inscricao_estadual', e.target.value)}
-                  className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
-                  placeholder="Número da IE"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.ie_isento ? 'ISENTO' : formData.inscricao_estadual}
+                    onChange={(e) => handleChange('inscricao_estadual', e.target.value)}
+                    disabled={formData.ie_isento}
+                    className={`flex-1 px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none ${formData.ie_isento ? 'opacity-50' : ''}`}
+                    placeholder="Número da IE"
+                  />
+                </div>
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.ie_isento}
+                    onChange={(e) => {
+                      handleChange('ie_isento', e.target.checked);
+                      if (e.target.checked) {
+                        handleChange('inscricao_estadual', '');
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951]"
+                  />
+                  <span className="text-xs text-[#666]">Isento / Não Contribuinte</span>
+                </label>
               </div>
               
               {/* Inscrição Municipal */}
