@@ -23420,12 +23420,8 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     }
     
     # Calcular total de impostos (DAS + DIFAL)
-    das_valor_bruto = das_mes.get("valor_das_final", 0) if das_mes else 0
-    
-    # IMPORTANTE: No Simples Nacional, o ISS retido na fonte deve ser DESCONTADO do DAS
-    # pois a tributação do ISS no Simples é própria e o tomador já reteve esse valor
-    das_valor_liquido = max(0, das_valor_bruto - iss_retido_total)
-    das_valor = das_valor_liquido
+    # NOTA: O ISS retido já foi descontado no cálculo do DAS (usando alíquota sem ISS)
+    das_valor = das_mes.get("valor_das_final", 0) if das_mes else 0
     
     total_impostos_mes = das_valor + total_difal_mes
     
