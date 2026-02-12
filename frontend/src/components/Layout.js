@@ -236,6 +236,11 @@ const Layout = ({ user, onLogout, children }) => {
 
   // Render navigation item for horizontal menu
   const NavItemHorizontal = ({ item }) => {
+    // Pular separadores no menu horizontal
+    if (item.type === 'separator') {
+      return null;
+    }
+    
     const Icon = item.icon;
     const active = isActive(item.href);
     
