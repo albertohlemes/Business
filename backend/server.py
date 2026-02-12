@@ -1210,11 +1210,21 @@ def produto_sem_credito_icms_beneficio(ncm: str, descricao: str, company: dict) 
     if not produtos_sem_credito:
         return False
     
+    # Verificar se a lista contém "TODOS" - desconsiderar todos os produtos
+    for item in produtos_sem_credito:
+        item_upper = item.upper().strip()
+        if item_upper in ['TODOS', 'TODOS OS PRODUTOS', 'TODOS PRODUTOS', 'ALL', '*']:
+            return True
+    
     ncm_str = str(ncm or '').strip()
     descricao_lower = (descricao or '').lower()
     
     for item in produtos_sem_credito:
         item_lower = item.lower().strip()
+        
+        # Pular se for "TODOS" (já tratado acima)
+        if item_lower in ['todos', 'todos os produtos', 'todos produtos', 'all', '*']:
+            continue
         
         # Verificar se é um NCM (começa com dígito)
         if item_lower and item_lower[0].isdigit():
@@ -1228,7 +1238,7 @@ def produto_sem_credito_icms_beneficio(ncm: str, descricao: str, company: dict) 
             
             # Verificar aliases comuns
             aliases = {
-                'carne': ['carne', 'bovina', 'suina', 'frango', 'peixe', 'pescado', 'aves'],
+                'carne': ['carne', 'bovina', 'suina', 'frango', 'peixe', 'pescado', 'aves', 'picanha', 'alcatra', 'costela', 'file', 'corte', 'ave'],
                 'bebida': ['bebida', 'refrigerante', 'suco', 'água', 'cerveja', 'vinho', 'destilado'],
                 'alcool': ['cerveja', 'vinho', 'vodka', 'whisky', 'cachaça', 'gin', 'licor', 'alcool', 'álcool', 'destilado'],
                 'laticinio': ['leite', 'queijo', 'iogurte', 'manteiga', 'requeijão', 'creme de leite'],
