@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import Layout from '../components/Layout';
 import { 
   Users, Shield, Check, X, ChevronDown, ChevronRight, 
   Search, Save, RefreshCw, Eye, Edit2, Trash2, UserPlus,
