@@ -2296,6 +2296,17 @@ def _parse_single_nfse(nfse: Dict[str, Any]) -> Dict[str, Any]:
         'iss_retido': valores.get('IssRetido', '2') == '1'  # 1=Sim, 2=Não
     }]
     
+    # Determinar retenções - ISS retido significa que o tomador reteve o ISS
+    iss_foi_retido = valores.get('IssRetido', '2') == '1'
+    valor_iss_retido = valor_iss if iss_foi_retido else 0
+    
+    # Outras retenções (PIS, COFINS, IR, CSLL, INSS)
+    pis_retido = float(valores.get('ValorPis', 0) or 0)
+    cofins_retido = float(valores.get('ValorCofins', 0) or 0)
+    ir_retido = float(valores.get('ValorIr', 0) or 0)
+    csll_retido = float(valores.get('ValorCsll', 0) or 0)
+    inss_retido = float(valores.get('ValorInss', 0) or 0)
+    
     return {
         'modelo': 'nfse',
         'chave_nfe': codigo_verificacao or str(uuid.uuid4())[:20],
@@ -2317,6 +2328,16 @@ def _parse_single_nfse(nfse: Dict[str, Any]) -> Dict[str, Any]:
         'destinatario_endereco': tomador_endereco,
         'valor_total': valor_servicos,
         'valor_servicos': valor_servicos,
+        # Campos de retenção para apuração
+        'valor_iss': valor_iss,
+        'iss_retido_flag': iss_foi_retido,
+        'iss_retido': valor_iss_retido,  # Valor do ISS retido (para abater do DAS)
+        'pis_retido': pis_retido,
+        'cofins_retido': cofins_retido,
+        'ir_retido': ir_retido,
+        'csll_retido': csll_retido,
+        'inss_retido': inss_retido,
+        'total_retencoes': valor_iss_retido + pis_retido + cofins_retido + ir_retido + csll_retido + inss_retido,
         'produtos': [],
         'servicos': servicos
     }
