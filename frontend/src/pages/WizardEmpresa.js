@@ -1364,31 +1364,6 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
               </div>
             </div>
             
-            {/* Flags de Desconsiderar ICMS */}
-            <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
-              <p className="text-[#A1A1AA] mb-3 text-sm">Configurações adicionais de ICMS:</p>
-              <div className="space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.desconsiderar_icms_despesas}
-                    onChange={(e) => handleChange('desconsiderar_icms_despesas', e.target.checked)}
-                    className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951]"
-                  />
-                  <span className="text-white text-sm">Desconsiderar ICMS de despesas (não gera crédito)</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.desconsiderar_icms_st}
-                    onChange={(e) => handleChange('desconsiderar_icms_st', e.target.checked)}
-                    className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951]"
-                  />
-                  <span className="text-white text-sm">Desconsiderar ICMS ST para fins de classificação</span>
-                </label>
-              </div>
-            </div>
-            
             {/* Saldo Credor Inicial */}
             <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
               <label className="flex items-center gap-3 cursor-pointer mb-3">
