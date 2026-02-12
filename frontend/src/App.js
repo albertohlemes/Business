@@ -247,6 +247,10 @@ function App() {
               path="/batch-import"
               element={user ? <BatchImport user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/reforma-tributaria"
+              element={user ? <ReformaTributaria user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
           </UploadProvider>
         </AppProvider>
