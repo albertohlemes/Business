@@ -437,7 +437,14 @@ const Dashboard = ({ user, onLogout }) => {
                           {formatCurrency(stats.simples?.das_valor || 0)}
                         </p>
                         <div className="text-xs text-[#A1A1AA] space-y-0.5">
-                          <div>Alíquota Efetiva: <span className="text-[#C8A951] font-semibold">{formatPercent(stats.simples?.aliquota_efetiva || 0)}</span></div>
+                          {stats.simples?.iss_retido?.valor > 0 ? (
+                            <>
+                              <div>Alíquota: <span className="text-[#C8A951] font-semibold">{formatPercent(stats.simples?.aliquota_sem_iss || stats.simples?.aliquota_efetiva || 0)}</span></div>
+                              <div className="text-[#666]">(sem ISS retido)</div>
+                            </>
+                          ) : (
+                            <div>Alíquota Efetiva: <span className="text-[#C8A951] font-semibold">{formatPercent(stats.simples?.aliquota_efetiva || 0)}</span></div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -482,6 +489,26 @@ const Dashboard = ({ user, onLogout }) => {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* ISS Retido na Fonte - Mostrar se houver */}
+                  {stats.simples?.iss_retido?.valor > 0 && (
+                    <div className="mt-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-amber-600 flex items-center justify-center">
+                            <Building2 className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-amber-400">ISS Retido na Fonte</h4>
+                            <p className="text-xs text-[#A1A1AA]">Deduzido do DAS - {stats.simples?.iss_retido?.faturamento_com_iss_retido > 0 ? formatCurrency(stats.simples.iss_retido.faturamento_com_iss_retido) + ' com retenção' : ''}</p>
+                          </div>
+                        </div>
+                        <p className="text-xl font-bold text-amber-400">
+                          {formatCurrency(stats.simples?.iss_retido?.valor || 0)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Total de Impostos - Simples Nacional */}
                   <div className="mt-4 bg-[#0C0C0C] border border-[#C8A951]/30 rounded-lg p-6">
