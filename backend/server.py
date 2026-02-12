@@ -85,6 +85,19 @@ starlette.formparsers.MultiPartParser.spool_max_size = 500 * 1024 * 1024
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
+# Middleware para adicionar headers de keep-alive
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class KeepAliveMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        # Manter conexão viva por mais tempo
+        response.headers["Connection"] = "keep-alive"
+        response.headers["Keep-Alive"] = "timeout=600, max=1000"
+        return response
+
+app.add_middleware(KeepAliveMiddleware)
+
 tasks_store = {}
 class UserRole:
     ADMIN = "admin"           # Super administrador (acesso total)
