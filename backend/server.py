@@ -7766,7 +7766,12 @@ async def upload_xml_with_progress(
                 doc['motivo_desconsideracao'] = motivo_devolucao
                 logger.info(f"UPLOAD-STREAM: Marcando NF {parsed_data.get('numero_nfe')} como desconsiderada por devolução")
             
-            await db.xml_documents.insert_one(doc)
+            # ===== OTIMIZAÇÃO: Adicionar ao buffer de bulk insert =====
+            docs_to_insert.append(doc)
+            
+            # Flush buffer se atingiu o tamanho máximo
+            if len(docs_to_insert) >= BULK_INSERT_SIZE:
+                await flush_bulk_insert()
             
             # Adicionar ao cache para evitar duplicados dentro do mesmo lote
             existing_docs_cache.add(chave_nfe)
