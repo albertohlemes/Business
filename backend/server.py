@@ -23041,6 +23041,9 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
+    # Definir company_id para uso posterior
+    company_id = request.company_id
+    
     # Verificar se é Simples Nacional
     if company.get('regime_tributario') != 'simples_nacional':
         raise HTTPException(status_code=400, detail="Esta empresa não é optante pelo Simples Nacional")
