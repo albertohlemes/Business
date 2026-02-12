@@ -3272,24 +3272,7 @@ def generate_sped_fiscal(
     lines.append("|E100|{}|{}|".format(dt_inicio, dt_fim))
     
     # Registro E110 - Apuração do ICMS - Operações Próprias
-    # CFOPs de Substituição Tributária (não dão direito a crédito de ICMS)
-    CFOPS_ST_SPED = ['1403', '1409', '2403', '2409', '3403', '3409', '5403', '5405', '5409', '6403', '6404', '6409']
-    
-    # CFOPs de Despesa/Uso e Consumo (não dão direito a crédito de ICMS)
-    CFOPS_DESPESA_SPED = [
-        '1407', '2407',  # Compra para uso/consumo com ST
-        '1556', '2556',  # Compra para uso/consumo
-        '1557', '2557',  # Transferência para uso/consumo
-        '1128', '2128',  # Compra para ativo imobilizado
-        '1551', '2551',  # Compra ativo imobilizado
-        '1553', '2553',  # Devolução de venda ativo imobilizado
-        '1554', '2554',  # Retorno de remessa ativo imobilizado
-        '1406', '2406',  # Compra energia elétrica para uso/consumo
-        '1408', '2408',  # Transferência energia elétrica
-    ]
-    
-    # Combinar todos os CFOPs sem direito a crédito de ICMS
-    CFOPS_SEM_CREDITO_SPED = set(CFOPS_ST_SPED + CFOPS_DESPESA_SPED)
+    # CFOPs SEM CRÉDITO já definidos no início da função (CFOPS_SEM_CREDITO_SPED)
     
     # Calcular totais de débitos (saídas)
     vl_debitos = sum(
