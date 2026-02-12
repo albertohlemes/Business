@@ -33,6 +33,82 @@ const REGIMES = [
   { value: 'lucro_real', label: 'Lucro Real', description: 'Apuração sobre lucro contábil' },
 ];
 
+// Tipos de Benefício Fiscal ICMS
+const TIPOS_BENEFICIO_FISCAL = [
+  { value: 'reducao_base', label: 'Redução de Base de Cálculo', description: 'Reduz a base de cálculo do ICMS' },
+  { value: 'credito_presumido', label: 'Crédito Presumido', description: 'Crédito presumido sobre o ICMS' },
+  { value: 'isencao', label: 'Isenção', description: 'Isenção total do ICMS' },
+  { value: 'diferimento', label: 'Diferimento', description: 'Posterga o pagamento do ICMS' },
+];
+
+// Tipos de Estabelecimento para Benefício Fiscal
+const TIPOS_ESTABELECIMENTO_BENEFICIO = [
+  { 
+    value: 'restaurante', 
+    label: 'Restaurante / Bar / Lanchonete', 
+    icon: '🍽️',
+    description: 'Estabelecimento de alimentação - exclui todos os produtos da cesta básica',
+    sugestao_exclusao: 'TODOS',
+    palavras_excluir: ['carne', 'frango', 'peixe', 'arroz', 'feijao', 'oleo', 'acucar', 'leite', 'ovos', 'farinha', 'macarrao', 'frutas', 'verduras', 'legumes', 'sal', 'cafe', 'manteiga', 'margarina', 'queijo', 'presunto', 'linguica', 'bacon', 'salsicha', 'sorvete', 'refrigerante', 'cerveja', 'bebidas', 'temperos', 'molhos']
+  },
+  { 
+    value: 'casa_carnes', 
+    label: 'Casa de Carnes / Açougue', 
+    icon: '🥩',
+    description: 'Comércio de carnes - exclui todas as carnes da cesta básica',
+    sugestao_exclusao: 'CARNES',
+    palavras_excluir: ['carne', 'bovina', 'suina', 'frango', 'peixe', 'linguica', 'bacon', 'presunto', 'salsicha', 'mortadela', 'costela', 'picanha', 'alcatra', 'patinho', 'filé', 'maminha', 'cupim', 'acém', 'paleta', 'peito', 'coxa', 'sobrecoxa', 'asa', 'tilapia', 'salmao', 'bacalhau', 'camarao', 'frios', 'embutidos']
+  },
+  { 
+    value: 'padaria', 
+    label: 'Padaria / Confeitaria', 
+    icon: '🥖',
+    description: 'Comércio de pães e derivados - exclui farináceos e derivados',
+    sugestao_exclusao: 'FARINACEOS',
+    palavras_excluir: ['pao', 'farinha', 'trigo', 'bolo', 'biscoito', 'bolacha', 'macarrao', 'fermento', 'açúcar', 'leite', 'ovos', 'manteiga', 'margarina', 'creme', 'chocolate', 'doces', 'salgados', 'rosca', 'sonho', 'croissant']
+  },
+  { 
+    value: 'hortifruti', 
+    label: 'Hortifruti / Sacolão', 
+    icon: '🥬',
+    description: 'Comércio de frutas, verduras e legumes',
+    sugestao_exclusao: 'HORTIFRUTI',
+    palavras_excluir: ['frutas', 'verduras', 'legumes', 'alface', 'tomate', 'cebola', 'batata', 'cenoura', 'banana', 'maça', 'laranja', 'limao', 'abacaxi', 'manga', 'mamao', 'uva', 'melancia', 'melao', 'morango', 'pepino', 'abobrinha', 'berinjela', 'pimentao', 'couve', 'repolho', 'brocolis', 'espinafre']
+  },
+  { 
+    value: 'mercado', 
+    label: 'Mercado / Mercearia', 
+    icon: '🛒',
+    description: 'Comércio varejista misto - exclui itens básicos específicos',
+    sugestao_exclusao: 'BASICOS',
+    palavras_excluir: ['arroz', 'feijao', 'oleo', 'acucar', 'sal', 'cafe', 'leite', 'farinha', 'macarrao', 'fuba', 'aveia', 'sardinha', 'atum']
+  },
+  { 
+    value: 'laticinios', 
+    label: 'Laticínios / Frios', 
+    icon: '🧀',
+    description: 'Comércio de laticínios e derivados de leite',
+    sugestao_exclusao: 'LATICINIOS',
+    palavras_excluir: ['leite', 'queijo', 'iogurte', 'manteiga', 'requeijao', 'creme', 'nata', 'ricota', 'mussarela', 'provolone', 'parmesao', 'gorgonzola', 'frios', 'presunto', 'mortadela']
+  },
+  { 
+    value: 'bebidas', 
+    label: 'Distribuidora de Bebidas', 
+    icon: '🍺',
+    description: 'Comércio de bebidas em geral',
+    sugestao_exclusao: 'BEBIDAS',
+    palavras_excluir: ['cerveja', 'refrigerante', 'agua', 'suco', 'vinho', 'destilados', 'cachaca', 'vodka', 'whisky', 'energetico', 'isotônico', 'cha', 'mate']
+  },
+  { 
+    value: 'outros', 
+    label: 'Outros / Personalizado', 
+    icon: '📦',
+    description: 'Defina manualmente os produtos a excluir',
+    sugestao_exclusao: 'PERSONALIZADO',
+    palavras_excluir: []
+  },
+];
+
 const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
