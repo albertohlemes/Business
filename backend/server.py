@@ -25338,10 +25338,18 @@ async def get_impostos_retidos(
     """
     Retorna a apuração de impostos retidos para serviços tomados e prestados.
     Inclui ISS, IR, PIS, COFINS, CSLL e INSS.
+    
+    IMPORTANTE para Simples Nacional:
+    - O ISS retido na fonte (quando a empresa presta serviço e o tomador retém)
+      deve ser DESCONTADO do DAS, pois a tributação do ISS no Simples é própria.
+    - Isso significa que se o tomador já reteve R$ 500 de ISS, esse valor não
+      entra no cálculo do DAS.
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    regime = company.get('regime_tributario', '')
     
     # Buscar documentos de serviços da competência
     documentos = await db.xml_documents.find({
@@ -25379,22 +25387,35 @@ async def get_impostos_retidos(
         valor_servicos = float(doc.get('valor_servicos', 0) or doc.get('valor_total', 0) or 0)
         estrutura["total_servicos"] += valor_servicos
         
-        # Impostos retidos (podem estar no documento ou nos serviços)
+        # Impostos retidos - primeiro verificar campos novos, depois legados
+        # ISS Retido
         iss_retido = float(doc.get('iss_retido', 0) or 0)
+        # Se o campo é booleano (True/False) ou flag (1/2), usar valor_iss
+        if isinstance(doc.get('iss_retido'), bool) or doc.get('iss_retido_flag'):
+            if doc.get('iss_retido_flag', False) or doc.get('iss_retido') == True:
+                iss_retido = float(doc.get('valor_iss', 0) or 0)
+        
+        # Outras retenções
         ir_retido = float(doc.get('ir_retido', 0) or doc.get('irrf_retido', 0) or 0)
         pis_retido = float(doc.get('pis_retido', 0) or 0)
         cofins_retido = float(doc.get('cofins_retido', 0) or 0)
         csll_retido = float(doc.get('csll_retido', 0) or 0)
         inss_retido = float(doc.get('inss_retido', 0) or 0)
         
-        # Verificar também nos serviços
+        # Verificar também nos serviços (estrutura antiga)
         for servico in doc.get('servicos', []):
-            iss_retido += float(servico.get('iss_retido', 0) or 0)
-            ir_retido += float(servico.get('ir_retido', 0) or servico.get('irrf', 0) or 0)
-            pis_retido += float(servico.get('pis_retido', 0) or 0)
-            cofins_retido += float(servico.get('cofins_retido', 0) or 0)
-            csll_retido += float(servico.get('csll_retido', 0) or 0)
-            inss_retido += float(servico.get('inss_retido', 0) or 0)
+            # ISS nos serviços
+            if servico.get('iss_retido') == True or servico.get('iss_retido') == '1':
+                iss_retido += float(servico.get('valor_iss', 0) or 0)
+            elif isinstance(servico.get('iss_retido'), (int, float)) and servico.get('iss_retido') > 0:
+                iss_retido += float(servico.get('iss_retido', 0))
+            
+            # Outras retenções nos serviços
+            ir_retido += float(servico.get('v_ir', 0) or servico.get('ir_retido', 0) or 0)
+            pis_retido += float(servico.get('v_pis', 0) or servico.get('pis_retido', 0) or 0)
+            cofins_retido += float(servico.get('v_cofins', 0) or servico.get('cofins_retido', 0) or 0)
+            csll_retido += float(servico.get('v_csll', 0) or servico.get('csll_retido', 0) or 0)
+            inss_retido += float(servico.get('v_inss', 0) or servico.get('inss_retido', 0) or 0)
         
         # Acumular
         estrutura["iss"] += iss_retido
