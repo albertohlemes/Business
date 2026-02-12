@@ -46,25 +46,62 @@ const DocumentDetailModal = ({ document, onClose }) => {
   // Calcular totais dos produtos
   const calcularTotaisProdutos = () => {
     const produtos = document.produtos || [];
-    return {
-      // IMPORTANTE: usar valor_produto (vProd) para comparação com capa
-      // NÃO usar valor_total pois ele já inclui IPI, ST, etc.
-      valor_produto: produtos.reduce((acc, p) => acc + (p.valor_produto || p.valor_total || 0), 0),
-      valor_total: produtos.reduce((acc, p) => acc + (p.valor_total || p.valor_produto || 0), 0),
-      v_bc_icms: produtos.reduce((acc, p) => acc + (p.v_bc_icms || 0), 0),
-      v_icms: produtos.reduce((acc, p) => acc + (p.v_icms || 0), 0),
-      v_bc_icms_st: produtos.reduce((acc, p) => acc + (p.v_bc_icms_st || 0), 0),
-      v_icms_st: produtos.reduce((acc, p) => acc + (p.v_icms_st || 0), 0),
-      v_ipi: produtos.reduce((acc, p) => acc + (p.v_ipi || 0), 0),
-      v_bc_pis: produtos.reduce((acc, p) => acc + (p.v_bc_pis || 0), 0),
-      v_pis: produtos.reduce((acc, p) => acc + (p.v_pis || 0), 0),
-      v_bc_cofins: produtos.reduce((acc, p) => acc + (p.v_bc_cofins || 0), 0),
-      v_cofins: produtos.reduce((acc, p) => acc + (p.v_cofins || 0), 0),
-      v_frete: produtos.reduce((acc, p) => acc + (p.v_frete || 0), 0),
-      v_seguro: produtos.reduce((acc, p) => acc + (p.v_seguro || 0), 0),
-      v_outras_despesas: produtos.reduce((acc, p) => acc + (p.v_outras_despesas || 0), 0),
-      v_desconto: produtos.reduce((acc, p) => acc + (p.v_desconto || 0), 0),
+    
+    // Para cada produto, usar valor_produto (vProd) se disponível,
+    // caso contrário, reconstruir a partir do valor_total
+    const calculado = {
+      valor_produto: 0,
+      valor_total: 0,
+      v_bc_icms: 0,
+      v_icms: 0,
+      v_bc_icms_st: 0,
+      v_icms_st: 0,
+      v_ipi: 0,
+      v_bc_pis: 0,
+      v_pis: 0,
+      v_bc_cofins: 0,
+      v_cofins: 0,
+      v_frete: 0,
+      v_seguro: 0,
+      v_outras_despesas: 0,
+      v_desconto: 0,
     };
+    
+    produtos.forEach(p => {
+      // Se tem valor_produto (vProd), usar diretamente
+      // Senão, reconstruir: vProd = valor_total + desconto - ipi - st - frete - seguro - outras
+      let vProd = parseFloat(p.valor_produto) || 0;
+      if (vProd === 0) {
+        const vTotal = parseFloat(p.valor_total) || 0;
+        const vDesc = parseFloat(p.v_desconto) || 0;
+        const vIpi = parseFloat(p.v_ipi) || 0;
+        const vST = parseFloat(p.v_icms_st) || 0;
+        const vFrete = parseFloat(p.v_frete) || 0;
+        const vSeg = parseFloat(p.v_seguro) || 0;
+        const vOutras = parseFloat(p.v_outras_despesas) || 0;
+        // Reconstruir vProd: valor_total = vProd + ipi + st + frete + seg + outras - desc
+        // Portanto: vProd = valor_total + desc - ipi - st - frete - seg - outras
+        vProd = vTotal + vDesc - vIpi - vST - vFrete - vSeg - vOutras;
+      }
+      
+      calculado.valor_produto += vProd;
+      calculado.valor_total += parseFloat(p.valor_total) || parseFloat(p.valor_produto) || 0;
+      calculado.v_bc_icms += parseFloat(p.v_bc_icms) || 0;
+      calculado.v_icms += parseFloat(p.v_icms) || 0;
+      calculado.v_bc_icms_st += parseFloat(p.v_bc_icms_st) || 0;
+      calculado.v_icms_st += parseFloat(p.v_icms_st) || 0;
+      calculado.v_ipi += parseFloat(p.v_ipi) || 0;
+      calculado.v_bc_pis += parseFloat(p.v_bc_pis) || 0;
+      calculado.v_pis += parseFloat(p.v_pis) || 0;
+      calculado.v_bc_cofins += parseFloat(p.v_bc_cofins) || 0;
+      calculado.v_cofins += parseFloat(p.v_cofins) || 0;
+      calculado.v_frete += parseFloat(p.v_frete) || 0;
+      calculado.v_seguro += parseFloat(p.v_seguro) || 0;
+      calculado.v_outras_despesas += parseFloat(p.v_outras_despesas) || 0;
+      calculado.v_desconto += parseFloat(p.v_desconto) || 0;
+    });
+    
+    return calculado;
   };
 
   // Verificar divergência entre capa e produtos
