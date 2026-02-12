@@ -843,16 +843,11 @@ const Companies = ({ user, onLogout }) => {
                       {isMasterOrAdmin && (
                         <>
                           <button
-                            data-testid={`edit-company-btn-${company.id}`}
-                            onClick={() => handleEdit(company)}
-                            className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
-                            title="Editar"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
                             data-testid={`delete-company-btn-${company.id}`}
-                            onClick={() => handleDelete(company.id, company.razao_social)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(company.id, company.razao_social);
+                            }}
                             className="p-2 text-[#A1A1AA] hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
                             title="Excluir"
                           >
