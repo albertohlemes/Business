@@ -47,57 +47,57 @@ const TIPOS_ESTABELECIMENTO_BENEFICIO = [
     value: 'restaurante', 
     label: 'Restaurante / Bar / Lanchonete', 
     icon: '🍽️',
-    description: 'Estabelecimento de alimentação - exclui todos os produtos da cesta básica',
+    description: 'NÃO aproveita NENHUM crédito de ICMS nas compras - todos os produtos são consumidos no preparo',
     sugestao_exclusao: 'TODOS',
-    palavras_excluir: ['carne', 'frango', 'peixe', 'arroz', 'feijao', 'oleo', 'acucar', 'leite', 'ovos', 'farinha', 'macarrao', 'frutas', 'verduras', 'legumes', 'sal', 'cafe', 'manteiga', 'margarina', 'queijo', 'presunto', 'linguica', 'bacon', 'salsicha', 'sorvete', 'refrigerante', 'cerveja', 'bebidas', 'temperos', 'molhos']
+    palavras_excluir: ['TODOS OS PRODUTOS']
   },
   { 
     value: 'casa_carnes', 
     label: 'Casa de Carnes / Açougue', 
     icon: '🥩',
-    description: 'Comércio de carnes - exclui todas as carnes da cesta básica',
+    description: 'Exclui apenas CARNES, BACON e EMBUTIDOS (cesta básica) - demais produtos geram crédito',
     sugestao_exclusao: 'CARNES',
-    palavras_excluir: ['carne', 'bovina', 'suina', 'frango', 'peixe', 'linguica', 'bacon', 'presunto', 'salsicha', 'mortadela', 'costela', 'picanha', 'alcatra', 'patinho', 'filé', 'maminha', 'cupim', 'acém', 'paleta', 'peito', 'coxa', 'sobrecoxa', 'asa', 'tilapia', 'salmao', 'bacalhau', 'camarao', 'frios', 'embutidos']
+    palavras_excluir: ['carne', 'bovina', 'suina', 'frango', 'peixe', 'linguica', 'bacon', 'presunto', 'salsicha', 'mortadela', 'frios', 'embutidos']
   },
   { 
     value: 'padaria', 
     label: 'Padaria / Confeitaria', 
     icon: '🥖',
-    description: 'Comércio de pães e derivados - exclui farináceos e derivados',
+    description: 'Exclui FARINÁCEOS e derivados (cesta básica)',
     sugestao_exclusao: 'FARINACEOS',
-    palavras_excluir: ['pao', 'farinha', 'trigo', 'bolo', 'biscoito', 'bolacha', 'macarrao', 'fermento', 'açúcar', 'leite', 'ovos', 'manteiga', 'margarina', 'creme', 'chocolate', 'doces', 'salgados', 'rosca', 'sonho', 'croissant']
+    palavras_excluir: ['pao', 'farinha', 'trigo', 'fermento', 'acucar', 'leite', 'ovos', 'manteiga']
   },
   { 
     value: 'hortifruti', 
     label: 'Hortifruti / Sacolão', 
     icon: '🥬',
-    description: 'Comércio de frutas, verduras e legumes',
+    description: 'Exclui FRUTAS, VERDURAS e LEGUMES (cesta básica)',
     sugestao_exclusao: 'HORTIFRUTI',
-    palavras_excluir: ['frutas', 'verduras', 'legumes', 'alface', 'tomate', 'cebola', 'batata', 'cenoura', 'banana', 'maça', 'laranja', 'limao', 'abacaxi', 'manga', 'mamao', 'uva', 'melancia', 'melao', 'morango', 'pepino', 'abobrinha', 'berinjela', 'pimentao', 'couve', 'repolho', 'brocolis', 'espinafre']
+    palavras_excluir: ['frutas', 'verduras', 'legumes', 'hortalicas', 'FLV']
   },
   { 
     value: 'mercado', 
     label: 'Mercado / Mercearia', 
     icon: '🛒',
-    description: 'Comércio varejista misto - exclui itens básicos específicos',
+    description: 'Exclui itens da CESTA BÁSICA específicos',
     sugestao_exclusao: 'BASICOS',
-    palavras_excluir: ['arroz', 'feijao', 'oleo', 'acucar', 'sal', 'cafe', 'leite', 'farinha', 'macarrao', 'fuba', 'aveia', 'sardinha', 'atum']
+    palavras_excluir: ['arroz', 'feijao', 'oleo', 'acucar', 'sal', 'cafe', 'leite', 'farinha', 'macarrao']
   },
   { 
     value: 'laticinios', 
     label: 'Laticínios / Frios', 
     icon: '🧀',
-    description: 'Comércio de laticínios e derivados de leite',
+    description: 'Exclui LATICÍNIOS e derivados de leite',
     sugestao_exclusao: 'LATICINIOS',
-    palavras_excluir: ['leite', 'queijo', 'iogurte', 'manteiga', 'requeijao', 'creme', 'nata', 'ricota', 'mussarela', 'provolone', 'parmesao', 'gorgonzola', 'frios', 'presunto', 'mortadela']
+    palavras_excluir: ['leite', 'queijo', 'iogurte', 'manteiga', 'requeijao', 'creme']
   },
   { 
     value: 'bebidas', 
     label: 'Distribuidora de Bebidas', 
     icon: '🍺',
-    description: 'Comércio de bebidas em geral',
+    description: 'Exclui BEBIDAS em geral',
     sugestao_exclusao: 'BEBIDAS',
-    palavras_excluir: ['cerveja', 'refrigerante', 'agua', 'suco', 'vinho', 'destilados', 'cachaca', 'vodka', 'whisky', 'energetico', 'isotônico', 'cha', 'mate']
+    palavras_excluir: ['cerveja', 'refrigerante', 'agua', 'suco', 'vinho', 'bebida']
   },
   { 
     value: 'outros', 
