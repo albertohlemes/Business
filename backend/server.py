@@ -26671,8 +26671,8 @@ async def get_analise_horizontal(
         historico_das = {}
         
         if regime_tributario == 'simples_nacional':
-            historico_fat_sn = company.get('historico_faturamento_sn', {})
-            historico_das_empresa = company.get('historico_das', {})
+            historico_fat_sn = company.get('historico_faturamento_sn', {}) or company.get('historico_faturamento', {})
+            historico_das_empresa = company.get('historico_das', {}) or company.get('historico_das_calculado', {})
             
             # Processar histórico de faturamento do PGDAS
             for mes_ano, dados_pgdas in historico_fat_sn.items():
