@@ -17971,17 +17971,14 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
         cached = get_cached_classification_from_memory(rules_cache, descricao)
         if cached:
             # Se é ST pelo CFOP original, ajustar o CFOP sugerido
-            if is_st_by_cfop and cached.get('cfop', '').endswith(('102', '101', '551', '556')):
+            if is_st_by_cfop and cached.get('cfop', '').endswith(('102', '101')):
                 cfop_prefix = cached['cfop'][0]
                 categoria = cached.get('categoria', 'revenda')
                 if categoria == 'revenda':
                     cached['cfop'] = cfop_prefix + '403'
                 elif categoria == 'insumo':
                     cached['cfop'] = cfop_prefix + '401'
-                elif categoria == 'despesa':
-                    cached['cfop'] = cfop_prefix + '407'
-                elif categoria == 'ativo_imobilizado':
-                    cached['cfop'] = cfop_prefix + '406'
+                # Despesa (407) e Ativo (406) não mudam com ST
             results[str(idx)] = cached
             stats["from_cache"] += 1
             continue
