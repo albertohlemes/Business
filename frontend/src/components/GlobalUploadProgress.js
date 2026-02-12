@@ -486,6 +486,43 @@ const GlobalUploadProgress = () => {
               </div>
             )}
 
+            {/* Notas Canceladas */}
+            {uploadResults.notas_canceladas && uploadResults.notas_canceladas.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold text-gray-400 mb-3 flex items-center gap-2">
+                  <XCircle className="w-5 h-5" />
+                  Notas Canceladas ({uploadResults.notas_canceladas.length})
+                </h3>
+                <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-3 max-h-48 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-gray-400 border-b border-gray-600">
+                        <th className="text-left py-2">NF</th>
+                        <th className="text-left py-2">Emitente</th>
+                        <th className="text-right py-2">Valor</th>
+                        <th className="text-left py-2 pl-4">Motivo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {uploadResults.notas_canceladas.slice(0, 30).map((nota, idx) => (
+                        <tr key={idx} className="text-gray-300 border-b border-gray-700 last:border-0">
+                          <td className="py-2 font-medium">{nota.numero_nfe}</td>
+                          <td className="py-2 truncate max-w-[150px]">{nota.emitente}</td>
+                          <td className="py-2 text-right">R$ {(nota.valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                          <td className="py-2 pl-4 text-gray-400 truncate max-w-[200px]">{nota.motivo || 'Cancelada'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {uploadResults.notas_canceladas.length > 30 && (
+                    <div className="text-center text-gray-400 py-2 border-t border-gray-600 mt-2">
+                      ... e mais {uploadResults.notas_canceladas.length - 30} notas canceladas
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Erros */}
             {uploadResults.errors && uploadResults.errors.length > 0 && (
               <div className="mb-6">
