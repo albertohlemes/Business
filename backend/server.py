@@ -5877,14 +5877,30 @@ async def upload_xml_batch(
                 cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
                 nfe_ref_devolucao = parsed_data.get('nfe_referenciada', '') or ''
                 
-                # CFOPs típicos de devolução de entrada
-                cfops_devolucao_entrada = ['1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209', '1210',
-                                           '1411', '1410', '1503', '1504', '1553', '1660', '1661', '1662',
-                                           '1920', '1921',  # Retorno de vasilhame/sacaria
-                                           '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209', '2210',
-                                           '2411', '2410', '2503', '2504', '2553', '2660', '2661', '2662',
-                                           '2920', '2921',  # Retorno de vasilhame/sacaria interestadual
-                                           '3201', '3202', '3211']
+                # CFOPs típicos de devolução de entrada e outros que devem ser desconsiderados
+                # quando emitidos por terceiros com a empresa como destinatária
+                cfops_devolucao_entrada = [
+                    # Devoluções de compra (1201-1210, 2201-2210, 3201-3211)
+                    '1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209', '1210',
+                    '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209', '2210',
+                    '3201', '3202', '3211',
+                    # Devoluções de mercadoria ST (1410-1411, 2410-2411)
+                    '1410', '1411', '2410', '2411',
+                    # Anulação de valor (1503-1504, 2503-2504)
+                    '1503', '1504', '2503', '2504',
+                    # Crédito/Ressarcimento ICMS ST (1553, 2553)
+                    '1553', '2553',
+                    # Devolução simbólica (1660-1662, 2660-2662)
+                    '1660', '1661', '1662', '2660', '2661', '2662',
+                    # Bonificação, doação, brinde, amostra grátis (1910-1919, 2910-2919)
+                    # Quando emitido por terceiros, empresa destinatária - desconsiderar
+                    '1910', '1911', '1912', '1913', '1914', '1915', '1916', '1917', '1918', '1919',
+                    '2910', '2911', '2912', '2913', '2914', '2915', '2916', '2917', '2918', '2919',
+                    # Retorno de vasilhame/sacaria (1920-1921, 2920-2921)
+                    '1920', '1921', '2920', '2921',
+                    # Outras entradas não especificadas (1949, 2949)
+                    '1949', '2949'
+                ]
                 
                 # Verificar se emitente é diferente da empresa (fornecedor emitiu a nota)
                 if cnpj_emitente != cnpj_empresa:
