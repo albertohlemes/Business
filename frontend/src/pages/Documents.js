@@ -842,6 +842,8 @@ const Documents = ({ user, onLogout }) => {
       });
       
       alert(`✅ ${deleteResponse.data.deleted_count} documento(s) de ${tipoLabel} excluído(s) com sucesso!`);
+      // Notificar outros componentes sobre a mudança
+      notifyDocumentsChanged();
       
     } catch (err) {
       console.error('Erro ao excluir:', err);
