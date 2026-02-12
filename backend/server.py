@@ -7879,7 +7879,10 @@ async def upload_xml_with_progress(
     
     # ===== FLUSH FINAL: Inserir documentos restantes no buffer =====
     await flush_bulk_insert()
-    logger.info(f"UPLOAD-STREAM: Bulk insert finalizado")
+    
+    process_time = time.time() - start_time
+    logger.info(f"UPLOAD-STREAM: Processamento concluído em {process_time:.2f}s ({len(results)} docs, {len(errors)} erros)")
+    logger.info(f"UPLOAD-STREAM: Taxa: {len(files)/process_time:.1f} arquivos/segundo")
     
     # Processar devoluções: verificar se as NFs originais existem
     notas_desconsideradas_processadas = []
