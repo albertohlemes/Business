@@ -474,6 +474,7 @@ class Company(BaseModel):
     codigo_empresa: Optional[str] = ""  # ID customizado da empresa - campo obrigatório no frontend
     nome_fantasia: Optional[str] = None
     inscricao_estadual: Optional[str] = None
+    ie_isento: bool = False  # Flag para IE isento/não contribuinte
     inscricao_municipal: Optional[str] = None
     endereco: Optional[str] = None
     cidade: Optional[str] = None
