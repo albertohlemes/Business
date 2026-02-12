@@ -1004,6 +1004,34 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
         );
         
       case 3:
+        // Função para determinar impostos automaticamente
+        const getImpostosAutomaticos = () => {
+          const impostos = { icms: false, icms_st: false, pis_cofins: false, iss: false };
+          const regime = formData.regime_tributario;
+          const atividade = formData.tipo_atividade;
+          
+          if (regime === 'simples_nacional') {
+            // Simples Nacional - impostos já inclusos, mas pode ter ST
+            if (['comercio', 'industria', 'mista'].includes(atividade)) {
+              impostos.icms_st = true; // ST pode ser cobrado mesmo no Simples
+            }
+          } else if (regime === 'lucro_presumido' || regime === 'lucro_real') {
+            if (['comercio', 'industria', 'mista'].includes(atividade)) {
+              impostos.icms = true;
+              impostos.icms_st = true;
+              impostos.pis_cofins = true;
+            }
+            if (['servicos', 'mista'].includes(atividade)) {
+              impostos.iss = true;
+              impostos.pis_cofins = true;
+            }
+          }
+          return impostos;
+        };
+        
+        // Auto-set impostos ao mudar regime/atividade
+        const impostosAuto = getImpostosAutomaticos();
+        
         return (
           <div className="space-y-6">
             <div>
@@ -1017,7 +1045,14 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                   return (
                     <button
                       key={regime.value}
-                      onClick={() => handleChange('regime_tributario', regime.value)}
+                      onClick={() => {
+                        handleChange('regime_tributario', regime.value);
+                        // Auto-sugerir anexos se Simples Nacional
+                        if (regime.value === 'simples_nacional' && formData.cnaes?.length > 0) {
+                          const anexos = sugerirAnexosPorCnaes(formData.cnaes);
+                          handleChange('anexos_simples', anexos);
+                        }
+                      }}
                       className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
                         isSelected
                           ? 'border-[#C8A951] bg-[#C8A951]/10'
@@ -1072,38 +1107,124 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                   ))}
                 </div>
                 
-                {/* Fator R */}
-                <label className="flex items-center gap-3 cursor-pointer mt-4">
-                  <input
-                    type="checkbox"
-                    checked={formData.controla_fator_r}
-                    onChange={(e) => handleChange('controla_fator_r', e.target.checked)}
-                    className="w-5 h-5 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951] focus:ring-[#C8A951]"
-                  />
-                  <div>
-                    <span className="text-white">Controlar Fator R</span>
-                    <p className="text-xs text-[#666]">Para empresas com folha de pagamento relevante</p>
-                  </div>
-                </label>
-                
-                {formData.controla_fator_r && (
-                  <div className="mt-3 ml-8">
-                    <label className="block text-sm text-[#A1A1AA] mb-1">Folha de Pagamento (últimos 12 meses)</label>
-                    <input
-                      type="number"
-                      value={formData.folha_pagamento_12m}
-                      onChange={(e) => handleChange('folha_pagamento_12m', parseFloat(e.target.value) || 0)}
-                      className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
-                      placeholder="R$ 0,00"
-                    />
+                {/* Fator R - SÓ aparece se Anexo V estiver marcado */}
+                {formData.anexos_simples?.includes('V') && (
+                  <div className="mt-4 pt-4 border-t border-[#2A2A2A]">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.controla_fator_r}
+                        onChange={(e) => handleChange('controla_fator_r', e.target.checked)}
+                        className="w-5 h-5 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951] focus:ring-[#C8A951]"
+                      />
+                      <div>
+                        <span className="text-white">Apura Fator R</span>
+                        <p className="text-xs text-[#666]">Para verificar enquadramento entre Anexo III e V</p>
+                      </div>
+                    </label>
+                    
+                    {formData.controla_fator_r && (
+                      <div className="mt-3 ml-8">
+                        <label className="block text-sm text-[#A1A1AA] mb-1">Folha de Pagamento (últimos 12 meses)</label>
+                        <input
+                          type="number"
+                          value={formData.folha_pagamento_12m}
+                          onChange={(e) => handleChange('folha_pagamento_12m', parseFloat(e.target.value) || 0)}
+                          className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                          placeholder="R$ 0,00"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             )}
             
-            {/* Flags de Contribuinte */}
+            {/* Campos de Presunção para Lucro Presumido */}
+            {formData.regime_tributario === 'lucro_presumido' && (
+              <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                <label className="block text-sm font-medium text-[#C8A951] mb-3">
+                  Percentuais de Presunção (Lucro Presumido)
+                </label>
+                <p className="text-xs text-[#666] mb-4">
+                  Defina os percentuais de presunção que serão aplicados no cálculo do IRPJ e CSLL
+                </p>
+                
+                {/* Se for MISTA, mostra dois campos */}
+                {formData.tipo_atividade === 'mista' ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-[#A1A1AA] mb-1">
+                        Presunção Comércio/Indústria (%)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.percentual_presuncao_comercio || 8}
+                        onChange={(e) => handleChange('percentual_presuncao_comercio', parseFloat(e.target.value) || 8)}
+                        className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                        placeholder="8%"
+                        min="1"
+                        max="32"
+                      />
+                      <p className="text-xs text-[#666] mt-1">Padrão: 8% para comércio e indústria</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-[#A1A1AA] mb-1">
+                        Presunção Serviços (%)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.percentual_presuncao_servicos || 32}
+                        onChange={(e) => handleChange('percentual_presuncao_servicos', parseFloat(e.target.value) || 32)}
+                        className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                        placeholder="32%"
+                        min="1"
+                        max="32"
+                      />
+                      <p className="text-xs text-[#666] mt-1">Padrão: 32% para serviços</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm text-[#A1A1AA] mb-1">
+                      Percentual de Presunção (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.percentual_presuncao || (formData.tipo_atividade === 'servicos' ? 32 : 8)}
+                      onChange={(e) => handleChange('percentual_presuncao', parseFloat(e.target.value) || 8)}
+                      className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                      placeholder={formData.tipo_atividade === 'servicos' ? '32%' : '8%'}
+                      min="1"
+                      max="32"
+                    />
+                    <p className="text-xs text-[#666] mt-1">
+                      {formData.tipo_atividade === 'servicos' 
+                        ? 'Padrão: 32% para prestação de serviços' 
+                        : 'Padrão: 8% para comércio e indústria'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Impostos que a empresa apura - Preenchido automaticamente */}
             <div className="border-t border-[#2A2A2A] pt-4">
-              <p className="text-[#A1A1AA] mb-3">Impostos que a empresa apura:</p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[#A1A1AA]">Impostos que a empresa apura:</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleChange('apura_icms', impostosAuto.icms);
+                    handleChange('apura_icms_st', impostosAuto.icms_st);
+                    handleChange('apura_pis_cofins', impostosAuto.pis_cofins);
+                    handleChange('apura_iss', impostosAuto.iss);
+                  }}
+                  className="text-xs text-blue-400 hover:text-blue-300"
+                >
+                  Auto-preencher
+                </button>
+              </div>
               <div className="flex flex-wrap gap-3">
                 {[
                   { field: 'apura_icms', label: 'ICMS' },
