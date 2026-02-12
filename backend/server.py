@@ -1755,6 +1755,8 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                 'p_icms': p_icms,  # Alíquota de ICMS
                 'v_bc_icms_st': v_bc_st,
                 'v_icms_st': v_icms_st,
+                'v_cred_icms_sn': v_cred_icms_sn,  # Crédito ICMS Simples Nacional
+                'p_cred_sn': p_cred_sn,  # Percentual crédito Simples Nacional
                 'v_ipi': v_ipi,
                 'v_ipi_devol': v_ipi_devol,
                 'v_frete': v_frete_item,
