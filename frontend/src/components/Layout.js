@@ -203,6 +203,17 @@ const Layout = ({ user, onLogout, children }) => {
 
   // Render navigation item for vertical menu
   const NavItemVertical = ({ item }) => {
+    // Se for separador, renderiza de forma diferente
+    if (item.type === 'separator') {
+      return (
+        <div className="px-4 pt-4 pb-2">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#666]">
+            {item.label}
+          </span>
+        </div>
+      );
+    }
+    
     const Icon = item.icon;
     const active = isActive(item.href);
     
