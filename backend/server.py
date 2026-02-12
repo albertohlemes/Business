@@ -16907,8 +16907,8 @@ Exemplos de busca semântica:
 Categorias válidas:
 - REVENDA: produtos para revender (CFOP 1102/2102 ou 1403/2403 se ST)
 - INSUMO: matéria-prima para produção (CFOP 1101/2101 ou 1401/2401 se ST)
-- DESPESA: uso e consumo da empresa (CFOP 1556/2556 ou 1407/2407 se ST)
-- ATIVO_IMOBILIZADO: bens duráveis (CFOP 1551/2551 ou 1406/2406 se ST)
+- DESPESA: uso e consumo da empresa (CFOP 1407/2407)
+- ATIVO_IMOBILIZADO: bens duráveis (CFOP 1406/2406)
 - COMBUSTIVEL: combustíveis (CFOP 1653/2653)
 
 Responda APENAS com JSON válido no formato:
