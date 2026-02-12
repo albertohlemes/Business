@@ -853,17 +853,27 @@ const Documents = ({ user, onLogout }) => {
   // Definida antes do useMemo que a utiliza
   const verificarDivergenciaDoc = (doc) => {
     if (doc.produtos && doc.produtos.length > 0) {
-      // Soma dos valores dos produtos
-      const somaProdutos = doc.produtos.reduce((sum, p) => {
-        const valorProd = parseFloat(p.valor_total) || parseFloat(p.valor_produto) || 0;
-        return sum + valorProd;
+      // Usar a fórmula oficial da NF-e: vNF = vProd + IPI + ST + FCP-ST + Frete + Seg + Outras - Desc
+      // Valores da capa do documento
+      const vProd = parseFloat(doc.total_produtos) || doc.produtos.reduce((sum, p) => {
+        return sum + (parseFloat(p.valor_produto) || parseFloat(p.valor_total) || 0);
       }, 0);
+      const vIPI = parseFloat(doc.total_ipi) || 0;
+      const vST = parseFloat(doc.total_icms_st) || 0;
+      const vFCPST = parseFloat(doc.total_fcp_st) || 0;  // FCP-ST - Fundo de Combate à Pobreza
+      const vFrete = parseFloat(doc.total_frete) || 0;
+      const vSeg = parseFloat(doc.total_seguro) || 0;
+      const vOutras = parseFloat(doc.total_outras_despesas) || 0;
+      const vDesc = parseFloat(doc.total_desconto) || 0;
+      
+      // Calcular valor esperado pela fórmula
+      const valorCalculado = vProd + vIPI + vST + vFCPST + vFrete + vSeg + vOutras - vDesc;
       
       // Valor total do documento
       const valorDoc = parseFloat(doc.valor_total) || 0;
       
       // Considerar validado se diferença for menor que R$ 0.10 (tolerância)
-      const diferenca = Math.abs(valorDoc - somaProdutos);
+      const diferenca = Math.abs(valorDoc - valorCalculado);
       return diferenca >= 0.10; // true = tem divergência
     }
     // Documento sem produtos = sem divergência
