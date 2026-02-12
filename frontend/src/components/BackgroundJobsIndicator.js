@@ -126,13 +126,13 @@ const BackgroundJobsIndicator = () => {
       {/* Botão principal */}
       <div 
         className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-all ${
-          processingCount > 0 
+          hasActiveJobs 
             ? 'bg-purple-500/20 border border-purple-500/50 hover:bg-purple-500/30' 
-            : 'bg-[#141414] border border-[#2A2A2A] hover:bg-[#1A1A1A]'
+            : 'bg-[#141414]/80 border border-[#2A2A2A] hover:bg-[#1A1A1A]'
         }`}
         onClick={() => setExpanded(!expanded)}
       >
-        {processingCount > 0 ? (
+        {hasActiveJobs ? (
           <>
             <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
             <span className="text-purple-300 font-medium">
@@ -141,9 +141,9 @@ const BackgroundJobsIndicator = () => {
           </>
         ) : (
           <>
-            <Cloud className="w-5 h-5 text-[#A1A1AA]" />
-            <span className="text-[#A1A1AA]">
-              Jobs recentes
+            <Cloud className="w-5 h-5 text-[#666]" />
+            <span className="text-[#666] text-sm">
+              Jobs
             </span>
           </>
         )}
