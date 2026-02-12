@@ -29344,6 +29344,360 @@ IMPORTANTE:
         return sugestoes_padrao
 
 
+# ============================================================
+# IMPORTAÇÃO EM LOTE (Batch Import)
+# ============================================================
+
+class BatchImportRequest(BaseModel):
+    """Request para importação em lote"""
+    base_path: str = ""  # Caminho no servidor (para cron)
+    competencia: str = ""  # Competência padrão MM/YYYY
+    skip_ai: bool = False
+
+
+class BatchImportFileRequest(BaseModel):
+    """Request para importação de arquivo ZIP com estrutura de pastas"""
+    competencia: str = ""
+    skip_ai: bool = False
+
+
+@api_router.get("/batch-import/historico")
+async def get_batch_import_history(
+    limit: int = Query(default=20, le=100),
+    current_user: User = Depends(get_current_user)
+):
+    """Retorna histórico de importações em lote"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Apenas administradores podem ver histórico de importações em lote")
+    
+    history = await db.batch_import_history.find({}).sort("created_at", -1).to_list(length=limit)
+    
+    # Remover _id
+    for h in history:
+        h.pop('_id', None)
+    
+    return {"history": history, "total": len(history)}
+
+
+@api_router.get("/batch-import/status/{import_id}")
+async def get_batch_import_status(
+    import_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Retorna status de uma importação em lote específica"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Apenas administradores podem ver status de importações em lote")
+    
+    status = await db.batch_import_history.find_one({"import_id": import_id}, {"_id": 0})
+    
+    if not status:
+        raise HTTPException(status_code=404, detail="Importação não encontrada")
+    
+    return status
+
+
+@api_router.post("/batch-import/upload-estrutura")
+async def batch_import_upload_estrutura(
+    file: UploadFile = File(...),
+    competencia: str = Form(""),
+    skip_ai: bool = Form(False),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Importa um arquivo ZIP contendo estrutura de pastas de empresas.
+    
+    Estrutura esperada do ZIP:
+    arquivo.zip/
+    └── 0175 - NOME EMPRESA/
+        └── 2026/
+            └── 002 - FISCAL/
+                └── 01/
+                    ├── nota1.xml
+                    └── nota2.xml
+    """
+    import zipfile
+    import tempfile
+    import shutil
+    import re
+    from pathlib import Path
+    
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Apenas administradores podem fazer importações em lote")
+    
+    if not file.filename.endswith('.zip'):
+        raise HTTPException(status_code=400, detail="Arquivo deve ser um ZIP")
+    
+    # Criar ID da importação
+    import_id = str(uuid.uuid4())
+    
+    # Competência padrão
+    if not competencia:
+        now = datetime.now()
+        competencia = f"{now.strftime('%m')}/{now.strftime('%Y')}"
+    
+    # Criar registro inicial
+    import_record = {
+        "import_id": import_id,
+        "type": "upload_estrutura",
+        "filename": file.filename,
+        "competencia_padrao": competencia,
+        "skip_ai": skip_ai,
+        "status": "processing",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": current_user.id,
+        "total_empresas": 0,
+        "total_arquivos": 0,
+        "total_importados": 0,
+        "total_duplicados": 0,
+        "total_erros": 0,
+        "empresas_processadas": [],
+        "empresas_nao_encontradas": [],
+        "erros": []
+    }
+    
+    await db.batch_import_history.insert_one(import_record)
+    
+    # Processar em background
+    try:
+        # Salvar ZIP temporariamente
+        temp_dir = tempfile.mkdtemp()
+        zip_path = os.path.join(temp_dir, file.filename)
+        
+        content = await file.read()
+        with open(zip_path, 'wb') as f:
+            f.write(content)
+        
+        # Extrair ZIP
+        extract_dir = os.path.join(temp_dir, 'extracted')
+        os.makedirs(extract_dir)
+        
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            zf.extractall(extract_dir)
+        
+        # Carregar mapeamento de empresas
+        companies = await db.companies.find({}, {"_id": 0, "id": 1, "codigo_empresa": 1, "razao_social": 1}).to_list(length=None)
+        companies_map = {}
+        for c in companies:
+            codigo = c.get('codigo_empresa', '').strip()
+            if codigo:
+                companies_map[codigo] = c
+                companies_map[codigo.zfill(4)] = c
+        
+        # Função para extrair código da pasta
+        def extract_codigo(folder_name):
+            match = re.match(r'^(\d+)\s*-\s*', folder_name)
+            if match:
+                return match.group(1).zfill(4)
+            return None
+        
+        # Função para extrair competência do caminho
+        def extract_competencia(path_parts):
+            ano = None
+            mes = None
+            for part in path_parts:
+                if re.match(r'^20\d{2}$', part):
+                    ano = part
+                elif re.match(r'^(0?[1-9]|1[0-2])$', part):
+                    mes = part.zfill(2)
+            if ano and mes:
+                return f"{mes}/{ano}"
+            return None
+        
+        # Varrer estrutura
+        extract_path = Path(extract_dir)
+        empresas_encontradas = {}
+        
+        for item in extract_path.iterdir():
+            if item.is_dir():
+                codigo = extract_codigo(item.name)
+                if codigo:
+                    if codigo not in empresas_encontradas:
+                        empresas_encontradas[codigo] = {
+                            "nome_pasta": item.name,
+                            "arquivos": []
+                        }
+                    
+                    # Buscar XMLs recursivamente
+                    for xml_file in item.rglob('*.xml'):
+                        relative_parts = xml_file.relative_to(item).parts
+                        comp = extract_competencia(relative_parts) or competencia
+                        empresas_encontradas[codigo]["arquivos"].append({
+                            "path": str(xml_file),
+                            "filename": xml_file.name,
+                            "competencia": comp
+                        })
+        
+        import_record["total_empresas"] = len(empresas_encontradas)
+        
+        # Processar cada empresa
+        for codigo, data in empresas_encontradas.items():
+            company = companies_map.get(codigo)
+            
+            if not company:
+                import_record["empresas_nao_encontradas"].append({
+                    "codigo": codigo,
+                    "nome_pasta": data["nome_pasta"],
+                    "qtd_arquivos": len(data["arquivos"])
+                })
+                continue
+            
+            empresa_result = {
+                "codigo": codigo,
+                "company_id": company["id"],
+                "razao_social": company.get("razao_social", ""),
+                "total_arquivos": len(data["arquivos"]),
+                "importados": 0,
+                "duplicados": 0,
+                "erros": 0,
+                "desconsiderados": 0
+            }
+            
+            # Agrupar por competência
+            by_competencia = {}
+            for arq in data["arquivos"]:
+                comp = arq["competencia"]
+                if comp not in by_competencia:
+                    by_competencia[comp] = []
+                by_competencia[comp].append(arq)
+            
+            # Processar cada competência
+            for comp, arquivos in by_competencia.items():
+                for arq in arquivos:
+                    try:
+                        with open(arq["path"], 'r', encoding='utf-8') as f:
+                            xml_content = f.read()
+                        
+                        # Verificar se é XML válido
+                        if '<NFe' not in xml_content and '<nfeProc' not in xml_content:
+                            empresa_result["erros"] += 1
+                            continue
+                        
+                        # Parsear XML
+                        parsed = parse_nfe_xml(xml_content)
+                        if not parsed:
+                            empresa_result["erros"] += 1
+                            continue
+                        
+                        chave_nfe = parsed.get('chave_nfe', '')
+                        
+                        # Verificar duplicado
+                        existing = await db.xml_documents.find_one({
+                            "company_id": company["id"],
+                            "chave_nfe": chave_nfe
+                        })
+                        
+                        if existing:
+                            empresa_result["duplicados"] += 1
+                            continue
+                        
+                        # Criar documento
+                        xml_doc = {
+                            "id": str(uuid.uuid4()),
+                            "company_id": company["id"],
+                            "competencia": comp,
+                            "tipo": "entrada",  # Por padrão entrada
+                            "modelo": "nfe",
+                            "xml_content": xml_content,
+                            "uploaded_by": current_user.id,
+                            "uploaded_at": datetime.now(timezone.utc).isoformat(),
+                            "origem_importacao": "batch_upload",
+                            **{k: v for k, v in parsed.items() if k != 'modelo'}
+                        }
+                        
+                        await db.xml_documents.insert_one(xml_doc)
+                        empresa_result["importados"] += 1
+                        import_record["total_importados"] += 1
+                        
+                    except Exception as e:
+                        empresa_result["erros"] += 1
+                        import_record["erros"].append({
+                            "empresa": codigo,
+                            "arquivo": arq["filename"],
+                            "erro": str(e)
+                        })
+            
+            import_record["total_arquivos"] += empresa_result["total_arquivos"]
+            import_record["total_duplicados"] += empresa_result["duplicados"]
+            import_record["total_erros"] += empresa_result["erros"]
+            import_record["empresas_processadas"].append(empresa_result)
+        
+        # Atualizar status
+        import_record["status"] = "completed"
+        import_record["completed_at"] = datetime.now(timezone.utc).isoformat()
+        
+        await db.batch_import_history.update_one(
+            {"import_id": import_id},
+            {"$set": import_record}
+        )
+        
+        # Limpar temporários
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        return {
+            "import_id": import_id,
+            "status": "completed",
+            "total_empresas": import_record["total_empresas"],
+            "total_arquivos": import_record["total_arquivos"],
+            "total_importados": import_record["total_importados"],
+            "total_duplicados": import_record["total_duplicados"],
+            "total_erros": import_record["total_erros"],
+            "empresas_nao_encontradas": len(import_record["empresas_nao_encontradas"])
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro na importação em lote: {e}")
+        await db.batch_import_history.update_one(
+            {"import_id": import_id},
+            {"$set": {"status": "error", "error": str(e)}}
+        )
+        raise HTTPException(status_code=500, detail=f"Erro na importação: {str(e)}")
+
+
+@api_router.get("/batch-import/empresas-mapeamento")
+async def get_empresas_mapeamento(
+    current_user: User = Depends(get_current_user)
+):
+    """Retorna lista de empresas com seus códigos para mapeamento"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Apenas administradores")
+    
+    companies = await db.companies.find(
+        {},
+        {"_id": 0, "id": 1, "codigo_empresa": 1, "razao_social": 1, "nome_fantasia": 1, "cnpj": 1}
+    ).to_list(length=None)
+    
+    # Separar empresas com e sem código
+    com_codigo = [c for c in companies if c.get('codigo_empresa')]
+    sem_codigo = [c for c in companies if not c.get('codigo_empresa')]
+    
+    return {
+        "com_codigo": com_codigo,
+        "sem_codigo": sem_codigo,
+        "total": len(companies)
+    }
+
+
+@api_router.post("/batch-import/atualizar-codigo/{company_id}")
+async def atualizar_codigo_empresa(
+    company_id: str,
+    codigo: str = Body(..., embed=True),
+    current_user: User = Depends(get_current_user)
+):
+    """Atualiza o código de uma empresa para mapeamento de importação em lote"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Apenas administradores")
+    
+    result = await db.companies.update_one(
+        {"id": company_id},
+        {"$set": {"codigo_empresa": codigo.strip()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    return {"success": True, "codigo": codigo.strip()}
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
