@@ -7831,6 +7831,10 @@ async def upload_xml_with_progress(
         except Exception as e:
             errors.append({"filename": file.filename, "error": str(e)})
     
+    # ===== FLUSH FINAL: Inserir documentos restantes no buffer =====
+    await flush_bulk_insert()
+    logger.info(f"UPLOAD-STREAM: Bulk insert finalizado")
+    
     # Processar devoluções: verificar se as NFs originais existem
     notas_desconsideradas_processadas = []
     for dev in notas_devolucao_fornecedor:
