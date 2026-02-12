@@ -1,0 +1,112 @@
+{
+  "summary": "Completed comprehensive testing of Wizard Empresa functionality. All 8 backend tests passed (100%). Frontend Wizard with 6 steps verified working correctly: Dados Básicos, Atividade, Tributação, Classificação, Benefícios, Finalizar. All fields are properly saved to MongoDB and loaded when editing.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "Backend: Create company via Wizard - all fields saved correctly to MongoDB",
+    "Backend: Edit company via Wizard - all fields loaded correctly",
+    "Backend: produtos_sem_credito_icms field saved and affects ICMS credit calculation",
+    "Backend: percentual_presuncao_irpj field saved and affects Lucro Presumido calculation",
+    "Backend: produtos_comercializados, insumos_producao, produtos_despesa affect intelligent classification",
+    "Backend: anexos_simples saved correctly for Simples Nacional companies",
+    "Backend: tipo_atividade (comercio, servicos, mista, industria) changes available fields",
+    "Backend: tipo_estabelecimento_beneficio saved correctly for automatic product exclusion",
+    "Frontend: Wizard Step 1 (Dados Básicos) - CNPJ search, company info fields working",
+    "Frontend: Wizard Step 2 (Atividade) - Activity types, Perfis Comerciais, Transportadora working",
+    "Frontend: Wizard Step 3 (Tributação) - Regime selection, Presunção fields, tax checkboxes working",
+    "Frontend: Wizard Step 4 (Classificação) - AI keywords, Revenda/Insumo/Despesa/Imobilizado working",
+    "Frontend: Wizard Step 5 (Benefícios) - Tipo Estabelecimento icons, Produtos sem Crédito working",
+    "Frontend: Wizard Step 6 (Finalizar) - Summary review and Finalizar button working",
+    "Frontend: Navigation between all 6 steps working correctly",
+    "Frontend: Edit company loads all existing data correctly"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_wizard_empresa.py",
+    "/app/test_reports/pytest/pytest_wizard_empresa.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "WizardEmpresa.js correctly implements all 6 steps with proper field mapping",
+    "Backend Company model includes all Wizard fields (produtos_sem_credito_icms, percentual_presuncao_irpj, etc.)",
+    "CNPJ search with Receita Federal integration working",
+    "AI keyword generation for classification working",
+    "Tipo de Estabelecimento icons with automatic product exclusion suggestions implemented",
+    "Presunção fields for Lucro Presumido (including separate fields for mista) implemented"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_wizard_empresa.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (8/8 passed)",
+    "frontend": "100% (all 6 steps verified)"
+  },
+  
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+  
+  "seed_data_creation": "Test company created and deleted during backend tests",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Wizard Empresa fully tested and working. All 6 steps verified: 1) Dados Básicos with CNPJ search, 2) Atividade with tipo_atividade options, 3) Tributação with regime and presunção fields, 4) Classificação with AI keywords, 5) Benefícios with tipo_estabelecimento icons, 6) Finalizar with summary. Backend fields produtos_sem_credito_icms, percentual_presuncao_irpj, produtos_comercializados, insumos_producao, produtos_despesa, anexos_simples, tipo_atividade all properly saved and loaded.",
+  
+  "features_verified": {
+    "wizard_steps": {
+      "step1_dados_basicos": {
+        "status": "VERIFIED",
+        "fields": ["cnpj", "codigo_empresa", "razao_social", "nome_fantasia", "inscricao_estadual", "inscricao_municipal", "endereco", "cidade", "uf", "cep", "cnae_principal", "cnaes"],
+        "cnpj_search": "Working - fetches data from Receita Federal"
+      },
+      "step2_atividade": {
+        "status": "VERIFIED",
+        "fields": ["tipo_atividade", "perfis_comerciais", "equiparado_industria", "is_transportadora", "tipo_transporte", "atividade_locacao"],
+        "activity_types": ["comercio", "industria", "servicos", "mista"]
+      },
+      "step3_tributacao": {
+        "status": "VERIFIED",
+        "fields": ["regime_tributario", "percentual_presuncao_irpj", "percentual_presuncao_csll", "anexos_simples", "apura_icms", "apura_icms_st", "apura_pis_cofins", "apura_iss", "desconsiderar_icms_despesas", "desconsiderar_icms_st", "possui_saldo_credor"],
+        "regimes": ["simples_nacional", "lucro_presumido", "lucro_real"]
+      },
+      "step4_classificacao": {
+        "status": "VERIFIED",
+        "fields": ["produtos_comercializados", "insumos_producao", "produtos_despesa", "ativo_imobilizado", "combustivel", "produtos_aplicacao_servico"],
+        "ai_generation": "Working - generates keywords based on activity description"
+      },
+      "step5_beneficios": {
+        "status": "VERIFIED",
+        "fields": ["beneficio_fiscal_icms", "tipo_beneficio_fiscal", "tipo_estabelecimento_beneficio", "produtos_sem_credito_icms", "credito_presumido_icms_percent"],
+        "establishment_types": ["restaurante", "casa_carnes", "padaria", "hortifruti", "mercado", "laticinios", "bebidas", "outros"]
+      },
+      "step6_finalizar": {
+        "status": "VERIFIED",
+        "summary_display": "Shows all entered data for review",
+        "save_button": "Finalizar button present"
+      }
+    },
+    "backend_calculations_impact": {
+      "produtos_sem_credito_icms": "Affects ICMS credit calculation via produto_sem_credito_icms_beneficio function",
+      "percentual_presuncao_irpj": "Affects Lucro Presumido calculation at /api/apuracao/lucro-presumido endpoint",
+      "classification_keywords": "Affects intelligent classification at /api/classification/suggestions endpoint",
+      "anexos_simples": "Used for Simples Nacional DAS calculation"
+    }
+  }
+}
