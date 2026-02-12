@@ -517,10 +517,12 @@ class Company(BaseModel):
     # === BENEFÍCIO FISCAL ICMS ===
     # Empresas com benefício fiscal de ICMS na saída (alíquota reduzida) não podem aproveitar certos créditos
     beneficio_fiscal_icms: bool = False  # Flag geral de benefício fiscal ativo
-    tipo_beneficio_fiscal: str = ""  # "restaurante", "acougue", "bar", "padaria", "supermercado", "outro"
+    tipo_beneficio_fiscal: str = ""  # "reducao_base", "credito_presumido", "isencao", "diferimento"
+    tipo_estabelecimento_beneficio: str = ""  # "restaurante", "casa_carnes", "padaria", etc.
     # Categorias de produtos sem direito a crédito (NCMs ou descrições)
     produtos_sem_credito_icms: List[str] = []  # Ex: ["carne", "bebida", "02", "22"] - pode ser NCM ou palavra-chave
     produtos_sem_credito_descricao: str = ""  # Descrição livre do benefício ex: "Carnes e bebidas - Lei X"
+    palavras_exclusao_personalizadas: List[str] = []  # Palavras adicionais personalizadas pelo usuário
     # Presunção geral (Lucro Presumido - atividade única)
     percentual_presuncao_irpj: float = 8.0
     percentual_presuncao_csll: float = 12.0
