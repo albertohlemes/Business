@@ -23215,9 +23215,8 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     aliquota_info = calcular_aliquota_efetiva(rbt12, anexo_principal)
     faixa_info = obter_faixa_por_rbt12(rbt12)
     
-    # Buscar ISS retido na fonte para descontar do DAS (Simples Nacional)
-    # O ISS retido pelo tomador não deve entrar no cálculo do DAS
-    iss_retido_total = 0
+    # Buscar NFS-e prestados para identificar ISS retido na fonte
+    # Para serviços com ISS retido, o DAS deve ser calculado SEM a parcela de ISS
     nfse_prestados = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia_atual,
@@ -23228,27 +23227,81 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
         **get_filtro_notas_ativas()
     }, {"_id": 0}).to_list(10000)
     
+    # Separar faturamento com e sem ISS retido
+    faturamento_iss_retido = 0
+    faturamento_iss_normal = 0
+    iss_retido_total = 0
+    
     for nfse in nfse_prestados:
-        # Verificar ISS retido no documento
+        valor_nfse = float(nfse.get('valor_total', 0) or nfse.get('valor_servicos', 0) or 0)
+        
+        # Verificar se ISS foi retido
+        iss_foi_retido = False
+        valor_iss = 0
+        
         if nfse.get('iss_retido_flag', False) or nfse.get('iss_retido') == True:
-            iss_retido_total += float(nfse.get('valor_iss', 0) or 0)
+            iss_foi_retido = True
+            valor_iss = float(nfse.get('valor_iss', 0) or 0)
         elif isinstance(nfse.get('iss_retido'), (int, float)) and nfse.get('iss_retido') > 0:
-            iss_retido_total += float(nfse.get('iss_retido', 0))
+            iss_foi_retido = True
+            valor_iss = float(nfse.get('iss_retido', 0))
         
         # Verificar também nos serviços
         for servico in nfse.get('servicos', []):
             if servico.get('iss_retido') == True or servico.get('iss_retido') == '1':
-                iss_retido_total += float(servico.get('valor_iss', 0) or 0)
+                iss_foi_retido = True
+                valor_iss += float(servico.get('valor_iss', 0) or 0)
+        
+        if iss_foi_retido:
+            faturamento_iss_retido += valor_nfse
+            iss_retido_total += valor_iss
+        else:
+            faturamento_iss_normal += valor_nfse
     
-    # Calcular DAS do mês atual
-    das_mes = calcular_das_periodo(
-        faturamento_periodo=faturamento_mes_atual,
-        rbt12=rbt12,
-        anexo=anexo_principal,
-        produtos_st=produtos_st_mes,
-        produtos_monofasicos=produtos_monofasicos_mes,
-        produtos_aliquota_zero=produtos_aliquota_zero_mes
-    )
+    # Importar a nova função de cálculo
+    from services.simples_nacional_calculator import calcular_das_com_iss_retido
+    
+    # Calcular DAS com tratamento correto do ISS retido
+    # Para anexos de serviços (III, IV, V), usar alíquota sem ISS para docs com ISS retido
+    if anexo_principal in ['III', 'IV', 'V'] and faturamento_iss_retido > 0:
+        das_servicos = calcular_das_com_iss_retido(
+            faturamento_total=servicos_prestados_mes,
+            faturamento_iss_retido=faturamento_iss_retido,
+            rbt12=rbt12,
+            anexo=anexo_principal
+        )
+        
+        # Calcular DAS para vendas (comércio) se houver
+        das_comercio_valor = 0
+        if vendas_cfop_mes > 0:
+            das_comercio = calcular_das_periodo(
+                faturamento_periodo=vendas_cfop_mes,
+                rbt12=rbt12,
+                anexo='I',  # Comércio sempre Anexo I
+                produtos_st=produtos_st_mes,
+                produtos_monofasicos=produtos_monofasicos_mes,
+                produtos_aliquota_zero=produtos_aliquota_zero_mes
+            )
+            das_comercio_valor = das_comercio.get("valor_das_final", 0)
+        
+        # DAS total = serviços (com tratamento ISS) + comércio
+        das_mes = {
+            "valor_das_bruto": das_servicos["das_total"] + das_comercio_valor,
+            "valor_das_final": das_servicos["das_total"] + das_comercio_valor,
+            "detalhe_servicos": das_servicos,
+            "valor_comercio": das_comercio_valor,
+            "iss_retido_descontado": True
+        }
+    else:
+        # Cálculo padrão para comércio ou serviços sem ISS retido
+        das_mes = calcular_das_periodo(
+            faturamento_periodo=faturamento_mes_atual,
+            rbt12=rbt12,
+            anexo=anexo_principal,
+            produtos_st=produtos_st_mes,
+            produtos_monofasicos=produtos_monofasicos_mes,
+            produtos_aliquota_zero=produtos_aliquota_zero_mes
+        )
     
     # Calcular projeção anual usando o número de meses com dados reais
     projecao = calcular_projecao_anual(faturamento_ano, meses_para_projecao)
