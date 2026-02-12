@@ -39,42 +39,95 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingCNPJ, setLoadingCNPJ] = useState(false);
+  const [anexosSugeridos, setAnexosSugeridos] = useState([]);
   
-  // Dados do formulário
+  // Dados do formulário - COMPLETO igual ao modal antigo
   const [formData, setFormData] = useState({
-    // Dados básicos
+    // === DADOS BÁSICOS ===
+    cnpj: '',
+    codigo_empresa: '',
     razao_social: '',
     nome_fantasia: '',
-    cnpj: '',
     inscricao_estadual: '',
+    inscricao_municipal: '',
     endereco: '',
     cidade: '',
-    uf: '',
+    uf: 'SP',
     cep: '',
     cnae_principal: '',
     cnae_principal_descricao: '',
     cnaes: [],
-    codigo_empresa: '',
+    atividade_principal: '',
+    logo_url: '',
     
-    // Atividade
-    tipo_atividade: '',
+    // === ATIVIDADE ===
+    tipo_atividade: 'comercio',
+    tipos_servico: [],
+    atividade_locacao: false,
+    perfis_comerciais: ['varejo'],
+    aplicacao_em_servicos: false,
+    is_transportadora: false,
+    tipo_transporte: 'carga',
     
-    // Tributação
-    regime_tributario: '',
-    apura_icms: true,
+    // === TRIBUTAÇÃO ===
+    regime_tributario: 'lucro_presumido',
+    anexos_simples: [],
+    anexos_confirmados: false,
+    controla_fator_r: false,
+    folha_pagamento_12m: 0,
+    
+    // Flags de contribuinte
+    equiparado_industria: false,
+    apura_icms: false,
+    apura_icms_st: false,
     apura_pis_cofins: true,
     apura_iss: false,
     
-    // Classificação - palavras-chave
+    // Flags de desconsiderar ICMS
+    desconsiderar_icms_despesas: false,
+    desconsiderar_icms_st: false,
+    
+    // === PRESUNÇÃO (Lucro Presumido) ===
+    percentual_presuncao_irpj: 8.0,
+    percentual_presuncao_csll: 12.0,
+    percentual_presuncao_irpj_comercio: 8.0,
+    percentual_presuncao_csll_comercio: 12.0,
+    percentual_presuncao_irpj_servico: 32.0,
+    percentual_presuncao_csll_servico: 32.0,
+    percentual_presuncao_irpj_industria: 8.0,
+    percentual_presuncao_csll_industria: 12.0,
+    
+    // === CLASSIFICAÇÃO - PALAVRAS-CHAVE ===
     produtos_comercializados: [],
+    produtos_aplicacao_servico: [],
     insumos_producao: [],
     produtos_despesa: [],
-    produtos_aplicacao_servico: [],
+    ativo_imobilizado: [],
+    combustivel: [],
+    classificacao_inteligente: '',
     
-    // Benefícios
+    // === BENEFÍCIOS FISCAIS ===
     beneficio_fiscal_icms: false,
+    tipo_beneficio_fiscal: '',
     percentual_reducao_icms: 0,
-    tipo_beneficio: '',
+    produtos_sem_credito_icms: [],
+    produtos_sem_credito_descricao: '',
+    credito_presumido_icms_percent: 20.0,
+    
+    // === SALDO CREDOR INICIAL ===
+    possui_saldo_credor: false,
+    saldo_credor_icms: 0,
+    saldo_credor_pis: 0,
+    saldo_credor_cofins: 0,
+    competencia_saldo_inicial: '',
+    
+    // === CERTIFICADO DIGITAL ===
+    certificado_digital_arquivo: '',
+    certificado_digital_senha: '',
+    certificado_digital_validade: '',
+    
+    // === RESPONSÁVEIS ===
+    responsavel_ids: [],
   });
 
   // Formatar CNPJ
@@ -86,6 +139,25 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       .replace(/\.(\d{3})(\d)/, '.$1/$2')
       .replace(/(\d{4})(\d)/, '$1-$2')
       .slice(0, 18);
+  };
+
+  // Sugerir anexos do Simples por CNAEs
+  const sugerirAnexosPorCnaes = (cnaes) => {
+    const todosAnexos = new Set();
+    const divisaoIndustria = ['10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33'];
+    const divisaoComercio = ['45', '46', '47'];
+    
+    for (const cnae of cnaes) {
+      if (!cnae) continue;
+      const codigo = cnae.substring(0, 2);
+      if (divisaoIndustria.includes(codigo)) todosAnexos.add('II');
+      if (divisaoComercio.includes(codigo)) todosAnexos.add('I');
+      // Serviços
+      if (['49', '50', '51', '52', '53', '55', '56', '58', '59', '60', '61', '62', '63', '64', '65', '66', '68', '69', '70', '71', '72', '73', '74', '75', '77', '78', '79', '80', '81', '82', '84', '85', '86', '87', '88', '90', '91', '92', '93', '94', '95', '96'].includes(codigo)) {
+        todosAnexos.add('III');
+      }
+    }
+    return Array.from(todosAnexos).sort();
   };
 
   // Buscar dados na Receita Federal
