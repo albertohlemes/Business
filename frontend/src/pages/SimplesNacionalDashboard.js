@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
+import { useUpload } from '../context/UploadContext';
 import { 
   TrendingUp, TrendingDown, AlertTriangle, AlertCircle, Info, 
   DollarSign, Target, Calculator, Percent, BarChart3, Calendar,
@@ -16,6 +17,7 @@ const API = BACKEND_URL + '/api';
 
 const SimplesNacionalDashboard = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia } = useAppContext();
+  const { documentsVersion } = useUpload();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
