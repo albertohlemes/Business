@@ -2324,7 +2324,8 @@ const Documents = ({ user, onLogout }) => {
                     {filteredDocuments.map((doc) => (
                       <tr 
                         key={doc.id}
-                        className={`hover:bg-white/5 transition-colors ${
+                        onClick={() => fetchDocumentDetail(doc.id)}
+                        className={`hover:bg-white/5 transition-colors cursor-pointer ${
                           doc.cancelada ? 'bg-red-900/10' : ''
                         }`}
                       >
@@ -2402,7 +2403,7 @@ const Documents = ({ user, onLogout }) => {
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right w-20">
+                        <td className="px-4 py-3 text-right w-20" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => fetchDocumentDetail(doc.id)}
