@@ -173,13 +173,31 @@ async def _process_xmls_async(task, job_id: str, xml_contents: List[Dict],
                 duplicadas.append({'filename': filename, 'chave': chave_nfe})
                 continue
             
-            # Extrair CNPJ do emitente
-            emit = root.find('.//nfe:emit', ns) or root.find('.//emit')
+            # Extrair CNPJ do emitente - tentar várias formas
             cnpj_emitente = ''
+            
+            # Método 1: Com namespace
+            emit = root.find('.//nfe:emit', ns)
             if emit is not None:
-                cnpj_el = emit.find('nfe:CNPJ', ns) or emit.find('CNPJ')
+                cnpj_el = emit.find('nfe:CNPJ', ns)
                 if cnpj_el is not None and cnpj_el.text:
                     cnpj_emitente = cnpj_el.text.strip()
+            
+            # Método 2: Sem namespace (fallback)
+            if not cnpj_emitente:
+                emit = root.find('.//{http://www.portalfiscal.inf.br/nfe}emit')
+                if emit is not None:
+                    cnpj_el = emit.find('{http://www.portalfiscal.inf.br/nfe}CNPJ')
+                    if cnpj_el is not None and cnpj_el.text:
+                        cnpj_emitente = cnpj_el.text.strip()
+            
+            # Método 3: Sem namespace algum
+            if not cnpj_emitente:
+                emit = root.find('.//emit')
+                if emit is not None:
+                    cnpj_el = emit.find('CNPJ')
+                    if cnpj_el is not None and cnpj_el.text:
+                        cnpj_emitente = cnpj_el.text.strip()
             
             # Validar CNPJ para tipo de operação
             if tipo == 'saida' and cnpj_emitente != cnpj_empresa:
