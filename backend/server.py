@@ -5863,6 +5863,9 @@ async def upload_xml_batch(
             # Detectar se é NF de emissão própria (vendas da empresa)
             is_emissao_propria = cnpj_emitente == cnpj_empresa
             
+            # LOG PARA DEBUG
+            logger.info(f"COMPETÊNCIA DEBUG - NF {parsed_data.get('numero_nfe', '')}: tipo={tipo_operacao}, dhEmi={data_emissao[:10] if data_emissao else 'N/A'}, dhSaiEnt={data_saida_entrada[:10] if data_saida_entrada else 'N/A'}, emissao_propria={is_emissao_propria}")
+            
             # Determinar qual data usar para a competência
             if tipo_operacao == 'saida' or is_emissao_propria:
                 # Para SAÍDAS ou emissão própria, usar data de emissão
