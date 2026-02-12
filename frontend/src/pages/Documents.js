@@ -65,7 +65,7 @@ const Documents = ({ user, onLogout }) => {
     uploadProgress: globalUploadProgress,
     clearUploadResults
   } = useAppContext();
-  const { startUpload, isUploading: globalUploading, progress: globalProgress, currentFile, uploadResults: globalResults, uploadError: globalError, clearResults } = useUpload();
+  const { startUpload, isUploading: globalUploading, progress: globalProgress, currentFile, uploadResults: globalResults, uploadError: globalError, clearResults, notifyDocumentsChanged } = useUpload();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const highlightDocId = searchParams.get('highlight');
