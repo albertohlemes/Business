@@ -2236,14 +2236,21 @@ def _parse_single_nfse(nfse: Dict[str, Any]) -> Dict[str, Any]:
     }
     
     # Dados do tomador (cliente)
-    tomador = nfse.get('TomadorServico', {}) or nfse.get('Tomador', {})
-    id_tomador = tomador.get('IdentificacaoTomador', {})
+    tomador = nfse.get('TomadorServico', {}) or nfse.get('Tomador', {}) or {}
+    id_tomador = tomador.get('IdentificacaoTomador', {}) or {}
     cpf_cnpj_tomador = id_tomador.get('CpfCnpj', {})
-    cnpj_tomador = cpf_cnpj_tomador.get('Cnpj', '') or cpf_cnpj_tomador.get('Cpf', '') or tomador.get('Cnpj', '') or tomador.get('Cpf', '')
-    nome_tomador = tomador.get('RazaoSocial', '') or tomador.get('NomeFantasia', '') or 'TOMADOR'
+    # CpfCnpj pode ser dict, string vazia ou None
+    if isinstance(cpf_cnpj_tomador, dict):
+        cnpj_tomador = cpf_cnpj_tomador.get('Cnpj', '') or cpf_cnpj_tomador.get('Cpf', '') or ''
+    else:
+        cnpj_tomador = str(cpf_cnpj_tomador) if cpf_cnpj_tomador else ''
+    # Fallback para campos diretos
+    if not cnpj_tomador:
+        cnpj_tomador = tomador.get('Cnpj', '') or tomador.get('Cpf', '') or ''
+    nome_tomador = tomador.get('RazaoSocial', '') or tomador.get('NomeFantasia', '') or 'CONSUMIDOR'
     
     # Endereço do tomador
-    endereco_tomador_data = tomador.get('Endereco', {})
+    endereco_tomador_data = tomador.get('Endereco', {}) or {}
     tomador_endereco = {
         'logradouro': endereco_tomador_data.get('Endereco', '') or endereco_tomador_data.get('Logradouro', ''),
         'numero': endereco_tomador_data.get('Numero', ''),
