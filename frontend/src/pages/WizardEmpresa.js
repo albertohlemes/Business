@@ -1912,22 +1912,6 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                     <span className="text-white">
                       {TIPOS_ESTABELECIMENTO_BENEFICIO.find(e => e.value === formData.tipo_estabelecimento_beneficio)?.label || '-'}
                     </span>
-                    <span className="text-[#666]">Exclusões:</span>
-                    <span className="text-red-400">
-                      {(formData.produtos_sem_credito_icms || []).length} palavras-chave
-                    </span>
-                  </div>
-                  {(formData.produtos_sem_credito_icms || []).length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-[#2A2A2A]">
-                      <span className="text-xs text-[#666]">Produtos sem crédito: </span>
-                      <span className="text-xs text-red-400">
-                        {(formData.produtos_sem_credito_icms || []).slice(0, 10).join(', ')}
-                        {(formData.produtos_sem_credito_icms || []).length > 10 && ` (+${(formData.produtos_sem_credito_icms || []).length - 10} mais)`}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         );
