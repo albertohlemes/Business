@@ -334,7 +334,74 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       case 1:
         return (
           <div className="space-y-6">
+            {/* CNPJ com botão de busca */}
+            <div className="bg-[#0C0C0C] rounded-lg p-4 border border-[#C8A951]/30">
+              <label className="block text-sm font-medium text-[#C8A951] mb-2">
+                <Search className="w-4 h-4 inline mr-2" />
+                Consultar CNPJ na Receita Federal
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={formData.cnpj}
+                  onChange={(e) => handleChange('cnpj', formatCNPJ(e.target.value))}
+                  className="flex-1 px-4 py-3 bg-[#141414] border border-[#C8A951]/30 rounded-lg text-white focus:border-[#C8A951] focus:outline-none font-mono"
+                  placeholder="00.000.000/0000-00"
+                  maxLength={18}
+                />
+                <button
+                  type="button"
+                  onClick={buscarCNPJ}
+                  disabled={loadingCNPJ}
+                  className="px-6 py-3 bg-[#C8A951] text-[#0C0C0C] rounded-lg font-semibold hover:bg-[#D4B85C] disabled:opacity-50 flex items-center gap-2 transition-colors"
+                >
+                  {loadingCNPJ ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      Buscando...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-5 h-5" />
+                      Buscar
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-[#666] mt-2">
+                Digite o CNPJ e clique em Buscar para preencher automaticamente os dados da empresa
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
+              {/* Código da Empresa */}
+              <div>
+                <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
+                  Código da Empresa *
+                </label>
+                <input
+                  type="text"
+                  value={formData.codigo_empresa}
+                  onChange={(e) => handleChange('codigo_empresa', e.target.value)}
+                  className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                  placeholder="Ex: 0001"
+                />
+              </div>
+              
+              {/* Inscrição Estadual */}
+              <div>
+                <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
+                  Inscrição Estadual
+                </label>
+                <input
+                  type="text"
+                  value={formData.inscricao_estadual}
+                  onChange={(e) => handleChange('inscricao_estadual', e.target.value)}
+                  className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                  placeholder="Número da IE"
+                />
+              </div>
+
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
                   Razão Social *
@@ -348,7 +415,7 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 />
               </div>
               
-              <div>
+              <div className="col-span-2">
                 <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
                   Nome Fantasia
                 </label>
@@ -358,32 +425,6 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                   onChange={(e) => handleChange('nome_fantasia', e.target.value)}
                   className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
                   placeholder="Nome comercial"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
-                  CNPJ *
-                </label>
-                <input
-                  type="text"
-                  value={formData.cnpj}
-                  onChange={(e) => handleChange('cnpj', e.target.value)}
-                  className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
-                  placeholder="00.000.000/0000-00"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
-                  Inscrição Estadual
-                </label>
-                <input
-                  type="text"
-                  value={formData.inscricao_estadual}
-                  onChange={(e) => handleChange('inscricao_estadual', e.target.value)}
-                  className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
-                  placeholder="Número da IE"
                 />
               </div>
               
@@ -414,6 +455,24 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 />
               </div>
             </div>
+            
+            {/* CNAE se disponível */}
+            {formData.cnae_principal && (
+              <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                <label className="block text-sm font-medium text-[#C8A951] mb-2">
+                  CNAE Principal (Importado da Receita)
+                </label>
+                <p className="text-white font-mono">{formData.cnae_principal}</p>
+                {formData.cnae_principal_descricao && (
+                  <p className="text-sm text-[#A1A1AA] mt-1">{formData.cnae_principal_descricao}</p>
+                )}
+                {formData.cnaes?.length > 0 && (
+                  <p className="text-xs text-[#666] mt-2">
+                    + {formData.cnaes.length} CNAE(s) secundário(s) importado(s)
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         );
         
