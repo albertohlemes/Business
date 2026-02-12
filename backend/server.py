@@ -673,6 +673,7 @@ class CompanyUpdate(BaseModel):
     razao_social: Optional[str] = None
     nome_fantasia: Optional[str] = None
     inscricao_estadual: Optional[str] = None
+    ie_isento: Optional[bool] = None  # Flag para IE isento/não contribuinte
     inscricao_municipal: Optional[str] = None
     endereco: Optional[str] = None
     cidade: Optional[str] = None
