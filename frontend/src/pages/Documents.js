@@ -531,19 +531,25 @@ const Documents = ({ user, onLogout }) => {
     
     setZipPreviewOpen(false);
     
+    // Log do modo
+    if (skipAiClassification) {
+      toast.success('Modo Rápido ativado - Importação sem classificação IA', { duration: 3000 });
+    }
+    
     // Para muitos arquivos, usar upload em background
     if (selectedFiles.length >= 500) {
       await handleBackgroundUpload(selectedFiles, tipoConfig, token);
     } else if (selectedFiles.length <= 10) {
       await handleDirectUpload(selectedFiles, tipoConfig, token);
     } else {
-      await handleStreamingUpload(selectedFiles, tipoConfig, token);
+      await handleStreamingUpload(selectedFiles, tipoConfig, token, skipAiClassification);
     }
     
     // Limpar estado
     setZipPreviewFiles([]);
     setZipSelectedFiles([]);
     setZipFileName('');
+    setSkipAiClassification(false);  // Reset
   };
 
   // Upload em background (Celery) para grandes volumes
