@@ -7565,10 +7565,38 @@ async def upload_xml_with_progress(
             
             # Se tiver NFe referenciada, verificar se a nota original existe
             if nfe_ref:
-                nota_original = await db.xml_documents.find_one({
-                    "company_id": company_id,
-                    "chave_nfe": nfe_ref
-                })
+                nota_original = None
+                
+                # Tentar buscar pela chave completa de 44 dígitos
+                if len(nfe_ref) == 44 and nfe_ref.isdigit():
+                    nota_original = await db.xml_documents.find_one({
+                        "company_id": company_id,
+                        "chave_nfe": nfe_ref
+                    })
+                
+                # Se não encontrou e a referência parece um número de NF, buscar pelo número
+                if not nota_original:
+                    # Extrair apenas dígitos para pegar o número da NF
+                    import re
+                    nf_numeros = re.findall(r'\d+', nfe_ref)
+                    if nf_numeros:
+                        # Pegar o maior número (provavelmente o número da NF)
+                        numero_nf = max(nf_numeros, key=lambda x: len(x))
+                        if len(numero_nf) >= 1:
+                            # Buscar por número da NF no mesmo período/empresa
+                            nota_original = await db.xml_documents.find_one({
+                                "company_id": company_id,
+                                "numero_nfe": numero_nf,
+                                "tipo": "saida"
+                            })
+                            
+                            # Se não encontrou, tentar com leading zeros
+                            if not nota_original:
+                                nota_original = await db.xml_documents.find_one({
+                                    "company_id": company_id,
+                                    "numero_nfe": {"$regex": f"^0*{numero_nf}$"},
+                                    "tipo": "saida"
+                                })
                 
                 if nota_original:
                     # Marcar a nota original como desconsiderada
