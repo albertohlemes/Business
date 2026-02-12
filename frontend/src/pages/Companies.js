@@ -952,9 +952,25 @@ const Companies = ({ user, onLogout }) => {
                 <h2 className="text-lg font-medium text-white">
                   {editingCompany ? 'Editar Empresa' : 'Nova Empresa'}
                 </h2>
-                <button onClick={handleCancelForm} className="p-1 text-[#A1A1AA] hover:text-white">
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {editingCompany && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setShowForm(false);
+                        navigate(`/wizard-empresa/${editingCompany.id}`);
+                      }}
+                      className="px-3 py-1.5 bg-[#C8A951]/20 text-[#C8A951] border border-[#C8A951]/30 rounded hover:bg-[#C8A951]/30 text-sm flex items-center gap-2"
+                      title="Abrir Wizard de Configuração Completo"
+                    >
+                      <Wand2 className="w-4 h-4" />
+                      Wizard Completo
+                    </button>
+                  )}
+                  <button onClick={handleCancelForm} className="p-1 text-[#A1A1AA] hover:text-white">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
               
               <form onSubmit={handleSubmit} className="p-4 space-y-4">
