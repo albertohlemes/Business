@@ -49,6 +49,9 @@ from services.pis_cofins_calculator import (
     CST_SAIDA
 )
 
+# PGDAS Extractor Service (Simples Nacional)
+from services.pgdas_extractor import calcular_rbt12_do_historico
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
