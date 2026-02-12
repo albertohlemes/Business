@@ -530,9 +530,10 @@ const Documents = ({ user, onLogout }) => {
     
     setZipPreviewOpen(false);
     
-    toast.success(`Iniciando importação de ${selectedFiles.length} XMLs...`, { duration: 2000 });
-    
-    if (selectedFiles.length <= 10) {
+    // Para muitos arquivos, usar upload em background
+    if (selectedFiles.length >= 500) {
+      await handleBackgroundUpload(selectedFiles, tipoConfig, token);
+    } else if (selectedFiles.length <= 10) {
       await handleDirectUpload(selectedFiles, tipoConfig, token);
     } else {
       await handleStreamingUpload(selectedFiles, tipoConfig, token);
@@ -542,6 +543,68 @@ const Documents = ({ user, onLogout }) => {
     setZipPreviewFiles([]);
     setZipSelectedFiles([]);
     setZipFileName('');
+  };
+
+  // Upload em background (Celery) para grandes volumes
+  const handleBackgroundUpload = async (files, tipoConfig, token) => {
+    try {
+      toast.loading(`Enviando ${files.length} XMLs para processamento em background...`, { id: 'bg-upload' });
+      
+      const formData = new FormData();
+      formData.append('company_id', ctxCompany.id);
+      formData.append('competencia', selectedCompetencia);
+      formData.append('tipo', operacao);
+      
+      // Adicionar arquivos
+      files.forEach(file => {
+        formData.append('files', file);
+      });
+      
+      const response = await axios.post(`${API}/xml/upload-background`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        },
+        timeout: 300000 // 5 minutos para enviar os arquivos
+      });
+      
+      toast.dismiss('bg-upload');
+      
+      if (response.data.job_id) {
+        toast.success(
+          <div>
+            <p className="font-medium">Upload iniciado em background!</p>
+            <p className="text-sm text-gray-300">{files.length} arquivos em processamento.</p>
+            <p className="text-xs text-gray-400 mt-1">Você pode fechar esta página. O processamento continuará.</p>
+          </div>,
+          { duration: 8000 }
+        );
+        
+        // Salvar job_id para monitoramento
+        const existingJobs = JSON.parse(localStorage.getItem('import_jobs') || '[]');
+        existingJobs.unshift({
+          job_id: response.data.job_id,
+          company_id: ctxCompany.id,
+          company_name: ctxCompany.razao_social,
+          competencia: selectedCompetencia,
+          total_files: files.length,
+          created_at: new Date().toISOString()
+        });
+        // Manter apenas os últimos 20 jobs
+        localStorage.setItem('import_jobs', JSON.stringify(existingJobs.slice(0, 20)));
+      }
+    } catch (err) {
+      toast.dismiss('bg-upload');
+      console.error('Erro no upload em background:', err);
+      
+      // Fallback para upload normal se background não disponível
+      if (err.response?.status === 503) {
+        toast.error('Processamento em background não disponível. Usando modo normal...');
+        await handleStreamingUpload(files, tipoConfig, token);
+      } else {
+        toast.error(err.response?.data?.detail || 'Erro ao enviar para processamento em background');
+      }
+    }
   };
 
   // Toggle seleção de arquivo no preview
