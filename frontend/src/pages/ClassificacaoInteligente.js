@@ -649,7 +649,9 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     // Agrupar por categoria
     const grupos = {};
     filtered.forEach(prod => {
-      const categoria = prod.categoria_atual || 'revenda';
+      // IMPORTANTE: Normalizar categoria para minúsculas (backend pode enviar em maiúsculas)
+      const categoriaRaw = prod.categoria_atual || 'revenda';
+      const categoria = categoriaRaw.toLowerCase();
       if (!grupos[categoria]) {
         grupos[categoria] = {
           produtos: [],
