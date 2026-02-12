@@ -91,8 +91,8 @@ const BackgroundJobsIndicator = () => {
   const completedCount = jobs.filter(j => j.status === 'completed').length;
   const errorCount = jobs.filter(j => j.status === 'error').length;
 
-  // Se não há jobs, não mostrar nada
-  if (jobs.length === 0) return null;
+  // Se não há jobs, mostrar indicador discreto
+  const hasActiveJobs = processingCount > 0;
 
   // Formatar data
   const formatDate = (dateStr) => {
