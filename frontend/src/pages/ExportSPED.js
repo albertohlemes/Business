@@ -132,7 +132,7 @@ const ExportSPED = ({ user, onLogout }) => {
           <p className="text-[#A1A1AA]">Gere o arquivo SPED Fiscal por competência para importação no SCI Único</p>
         </div>
 
-        <div className="bg-[#141414] rounded-xl p-6 shadow-md border border-[#2A2A2A]100">
+        <div className="bg-[#141414] rounded-xl p-6 shadow-md border border-[#2A2A2A]">
           <div className="space-y-6">
             {/* Company Selection */}
             <div>
@@ -141,7 +141,7 @@ const ExportSPED = ({ user, onLogout }) => {
                 data-testid="export-company-select"
                 value={selectedCompany}
                 onChange={(e) => handleCompanyChange(e.target.value)}
-                className="w-full px-4 py-3 border border-[#2A2A2A]300 rounded-lg"
+                className="w-full px-4 py-3 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
               >
                 <option value="">Selecione uma empresa</option>
                 {companies.map((company) => (
@@ -160,7 +160,7 @@ const ExportSPED = ({ user, onLogout }) => {
                   data-testid="export-competencia-select"
                   value={competencia}
                   onChange={(e) => setCompetencia(e.target.value)}
-                  className="w-full px-4 py-3 border border-[#2A2A2A]300 rounded-lg"
+                  className="w-full px-4 py-3 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
                 >
                   <option value="">Selecione a competência</option>
                   {availableCompetencias.map((comp) => (
@@ -169,13 +169,13 @@ const ExportSPED = ({ user, onLogout }) => {
                 </select>
               ) : (
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                  <Calendar className="absolute left-3 top-3 w-5 h-5 text-[#666]" />
                   <input
                     data-testid="export-competencia-input"
                     type="text"
                     value={competencia}
                     onChange={(e) => setCompetencia(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 border border-[#2A2A2A]300 rounded-lg"
+                    className="w-full pl-11 pr-4 py-3 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white placeholder-[#666] focus:border-[#C8A951] focus:outline-none"
                     placeholder="01/2024"
                     maxLength="7"
                   />
@@ -186,46 +186,46 @@ const ExportSPED = ({ user, onLogout }) => {
 
             {/* Aviso se não houver documentos */}
             {selectedCompany && availableCompetencias.length === 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium text-yellow-800">Nenhum documento encontrado</p>
-                  <p className="text-sm text-yellow-700">Esta empresa não possui XMLs importados. Faça o upload primeiro.</p>
+                  <p className="font-medium text-yellow-400">Nenhum documento encontrado</p>
+                  <p className="text-sm text-yellow-500/80">Esta empresa não possui XMLs importados. Faça o upload primeiro.</p>
                 </div>
               </div>
             )}
 
             {/* Company Info */}
             {selectedCompanyData && (
-              <div className="bg-red-50 rounded-lg p-6 border border-red-200">
-                <h3 className="font-semibold text-red-900 mb-4">Informações da Empresa</h3>
+              <div className="bg-[#C8A951]/10 rounded-lg p-6 border border-[#C8A951]/30">
+                <h3 className="font-semibold text-[#C8A951] mb-4">Informações da Empresa</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-red-700 font-medium">Razão Social</p>
-                    <p className="text-red-900">{selectedCompanyData.razao_social}</p>
+                    <p className="text-[#A1A1AA] font-medium">Razão Social</p>
+                    <p className="text-white">{selectedCompanyData.razao_social}</p>
                   </div>
                   <div>
-                    <p className="text-red-700 font-medium">CNPJ</p>
-                    <p className="text-red-900">{selectedCompanyData.cnpj}</p>
+                    <p className="text-[#A1A1AA] font-medium">CNPJ</p>
+                    <p className="text-white">{selectedCompanyData.cnpj}</p>
                   </div>
                   {selectedCompanyData.inscricao_estadual && (
                     <div>
-                      <p className="text-red-700 font-medium">Inscrição Estadual</p>
-                      <p className="text-red-900">{selectedCompanyData.inscricao_estadual}</p>
+                      <p className="text-[#A1A1AA] font-medium">Inscrição Estadual</p>
+                      <p className="text-white">{selectedCompanyData.inscricao_estadual}</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-red-700 font-medium">Competências Disponíveis</p>
-                    <p className="text-red-900 font-semibold">{availableCompetencias.length} período(s)</p>
+                    <p className="text-[#A1A1AA] font-medium">Competências Disponíveis</p>
+                    <p className="text-white font-semibold">{availableCompetencias.length} período(s)</p>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Export Info */}
-            <div className="bg-[#0C0C0C] rounded-lg p-6">
+            <div className="bg-[#0C0C0C] rounded-lg p-6 border border-[#2A2A2A]">
               <div className="flex items-start gap-3">
-                <FileText className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <FileText className="w-5 h-5 text-[#C8A951] flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <h3 className="font-semibold text-white mb-2">Sobre o SPED Fiscal</h3>
                   <p className="text-sm text-[#A1A1AA] mb-3">
@@ -250,11 +250,11 @@ const ExportSPED = ({ user, onLogout }) => {
               data-testid="export-sped-button"
               onClick={handleExport}
               disabled={loading || !selectedCompany || !competencia}
-              className="w-full bg-[#C8A951] text-white py-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-3 text-lg"
+              className="w-full bg-[#C8A951] text-[#0C0C0C] py-4 rounded-lg font-semibold hover:bg-[#D4B85C] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-3 text-lg transition-colors"
             >
               {loading ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#0C0C0C]"></div>
                   Gerando SPED...
                 </>
               ) : (
