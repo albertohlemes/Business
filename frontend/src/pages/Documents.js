@@ -8,7 +8,7 @@ import {
   Truck, Building2, Wifi, RefreshCw, Plus, FolderOpen, DollarSign, Cloud,
   Filter, CheckCircle, Ban, Receipt, Loader2, Clock, Calendar
 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useUpload } from '../context/UploadContext';
 import { toast } from 'sonner';
