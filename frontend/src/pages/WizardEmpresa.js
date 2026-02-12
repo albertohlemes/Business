@@ -846,11 +846,75 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
               </div>
             </div>
             
+            {/* Anexos do Simples Nacional */}
+            {formData.regime_tributario === 'simples_nacional' && (
+              <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                <label className="block text-sm font-medium text-[#C8A951] mb-3">
+                  Anexos do Simples Nacional
+                </label>
+                {anexosSugeridos.length > 0 && (
+                  <p className="text-xs text-blue-400 mb-3">
+                    Sugeridos com base nos CNAEs: {anexosSugeridos.join(', ')}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {['I', 'II', 'III', 'IV', 'V'].map(anexo => (
+                    <button
+                      key={anexo}
+                      onClick={() => {
+                        const anexos = formData.anexos_simples || [];
+                        const newAnexos = anexos.includes(anexo)
+                          ? anexos.filter(a => a !== anexo)
+                          : [...anexos, anexo];
+                        handleChange('anexos_simples', newAnexos);
+                      }}
+                      className={`px-4 py-2 rounded-lg border transition-colors ${
+                        formData.anexos_simples?.includes(anexo)
+                          ? 'bg-[#C8A951]/20 border-[#C8A951] text-[#C8A951]'
+                          : 'bg-[#0C0C0C] border-[#2A2A2A] text-[#666]'
+                      }`}
+                    >
+                      Anexo {anexo}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Fator R */}
+                <label className="flex items-center gap-3 cursor-pointer mt-4">
+                  <input
+                    type="checkbox"
+                    checked={formData.controla_fator_r}
+                    onChange={(e) => handleChange('controla_fator_r', e.target.checked)}
+                    className="w-5 h-5 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951] focus:ring-[#C8A951]"
+                  />
+                  <div>
+                    <span className="text-white">Controlar Fator R</span>
+                    <p className="text-xs text-[#666]">Para empresas com folha de pagamento relevante</p>
+                  </div>
+                </label>
+                
+                {formData.controla_fator_r && (
+                  <div className="mt-3 ml-8">
+                    <label className="block text-sm text-[#A1A1AA] mb-1">Folha de Pagamento (últimos 12 meses)</label>
+                    <input
+                      type="number"
+                      value={formData.folha_pagamento_12m}
+                      onChange={(e) => handleChange('folha_pagamento_12m', parseFloat(e.target.value) || 0)}
+                      className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                      placeholder="R$ 0,00"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Flags de Contribuinte */}
             <div className="border-t border-[#2A2A2A] pt-4">
               <p className="text-[#A1A1AA] mb-3">Impostos que a empresa apura:</p>
               <div className="flex flex-wrap gap-3">
                 {[
                   { field: 'apura_icms', label: 'ICMS' },
+                  { field: 'apura_icms_st', label: 'ICMS ST' },
                   { field: 'apura_pis_cofins', label: 'PIS/COFINS' },
                   { field: 'apura_iss', label: 'ISS' },
                 ].map(imposto => (
@@ -868,6 +932,89 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                   </button>
                 ))}
               </div>
+            </div>
+            
+            {/* Flags de Desconsiderar ICMS */}
+            <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+              <p className="text-[#A1A1AA] mb-3 text-sm">Configurações adicionais de ICMS:</p>
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.desconsiderar_icms_despesas}
+                    onChange={(e) => handleChange('desconsiderar_icms_despesas', e.target.checked)}
+                    className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951]"
+                  />
+                  <span className="text-white text-sm">Desconsiderar ICMS de despesas (não gera crédito)</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.desconsiderar_icms_st}
+                    onChange={(e) => handleChange('desconsiderar_icms_st', e.target.checked)}
+                    className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951]"
+                  />
+                  <span className="text-white text-sm">Desconsiderar ICMS ST para fins de classificação</span>
+                </label>
+              </div>
+            </div>
+            
+            {/* Saldo Credor Inicial */}
+            <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+              <label className="flex items-center gap-3 cursor-pointer mb-3">
+                <input
+                  type="checkbox"
+                  checked={formData.possui_saldo_credor}
+                  onChange={(e) => handleChange('possui_saldo_credor', e.target.checked)}
+                  className="w-5 h-5 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951]"
+                />
+                <span className="text-white font-medium">Possui Saldo Credor Inicial</span>
+              </label>
+              
+              {formData.possui_saldo_credor && (
+                <div className="grid grid-cols-2 gap-4 ml-8">
+                  <div>
+                    <label className="block text-sm text-[#A1A1AA] mb-1">Competência Inicial</label>
+                    <input
+                      type="text"
+                      value={formData.competencia_saldo_inicial}
+                      onChange={(e) => handleChange('competencia_saldo_inicial', e.target.value)}
+                      className="w-full px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                      placeholder="01/2024"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[#A1A1AA] mb-1">Saldo ICMS</label>
+                    <input
+                      type="number"
+                      value={formData.saldo_credor_icms}
+                      onChange={(e) => handleChange('saldo_credor_icms', parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                      placeholder="R$ 0,00"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[#A1A1AA] mb-1">Saldo PIS</label>
+                    <input
+                      type="number"
+                      value={formData.saldo_credor_pis}
+                      onChange={(e) => handleChange('saldo_credor_pis', parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                      placeholder="R$ 0,00"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[#A1A1AA] mb-1">Saldo COFINS</label>
+                    <input
+                      type="number"
+                      value={formData.saldo_credor_cofins}
+                      onChange={(e) => handleChange('saldo_credor_cofins', parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                      placeholder="R$ 0,00"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
