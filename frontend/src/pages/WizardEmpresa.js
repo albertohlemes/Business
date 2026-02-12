@@ -678,7 +678,7 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
         
       case 2:
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <p className="text-[#A1A1AA] mb-4">
               Selecione o tipo de atividade principal da empresa:
             </p>
@@ -709,6 +709,104 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 );
               })}
             </div>
+            
+            {/* Perfis Comerciais (para comércio/mista) */}
+            {['comercio', 'mista'].includes(formData.tipo_atividade) && (
+              <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                <label className="block text-sm font-medium text-[#C8A951] mb-3">
+                  Perfis Comerciais (pode selecionar mais de um)
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { value: 'varejo', label: 'Varejo', desc: 'Venda ao consumidor final' },
+                    { value: 'atacado', label: 'Atacado', desc: 'Venda para revenda' },
+                    { value: 'distribuidor', label: 'Distribuidor', desc: 'Distribuição de produtos' },
+                  ].map(perfil => (
+                    <button
+                      key={perfil.value}
+                      type="button"
+                      onClick={() => {
+                        const perfis = formData.perfis_comerciais || [];
+                        const newPerfis = perfis.includes(perfil.value)
+                          ? perfis.filter(p => p !== perfil.value)
+                          : [...perfis, perfil.value];
+                        handleChange('perfis_comerciais', newPerfis);
+                      }}
+                      className={`p-3 rounded-lg border text-left transition-all ${
+                        formData.perfis_comerciais?.includes(perfil.value)
+                          ? 'border-[#C8A951] bg-[#C8A951]/10'
+                          : 'border-[#2A2A2A] hover:border-[#3A3A3A]'
+                      }`}
+                    >
+                      <span className="text-white text-sm font-medium">{perfil.label}</span>
+                      <p className="text-xs text-[#666] mt-1">{perfil.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Checkbox: Equiparado à Indústria */}
+            {formData.tipo_atividade === 'comercio' && (
+              <label className="flex items-center gap-3 cursor-pointer bg-[#141414] p-4 rounded-lg border border-[#2A2A2A]">
+                <input
+                  type="checkbox"
+                  checked={formData.equiparado_industria}
+                  onChange={(e) => handleChange('equiparado_industria', e.target.checked)}
+                  className="w-5 h-5 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951] focus:ring-[#C8A951]"
+                />
+                <div>
+                  <span className="text-white font-medium">Equiparado à Indústria</span>
+                  <p className="text-xs text-[#666]">Empresa que importa ou compra para industrialização por encomenda</p>
+                </div>
+              </label>
+            )}
+            
+            {/* Checkbox: Transportadora */}
+            <label className="flex items-center gap-3 cursor-pointer bg-[#141414] p-4 rounded-lg border border-[#2A2A2A]">
+              <input
+                type="checkbox"
+                checked={formData.is_transportadora}
+                onChange={(e) => handleChange('is_transportadora', e.target.checked)}
+                className="w-5 h-5 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951] focus:ring-[#C8A951]"
+              />
+              <div>
+                <span className="text-white font-medium">É Transportadora</span>
+                <p className="text-xs text-[#666]">Ativar para empresas que prestam serviço de transporte</p>
+              </div>
+            </label>
+            
+            {/* Tipo de Transporte (se for transportadora) */}
+            {formData.is_transportadora && (
+              <div className="ml-8">
+                <label className="block text-sm font-medium text-[#A1A1AA] mb-2">Tipo de Transporte</label>
+                <select
+                  value={formData.tipo_transporte}
+                  onChange={(e) => handleChange('tipo_transporte', e.target.value)}
+                  className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                >
+                  <option value="carga">Carga</option>
+                  <option value="passageiros">Passageiros</option>
+                  <option value="misto">Misto</option>
+                </select>
+              </div>
+            )}
+            
+            {/* Checkbox: Aplicação em Serviços */}
+            {['comercio', 'mista'].includes(formData.tipo_atividade) && (
+              <label className="flex items-center gap-3 cursor-pointer bg-[#141414] p-4 rounded-lg border border-[#2A2A2A]">
+                <input
+                  type="checkbox"
+                  checked={formData.aplicacao_em_servicos}
+                  onChange={(e) => handleChange('aplicacao_em_servicos', e.target.checked)}
+                  className="w-5 h-5 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951] focus:ring-[#C8A951]"
+                />
+                <div>
+                  <span className="text-white font-medium">Compra materiais para aplicação em serviços</span>
+                  <p className="text-xs text-[#666]">Ex: Peças para manutenção, materiais de construção aplicados em obras</p>
+                </div>
+              </label>
+            )}
           </div>
         );
         
