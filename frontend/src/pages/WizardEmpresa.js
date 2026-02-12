@@ -211,7 +211,13 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
     
     // === RESPONSÁVEIS ===
     responsavel_ids: [],
+    
+    // === INSCRIÇÃO ESTADUAL ===
+    ie_isento: false, // Flag para IE isento/não contribuinte
   });
+  
+  // Estado para loading do SINTEGRA
+  const [loadingSintegra, setLoadingSintegra] = useState(false);
 
   // Formatar CNPJ
   const formatCNPJ = (value) => {
@@ -222,6 +228,45 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       .replace(/\.(\d{3})(\d)/, '.$1/$2')
       .replace(/(\d{4})(\d)/, '$1-$2')
       .slice(0, 18);
+  };
+  
+  // Consultar SINTEGRA para buscar Inscrição Estadual
+  const consultarSintegra = async (cnpj, uf) => {
+    if (!cnpj || !uf) return;
+    
+    setLoadingSintegra(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/api/sintegra/${cnpj}/${uf}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const data = response.data;
+      
+      if (data.inscricao_estadual && data.inscricao_estadual !== 'ISENTO' && data.inscricao_estadual !== 'NAO ENCONTRADO') {
+        // IE encontrada
+        setFormData(prev => ({
+          ...prev,
+          inscricao_estadual: data.inscricao_estadual,
+          ie_isento: false,
+        }));
+        toast.success(`Inscrição Estadual encontrada: ${data.inscricao_estadual}`);
+      } else {
+        // IE não encontrada ou isento
+        setFormData(prev => ({
+          ...prev,
+          inscricao_estadual: '',
+          ie_isento: true,
+        }));
+        toast.info('Inscrição Estadual não encontrada no SINTEGRA. Marcado como ISENTO.');
+      }
+    } catch (err) {
+      console.error('Erro ao consultar SINTEGRA:', err);
+      // Não bloquear se der erro, apenas avisar
+      toast.warning('Não foi possível consultar o SINTEGRA. Preencha a IE manualmente se necessário.');
+    } finally {
+      setLoadingSintegra(false);
+    }
   };
 
   // Sugerir anexos do Simples por CNAEs
