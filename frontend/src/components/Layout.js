@@ -52,38 +52,51 @@ const Layout = ({ user, onLogout, children }) => {
 
   // Determinar quais apurações mostrar baseado nos flags da empresa
   const getVisibleNavigation = () => {
-    // === CADASTROS E NAVEGAÇÃO PRINCIPAL ===
-    // Nota: "Empresas" foi removido do menu lateral - disponível apenas no header
-    const nav = [
-      { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
-      { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
-      { name: 'Classificação Inteligente', href: '/classificacao-inteligente', icon: Brain, testId: 'nav-classificacao-inteligente' },
-      { name: 'Central de Alertas', href: '/alertas', icon: Bell, testId: 'nav-alertas' },
-    ];
+    // === ESTRUTURA DO MENU ORGANIZADA POR CATEGORIAS ===
+    // SEPARADOR: { type: 'separator', label: 'Categoria' }
+    
+    const nav = [];
+    
+    // ═══════════════════════════════════════════════════════════
+    // 📊 VISÃO GERAL
+    // ═══════════════════════════════════════════════════════════
+    nav.push({ type: 'separator', label: 'Visão Geral' });
+    nav.push({ name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' });
+    nav.push({ name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' });
+    nav.push({ name: 'Central de Alertas', href: '/alertas', icon: Bell, testId: 'nav-alertas' });
     
     // Se não tem empresa selecionada, mostra menu completo padrão
     if (!selectedCompany) {
-      return [
-        ...nav,
-        // Apurações
-        { name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' },
-        { name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
-        { name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' },
-        { name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' },
-        { name: 'ICMS ST', href: '/apuracao-icms-st', icon: Calculator, testId: 'nav-apuracao-icms-st' },
-        { name: 'DIFAL', href: '/difal', icon: ArrowLeftRight, testId: 'nav-difal' },
-        { name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' },
-        { name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' },
-        // Análises
-        { name: 'Simples Nacional', href: '/simples-nacional', icon: Star, testId: 'nav-simples-nacional' },
-        { name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' },
-        { name: 'Evolução Fiscal', href: '/analise-horizontal', icon: TrendingUp, testId: 'nav-analise-horizontal' },
-        { name: 'Vilões e Oportunidades', href: '/viloes-oportunidades', icon: AlertTriangle, testId: 'nav-viloes-oportunidades' },
-        { name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' },
-        // Exportações
-        { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
-        { name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' },
-      ];
+      // 📝 AÇÕES
+      nav.push({ type: 'separator', label: 'Ações' });
+      nav.push({ name: 'Classificação Inteligente', href: '/classificacao-inteligente', icon: Brain, testId: 'nav-classificacao-inteligente' });
+      nav.push({ name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' });
+      
+      // 💰 IMPOSTOS
+      nav.push({ type: 'separator', label: 'Impostos' });
+      nav.push({ name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' });
+      nav.push({ name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' });
+      nav.push({ name: 'ICMS ST', href: '/apuracao-icms-st', icon: Calculator, testId: 'nav-apuracao-icms-st' });
+      nav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
+      nav.push({ name: 'DIFAL', href: '/difal', icon: ArrowLeftRight, testId: 'nav-difal' });
+      nav.push({ name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' });
+      nav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
+      nav.push({ name: 'Simples Nacional', href: '/simples-nacional', icon: Star, testId: 'nav-simples-nacional' });
+      
+      // 📈 ANÁLISES
+      nav.push({ type: 'separator', label: 'Análises' });
+      nav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
+      nav.push({ name: 'Evolução Fiscal', href: '/analise-horizontal', icon: TrendingUp, testId: 'nav-analise-horizontal' });
+      nav.push({ name: 'Vilões e Oportunidades', href: '/viloes-oportunidades', icon: AlertTriangle, testId: 'nav-viloes-oportunidades' });
+      nav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
+      
+      // 📤 EXPORTAÇÕES
+      nav.push({ type: 'separator', label: 'Exportações' });
+      nav.push({ name: 'Fechamento Mensal', href: '/fechamento-mensal', icon: Lock, testId: 'nav-fechamento-mensal' });
+      nav.push({ name: 'SPED Fiscal', href: '/sped', icon: FileOutput, testId: 'nav-sped' });
+      nav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
+      
+      return nav;
     }
     
     const tipoAtividade = selectedCompany.tipo_atividade || 'comercio';
@@ -96,37 +109,44 @@ const Layout = ({ user, onLogout, children }) => {
     // Verificar se é indústria
     const ehIndustria = tipoAtividade === 'industria' || perfisComerciais.includes('industria') || equiparadoIndustria;
     
-    // === APURAÇÕES ===
+    // ═══════════════════════════════════════════════════════════
+    // 📝 AÇÕES (Classificação, Apuração)
+    // ═══════════════════════════════════════════════════════════
+    nav.push({ type: 'separator', label: 'Ações' });
+    nav.push({ name: 'Classificação Inteligente', href: '/classificacao-inteligente', icon: Brain, testId: 'nav-classificacao-inteligente' });
     
-    // Simples Nacional tem estrutura diferente
     if (regimeTributario === 'simples_nacional') {
       nav.push({ name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' });
+    }
+    
+    // ═══════════════════════════════════════════════════════════
+    // 💰 IMPOSTOS (agrupados por tipo)
+    // ═══════════════════════════════════════════════════════════
+    nav.push({ type: 'separator', label: 'Impostos' });
+    
+    if (regimeTributario === 'simples_nacional') {
+      // Simples Nacional
       nav.push({ name: 'Simples Nacional', href: '/simples-nacional', icon: Star, testId: 'nav-simples-nacional' });
       
-      // DIFAL para compras interestaduais
       if (['comercio', 'industria', 'mista'].includes(tipoAtividade)) {
         nav.push({ name: 'DIFAL', href: '/difal', icon: ArrowLeftRight, testId: 'nav-difal' });
       }
       
-      // IPI apenas para indústria no Simples
       if (ehIndustria) {
         nav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
       }
       
-      // Impostos Retidos (apuração)
       nav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
     } else {
       // Lucro Presumido / Lucro Real
-      // NÃO tem menu de Apuração tradicional - apenas indicadores e análises
-      
-      // FEDERAIS (PIS/COFINS, IPI)
+      // Federais
       nav.push({ name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' });
       
       if (ehIndustria) {
         nav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
       }
       
-      // ESTADUAIS (ICMS, ICMS ST)
+      // Estaduais
       if (['comercio', 'industria', 'mista'].includes(tipoAtividade) || apuraIcms) {
         nav.push({ name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' });
       }
@@ -135,29 +155,36 @@ const Layout = ({ user, onLogout, children }) => {
         nav.push({ name: 'ICMS ST', href: '/apuracao-icms-st', icon: Calculator, testId: 'nav-apuracao-icms-st' });
       }
       
-      // MUNICIPAIS (ISS)
+      // Municipais
       if (['servicos', 'mista'].includes(tipoAtividade)) {
         nav.push({ name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' });
       }
       
-      // Impostos Retidos (apuração)
       nav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
     }
     
-    // === ANÁLISES ===
+    // ═══════════════════════════════════════════════════════════
+    // 📈 ANÁLISES
+    // ═══════════════════════════════════════════════════════════
+    nav.push({ type: 'separator', label: 'Análises' });
     nav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
     nav.push({ name: 'Evolução Fiscal', href: '/analise-horizontal', icon: TrendingUp, testId: 'nav-analise-horizontal' });
     nav.push({ name: 'Vilões e Oportunidades', href: '/viloes-oportunidades', icon: AlertTriangle, testId: 'nav-viloes-oportunidades' });
     nav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
     
-    // === FECHAMENTO E EXPORTAÇÕES ===
+    // ═══════════════════════════════════════════════════════════
+    // 📤 EXPORTAÇÕES E FECHAMENTO
+    // ═══════════════════════════════════════════════════════════
+    nav.push({ type: 'separator', label: 'Exportações' });
     nav.push({ name: 'Fechamento Mensal', href: '/fechamento-mensal', icon: Lock, testId: 'nav-fechamento-mensal' });
     nav.push({ name: 'SPED Fiscal', href: '/sped', icon: FileOutput, testId: 'nav-sped' });
     nav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
-    nav.push({ name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' });
     
-    // === ADMINISTRAÇÃO (apenas admin/super_admin) ===
+    // ═══════════════════════════════════════════════════════════
+    // ⚙️ ADMINISTRAÇÃO (apenas admin/super_admin)
+    // ═══════════════════════════════════════════════════════════
     if (user?.role === 'admin' || user?.role === 'super_admin') {
+      nav.push({ type: 'separator', label: 'Administração' });
       nav.push({ name: 'Grupos Empresariais', href: '/grupos-empresariais', icon: Building2, testId: 'nav-grupos-empresariais' });
       nav.push({ name: 'Histórico de Alterações', href: '/audit-log', icon: History, testId: 'nav-audit-log' });
     }
