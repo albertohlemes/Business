@@ -22927,11 +22927,6 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     anexos_confirmados = company.get('anexos_simples', []) or anexos_sugeridos
     anexo_principal = anexos_confirmados[0] if anexos_confirmados else 'I'
     
-    # Calcular faturamento dos últimos 12 meses (RBT12)
-    # Buscar documentos de saída (vendas) dos últimos 12 meses
-    data_inicio_rbt12 = datetime(ano_ref, mes_ref, 1) - timedelta(days=365)
-    data_fim = datetime(ano_ref, mes_ref + 1, 1) if mes_ref < 12 else datetime(ano_ref + 1, 1, 1)
-    
     # Formatar competências dos últimos 12 meses
     competencias_12m = []
     for i in range(12):
