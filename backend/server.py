@@ -13939,6 +13939,18 @@ def obter_cfop_por_categoria(categoria: str, cfop_atual: str) -> str:
     """
     Retorna o CFOP apropriado baseado na categoria do produto.
     Mantém o prefixo estadual/interestadual e considera se é operação com ST.
+    
+    CFOPs de ENTRADA (compra):
+    - 1102/2102: Compra para comercialização (REVENDA)
+    - 1101/2101: Compra para industrialização (INSUMO)
+    - 1407/2407: Compra para uso e consumo (DESPESA)
+    - 1406/2406: Compra de bem para ativo imobilizado (ATIVO)
+    - 1652/2652: Compra de combustível para comercialização
+    - 1653/2653: Compra de combustível para uso (frota)
+    - 1403/2403: Compra para comercialização com ST (REVENDA ST)
+    - 1401/2401: Compra para industrialização com ST (INSUMO ST)
+    - 1556/2556: Compra para uso e consumo com ST (DESPESA ST) - menos comum
+    - 1128/2128: Compra para prestação de serviço
     """
     if not cfop_atual or len(cfop_atual) < 4:
         cfop_atual = '1102'
@@ -13946,31 +13958,44 @@ def obter_cfop_por_categoria(categoria: str, cfop_atual: str) -> str:
     # Prefixo: 1 (estadual), 2 (interestadual), 3 (exterior)
     prefixo = cfop_atual[0] if cfop_atual[0] in ['1', '2', '3', '5', '6', '7'] else '1'
     
-    # Verificar se é operação com ST (4xx indica ST)
+    # Se é CFOP de saída (5xxx, 6xxx, 7xxx), converter para entrada
+    if prefixo in ['5', '6', '7']:
+        # 5 -> 1, 6 -> 2, 7 -> 3
+        prefixo = {'5': '1', '6': '2', '7': '3'}.get(prefixo, '1')
+    
+    # Verificar se é operação com ST (4xx indica ST para entrada, ou vem de 54xx/64xx de saída)
     is_st = cfop_atual[1] == '4' if len(cfop_atual) >= 2 else False
     
     # Mapeamento base (sem ST)
     mapeamento_base = {
         'revenda': '102',       # Compra para comercialização
+        'produto': '102',       # Alias para revenda
         'insumo': '101',        # Compra para industrialização
-        'despesa': '556',       # Uso e consumo
-        'ativo_imobilizado': '551',  # Ativo imobilizado
-        'combustivel': '653',   # Combustível
+        'despesa': '407',       # Compra para uso e consumo
+        'uso_consumo': '407',   # Alias para despesa
+        'ativo_imobilizado': '406',  # Compra de bem para ativo imobilizado
+        'ativo': '406',         # Alias para ativo
+        'combustivel': '653',   # Compra de combustível para uso (frota própria)
         'servico_aplicacao': '128',  # Compra para prestação de serviço
-        'servico': '933',       # Serviço
-        'bonificacao': '910',   # Bonificação
+        'servico': '933',       # Serviço tomado (NFS-e)
+        'bonificacao': '910',   # Bonificação/Doação
+        'devolucao': '201',     # Devolução de compra
     }
     
     # Mapeamento com ST (4xx)
     mapeamento_st = {
         'revenda': '403',       # Compra para comercialização com ST
+        'produto': '403',       # Alias para revenda com ST
         'insumo': '401',        # Compra para industrialização com ST
-        'despesa': '556',       # Uso e consumo (não tem versão ST específica)
-        'ativo_imobilizado': '551',  # Ativo imobilizado
-        'combustivel': '653',   # Combustível
+        'despesa': '407',       # Uso e consumo (geralmente não tem ST, mantém 407)
+        'uso_consumo': '407',   # Alias para despesa
+        'ativo_imobilizado': '406',  # Ativo imobilizado (geralmente não tem ST, mantém 406)
+        'ativo': '406',         # Alias para ativo
+        'combustivel': '653',   # Combustível (mantém)
         'servico_aplicacao': '128',  # Compra para prestação de serviço
         'servico': '933',       # Serviço
         'bonificacao': '910',   # Bonificação
+        'devolucao': '201',     # Devolução
     }
     
     categoria_lower = categoria.lower() if categoria else ''
