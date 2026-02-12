@@ -6531,7 +6531,8 @@ async def init_upload(
             "rejeitadas_cnpj": [],
             "relatorio_conversoes": [],
             "alertas_cfop": [],
-            "notas_desconsideradas_devolucao": []
+            "notas_desconsideradas_devolucao": [],
+            "notas_canceladas": []
         }
     }
     
