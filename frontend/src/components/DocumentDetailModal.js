@@ -47,6 +47,9 @@ const DocumentDetailModal = ({ document, onClose }) => {
   const calcularTotaisProdutos = () => {
     const produtos = document.produtos || [];
     return {
+      // IMPORTANTE: usar valor_produto (vProd) para comparação com capa
+      // NÃO usar valor_total pois ele já inclui IPI, ST, etc.
+      valor_produto: produtos.reduce((acc, p) => acc + (p.valor_produto || p.valor_total || 0), 0),
       valor_total: produtos.reduce((acc, p) => acc + (p.valor_total || p.valor_produto || 0), 0),
       v_bc_icms: produtos.reduce((acc, p) => acc + (p.v_bc_icms || 0), 0),
       v_icms: produtos.reduce((acc, p) => acc + (p.v_icms || 0), 0),
