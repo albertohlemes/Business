@@ -1615,7 +1615,8 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             'telefone': enderDest.get('fone', '')
         }
         
-        # Totais do documento (frete, seguro, outras despesas, desconto, IPI, ICMS-ST)
+        # Totais do documento (frete, seguro, outras despesas, desconto, IPI, ICMS-ST, FCP-ST)
+        vProd_total = float(total.get('vProd', 0) or 0)  # Soma dos valores dos produtos (vProd)
         vFrete_total = float(total.get('vFrete', 0) or 0)
         vSeg_total = float(total.get('vSeg', 0) or 0)
         vOutro_total = float(total.get('vOutro', 0) or 0)
@@ -1792,7 +1793,8 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             'destinatario_uf': destinatario_uf,
             'destinatario_endereco': destinatario_endereco,
             'valor_total': float(total.get('vNF', 0)),
-            # Totais do documento
+            # Totais do documento (da tag ICMSTot)
+            'total_produtos': vProd_total,  # vProd - soma dos valores dos produtos
             'total_frete': vFrete_total,
             'total_seguro': vSeg_total,
             'total_outras_despesas': vOutro_total,
