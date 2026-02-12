@@ -13174,12 +13174,18 @@ async def alertas_cfop_operacoes_distintas(
                 cfop_original = str(prod.get('cfop_original_emissor', ''))
                 natureza = prod.get('natureza_operacao_original', '')
                 
-                # Sugestões de conversão
+                # Sugestões de conversão - RESPEITANDO ST
                 cfop_compra = cfop_atual.replace('9', '0') if '9' in cfop_atual else cfop_atual[:2] + '02'
+                
+                # Verificar se é operação com ST pelo CFOP original
+                cfops_st = ['5403', '5405', '5408', '5409', '5410', '5411', '5412', '5413', '5414', '5415',
+                           '6403', '6404', '6405', '6408', '6409', '6410', '6411', '6412', '6413', '6414', '6415']
+                is_st = cfop_original in cfops_st
+                
                 if cfop_atual.startswith('1'):
-                    cfop_compra = '1102'  # Compra estadual
+                    cfop_compra = '1403' if is_st else '1102'  # Compra estadual (com ou sem ST)
                 elif cfop_atual.startswith('2'):
-                    cfop_compra = '2102'  # Compra interestadual
+                    cfop_compra = '2403' if is_st else '2102'  # Compra interestadual (com ou sem ST)
                 
                 doc_alertas.append({
                     'produto_idx': idx,
