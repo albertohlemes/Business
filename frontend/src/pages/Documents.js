@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import DocumentDetailModal from '../components/DocumentDetailModal';
 import NfseCancellationModal from '../components/NfseCancellationModal';
 import * as XLSX from 'xlsx';
+import JSZip from 'jszip';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
