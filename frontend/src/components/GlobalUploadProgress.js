@@ -568,44 +568,70 @@ const GlobalUploadProgress = () => {
                   <FileText className="w-5 h-5" />
                   Devoluções do Fornecedor ({uploadResults.notas_desconsideradas_devolucao.length})
                 </h3>
-                <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 max-h-60 overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="text-purple-300 border-b border-purple-500/30">
-                        <th className="text-left py-2">NF Devolução</th>
-                        <th className="text-left py-2">Emitente</th>
-                        <th className="text-right py-2">Valor</th>
-                        <th className="text-left py-2 pl-4">NF Original Ref.</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {uploadResults.notas_desconsideradas_devolucao.slice(0, 30).map((dev, idx) => (
-                        <tr key={idx} className="text-purple-200 border-b border-purple-500/20 last:border-0 hover:bg-purple-500/5">
-                          <td className="py-2">
-                            <span className="font-bold">{dev.numero_nfe || '-'}</span>
-                            {dev.cfop && <span className="text-purple-400 ml-1 text-[10px]">({dev.cfop})</span>}
-                          </td>
-                          <td className="py-2 truncate max-w-[120px]" title={dev.emitente}>{dev.emitente || '-'}</td>
-                          <td className="py-2 text-right font-medium">R$ {(dev.valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                          <td className="py-2 pl-4">
-                            {dev.nf_referenciada ? (
-                              <span className="bg-purple-600/30 px-2 py-0.5 rounded text-purple-200 font-medium">
-                                NF {dev.nf_referenciada}
-                              </span>
-                            ) : (
-                              <span className="text-purple-400/50">Não identificada</span>
+                <p className="text-xs text-purple-300/70 mb-3">
+                  Notas de devolução emitidas pelo fornecedor foram desconsideradas da apuração
+                </p>
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {uploadResults.notas_desconsideradas_devolucao.slice(0, 20).map((dev, idx) => (
+                    <div key={idx} className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Coluna Esquerda - NF de Devolução */}
+                        <div className="border-r border-purple-500/30 pr-4">
+                          <div className="text-[10px] text-purple-400 uppercase tracking-wider mb-1">NF Devolução (Desconsiderada)</div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="bg-purple-600/40 text-purple-200 px-2 py-0.5 rounded font-bold text-sm">
+                              NF {dev.numero_nfe || '-'}
+                            </span>
+                            {dev.cfop && (
+                              <span className="text-purple-300 text-xs">CFOP {dev.cfop}</span>
                             )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {uploadResults.notas_desconsideradas_devolucao.length > 30 && (
-                    <div className="text-center text-purple-300 py-2 border-t border-purple-500/30 mt-2">
-                      ... e mais {uploadResults.notas_desconsideradas_devolucao.length - 30} devoluções
+                          </div>
+                          <div className="text-xs text-purple-200 space-y-1">
+                            <div className="truncate" title={dev.emitente}>
+                              <span className="text-purple-400">Emitente:</span> {dev.emitente || '-'}
+                            </div>
+                            <div>
+                              <span className="text-purple-400">Data:</span> {dev.data_emissao ? new Date(dev.data_emissao).toLocaleDateString('pt-BR') : '-'}
+                            </div>
+                            <div className="font-medium text-purple-100">
+                              <span className="text-purple-400">Valor:</span> R$ {(dev.valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Coluna Direita - NF Original */}
+                        <div className="pl-2">
+                          <div className="text-[10px] text-green-400 uppercase tracking-wider mb-1">NF Original Vinculada</div>
+                          {dev.nf_referenciada ? (
+                            <>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="bg-green-600/40 text-green-200 px-2 py-0.5 rounded font-bold text-sm">
+                                  NF {dev.nf_referenciada}
+                                </span>
+                                <span className="text-green-400 text-[10px]">✓ Relacionada</span>
+                              </div>
+                              <div className="text-xs text-green-200/70">
+                                A nota de entrada original permanece na apuração. A devolução acima foi desconsiderada para evitar duplicidade.
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="bg-yellow-600/30 text-yellow-300 px-2 py-0.5 rounded text-sm">
+                                Não identificada
+                              </span>
+                              <span className="text-yellow-400/70 text-xs">Referência não encontrada no XML</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  )}
+                  ))}
                 </div>
+                {uploadResults.notas_desconsideradas_devolucao.length > 20 && (
+                  <div className="text-center text-purple-300 py-2 border-t border-purple-500/30 mt-3">
+                    ... e mais {uploadResults.notas_desconsideradas_devolucao.length - 20} devoluções
+                  </div>
+                )}
               </div>
             )}
 
