@@ -41,6 +41,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - Comparativo Capa NF × Produtos
 - Indicadores visuais de divergência (verde/vermelho)
 - Tabela completa de produtos com CFOP, CST, NCM, bases, impostos
+- **Extração do vFCPST** ✅ (Fundo de Combate à Pobreza sobre ST) - Dez/2025
 
 ### 5. Alertas de CFOP
 - **Agrupamento por CFOP** para ação em lote ✅
