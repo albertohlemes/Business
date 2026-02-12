@@ -2475,7 +2475,11 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
             else:
                 cfop_sugerido = cfop_prefix + '101'
         elif categoria == 'despesa':
-            cfop_sugerido = cfop_prefix + '407'  # Uso e consumo sempre 407
+            if is_st:
+                cfop_sugerido = cfop_prefix + '407'  # Uso e consumo com ST
+                justificativa += ' (com Substituição Tributária)'
+            else:
+                cfop_sugerido = cfop_prefix + '556'  # Uso e consumo sem ST
     
     return {
         "cfop_sugerido": cfop_sugerido,
