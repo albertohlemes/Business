@@ -22,7 +22,7 @@ import sys
 from datetime import datetime
 
 class CancelledNotesReportTester:
-    def __init__(self, base_url="https://taxmodulefix.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://fiscal-dashboard-8.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.token = None
         self.company_id = None

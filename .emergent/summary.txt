@@ -1,89 +1,105 @@
 <analysis>**original_problem_statement:**
-O objetivo desta sessão era corrigir uma série de bugs críticos no módulo do Simples Nacional, além de outros problemas de importação e UI reportados pelo usuário.
+O objetivo inicial era corrigir bugs críticos no módulo do Simples Nacional. No entanto, o escopo foi expandido pelo usuário para incluir novas funcionalidades e otimizações de performance significativas.
 
-As principais requisições do usuário foram:
-1.  **Bug no Dashboard do Simples Nacional**: O dashboard não estava apurando faturamento nem imposto, mesmo com notas de serviço (NFS-e) importadas.
-2.  **Bug na Importação do PGDAS**: Ao importar um PDF do PGDAS para recompor o histórico de faturamento, o faturamento do mês da competência (ex: 12/2025) não estava sendo incluído no histórico para o cálculo do RBT12 da competência seguinte (01/2026), corrompendo o cálculo do imposto.
-3.  **Erro na Importação de Notas**: Ocorriam erros durante a importação de notas, como  e  para NFS-e sem dados do tomador.
-4.  **Melhorias na UI do Relatório de Upload**:
-    *   Exibir devoluções de fornecedor lado a lado com a nota fiscal de origem.
-    *   Contadores de erros, notas canceladas e rejeitadas por CNPJ não apareciam ou estavam zerados.
-    *   O modal de progresso não permanecia aberto em caso de erro.
-5.  **Cálculo de Retenções em NFS-e**: A apuração de retenções em serviços prestados e tomados estava incorreta. O usuário solicitou um relatório detalhado para as guias de recolhimento (DARF 1708, 5952, ISS por município, INSS).
-6.  **Cálculo do DAS com ISS Retido**: Para empresas do Simples Nacional, o valor do ISS retido na fonte em serviços prestados não estava sendo deduzido do cálculo do DAS, gerando um valor de imposto a pagar maior que o devido.
-7.  **Sincronização de UI**: Ao excluir uma nota de serviço, o Dashboard do Simples Nacional não atualizava os valores.
-8.  **Precisão do Cálculo do DAS**: Havia uma diferença significativa entre o valor do DAS calculado pelo sistema e o valor do portal do Simples Nacional, exigindo uma revisão nos critérios de arredondamento.
-9.  **Atualização de Dados Históricos**: O usuário solicitou que, ao importar um PGDAS, o sistema calculasse e salvasse o valor do DAS para todos os meses do histórico, para fins de comparação no menu Evolução Fiscal.
+As requisições do usuário durante a sessão foram:
+1.  **Importação de XML via ZIP**: Criar uma funcionalidade de arrastar e soltar (drag-and-drop) para importar arquivos ZIP contendo múltiplos XMLs.
+2.  **Melhoria de Feedback de Upload**: Melhorar o feedback visual durante a importação de grandes volumes de XMLs, pois a interface parecia travar, não informando se o processo estava em andamento.
+3.  **Sincronização de Dados**: Fazer com que a importação do PGDAS atualize automaticamente a planilha de Evolução Fiscal (Análise Horizontal).
+4.  **Melhoria de UI**: Melhorar a formatação de números e o alinhamento de colunas na tela de Evolução Fiscal.
+5.  **Otimização de Performance Extrema**: Otimizar radicalmente a importação para grandes volumes de XMLs (1.000 a 10.000+), pois o processo estava muito lento ou travando.
+6.  **Bugs de Atualização de UI**:
+    *   O dashboard principal não estava atualizando corretamente as informações para empresas do Simples Nacional.
+    *   O dashboard do Simples Nacional não estava exibindo a alíquota efetiva correta (descontando o ISS retido).
+7.  **Limite de Contagem**: O contador de documentos no dashboard estava travado em 10.000, mesmo havendo mais documentos.
+8.  **Agrupamento de Documentos**: Sugestão de agrupar os documentos de saída por dia, com subtotais, para facilitar a visualização de grandes volumes.
+9.  **Monitoramento de Jobs**: Pedido de uma forma para saber se a importação em background (via Celery) está em execução.
+10. **Bugs de Importação em Background**: A importação de ZIP em background não estava iniciando após a leitura do arquivo.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-A aplicação é um sistema de fechamento fiscal (React + FastAPI + MongoDB). Nesta sessão, o agente realizou uma extensa refatoração e correção de bugs, principalmente no backend. A lógica de importação de PGDAS e o cálculo de RBT12 foram corrigidos para garantir a correta composição do histórico de faturamento. Foram implementadas melhorias no parser de NFS-e para tratar corretamente as retenções de impostos. Um novo endpoint e uma nova seção na UI foram criados para gerar um relatório de guias de recolhimento de impostos retidos. A lógica de cálculo do DAS para empresas do Simples Nacional foi ajustada para deduzir o valor do ISS retido na fonte. Finalmente, foi implementado um mecanismo de atualização de estado global para que os dashboards sejam atualizados automaticamente após a exclusão de documentos.
+A aplicação é um sistema de fechamento fiscal (React + FastAPI + MongoDB). Nesta sessão, o agente implementou uma série de melhorias focadas em performance de upload e experiência do usuário. Foi adicionado suporte a upload de arquivos ZIP com extração no cliente (). Foram implementadas otimizações de backend para uploads em massa, incluindo processamento paralelo de arquivos, inserções em lote no MongoDB () e criação de índices otimizados no banco de dados. Foi introduzido um sistema de processamento de tarefas em background com Celery e Redis para uploads muito grandes, junto com um indicador de jobs na UI. Também foram corrigidos bugs nos dashboards que não calculavam corretamente a alíquota do Simples Nacional com ISS retido. Por fim, foi adicionada uma opção de Importação Rápida que pula a classificação por IA para acelerar o processo.
 
 **Last working item**:
-*   **Last item agent was working**: Implementar a lógica correta de cálculo do DAS para serviços prestados por empresas do Simples Nacional com retenção de ISS. A regra determina que a alíquota efetiva do Simples Nacional deve ser aplicada sobre a receita, mas sem a parcela do ISS, uma vez que este já foi retido pelo tomador do serviço. O agente implementou esta lógica no backend.
-*   **Status**: USER VERIFICATION PENDING
-*   **Agent Testing Done**: Y (O agente executou um script de teste em Python para validar o novo cálculo, comparando o resultado com e sem a retenção de ISS e confirmando que a dedução estava correta).
-*   **Which testing method agent to use?**: Manual testing by user. O agente deve pedir ao usuário para verificar o Dashboard do Simples Nacional para uma empresa com NFS-e de serviços prestados que tenham retenção de ISS, e confirmar se o valor do DAS calculado (líquido) está correto.
-*   **User Testing Done**: N
+- **Last item agent was working**: O agente estava investigando por que a importação em background (via Celery) não estava sendo iniciada após o upload de um arquivo ZIP. O usuário reportou que o processo travava após a leitura do arquivo.
+- **Status**: BLOCKED
+- **Agent Testing Done**: N (O agente verificou que os serviços Celery e Redis estavam rodando, mas não conseguiu identificar a causa da falha na inicialização da tarefa).
+- **Which testing method agent to use?**: Backend testing agent. O agente precisa criar um teste que envie um arquivo para o endpoint , verifique se a tarefa Celery é criada e, em seguida, monitore os logs do worker Celery () e o status da tarefa através do endpoint  para diagnosticar por que a tarefa não está sendo executada.
+- **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-*   **Issue 1: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
-*   **Issue 2: Discrepância de valores entre Dashboard e SPED (P2)**
-*   **Issue 3: Botão de Login fica travado em Processando... (P2)**
+-   **Issue 1: Importação de ZIP em background não inicia (P0)**
+-   **Issue 2: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
+-   **Issue 3: Discrepância de valores entre Dashboard e SPED (P2)**
+-   **Issue 4: Botão de Login fica travado em Processando... (P2)**
 
 **Issues Detail**:
-*   **Issue 1: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
+-   **Issue 1: Importação de ZIP em background não inicia (P0)**
+    *   **Attempted fixes**: O agente verificou que os serviços Celery e Redis estavam online e que os workers Celery estavam prontos para receber tarefas. No entanto, a causa da falha na comunicação entre o endpoint da API e o worker Celery não foi encontrada.
+    *   **Next debug checklist**:
+        1.  Verificar os logs do backend () no momento em que o endpoint  é chamado para ver se há algum erro sendo lançado.
+        2.  Revisar o código do endpoint  em  e a tarefa  em  para garantir que os dados (conteúdo do arquivo, IDs) estão sendo passados corretamente.
+        3.  Adicionar logs detalhados no início da tarefa Celery para confirmar se ela é sequer recebida pelo worker.
+        4.  Verificar a configuração do broker e backend do Celery em  para garantir que apontam para a instância correta do Redis.
+    *   **Why fix this issue and what will be achieved with the fix?**: Esta é uma funcionalidade crítica para a importação de grandes volumes de XML, que era uma das principais queixas do usuário. A correção permitirá uploads fire-and-forget, resolvendo problemas de timeout e travamento da UI.
+    *   **Status**: IN PROGRESS
+    *   **Is recurring issue?**: N
+    *   **Should Test frontend/backend/both after fix?**: backend
+    *   **Blocked on other issue**: Não
+
+-   **Issue 2: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
     *   **Attempted fixes**: Nenhuma nesta sessão. É um problema recorrente.
-    *   **Next debug checklist**: Revisar os endpoints de upload em  para verificar qual campo de data ( vs ) está sendo usado para determinar a competência fiscal dos documentos de entrada e saída. A lógica parece ser inconsistente ou falha.
+    *   **Next debug checklist**: Revisar os endpoints de upload em  para verificar qual campo de data ( vs ) está sendo usado para determinar a competência fiscal dos documentos.
     *   **Why fix this issue and what will be achieved with the fix?**: A correta alocação de documentos por competência é essencial para a apuração fiscal precisa.
     *   **Status**: NOT STARTED
     *   **Is recurring issue?**: Y
     *   **Should Test frontend/backend/both after fix?**: backend
 
-*   **Issue 2: Discrepância de valores entre Dashboard e SPED (P2)**
+-   **Issue 3: Discrepância de valores entre Dashboard e SPED (P2)**
     *   **Attempted fixes**: Nenhuma.
-    *   **Next debug checklist**: Comparar o valor total de débitos e créditos do registro  do SPED com a soma dos valores dos registros analíticos (, etc.). Investigar se há ajustes ou outros registros que não estão sendo considerados em um dos cálculos.
-    *   **Why fix this issue and what will be achieved with the fix?**: Garante consistência e confiança nos dados apresentados em diferentes partes do sistema.
+    *   **Next debug checklist**: Comparar o valor total de débitos e créditos do registro  do SPED com a soma dos valores dos registros analíticos (, etc.).
+    *   **Why fix this issue and what will be achieved with the fix?**: Garante consistência e confiança nos dados apresentados.
     *   **Status**: NOT STARTED
     *   **Is recurring issue?**: N
     *   **Should Test frontend/backend/both after fix?**: backend
 
-*   **Issue 3: Botão de Login fica travado em Processando... (P2)**
+-   **Issue 4: Botão de Login fica travado em Processando... (P2)**
     *   **Attempted fixes**: Nenhuma.
-    *   **Next debug checklist**: Analisar a função  no componente de login do frontend. Garantir que o estado  seja desativado (set to ) no bloco  da chamada da API, para que o botão seja liberado mesmo em caso de erro na requisição.
-    *   **Why fix this issue and what will be achieved with the fix?**: É um bug crítico que impede o acesso do usuário à aplicação.
+    *   **Next debug checklist**: Analisar a função  no componente de login. Garantir que o estado  seja desativado no bloco  da chamada da API.
+    *   **Why fix this issue and what will be achieved with the fix?**: É um bug crítico de usabilidade.
     *   **Status**: NOT STARTED
     *   **Is recurring issue?**: N
     *   **Should Test frontend/backend/both after fix?**: frontend
 
 **In progress Task List**:
-*   Nenhuma.
+-   Nenhuma.
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
-    *   **(P0) Refatoração do :** Mover endpoints e lógica de negócio para uma estrutura de  e  para melhorar a manutenibilidade e reduzir bugs.
-    *   **(P0) Refatoração do :** Quebrar o componente em subcomponentes menores por etapa.
+    *   **(P0) Implementar visualização agrupada por dia**: Na página de documentos, implementar a funcionalidade solicitada pelo usuário para agrupar documentos por dia, com subtotais. O trabalho deve começar em .
+    *   **(P1) Refatoração do **: Mover endpoints e lógica de negócio para uma estrutura de  e .
 *   **Future Tasks:**
-    *   **(P1) Integração de CT-e:** Desenvolver o fluxo para upload e gerenciamento de Conhecimentos de Transporte.
-    *   **(P2) Testes de Frontend:** Implementar testes automatizados com Cypress ou Playwright.
+    *   **(P1) Integração de CT-e**: Desenvolver o fluxo para upload e gerenciamento de Conhecimentos de Transporte.
+    *   **(P2) Testes de Frontend**: Implementar testes automatizados com Cypress ou Playwright.
+    *   **(P2) Refatoração do **: Quebrar o componente em subcomponentes menores por etapa.
 
 **Completed work in this session**
-*   **Correção na Importação de PGDAS**: Ajustada a função  em  para incluir o faturamento do mês da competência () no histórico, corrigindo o cálculo do RBT12 para os meses seguintes. A regex de extração do período de apuração também foi melhorada.
-*   **Correção no Cálculo do DAS (Simples Nacional)**:
-    *   A alíquota efetiva agora é calculada com 4 casas decimais de precisão para bater com o portal da Receita, corrigido em .
-    *   Implementada a lógica para deduzir a parcela do ISS do cálculo do DAS quando a NFS-e de serviço tem ISS retido na fonte.
-*   **Atualização do Histórico Fiscal**: Ao importar um PGDAS, o sistema agora calcula e salva o valor do DAS para cada mês do histórico, populando dados para a tela de Evolução Fiscal.
-*   **Correção de Erros de Importação**:
-    *   Corrigido  ao inicializar a estrutura  no endpoint de upload em .
-    *   Corrigido  no parser de NFS-e (), tratando casos em que o XML não contém dados do tomador ou de contato.
-*   **Relatório de Guias de Retenção**:
-    *   Criado o endpoint  em  para agrupar as retenções (IR, PCC, ISS, INSS) por tipo de guia.
-    *   Adicionada uma nova aba Guias de Recolhimento na página  para exibir este relatório.
-*   **Reatividade da UI**:
-    *   O  foi modificado para rastrear alterações nos documentos.
-    *   As páginas  e  agora usam este contexto para recarregar seus dados automaticamente quando um documento é excluído, sem precisar de um refresh manual.
-*   **UI do Relatório de Upload**: O componente  foi atualizado para exibir corretamente os contadores de notas rejeitadas por CNPJ e canceladas, e para mostrar as devoluções lado a lado com as notas originais.
+-   **Upload de ZIP com Drag-and-Drop**: Implementado em  usando a biblioteca  para extração no cliente.
+-   **Otimização de Performance de Upload**:
+    *   Implementado Bulk Insert () e pré-leitura paralela de arquivos () no endpoint  em .
+    *   Criado script  e executado para adicionar índices compostos na coleção , acelerando a verificação de duplicatas.
+-   **Sistema de Jobs em Background (Celery)**:
+    *   Instalado e configurado Celery e Redis.
+    *   Criados os arquivos  e .
+    *   Adicionados novos endpoints (, , ) em .
+    *   Criado o componente  e integrado ao  para monitorar os jobs.
+-   **Importação Rápida (sem IA)**: Adicionada uma opção na UI () e lógica no backend () para pular a etapa de classificação por IA, acelerando drasticamente a importação de grandes volumes.
+-   **Correção de Bugs nos Dashboards**:
+    *   Corrigido o cálculo da alíquota do Simples Nacional para exibir a  quando aplicável em  e .
+    *   Ajustada a lógica no endpoint  em  para usar a mesma função de cálculo do Simples Nacional do dashboard específico.
+-   **Correção do Limite de Contagem**: Substituído o limite de  para  em 53 locais em , corrigindo a contagem de documentos no dashboard.
+-   **Aumento de Timeouts**: Aumentados os timeouts de requisição no frontend (, ) e no backend () para evitar que conexões caiam durante uploads longos.
+-   **Integração de Dados PGDAS na Análise Horizontal**: O endpoint  foi modificado para incluir dados de faturamento do PGDAS, e a página  foi atualizada para exibir esses dados.
 
 **Earlier issues found/mentioned but not fixed**
 *   Os mesmos listados em .
@@ -95,75 +111,93 @@ A aplicação é um sistema de fechamento fiscal (React + FastAPI + MongoDB). Ne
 
 
 **Key Technical Concepts**
-*   **Backend**: FastAPI, Pydantic, MongoDB.
-*   **Frontend**: React, React Hooks, Context API, Axios, TailwindCSS.
-*   **Lógica de Negócio**: Regras fiscais do Brasil, incluindo Simples Nacional (PGDAS, RBT12, cálculo de DAS, repartição de tributos por anexo), retenções na fonte (IRRF, PCC, ISS, INSS) e estrutura de documentos fiscais (NF-e, NFS-e).
+*   **Backend**: FastAPI, Pydantic, MongoDB, **Celery**, **Redis**.
+*   **Frontend**: React, React Hooks, Context API, Axios, TailwindCSS, **JSZip**.
+*   **Lógica de Negócio**: Otimização de performance de upload em massa, processamento assíncrono de tarefas, regras fiscais do Simples Nacional.
 
 **key DB schema**
-*   ****: O modelo foi enriquecido para NFS-e, incluindo:  (boolean), , , , , , .
-*   ****: Adicionado o campo  (dict) para armazenar os valores de DAS calculados para meses anteriores, visando análises de evolução fiscal. O campo  teve sua lógica de população corrigida.
+*   Nenhuma alteração de schema.
+*   **Índices adicionados** na coleção  para otimizar a busca por duplicatas e documentos existentes:
+    *   : 
+    *   : 
+    *   : 
+
+**changes in tech stack**
+-   **Backend**: Adicionado **Celery** para gerenciamento de filas de tarefas e **Redis** como broker e backend de resultados.
+-   **Frontend**: Adicionada a biblioteca **JSZip** para manipulação de arquivos ZIP no lado do cliente.
 
 **All files of reference**
-*   
-*   
-*   
-*   
-*   
-*   
-*   
-*   
-*   
-*   
+*   /app/backend/server.py
+*   /app/backend/celery_config.py
+*   /app/backend/celery_tasks.py
+*   /app/frontend/src/pages/Documents.js
+*   /app/frontend/src/pages/AnaliseHorizontal.js
+*   /app/frontend/src/pages/SimplesNacionalDashboard.js
+*   /app/frontend/src/pages/Dashboard.js
+*   /app/frontend/src/components/BackgroundJobsIndicator.js
+*   /app/frontend/src/context/UploadContext.js
+*   /app/memory/PRD.md
 
 **Areas that need refactoring**:
-*   ** (CRÍTICO)**: O arquivo monolítico com mais de 25.000 linhas é uma fonte constante de bugs e dificulta a manutenção. A refatoração para uma arquitetura baseada em  e  é urgente e foi listada como tarefa futura.
-*   ****: O componente cresceu consideravelmente com a adição da nova aba Guias de Recolhimento e agora ultrapassa 900 linhas. Ele deve ser dividido em subcomponentes para melhorar a legibilidade.
+*   ** (CRÍTICO)**: O arquivo continua monolítico e complexo. A adição da lógica de Celery, otimizações e correções de bugs aumentou a necessidade de refatoração urgente.
+*   ****: Este componente agora gerencia múltiplos modos de upload (streaming, background, com/sem IA), modais e manipulação de arquivos. Ele ultrapassou 4000 linhas e deve ser quebrado em componentes menores (ex: , ,  para a lógica de upload).
 
 **key api endpoints**
-*   : Endpoint central para o dashboard. Teve a lógica de cálculo de RBT12 e DAS (com dedução de ISS) completamente reformulada.
-*   : Endpoint de importação de PGDAS. Agora também calcula e salva o DAS para cada mês do histórico importado.
-*    (NOVO): Gera o relatório de guias de recolhimento de impostos retidos como tomador de serviço.
-*   : Endpoint de importação de XML. Teve múltiplos bugs de  e  corrigidos.
+*   **NOVOS**:
+    *   : Envia um ZIP para ser processado em background pelo Celery.
+    *   : Lista o status de todos os jobs de background.
+    *   : Obtém o status de um job específico.
+*   **MODIFICADOS**:
+    *   : Otimizado com pré-leitura paralela e . Agora aceita o parâmetro .
+    *   : Agora aceita o parâmetro .
+    *   : Corrigido para calcular corretamente os totais do Simples Nacional.
+    *   : Modificado para incluir dados históricos do PGDAS.
 
 **Critical Info for New Agent**
-*   A prioridade máxima é obter a validação do usuário sobre a última correção: o cálculo do DAS com a dedução do ISS retido.
-*   O módulo do Simples Nacional é extremamente complexo e sensível. Esteja preparado para depurar regras fiscais detalhadas e possíveis novos casos de borda que o usuário possa encontrar.
-*   A refatoração do  é uma tarefa de alta prioridade que deve ser proposta ao usuário. Muitos bugs desta sessão são sintomas da complexidade e falta de modularidade deste arquivo.
-*   A comunicação entre componentes frontend agora utiliza um estado global ( no ) para reatividade. Siga este padrão para futuras implementações que exijam atualização de estado entre páginas/componentes não relacionados.
-*   Esteja ciente do bug recorrente de alocação de competência (NF de fevereiro em janeiro). Ele não foi tratado e provavelmente será reportado novamente.
+*   A prioridade máxima é corrigir a funcionalidade de **importação em background (Celery)**, que está quebrada. O usuário está importando grandes volumes e depende dessa funcionalidade para evitar timeouts.
+*   O usuário está muito focado em **performance**. Todas as mudanças futuras devem considerar o impacto no desempenho de uploads em massa.
+*   Existem agora múltiplos fluxos de upload: streaming síncrono (padrão) e background assíncrono (Celery, para 500+ arquivos), ambos com a opção de pular a classificação por IA. Entender esses fluxos é crucial para a depuração.
+*   O próximo recurso solicitado é a **visualização agrupada por dia** na página de documentos.
 
 **documents and test reports created in this job**
-*    (foi atualizado com as novas funcionalidades e correções).
+*   /app/memory/PRD.md (atualizado)
+*   /app/backend/celery_config.py
+*   /app/backend/celery_tasks.py
+*   /app/backend/start_celery.sh
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Usuário**: Informa que ao excluir uma nota de serviço, o dashboard do Simples Nacional não está atualizando (zerando a informação). (CONCLUÍDO)
-2.  **Usuário**: Pede para confirmar se o dashboard principal também foi arrumado. (CONCLUÍDO - agente aplicou a mesma lógica de atualização).
-3.  **Usuário**: Dá permissão para finalizar a sessão. (IGNORADO - usuário enviou nova requisição em seguida).
-4.  **Usuário**: Reitera que para NFS-e com retenção de ISS, o sistema não está desconsiderando a parcela do ISS no cálculo do DAS. (PENDENTE DE VERIFICAÇÃO - Foi o último item implementado).
-5.  **Usuário**: Informa que o cálculo do DAS para a empresa BEARGROUP no mês 01/2026 está com uma diferença grande em relação ao portal do Simples e pede para rever o arredondamento. (CONCLUÍDO).
-6.  **Usuário**: Pede para que a importação do PGDAS também atualize os dados em períodos anteriores para o menu Evolução Fiscal. (CONCLUÍDO).
-7.  **Usuário**: Reporta um erro no Dashboard do Simples (). Pergunta se a reimportação do PGDAS sobrepõe os dados ou se é preciso deletar antes. (CONCLUÍDO - erro corrigido e dúvida respondida).
-8.  **Usuário**: Reporta um erro ao importar uma NFS-e de prestador. (CONCLUÍDO -  corrigido).
-9.  **Usuário**: Reporta que a importação de PGDAS para compor os 12 meses ainda não está incluindo dezembro. (CONCLUÍDO - regex de extração do período foi corrigida).
-10. **Usuário**: Pede para criar um relatório para guias de retenção de serviços tomados (IR, PCC, ISS, INSS). (CONCLUÍDO).
+10. **Usuário**: Reporta que a importação de ZIP em background não está iniciando. (PENDENTE - BUG CRÍTICO)
+9.  **Usuário**: Pergunta o que perde ao importar sem IA. (CONCLUÍDO - Agente explicou as consequências)
+8.  **Usuário**: Reporta que o ambiente oficial trava durante a importação de grandes volumes. (CONCLUÍDO - Agente implementou opção de importação rápida sem IA como solução)
+7.  **Usuário**: Pergunta como importar pelo Celery. (CONCLUÍDO - Agente explicou o gatilho automático e se ofereceu para adicionar controle manual)
+6.  **Usuário**: Reporta que o contador no dashboard está travado em 10.000. (CONCLUÍDO - Agente aumentou o limite para 100.000)
+5.  **Usuário**: Sugere uma nova funcionalidade: agrupar documentos por dia na visualização. (PENDENTE - Próxima tarefa)
+4.  **Usuário**: Pergunta como saber se a importação em background está rodando. (CONCLUÍDO - Agente criou o componente )
+3.  **Usuário**: Aceita a proposta de implementação da otimização com Celery/Redis. (CONCLUÍDO - Agente implementou)
+2.  **Usuário**: Pede otimização de tempo para importações. (CONCLUÍDO - Agente implementou bulk insert e processamento paralelo)
+1.  **Usuário**: Reporta bugs nos dashboards do Simples Nacional (principal e específico) relacionados à alíquota de ISS retido. (CONCLUÍDO - Agente corrigiu)
 
 **Project Health Check:**
 *   **Broken**:
-    *   A lógica de atribuição de competência para documentos fiscais (ex: nota de fevereiro aparecendo em janeiro) é um bug antigo, recorrente e ainda não resolvido.
+    *   A funcionalidade principal de importação em background via Celery está quebrada. A tarefa não é iniciada após o upload.
+    *   A lógica de atribuição de competência fiscal (bug NF de fevereiro em janeiro) continua sem solução.
 *   **Mocked**:
     *   Nenhum.
 
 **3rd Party Integrations**
-*   **PyMuPDF**: Usado intensivamente para extrair texto de arquivos PDF do PGDAS.
+*   **PyMuPDF**: Extração de texto de PDFs (PGDAS).
+*   **Celery**: Processamento de tarefas assíncronas em background.
+*   **Redis**: Message broker e backend de resultados para o Celery.
+*   **JSZip**: Manipulação (extração) de arquivos ZIP no frontend.
 
 **Testing status**
-*   **Testing agent used after significant changes**: NO
-*   **Troubleshoot agent used after agent stuck in loop**: NO
-*   **Test files created**: []
-*   **Known regressions**: O cálculo de competência dos documentos é uma regressão conhecida de forks anteriores e permanece sem solução.
+-   **Testing agent used after significant changes**: NO
+-   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Test files created**: []
+-   **Known regressions**: O cálculo de competência dos documentos é uma regressão conhecida de forks anteriores e permanece sem solução.
 
 **Credentials to test flow:**
 *   **Super Admin**:  / 
 
 **What agent forgot to execute**
-*   O agente não abordou as tarefas pendentes de alta prioridade do handoff anterior, como o bug da competência, a discrepância com o SPED e o botão de login travado, pois o foco foi totalmente direcionado às novas e urgentes demandas do usuário sobre o módulo do Simples Nacional.</analysis>
+*   O agente não resolveu os problemas pendentes do handoff anterior (competência de NF, discrepância com SPED, botão de login travado), pois o foco foi totalmente direcionado para as novas demandas de performance e funcionalidades do usuário.</analysis>
