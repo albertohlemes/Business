@@ -1643,7 +1643,7 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {(formData.produtos_ativo_imobilizado || []).map(keyword => (
+                {(formData.ativo_imobilizado || []).map(keyword => (
                   <span
                     key={keyword}
                     className="px-3 py-1 bg-cyan-500/10 text-cyan-400 rounded-full text-sm flex items-center gap-1"
@@ -1679,7 +1679,7 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {(formData.produtos_combustivel || []).map(keyword => (
+                {(formData.combustivel || []).map(keyword => (
                   <span
                     key={keyword}
                     className="px-3 py-1 bg-red-500/10 text-red-400 rounded-full text-sm flex items-center gap-1"
@@ -1931,21 +1931,21 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                       <span className="text-orange-400">{formData.produtos_despesa.join(', ')}</span>
                     </div>
                   )}
-                  {formData.produtos_ativo_imobilizado?.length > 0 && (
+                  {formData.ativo_imobilizado?.length > 0 && (
                     <div>
                       <span className="text-[#666]">Ativo Imobilizado: </span>
-                      <span className="text-cyan-400">{formData.produtos_ativo_imobilizado.join(', ')}</span>
+                      <span className="text-cyan-400">{formData.ativo_imobilizado.join(', ')}</span>
                     </div>
                   )}
-                  {formData.produtos_combustivel?.length > 0 && (
+                  {formData.combustivel?.length > 0 && (
                     <div>
                       <span className="text-[#666]">Combustível: </span>
-                      <span className="text-red-400">{formData.produtos_combustivel.join(', ')}</span>
+                      <span className="text-red-400">{formData.combustivel.join(', ')}</span>
                     </div>
                   )}
                   {(!formData.produtos_comercializados?.length && !formData.insumos_producao?.length && 
                     !formData.produtos_despesa?.length && !formData.produtos_aplicacao_servico?.length &&
-                    !formData.produtos_ativo_imobilizado?.length && !formData.produtos_combustivel?.length) && (
+                    !formData.ativo_imobilizado?.length && !formData.combustivel?.length) && (
                     <span className="text-[#666]">Nenhuma palavra-chave cadastrada</span>
                   )}
                 </div>
