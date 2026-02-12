@@ -171,6 +171,7 @@ const Documents = ({ user, onLogout }) => {
   const [zipPreviewFiles, setZipPreviewFiles] = useState([]);
   const [zipSelectedFiles, setZipSelectedFiles] = useState([]);
   const [zipFileName, setZipFileName] = useState('');
+  const [skipAiClassification, setSkipAiClassification] = useState(false);  // Modo rápido sem IA
 
   // Carregar documentos quando selecionar tipo ou mudar filtro
   useEffect(() => {
