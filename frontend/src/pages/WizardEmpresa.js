@@ -266,25 +266,87 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       
       const company = response.data;
       setFormData({
+        // Dados básicos
+        cnpj: company.cnpj || '',
+        codigo_empresa: company.codigo_empresa || '',
         razao_social: company.razao_social || '',
         nome_fantasia: company.nome_fantasia || '',
-        cnpj: company.cnpj || '',
         inscricao_estadual: company.inscricao_estadual || '',
+        inscricao_municipal: company.inscricao_municipal || '',
         endereco: company.endereco || '',
         cidade: company.cidade || '',
-        uf: company.uf || '',
-        tipo_atividade: company.tipo_atividade || '',
-        regime_tributario: company.regime_tributario || '',
-        apura_icms: company.apura_icms !== false,
+        uf: company.uf || 'SP',
+        cep: company.cep || '',
+        cnae_principal: company.cnae_principal || '',
+        cnae_principal_descricao: company.cnae_principal_descricao || '',
+        cnaes: company.cnaes || [],
+        atividade_principal: company.atividade_principal || '',
+        logo_url: company.logo_url || '',
+        
+        // Atividade
+        tipo_atividade: company.tipo_atividade || 'comercio',
+        tipos_servico: company.tipos_servico || [],
+        atividade_locacao: company.atividade_locacao || false,
+        perfis_comerciais: company.perfis_comerciais || ['varejo'],
+        aplicacao_em_servicos: company.aplicacao_em_servicos || false,
+        is_transportadora: company.is_transportadora || false,
+        tipo_transporte: company.tipo_transporte || 'carga',
+        
+        // Tributação
+        regime_tributario: company.regime_tributario || 'lucro_presumido',
+        anexos_simples: company.anexos_simples || [],
+        anexos_confirmados: company.anexos_confirmados || false,
+        controla_fator_r: company.controla_fator_r || false,
+        folha_pagamento_12m: company.folha_pagamento_12m || 0,
+        equiparado_industria: company.equiparado_industria || false,
+        apura_icms: company.apura_icms || false,
+        apura_icms_st: company.apura_icms_st || false,
         apura_pis_cofins: company.apura_pis_cofins !== false,
         apura_iss: company.apura_iss || false,
+        desconsiderar_icms_despesas: company.desconsiderar_icms_despesas || false,
+        desconsiderar_icms_st: company.desconsiderar_icms_st || false,
+        
+        // Presunção
+        percentual_presuncao_irpj: company.percentual_presuncao_irpj || 8.0,
+        percentual_presuncao_csll: company.percentual_presuncao_csll || 12.0,
+        percentual_presuncao_irpj_comercio: company.percentual_presuncao_irpj_comercio || 8.0,
+        percentual_presuncao_csll_comercio: company.percentual_presuncao_csll_comercio || 12.0,
+        percentual_presuncao_irpj_servico: company.percentual_presuncao_irpj_servico || 32.0,
+        percentual_presuncao_csll_servico: company.percentual_presuncao_csll_servico || 32.0,
+        percentual_presuncao_irpj_industria: company.percentual_presuncao_irpj_industria || 8.0,
+        percentual_presuncao_csll_industria: company.percentual_presuncao_csll_industria || 12.0,
+        
+        // Classificação
         produtos_comercializados: company.produtos_comercializados || [],
+        produtos_aplicacao_servico: company.produtos_aplicacao_servico || [],
         insumos_producao: company.insumos_producao || [],
         produtos_despesa: company.produtos_despesa || [],
-        produtos_aplicacao_servico: company.produtos_aplicacao_servico || [],
+        ativo_imobilizado: company.ativo_imobilizado || [],
+        combustivel: company.combustivel || [],
+        classificacao_inteligente: company.classificacao_inteligente || '',
+        
+        // Benefícios
         beneficio_fiscal_icms: company.beneficio_fiscal_icms || false,
+        tipo_beneficio_fiscal: company.tipo_beneficio_fiscal || '',
         percentual_reducao_icms: company.percentual_reducao_icms || 0,
-        tipo_beneficio: company.tipo_beneficio || '',
+        produtos_sem_credito_icms: company.produtos_sem_credito_icms || [],
+        produtos_sem_credito_descricao: company.produtos_sem_credito_descricao || '',
+        credito_presumido_icms_percent: company.credito_presumido_icms_percent || 20.0,
+        
+        // Saldo Credor
+        possui_saldo_credor: company.possui_saldo_credor || false,
+        saldo_credor_icms: company.saldo_credor_icms || 0,
+        saldo_credor_pis: company.saldo_credor_pis || 0,
+        saldo_credor_cofins: company.saldo_credor_cofins || 0,
+        competencia_saldo_inicial: company.competencia_saldo_inicial || '',
+        
+        // Certificado
+        certificado_digital_arquivo: company.certificado_digital_arquivo || '',
+        certificado_digital_senha: company.certificado_digital_senha || '',
+        certificado_digital_validade: company.certificado_digital_validade || '',
+        
+        // Responsáveis
+        responsavel_ids: company.responsavel_ids || [],
       });
     } catch (error) {
       console.error('Erro ao carregar empresa:', error);
