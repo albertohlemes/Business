@@ -25026,9 +25026,44 @@ async def importar_pgdas(
     historico_existente = company.get("historico_faturamento", {}) if not sobrepor_historico else {}
     novo_historico = gerar_historico_para_salvar(dados_pgdas, historico_existente)
     
+    # Calcular DAS para cada competência do histórico (para Evolução Fiscal)
+    # Isso permite comparar o DAS calculado com o DAS real do PGDAS
+    from services.simples_nacional_calculator import calcular_aliquota_efetiva, calcular_das_periodo
+    
+    anexo = company.get('anexos_simples', ['I'])[0] if company.get('anexos_simples') else 'I'
+    historico_das_calculado = {}
+    
+    # Ordenar competências cronologicamente
+    competencias_ordenadas = sorted(novo_historico.keys(), key=lambda x: (int(x.split('/')[1]), int(x.split('/')[0])))
+    
+    for comp in competencias_ordenadas:
+        dados_mes = novo_historico[comp]
+        faturamento_mes = dados_mes.get('valor', 0)
+        
+        # Calcular RBT12 para esta competência
+        rbt12_comp = calcular_rbt12_do_historico(novo_historico, comp)
+        
+        if rbt12_comp > 0 and faturamento_mes > 0:
+            # Calcular alíquota efetiva
+            aliq_info = calcular_aliquota_efetiva(rbt12_comp, anexo)
+            aliq_efetiva = aliq_info['aliquota_efetiva']
+            
+            # Calcular DAS
+            das_calculado = faturamento_mes * (aliq_efetiva / 100)
+            
+            historico_das_calculado[comp] = {
+                "faturamento": round(faturamento_mes, 2),
+                "rbt12": round(rbt12_comp, 2),
+                "aliquota_efetiva": round(aliq_efetiva, 4),
+                "das_calculado": round(das_calculado, 2),
+                "anexo": anexo,
+                "faixa": aliq_info['faixa']
+            }
+    
     # Atualizar empresa com histórico
     update_data = {
         "historico_faturamento": novo_historico,
+        "historico_das_calculado": historico_das_calculado,  # Novo campo para Evolução Fiscal
         "pgdas_ultima_importacao": datetime.now(timezone.utc).isoformat(),
         "pgdas_periodo_apuracao": dados_pgdas.get("periodo_apuracao"),
         "pgdas_rbt12": dados_pgdas.get("rbt12", 0),
