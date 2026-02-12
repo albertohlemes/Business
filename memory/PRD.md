@@ -113,6 +113,54 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-12 (Sessão 29 - Correções PGDAS, Dashboard e Retenções)
+
+**Bugs Corrigidos (P0):**
+
+- ✅ **Importação do PGDAS - Período de Apuração não era extraído:**
+  - O PDF do PGDAS usa formato `01/12/2025 a 31/12/2025`, mas a regex esperava `12/2025`
+  - Corrigida a extração para reconhecer múltiplos formatos
+  - Agora a `receita_pa` (faturamento do mês) é salva corretamente no histórico
+
+- ✅ **Cálculo do DAS - Precisão melhorada:**
+  - Alíquota efetiva agora usa 4 casas decimais (era 2)
+  - Diferença reduzida para ~2 centavos em relação ao portal oficial
+
+- ✅ **Dashboard não atualizava ao excluir documentos:**
+  - Implementado `documentsVersion` no UploadContext
+  - Dashboard Principal e Simples Nacional agora reagem a exclusões automaticamente
+
+- ✅ **Erro no Dashboard Simples Nacional (`company_id` not defined):**
+  - Corrigida definição da variável `company_id` no endpoint
+
+- ✅ **Erro ao importar NFS-e (campos None):**
+  - Corrigido parser de NFS-e para tratar campos `CpfCnpj` e `Contato` como None/vazio
+
+**Funcionalidades Implementadas:**
+
+- ✅ **Relatório de Guias de Recolhimento** (`GET /api/impostos-retidos/{company_id}/guias`):
+  - DARF 1708: IR Retido na Fonte
+  - DARF 5952: PCC (PIS + COFINS + CSLL)
+  - ISS: Uma guia por município
+  - GPS: INSS (vai junto com eSocial)
+
+- ✅ **Nova aba "Guias de Recolhimento"** na tela de Impostos Retidos
+
+- ✅ **Histórico de DAS calculado ao importar PGDAS** para Evolução Fiscal
+
+**Arquivos Modificados:**
+- `/app/backend/services/pgdas_extractor.py` - Extração do período de apuração
+- `/app/backend/services/simples_nacional_calculator.py` - Precisão da alíquota
+- `/app/backend/server.py` - Endpoints corrigidos e novo endpoint de guias
+- `/app/frontend/src/context/UploadContext.js` - documentsVersion
+- `/app/frontend/src/pages/Dashboard.js` - Atualização automática
+- `/app/frontend/src/pages/SimplesNacionalDashboard.js` - Atualização automática
+- `/app/frontend/src/pages/Documents.js` - Notificação de mudanças
+- `/app/frontend/src/pages/ImpostosRetidos.js` - Nova aba de guias
+- `/app/frontend/src/components/GlobalUploadProgress.js` - Contadores atualizados
+
+---
+
 ### 2026-02-12 (Sessão 28 - Correção PGDAS e Dashboard Simples Nacional)
 
 **Bugs Corrigidos (P0):**
