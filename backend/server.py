@@ -29698,6 +29698,22 @@ async def atualizar_codigo_empresa(
     return {"success": True, "codigo": codigo.strip()}
 
 
+@api_router.get("/batch-import/download-script")
+async def download_batch_script():
+    """Retorna o script Python para importação em lote"""
+    from fastapi.responses import FileResponse
+    
+    script_path = os.path.join(os.path.dirname(__file__), 'batch_import.py')
+    if os.path.exists(script_path):
+        return FileResponse(
+            script_path,
+            media_type='text/x-python',
+            filename='batch_import.py'
+        )
+    else:
+        raise HTTPException(status_code=404, detail="Script não encontrado")
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
