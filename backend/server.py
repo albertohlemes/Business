@@ -24406,8 +24406,6 @@ async def ret_simples_nacional(
         ]
         result = await db.xml_documents.aggregate(pipeline).to_list(1)
         rbt12 = result[0]["total"] if result else 0
-    else:
-        rbt12 = pgdas_rbt12
     
     # Faturamento acumulado no ano
     competencias_ano = [f"{m:02d}/{ano_ref}" for m in range(1, mes_ref + 1)]
