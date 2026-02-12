@@ -2119,7 +2119,7 @@ const Documents = ({ user, onLogout }) => {
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileSelect}
-                accept={tipoConfig?.accept || '.xml'}
+                accept={(tipoConfig?.accept || '.xml') + ',.zip'}
                 multiple
                 className="hidden"
               />
@@ -2142,7 +2142,7 @@ const Documents = ({ user, onLogout }) => {
                     <Upload className="w-5 h-5" />
                     {tipoConfig?.importType === 'ai' ? 'Importar PDF/Imagem' : 
                      tipoConfig?.importType === 'both' ? 'Importar XML ou PDF' : 
-                     'Importar XML'}
+                     'Importar XML/ZIP'}
                   </>
                 )}
               </button>
