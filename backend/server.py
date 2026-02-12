@@ -2451,11 +2451,7 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
         elif categoria == 'combustivel':
             cfop_sugerido = cfop_prefix + '653'
         elif categoria == 'ativo_imobilizado':
-            if is_st:
-                cfop_sugerido = cfop_prefix + '406'
-                justificativa += ' (com Substituição Tributária)'
-            else:
-                cfop_sugerido = cfop_prefix + '551'
+            cfop_sugerido = cfop_prefix + '406'  # Ativo imobilizado sempre 406
         elif categoria == 'revenda':
             if is_st:
                 cfop_sugerido = cfop_prefix + '403'
@@ -2469,11 +2465,7 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
             else:
                 cfop_sugerido = cfop_prefix + '101'
         elif categoria == 'despesa':
-            if is_st:
-                cfop_sugerido = cfop_prefix + '407'
-                justificativa += ' (com Substituição Tributária)'
-            else:
-                cfop_sugerido = cfop_prefix + '556'
+            cfop_sugerido = cfop_prefix + '407'  # Uso e consumo sempre 407
     
     return {
         "cfop_sugerido": cfop_sugerido,
