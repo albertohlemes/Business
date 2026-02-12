@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUpload } from '../context/UploadContext';
-import { X, ChevronUp, ChevronDown, CheckCircle2, AlertCircle, Loader2, FileText, Upload, Coffee } from 'lucide-react';
+import { X, ChevronUp, ChevronDown, CheckCircle2, AlertCircle, FileText, Upload, Coffee } from 'lucide-react';
+import CoffeeProgress from './CoffeeProgress';
 
-// Mini xícara de café animada para o progresso
+// Mini xícara de café animada para o progresso minimizado
 const MiniCoffee = ({ progress }) => {
   const coffeeLevel = 100 - progress;
   const isComplete = progress >= 100;
@@ -116,23 +117,27 @@ const GlobalUploadProgress = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } else {
-      // PDF - abrir em nova janela para imprimir
+      // PDF - abrir em nova janela para imprimir com tema escuro
       const printWindow = window.open('', '_blank');
       printWindow.document.write(`
         <html>
         <head>
           <title>Relatório de Importação</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { color: #333; border-bottom: 2px solid #e53e3e; padding-bottom: 10px; }
-            h2 { color: #555; margin-top: 20px; }
-            pre { background: #f5f5f5; padding: 15px; border-radius: 5px; white-space: pre-wrap; }
+            body { font-family: Arial, sans-serif; padding: 20px; background: #0C0C0C; color: #fff; }
+            h1 { color: #C8A951; border-bottom: 2px solid #C8A951; padding-bottom: 10px; }
+            h2 { color: #A1A1AA; margin-top: 20px; }
+            pre { background: #141414; padding: 15px; border-radius: 5px; white-space: pre-wrap; border: 1px solid #2A2A2A; }
             .resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
-            .resumo-item { background: #f0f0f0; padding: 15px; border-radius: 8px; text-align: center; }
-            .resumo-item.success { background: #d4edda; }
-            .resumo-item.warning { background: #fff3cd; }
-            .resumo-item.error { background: #f8d7da; }
+            .resumo-item { background: #141414; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #2A2A2A; }
+            .resumo-item.success { border-color: #22c55e; }
+            .resumo-item.warning { border-color: #f59e0b; }
+            .resumo-item.error { border-color: #ef4444; }
             .numero { font-size: 24px; font-weight: bold; }
+            .success .numero { color: #22c55e; }
+            .warning .numero { color: #f59e0b; }
+            .error .numero { color: #ef4444; }
+            @media print { body { background: #fff; color: #000; } pre { background: #f5f5f5; border-color: #ddd; } }
           </style>
         </head>
         <body>
@@ -179,7 +184,7 @@ const GlobalUploadProgress = () => {
       <div className="fixed bottom-4 right-4 z-50">
         <button
           onClick={toggleMinimize}
-          className="bg-slate-700 text-white px-4 py-2 rounded-full shadow-lg text-sm flex items-center gap-2 hover:bg-slate-600 transition-colors"
+          className="bg-[#141414] text-white px-4 py-2 rounded-full shadow-lg text-sm flex items-center gap-2 hover:bg-[#1E1E1E] transition-colors border border-[#2A2A2A]"
         >
           <ChevronDown className="w-4 h-4" />
           Minimizar progresso
@@ -206,22 +211,22 @@ const GlobalUploadProgress = () => {
 
   return (
     <>
-    <div className="fixed bottom-4 right-4 z-50 w-96 bg-[#141414] rounded-xl shadow-2xl border border-[#2A2A2A] overflow-hidden">
+    <div className="fixed bottom-4 right-4 z-50 w-96 bg-[#0C0C0C] rounded-xl shadow-2xl border border-[#2A2A2A] overflow-hidden">
       {/* Header */}
       <div className={`px-4 py-3 flex items-center justify-between ${
-        uploadError ? 'bg-red-600' : 
-        uploadResults ? 'bg-green-600' : 
-        'bg-[#0C0C0C] border-b border-[#2A2A2A]'
+        uploadError ? 'bg-red-900/50 border-b border-red-500/30' : 
+        uploadResults ? 'bg-green-900/50 border-b border-green-500/30' : 
+        'bg-[#141414] border-b border-[#2A2A2A]'
       } text-white`}>
         <div className="flex items-center gap-3">
           {isUploading ? (
             <MiniCoffee progress={progress.percent} />
           ) : uploadResults ? (
-            <CheckCircle2 className="w-5 h-5" />
+            <CheckCircle2 className="w-5 h-5 text-green-400" />
           ) : uploadError ? (
-            <AlertCircle className="w-5 h-5" />
+            <AlertCircle className="w-5 h-5 text-red-400" />
           ) : (
-            <Upload className="w-5 h-5" />
+            <Upload className="w-5 h-5 text-[#C8A951]" />
           )}
           <div>
             <span className="font-semibold text-sm">
@@ -238,7 +243,7 @@ const GlobalUploadProgress = () => {
           {isUploading && (
             <button 
               onClick={toggleMinimize}
-              className="p-1 hover:bg-white/20 rounded transition-colors"
+              className="p-1 hover:bg-white/10 rounded transition-colors"
               title="Minimizar"
             >
               <ChevronDown className="w-4 h-4" />
@@ -247,7 +252,7 @@ const GlobalUploadProgress = () => {
           {!isUploading && (
             <button 
               onClick={clearResults}
-              className="p-1 hover:bg-white/20 rounded transition-colors"
+              className="p-1 hover:bg-white/10 rounded transition-colors"
               title="Fechar"
             >
               <X className="w-4 h-4" />
@@ -258,46 +263,53 @@ const GlobalUploadProgress = () => {
 
       {/* Info da empresa */}
       {uploadInfo.empresa && (
-        <div className="px-4 py-2 bg-gray-50 border-b text-xs text-gray-600">
-          <span className="font-medium">{uploadInfo.empresa}</span>
+        <div className="px-4 py-2 bg-[#141414] border-b border-[#2A2A2A] text-xs text-[#A1A1AA]">
+          <span className="font-medium text-white">{uploadInfo.empresa}</span>
           <span className="mx-2">•</span>
           <span>{uploadInfo.competencia}</span>
         </div>
       )}
 
       {/* Conteúdo */}
-      <div className="p-4">
-        {/* Upload em andamento */}
+      <div className="p-4 bg-[#0C0C0C]">
+        {/* Upload em andamento - Contador tomando café */}
         {isUploading && (
           <div>
+            {/* Animação do contador tomando café */}
+            <CoffeeProgress 
+              progress={progress.percent} 
+              message={`Importando ${currentFile || 'arquivos'}...`}
+              showPercentage={false}
+            />
+            
             {/* Barra de progresso */}
             <div className="mb-3">
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Progresso</span>
-                <span className="font-bold text-red-600">{progress.percent}%</span>
+                <span className="text-[#A1A1AA]">Progresso</span>
+                <span className="font-bold text-[#C8A951]">{progress.percent}%</span>
               </div>
-              <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+              <div className="w-full h-3 bg-[#1E1E1E] rounded-full overflow-hidden border border-[#2A2A2A]">
                 <div 
-                  className="h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-300 ease-out"
+                  className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B962] rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${progress.percent}%` }}
                 />
               </div>
             </div>
             
             {/* Status atual */}
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-[#A1A1AA]">
               <FileText className="w-4 h-4" />
               <span className="truncate">{currentFile}</span>
             </div>
             
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-[#666] mt-2">
               {progress.current} de {progress.total} arquivos processados
             </p>
 
             {/* Botão cancelar */}
             <button
               onClick={cancelUpload}
-              className="mt-3 w-full py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+              className="mt-3 w-full py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-red-500/30"
             >
               Cancelar
             </button>
@@ -308,29 +320,29 @@ const GlobalUploadProgress = () => {
         {uploadResults && !isUploading && (
           <div>
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-green-50 rounded-lg p-2">
-                <p className="text-xl font-bold text-green-600">
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2">
+                <p className="text-xl font-bold text-green-400">
                   {uploadResults.resumo?.importados || uploadResults.success?.length || 0}
                 </p>
-                <p className="text-xs text-green-700">Importados</p>
+                <p className="text-xs text-green-300">Importados</p>
               </div>
-              <div className="bg-amber-50 rounded-lg p-2">
-                <p className="text-xl font-bold text-amber-600">
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
+                <p className="text-xl font-bold text-amber-400">
                   {uploadResults.resumo?.duplicados || uploadResults.duplicadas?.length || 0}
                 </p>
-                <p className="text-xs text-amber-700">Duplicados</p>
+                <p className="text-xs text-amber-300">Duplicados</p>
               </div>
-              <div className="bg-red-50 rounded-lg p-2">
-                <p className="text-xl font-bold text-red-600">
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2">
+                <p className="text-xl font-bold text-red-400">
                   {uploadResults.resumo?.erros || uploadResults.errors?.length || 0}
                 </p>
-                <p className="text-xs text-red-700">Erros</p>
+                <p className="text-xs text-red-300">Erros</p>
               </div>
             </div>
             
             {uploadResults.resumo?.desconsideradas_devolucao > 0 && (
-              <div className="mt-2 bg-slate-100 rounded-lg p-2 text-center">
-                <p className="text-sm font-medium text-slate-700">
+              <div className="mt-2 bg-[#141414] border border-[#2A2A2A] rounded-lg p-2 text-center">
+                <p className="text-sm font-medium text-[#A1A1AA]">
                   {uploadResults.resumo.desconsideradas_devolucao} devoluções de fornecedor
                 </p>
               </div>
@@ -340,7 +352,7 @@ const GlobalUploadProgress = () => {
             <div className="mt-3 flex gap-2">
               <button
                 onClick={() => setShowDetailModal(true)}
-                className="flex-1 py-2 text-sm text-center bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                className="flex-1 py-2 text-sm text-center bg-[#C8A951] text-black rounded-lg hover:bg-[#D4B962] transition-colors font-medium"
               >
                 Ver Detalhes
               </button>
@@ -353,7 +365,7 @@ const GlobalUploadProgress = () => {
               </button>
               <button
                 onClick={() => exportarRelatorio('pdf')}
-                className="px-3 py-2 text-sm bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                className="px-3 py-2 text-sm bg-[#333] text-white rounded-lg hover:bg-[#444] transition-colors"
                 title="Exportar PDF"
               >
                 📋
@@ -362,7 +374,7 @@ const GlobalUploadProgress = () => {
             {/* Botão para fechar/limpar */}
             <button
               onClick={clearResults}
-              className="mt-2 w-full py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
+              className="mt-2 w-full py-2 text-sm text-[#A1A1AA] hover:bg-[#1E1E1E] rounded-lg transition-colors border border-[#2A2A2A]"
             >
               Fechar
             </button>
@@ -372,10 +384,10 @@ const GlobalUploadProgress = () => {
         {/* Erro */}
         {uploadError && !uploadResults && (
           <div className="text-center">
-            <p className="text-red-600 text-sm">{uploadError}</p>
+            <p className="text-red-400 text-sm">{uploadError}</p>
             <button
               onClick={clearResults}
-              className="mt-3 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className="mt-3 px-4 py-2 text-sm bg-[#1E1E1E] hover:bg-[#2A2A2A] text-white rounded-lg transition-colors border border-[#2A2A2A]"
             >
               Fechar
             </button>
@@ -384,22 +396,22 @@ const GlobalUploadProgress = () => {
       </div>
     </div>
 
-    {/* Modal de Detalhes do Upload */}
+    {/* Modal de Detalhes do Upload - TEMA ESCURO */}
     {showDetailModal && uploadResults && (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-        <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+        <div className="bg-[#0C0C0C] rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-[#2A2A2A]">
           {/* Header */}
-          <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white p-6">
+          <div className="bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/5 border-b border-[#2A2A2A] text-white p-6">
             <div className="flex justify-between items-start">
               <div>
-                <h2 className="text-2xl font-bold">Relatório de Importação</h2>
-                <p className="text-red-200 mt-1">
+                <h2 className="text-2xl font-bold text-[#C8A951]">Relatório de Importação</h2>
+                <p className="text-[#A1A1AA] mt-1">
                   {uploadInfo.empresa} | Competência: {uploadInfo.competencia}
                 </p>
               </div>
               <button 
                 onClick={() => setShowDetailModal(false)}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -407,43 +419,43 @@ const GlobalUploadProgress = () => {
             
             {/* Resumo */}
             <div className="grid grid-cols-4 gap-4 mt-4">
-              <div className="bg-white/10 rounded-lg p-3 text-center">
-                <p className="text-3xl font-bold">{uploadResults.resumo?.total_arquivos || 0}</p>
-                <p className="text-xs text-red-200">Total Arquivos</p>
+              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-3 text-center">
+                <p className="text-3xl font-bold text-white">{uploadResults.resumo?.total_arquivos || 0}</p>
+                <p className="text-xs text-[#A1A1AA]">Total Arquivos</p>
               </div>
-              <div className="bg-white/10 rounded-lg p-3 text-center">
-                <p className="text-3xl font-bold text-green-300">{uploadResults.resumo?.importados || uploadResults.success?.length || 0}</p>
-                <p className="text-xs text-red-200">Importados</p>
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
+                <p className="text-3xl font-bold text-green-400">{uploadResults.resumo?.importados || uploadResults.success?.length || 0}</p>
+                <p className="text-xs text-green-300">Importados</p>
               </div>
-              <div className="bg-white/10 rounded-lg p-3 text-center">
-                <p className="text-3xl font-bold text-amber-300">{uploadResults.resumo?.duplicados || uploadResults.duplicadas?.length || 0}</p>
-                <p className="text-xs text-red-200">Duplicados</p>
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-center">
+                <p className="text-3xl font-bold text-amber-400">{uploadResults.resumo?.duplicados || uploadResults.duplicadas?.length || 0}</p>
+                <p className="text-xs text-amber-300">Duplicados</p>
               </div>
-              <div className="bg-white/10 rounded-lg p-3 text-center">
-                <p className="text-3xl font-bold text-red-300">{uploadResults.resumo?.erros || uploadResults.errors?.length || 0}</p>
-                <p className="text-xs text-red-200">Erros</p>
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-center">
+                <p className="text-3xl font-bold text-red-400">{uploadResults.resumo?.erros || uploadResults.errors?.length || 0}</p>
+                <p className="text-xs text-red-300">Erros</p>
               </div>
             </div>
           </div>
           
           {/* Conteúdo */}
-          <div className="p-6 overflow-y-auto max-h-[50vh]">
+          <div className="p-6 overflow-y-auto max-h-[50vh] bg-[#0C0C0C]">
             {/* Notas Importadas */}
             {uploadResults.success && uploadResults.success.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-bold text-green-700 mb-3 flex items-center gap-2">
+                <h3 className="font-bold text-green-400 mb-3 flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5" />
                   Notas Importadas ({uploadResults.success.length})
                 </h3>
-                <div className="bg-green-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 max-h-40 overflow-y-auto">
                   <div className="grid grid-cols-4 gap-2 text-xs">
                     {uploadResults.success.slice(0, 50).map((nota, idx) => (
-                      <div key={idx} className="bg-white rounded px-2 py-1 border border-green-200">
+                      <div key={idx} className="bg-[#141414] rounded px-2 py-1 border border-green-500/20 text-green-300">
                         NF {nota.nfe || nota.numero_nfe || idx + 1}
                       </div>
                     ))}
                     {uploadResults.success.length > 50 && (
-                      <div className="col-span-4 text-center text-green-700 py-2">
+                      <div className="col-span-4 text-center text-green-400 py-2">
                         ... e mais {uploadResults.success.length - 50} notas
                       </div>
                     )}
@@ -455,18 +467,18 @@ const GlobalUploadProgress = () => {
             {/* Duplicadas */}
             {uploadResults.duplicadas && uploadResults.duplicadas.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-bold text-amber-700 mb-3 flex items-center gap-2">
+                <h3 className="font-bold text-amber-400 mb-3 flex items-center gap-2">
                   <AlertCircle className="w-5 h-5" />
                   Notas Duplicadas ({uploadResults.duplicadas.length})
                 </h3>
-                <div className="bg-amber-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 max-h-40 overflow-y-auto">
                   {uploadResults.duplicadas.slice(0, 20).map((dup, idx) => (
-                    <div key={idx} className="text-sm text-amber-800 py-1 border-b border-amber-200 last:border-0">
+                    <div key={idx} className="text-sm text-amber-300 py-1 border-b border-amber-500/20 last:border-0">
                       {typeof dup === 'string' ? dup : (dup.filename || dup.numero_nfe || `Duplicada ${idx + 1}`)}
                     </div>
                   ))}
                   {uploadResults.duplicadas.length > 20 && (
-                    <div className="text-center text-amber-700 py-2">
+                    <div className="text-center text-amber-400 py-2">
                       ... e mais {uploadResults.duplicadas.length - 20} duplicadas
                     </div>
                   )}
@@ -477,16 +489,16 @@ const GlobalUploadProgress = () => {
             {/* Erros */}
             {uploadResults.errors && uploadResults.errors.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-bold text-red-700 mb-3 flex items-center gap-2">
+                <h3 className="font-bold text-red-400 mb-3 flex items-center gap-2">
                   <AlertCircle className="w-5 h-5" />
                   Erros ({uploadResults.errors.length})
                 </h3>
-                <div className="bg-red-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 max-h-40 overflow-y-auto">
                   {uploadResults.errors.slice(0, 20).map((err, idx) => (
-                    <div key={idx} className="text-sm text-red-800 py-2 border-b border-red-200 last:border-0">
+                    <div key={idx} className="text-sm text-red-300 py-2 border-b border-red-500/20 last:border-0">
                       <span className="font-medium">{typeof err === 'string' ? err : (err.filename || `Arquivo ${idx + 1}`)}</span>
                       {typeof err === 'object' && err.error && (
-                        <span className="text-red-600 ml-2">- {err.error}</span>
+                        <span className="text-red-400 ml-2">- {err.error}</span>
                       )}
                     </div>
                   ))}
@@ -497,15 +509,15 @@ const GlobalUploadProgress = () => {
             {/* Rejeitados por CNPJ */}
             {uploadResults.rejeitadas_cnpj && uploadResults.rejeitadas_cnpj.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-bold text-orange-700 mb-3 flex items-center gap-2">
+                <h3 className="font-bold text-orange-400 mb-3 flex items-center gap-2">
                   <AlertCircle className="w-5 h-5" />
                   Rejeitadas por CNPJ ({uploadResults.rejeitadas_cnpj.length})
                 </h3>
-                <div className="bg-orange-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 max-h-40 overflow-y-auto">
                   {uploadResults.rejeitadas_cnpj.map((rej, idx) => (
-                    <div key={idx} className="text-sm text-orange-800 py-2 border-b border-orange-200 last:border-0">
+                    <div key={idx} className="text-sm text-orange-300 py-2 border-b border-orange-500/20 last:border-0">
                       <span className="font-medium">NF {rej.numero_nfe || idx + 1}</span>
-                      <span className="text-orange-600 ml-2">- {rej.motivo}</span>
+                      <span className="text-orange-400 ml-2">- {rej.motivo}</span>
                     </div>
                   ))}
                 </div>
@@ -515,15 +527,15 @@ const GlobalUploadProgress = () => {
             {/* Devoluções do Fornecedor */}
             {uploadResults.notas_desconsideradas_devolucao && uploadResults.notas_desconsideradas_devolucao.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                <h3 className="font-bold text-[#A1A1AA] mb-3 flex items-center gap-2">
                   <FileText className="w-5 h-5" />
                   Devoluções do Fornecedor ({uploadResults.notas_desconsideradas_devolucao.length})
                 </h3>
-                <div className="bg-slate-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-3 max-h-40 overflow-y-auto">
                   {uploadResults.notas_desconsideradas_devolucao.map((dev, idx) => (
-                    <div key={idx} className="text-sm text-slate-800 py-2 border-b border-slate-200 last:border-0">
-                      <span className="font-medium">NF {dev.numero_nfe || idx + 1}</span>
-                      <span className="text-slate-600 ml-2">- {dev.emitente || ''}</span>
+                    <div key={idx} className="text-sm text-[#A1A1AA] py-2 border-b border-[#2A2A2A] last:border-0">
+                      <span className="font-medium text-white">NF {dev.numero_nfe || idx + 1}</span>
+                      <span className="text-[#666] ml-2">- {dev.emitente || ''}</span>
                     </div>
                   ))}
                 </div>
@@ -533,15 +545,15 @@ const GlobalUploadProgress = () => {
             {/* Conversões de CFOP */}
             {uploadResults.relatorio_conversoes && uploadResults.relatorio_conversoes.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-bold text-blue-700 mb-3 flex items-center gap-2">
+                <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5" />
                   Conversões de CFOP ({uploadResults.total_conversoes || uploadResults.relatorio_conversoes.length})
                 </h3>
-                <div className="bg-blue-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 max-h-40 overflow-y-auto">
                   {uploadResults.relatorio_conversoes.slice(0, 20).map((conv, idx) => (
-                    <div key={idx} className="text-sm text-blue-800 py-1">
+                    <div key={idx} className="text-sm text-blue-300 py-1">
                       <span className="font-medium">NF {conv.nfe}</span>
-                      <span className="text-blue-600 ml-2">
+                      <span className="text-blue-400 ml-2">
                         {conv.conversoes?.map(c => `${c.cfop_original}→${c.cfop_convertido}`).join(', ')}
                       </span>
                     </div>
@@ -552,8 +564,8 @@ const GlobalUploadProgress = () => {
           </div>
           
           {/* Footer */}
-          <div className="bg-gray-50 px-6 py-4 border-t flex justify-between items-center">
-            <p className="text-sm text-gray-500">
+          <div className="bg-[#141414] px-6 py-4 border-t border-[#2A2A2A] flex justify-between items-center">
+            <p className="text-sm text-[#666]">
               Gerado em: {new Date().toLocaleString('pt-BR')}
             </p>
             <div className="flex gap-2">
@@ -565,7 +577,7 @@ const GlobalUploadProgress = () => {
               </button>
               <button
                 onClick={() => exportarRelatorio('pdf')}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+                className="flex items-center gap-2 px-4 py-2 bg-[#333] text-white rounded-lg hover:bg-[#444] transition-colors text-sm font-medium"
               >
                 📋 Imprimir/PDF
               </button>
@@ -574,7 +586,7 @@ const GlobalUploadProgress = () => {
                   setShowDetailModal(false);
                   clearResults();
                 }}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                className="px-4 py-2 bg-[#2A2A2A] text-white rounded-lg hover:bg-[#333] transition-colors text-sm font-medium"
               >
                 Fechar
               </button>
