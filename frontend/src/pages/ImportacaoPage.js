@@ -155,16 +155,7 @@ const ImportacaoPage = () => {
       setStatus('processing');
       setCurrentStep('Processando documentos fiscais...');
       
-      const processResponse = await fetch(`${API}/xml/upload-process/${upload_id}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!processResponse.ok) {
-        throw new Error('Erro ao iniciar processamento');
-      }
-
-      // 4. Conectar SSE para progresso
+      // Conectar SSE para acompanhar progresso do processamento
       connectSSE(upload_id, token);
 
     } catch (err) {
