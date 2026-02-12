@@ -238,20 +238,35 @@ export const UploadProvider = ({ children }) => {
             formData.append('files', file);
           });
 
-          const uploadResponse = await fetch(
-            `${API}/xml/upload-stream`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`
-              },
-              body: formData
-            }
-          );
+          // Timeout de 10 minutos por lote (600000ms)
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 600000);
 
-          if (!uploadResponse.ok) {
-            const errorData = await uploadResponse.json().catch(() => ({}));
-            throw new Error(errorData.detail || 'Erro no upload do lote');
+          try {
+            const uploadResponse = await fetch(
+              `${API}/xml/upload-stream`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                },
+                body: formData,
+                signal: controller.signal
+              }
+            );
+            
+            clearTimeout(timeoutId);
+
+            if (!uploadResponse.ok) {
+              const errorData = await uploadResponse.json().catch(() => ({}));
+              throw new Error(errorData.detail || 'Erro no upload do lote');
+            }
+          } catch (err) {
+            clearTimeout(timeoutId);
+            if (err.name === 'AbortError') {
+              throw new Error('Timeout: o servidor demorou muito para responder. Tente novamente ou use uploads menores.');
+            }
+            throw err;
           }
         }
       } else if (existingUploadId) {
