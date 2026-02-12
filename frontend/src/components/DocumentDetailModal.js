@@ -335,7 +335,7 @@ const DocumentDetailModal = ({ document, onClose }) => {
             </div>
 
             {/* LINHA 3: DIFERENÇAS (Capa - Produtos) */}
-            <div className={`rounded-lg p-3 ${Math.abs(valorCapaNF.valor_total - totaisProdutos.valor_total) >= 0.10 ? 'bg-red-500/10 border border-red-500/30' : 'bg-emerald-500/10 border border-emerald-500/30'}`}>
+            <div className={`rounded-lg p-3 ${diferencaValorTotal >= 0.10 ? 'bg-red-500/10 border border-red-500/30' : 'bg-emerald-500/10 border border-emerald-500/30'}`}>
               <div className="flex items-center gap-2 mb-3">
                 {diferencaValorTotal >= 0.10 ? (
                   <>
@@ -357,39 +357,39 @@ const DocumentDetailModal = ({ document, onClose }) => {
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] text-[#666] uppercase">Valor Prod.</p>
+                  <p className="text-[10px] text-[#666] uppercase">Calc. Prod.</p>
                   <p className="text-sm font-bold text-white">
-                    {formatCurrency(totaisProdutos.valor_total)}
+                    {formatCurrency(valorTotalCalculadoProdutos)}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] text-[#666] uppercase">ICMS</p>
+                  <p className="text-[10px] text-[#666] uppercase">vProd</p>
                   <p className="text-sm font-bold text-white">
-                    {formatCurrency(totaisProdutos.v_icms)}
+                    {formatCurrency(totaisProdutos.valor_produto)}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">ICMS-ST</p>
                   <p className="text-sm font-bold text-white">
-                    {formatCurrency(valorCapaNF.total_icms_st)}
+                    {formatCurrency(totaisProdutos.v_icms_st)}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">IPI</p>
                   <p className="text-sm font-bold text-white">
-                    {formatCurrency(valorCapaNF.total_ipi)}
+                    {formatCurrency(totaisProdutos.v_ipi)}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">Frete</p>
                   <p className="text-sm font-bold text-white">
-                    {formatCurrency(valorCapaNF.total_frete)}
+                    {formatCurrency(totaisProdutos.v_frete)}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">Desconto</p>
                   <p className="text-sm font-bold text-white">
-                    {formatCurrency(valorCapaNF.total_desconto)}
+                    {formatCurrency(totaisProdutos.v_desconto)}
                   </p>
                 </div>
                 <div className="text-center">
