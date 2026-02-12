@@ -8931,12 +8931,12 @@ async def get_integrity_summary(
 async def _get_simples_nacional_stats(company: dict, company_id: str, competencia: str, faturamento_total: float, documents: list) -> dict:
     """
     Retorna dados específicos para empresas do Simples Nacional:
-    - DAS do mês e alíquota efetiva
+    - DAS do mês e alíquota efetiva (considerando ISS retido)
     - DIFAL do mês e % sobre compras
     - Compras interestaduais
     - Percentuais sobre saídas/vendas
     """
-    from services.simples_nacional_calculator import calcular_aliquota_efetiva, calcular_fator_r
+    from services.simples_nacional_calculator import calcular_aliquota_efetiva, calcular_fator_r, calcular_das_com_iss_retido, calcular_das_periodo
     
     # Obter RBT12 (do histórico importado ou calculado)
     historico_faturamento = company.get('historico_faturamento', [])
@@ -8946,18 +8946,90 @@ async def _get_simples_nacional_stats(company: dict, company_id: str, competenci
         # Calcular do banco de dados se não houver histórico importado
         rbt12 = company.get('faturamento_acumulado_12m', 0)
     
+    if not rbt12 or rbt12 <= 0:
+        # Buscar do histórico de faturamento SN
+        historico_sn = company.get('historico_faturamento_sn', {})
+        if historico_sn:
+            valores = list(historico_sn.values())[-12:]
+            rbt12 = sum(v.get('receita_pa', 0) or v.get('faturamento', 0) or v.get('valor', 0) for v in valores if isinstance(v, dict))
+    
     # Anexos da empresa
+    tipo_atividade = company.get('tipo_atividade', 'comercio')
     anexos = company.get('anexos_simples', ['I'])
     if not anexos:
-        anexos = ['I']
+        if tipo_atividade == 'servicos':
+            anexos = ['III']
+        elif tipo_atividade == 'industria':
+            anexos = ['II']
+        else:
+            anexos = ['I']
     anexo_principal = anexos[0]
     
     # Calcular alíquota efetiva
     aliq_info = calcular_aliquota_efetiva(rbt12, anexo_principal)
     aliquota_efetiva = aliq_info.get('aliquota_efetiva', 0)
+    aliquota_sem_iss = aliq_info.get('aliquota_sem_iss', aliquota_efetiva)
     
-    # Calcular DAS do mês
-    das_valor = faturamento_total * (aliquota_efetiva / 100) if faturamento_total > 0 else 0
+    # Separar NFS-e prestados e verificar ISS retido
+    nfse_prestados = [d for d in documents if d.get('tipo') == 'saida' and (d.get('modelo', '') or '').lower() in ['nfse', 'nfs-e']]
+    vendas_saida = [d for d in documents if d.get('tipo') == 'saida' and (d.get('modelo', 'nfe') or '').lower() not in ['nfse', 'nfs-e']]
+    
+    faturamento_servicos = sum(float(d.get('valor_total', 0) or 0) for d in nfse_prestados)
+    faturamento_comercio = sum(float(d.get('valor_total', 0) or 0) for d in vendas_saida)
+    
+    # Verificar ISS retido em NFS-e
+    faturamento_iss_retido = 0
+    faturamento_iss_normal = 0
+    iss_retido_total = 0
+    
+    for nfse in nfse_prestados:
+        valor_nfse = float(nfse.get('valor_total', 0) or nfse.get('valor_servicos', 0) or 0)
+        
+        iss_foi_retido = False
+        valor_iss = 0
+        
+        if nfse.get('iss_retido_flag', False) or nfse.get('iss_retido') == True:
+            iss_foi_retido = True
+            valor_iss = float(nfse.get('valor_iss', 0) or 0)
+        elif isinstance(nfse.get('iss_retido'), (int, float)) and nfse.get('iss_retido') > 0:
+            iss_foi_retido = True
+            valor_iss = float(nfse.get('iss_retido', 0))
+        
+        for servico in nfse.get('servicos', []):
+            if servico.get('iss_retido') == True or servico.get('iss_retido') == '1':
+                iss_foi_retido = True
+                valor_iss += float(servico.get('valor_iss', 0) or 0)
+        
+        if iss_foi_retido:
+            faturamento_iss_retido += valor_nfse
+            iss_retido_total += valor_iss
+        else:
+            faturamento_iss_normal += valor_nfse
+    
+    # Calcular DAS do mês considerando ISS retido
+    das_valor = 0
+    
+    if anexo_principal in ['III', 'IV', 'V'] and faturamento_iss_retido > 0:
+        # Para anexos de serviços com ISS retido
+        das_servicos = calcular_das_com_iss_retido(
+            faturamento_total=faturamento_servicos,
+            faturamento_iss_retido=faturamento_iss_retido,
+            rbt12=rbt12,
+            anexo=anexo_principal
+        )
+        das_valor = das_servicos.get('das_total', 0)
+        
+        # Adicionar DAS do comércio se houver (empresas mistas)
+        if faturamento_comercio > 0:
+            das_comercio = calcular_das_periodo(
+                faturamento_periodo=faturamento_comercio,
+                rbt12=rbt12,
+                anexo='I'
+            )
+            das_valor += das_comercio.get('valor_das_final', 0)
+    else:
+        # Cálculo padrão (sem ISS retido ou comércio/indústria)
+        das_valor = faturamento_total * (aliquota_efetiva / 100) if faturamento_total > 0 else 0
     
     # CFOPs de compras interestaduais (de outros estados - começam com 2)
     CFOPS_INTERESTADUAIS = ['2102', '2403', '2101', '2201', '2551', '2556']
@@ -8982,10 +9054,9 @@ async def _get_simples_nacional_stats(company: dict, company_id: str, competenci
                     notas_contadas.add(doc_id)
                     qtd_notas_interestaduais += 1
     
-    # Calcular DIFAL - usar query direta ao banco em vez de chamar função externa
+    # Calcular DIFAL
     difal_valor = 0
     try:
-        # Query para buscar o total de DIFAL já calculado
         difal_query = {"company_id": company_id, "competencia": competencia}
         difal_docs = await db.xml_documents.find(difal_query, {"_id": 0}).to_list(10000)
         
@@ -9005,11 +9076,12 @@ async def _get_simples_nacional_stats(company: dict, company_id: str, competenci
     
     total_impostos = das_valor + difal_valor
     percentual_sobre_saidas = (total_impostos / total_saidas * 100) if total_saidas > 0 else 0
-    percentual_sobre_vendas = percentual_sobre_saidas  # Para Simples, saídas = vendas
+    percentual_sobre_vendas = percentual_sobre_saidas
     
     return {
         "das_valor": round(das_valor, 2),
         "aliquota_efetiva": round(aliquota_efetiva, 2),
+        "aliquota_sem_iss": round(aliquota_sem_iss, 2),
         "difal_valor": round(difal_valor, 2),
         "difal_percentual_compras": round(percentual_difal_compras, 2),
         "compras_interestaduais": round(compras_interestaduais, 2),
@@ -9018,7 +9090,17 @@ async def _get_simples_nacional_stats(company: dict, company_id: str, competenci
         "percentual_sobre_saidas": round(percentual_sobre_saidas, 2),
         "percentual_sobre_vendas": round(percentual_sobre_vendas, 2),
         "rbt12": round(rbt12, 2),
-        "anexo_principal": anexo_principal
+        "anexo_principal": anexo_principal,
+        "iss_retido": {
+            "valor": round(iss_retido_total, 2),
+            "faturamento_com_iss_retido": round(faturamento_iss_retido, 2),
+            "faturamento_sem_iss_retido": round(faturamento_iss_normal, 2)
+        },
+        "detalhamento_faturamento": {
+            "servicos": round(faturamento_servicos, 2),
+            "comercio": round(faturamento_comercio, 2),
+            "total": round(faturamento_total, 2)
+        }
     }
 
 
