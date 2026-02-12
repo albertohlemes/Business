@@ -122,22 +122,55 @@ const ApuracaoICMS = ({ user, onLogout }) => {
     }));
   };
   
-  // Flags de desconsiderar ICMS - estado local
+  // Flags de desconsiderar ICMS - estado local com persistência
   const [desconsiderarDespesas, setDesconsiderarDespesas] = useState(false);
   const [desconsiderarST, setDesconsiderarST] = useState(false);
   const [beneficioFiscal, setBeneficioFiscal] = useState(false);
   const [savingFlags, setSavingFlags] = useState(false);
+  const [flagsLoaded, setFlagsLoaded] = useState(false);
 
-  // Sincronizar flags com a empresa selecionada
+  // Chave para localStorage baseada na empresa
+  const getFlagsKey = useCallback((companyId) => `icms_flags_${companyId}`, []);
+
+  // Carregar flags do localStorage ou da empresa
   useEffect(() => {
-    if (selectedCompany) {
-      setDesconsiderarDespesas(selectedCompany.desconsiderar_icms_despesas || false);
-      setDesconsiderarST(selectedCompany.desconsiderar_icms_st || false);
-      setBeneficioFiscal(selectedCompany.beneficio_fiscal_icms || false);
+    if (selectedCompany?.id) {
+      const savedFlags = localStorage.getItem(getFlagsKey(selectedCompany.id));
+      if (savedFlags) {
+        // Usar flags salvas localmente (mais recentes)
+        try {
+          const parsed = JSON.parse(savedFlags);
+          setDesconsiderarDespesas(parsed.desconsiderarDespesas ?? selectedCompany.desconsiderar_icms_despesas ?? false);
+          setDesconsiderarST(parsed.desconsiderarST ?? selectedCompany.desconsiderar_icms_st ?? false);
+          setBeneficioFiscal(parsed.beneficioFiscal ?? selectedCompany.beneficio_fiscal_icms ?? false);
+        } catch {
+          // Se erro no parse, usar valores da empresa
+          setDesconsiderarDespesas(selectedCompany.desconsiderar_icms_despesas || false);
+          setDesconsiderarST(selectedCompany.desconsiderar_icms_st || false);
+          setBeneficioFiscal(selectedCompany.beneficio_fiscal_icms || false);
+        }
+      } else {
+        // Usar valores da empresa
+        setDesconsiderarDespesas(selectedCompany.desconsiderar_icms_despesas || false);
+        setDesconsiderarST(selectedCompany.desconsiderar_icms_st || false);
+        setBeneficioFiscal(selectedCompany.beneficio_fiscal_icms || false);
+      }
+      setFlagsLoaded(true);
     }
-  }, [selectedCompany]);
+  }, [selectedCompany, getFlagsKey]);
 
-  // Salvar flags e recarregar dados
+  // Salvar flags no localStorage quando alteradas
+  useEffect(() => {
+    if (selectedCompany?.id && flagsLoaded) {
+      localStorage.setItem(getFlagsKey(selectedCompany.id), JSON.stringify({
+        desconsiderarDespesas,
+        desconsiderarST,
+        beneficioFiscal
+      }));
+    }
+  }, [selectedCompany?.id, desconsiderarDespesas, desconsiderarST, beneficioFiscal, flagsLoaded, getFlagsKey]);
+
+  // Salvar flags no servidor e recarregar dados
   const salvarFlags = async () => {
     if (!selectedCompany?.id) return;
     setSavingFlags(true);
@@ -150,6 +183,8 @@ const ApuracaoICMS = ({ user, onLogout }) => {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      // Limpar localStorage após salvar no servidor (servidor é source of truth)
+      localStorage.removeItem(getFlagsKey(selectedCompany.id));
       // Atualizar contexto e recarregar dados
       if (refreshCompanies) refreshCompanies();
       await fetchData();
@@ -161,7 +196,7 @@ const ApuracaoICMS = ({ user, onLogout }) => {
     }
   };
 
-  // Verificar se há alterações não salvas
+  // Verificar se há alterações não salvas no servidor
   const hasUnsavedChanges = () => {
     return (
       desconsiderarDespesas !== (selectedCompany?.desconsiderar_icms_despesas || false) ||
