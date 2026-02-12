@@ -55,7 +55,11 @@ const ApuracaoICMS = ({ user, onLogout }) => {
   // Função para ordenar a lista de produtos do benefício fiscal
   const sortedBeneficioProdutos = useMemo(() => {
     if (!beneficioDetalhes?.por_produto) return [];
-    const items = [...beneficioDetalhes.por_produto];
+    // Filtrar apenas produtos com ICMS > 0
+    const items = beneficioDetalhes.por_produto.filter(item => {
+      const valorIcms = parseFloat(item.valor_icms) || 0;
+      return valorIcms > 0;
+    });
     
     if (beneficioProdutoSort.column) {
       items.sort((a, b) => {
@@ -82,7 +86,11 @@ const ApuracaoICMS = ({ user, onLogout }) => {
   // Função para ordenar a lista de NCMs do benefício fiscal
   const sortedBeneficioNcms = useMemo(() => {
     if (!beneficioDetalhes?.por_ncm) return [];
-    const items = [...beneficioDetalhes.por_ncm];
+    // Filtrar apenas NCMs com ICMS > 0
+    const items = beneficioDetalhes.por_ncm.filter(item => {
+      const valorIcms = parseFloat(item.valor_icms) || 0;
+      return valorIcms > 0;
+    });
     
     if (beneficioNcmSort.column) {
       items.sort((a, b) => {
