@@ -1371,6 +1371,7 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                   onClick={() => {
                     handleChange('apura_icms', impostosAuto.icms);
                     handleChange('apura_icms_st', impostosAuto.icms_st);
+                    handleChange('apura_ipi', impostosAuto.ipi);
                     handleChange('apura_pis_cofins', impostosAuto.pis_cofins);
                     handleChange('apura_iss', impostosAuto.iss);
                   }}
