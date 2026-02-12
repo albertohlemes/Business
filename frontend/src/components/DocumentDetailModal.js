@@ -47,11 +47,9 @@ const DocumentDetailModal = ({ document, onClose }) => {
   const calcularTotaisProdutos = () => {
     const produtos = document.produtos || [];
     
-    // Para cada produto, usar valor_produto (vProd) se disponível,
-    // caso contrário, reconstruir a partir do valor_total
     const calculado = {
-      valor_produto: 0,
-      valor_total: 0,
+      valor_produto: 0,  // Soma dos vProd (valor puro do produto antes de impostos/frete)
+      valor_total: 0,    // Soma dos valor_total (já com IPI, ST, etc.)
       v_bc_icms: 0,
       v_icms: 0,
       v_bc_icms_st: 0,
@@ -68,24 +66,13 @@ const DocumentDetailModal = ({ document, onClose }) => {
     };
     
     produtos.forEach(p => {
-      // Se tem valor_produto (vProd), usar diretamente
-      // Senão, reconstruir: vProd = valor_total + desconto - ipi - st - frete - seguro - outras
-      let vProd = parseFloat(p.valor_produto) || 0;
-      if (vProd === 0) {
-        const vTotal = parseFloat(p.valor_total) || 0;
-        const vDesc = parseFloat(p.v_desconto) || 0;
-        const vIpi = parseFloat(p.v_ipi) || 0;
-        const vST = parseFloat(p.v_icms_st) || 0;
-        const vFrete = parseFloat(p.v_frete) || 0;
-        const vSeg = parseFloat(p.v_seguro) || 0;
-        const vOutras = parseFloat(p.v_outras_despesas) || 0;
-        // Reconstruir vProd: valor_total = vProd + ipi + st + frete + seg + outras - desc
-        // Portanto: vProd = valor_total + desc - ipi - st - frete - seg - outras
-        vProd = vTotal + vDesc - vIpi - vST - vFrete - vSeg - vOutras;
-      }
+      // valor_produto = vProd do XML (valor puro antes de desc/impostos/frete)
+      // valor_total = valor calculado com todos os componentes
+      // Se valor_produto existir, usar. Senão, valor_total é o vProd (documentos antigos)
+      const vProd = parseFloat(p.valor_produto) || parseFloat(p.valor_total) || 0;
       
       calculado.valor_produto += vProd;
-      calculado.valor_total += parseFloat(p.valor_total) || parseFloat(p.valor_produto) || 0;
+      calculado.valor_total += parseFloat(p.valor_total) || vProd;
       calculado.v_bc_icms += parseFloat(p.v_bc_icms) || 0;
       calculado.v_icms += parseFloat(p.v_icms) || 0;
       calculado.v_bc_icms_st += parseFloat(p.v_bc_icms_st) || 0;
