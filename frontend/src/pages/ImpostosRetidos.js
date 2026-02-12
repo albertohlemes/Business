@@ -971,7 +971,6 @@ const ImpostosRetidos = ({ user, onLogout }) => {
                     )}
                   </div>
                 )}
-                )}
               </div>
             </div>
           </>
