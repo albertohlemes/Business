@@ -113,6 +113,41 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-12 (Sessão 28 - Correção PGDAS e Dashboard Simples Nacional)
+
+**Bugs Corrigidos (P0):**
+
+- ✅ **Importação do PGDAS - Faturamento da competência não era salvo:**
+  - O PGDAS traz o histórico dos 12 meses ANTERIORES + a `receita_pa` (receita do mês da competência)
+  - A `receita_pa` NÃO estava sendo salva no histórico, corrompendo o RBT12 da próxima competência
+  - **Correção:** A função `gerar_historico_para_salvar` agora salva também a `receita_pa` como o faturamento do mês do PA
+  - Exemplo: PGDAS 12/2025 → Salva 01/2025 a 11/2025 + **12/2025** (da receita_pa)
+
+- ✅ **Cálculo do RBT12 era fixo em vez de dinâmico por competência:**
+  - O sistema usava o campo `pgdas_rbt12` salvo no momento da importação
+  - Isso causava erro porque o RBT12 deve ser calculado dinamicamente para CADA competência
+  - **Correção:** Todos os endpoints agora usam `calcular_rbt12_do_historico(historico, competencia_ref)`
+  - Endpoints corrigidos: 
+    - `POST /api/dashboard/simples-nacional`
+    - `POST /api/dashboard/calcular-impostos`
+    - `POST /api/simples-nacional/ret/comparativo`
+
+**Exemplo de Impacto:**
+- PGDAS 12/2025: RBT12 = soma(12/2024 a 11/2025) = R$ 670.753,42 ✅
+- Competência 01/2026: RBT12 = soma(01/2025 a 12/2025) = R$ 695.056,17 ✅ (agora inclui 12/2025!)
+
+**Arquivos Modificados:**
+- `/app/backend/services/pgdas_extractor.py` - `gerar_historico_para_salvar()` agora salva `receita_pa`
+- `/app/backend/server.py` - Corrigidos cálculos de RBT12 em múltiplos endpoints
+
+**Testes Realizados:**
+- ✅ Extração de dados do PGDAS funciona corretamente
+- ✅ Histórico gerado inclui o mês da competência (12/2025)
+- ✅ RBT12 calculado dinamicamente para cada competência
+- ✅ Dashboard do Simples Nacional retorna valores corretos
+
+---
+
 ### 2026-02-12 (Sessão 27 - Correção de Regressões no Wizard)
 
 **Bugs Corrigidos:**
