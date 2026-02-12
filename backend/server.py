@@ -1993,6 +1993,7 @@ def parse_xml_nfce(xml_content: str) -> Dict[str, Any]:
             'destinatario_uf': destinatario_uf,
             'destinatario_endereco': destinatario_endereco,
             'valor_total': float(total.get('vNF', 0)),
+            'total_fcp_st': float(total.get('vFCPST', 0) or 0),  # FCP-ST (Fundo de Combate à Pobreza sobre ST)
             'produtos': produtos
         }
         
