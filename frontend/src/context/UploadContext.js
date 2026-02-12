@@ -224,34 +224,41 @@ export const UploadProvider = ({ children }) => {
         }
       };
 
-      // 3. Enviar arquivos em lotes
-      const BATCH_SIZE = 50;
-      for (let i = 0; i < files.length; i += BATCH_SIZE) {
-        const batch = files.slice(i, i + BATCH_SIZE);
-        const formData = new FormData();
-        
-        // upload_id deve ser enviado via FormData, não query string
-        formData.append('upload_id', upload_id);
-        
-        batch.forEach(file => {
-          formData.append('files', file);
-        });
+      // 3. Enviar arquivos em lotes (apenas se temos arquivos - não no caso de ZIP já processado)
+      if (files && files.length > 0) {
+        const BATCH_SIZE = 50;
+        for (let i = 0; i < files.length; i += BATCH_SIZE) {
+          const batch = files.slice(i, i + BATCH_SIZE);
+          const formData = new FormData();
+          
+          // upload_id deve ser enviado via FormData, não query string
+          formData.append('upload_id', upload_id);
+          
+          batch.forEach(file => {
+            formData.append('files', file);
+          });
 
-        const uploadResponse = await fetch(
-          `${API}/xml/upload-stream`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            },
-            body: formData
+          const uploadResponse = await fetch(
+            `${API}/xml/upload-stream`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`
+              },
+              body: formData
+            }
+          );
+
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Erro no upload do lote');
           }
-        );
-
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json().catch(() => ({}));
-          throw new Error(errorData.detail || 'Erro no upload do lote');
         }
+      } else if (existingUploadId) {
+        // Para uploads de ZIP, o backend precisa processar os XMLs extraídos
+        // Enviar uma chamada para iniciar o processamento
+        console.log('UploadContext: ZIP upload - aguardando processamento do backend');
+        // O backend já tem os XMLs, apenas monitoramos o progresso via SSE/polling
       }
 
       return true;
