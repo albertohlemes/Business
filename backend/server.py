@@ -6609,6 +6609,7 @@ async def init_upload(
     competencia: str = Form(...),
     tipo: str = Form(...),
     total_files: int = Form(...),
+    skip_ai: bool = Form(False),
     current_user: User = Depends(get_current_user)
 ):
     """Inicializa uma sessão de upload e retorna um upload_id para acompanhar o progresso"""
@@ -6631,6 +6632,7 @@ async def init_upload(
         "company_id": company_id,
         "competencia": competencia,
         "tipo": tipo,
+        "skip_ai": skip_ai,  # Flag para pular classificação IA
         "user_id": current_user.id,
         "results": None,
         "completed": False,
@@ -6649,6 +6651,9 @@ async def init_upload(
     
     # Salvar em memória e MongoDB
     await save_upload_session(upload_id, session_data)
+    
+    if skip_ai:
+        logger.info(f"UPLOAD-INIT: Iniciado upload_id={upload_id} com skip_ai=True (importação rápida)")
     
     return {"upload_id": upload_id}
 
