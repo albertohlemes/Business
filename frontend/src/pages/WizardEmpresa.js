@@ -223,10 +223,16 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
         cnae_principal_descricao: data.cnae_principal_descricao || '',
         cnaes: data.cnaes_secundarios || [],
         tipo_atividade: tipoAtividade,
+        atividade_principal: data.cnae_principal_descricao || '',
       }));
       
+      // Sugerir anexos automaticamente
+      const todosOsCnaes = [data.cnae_principal, ...(data.cnaes_secundarios || [])].filter(Boolean);
+      const anexos = sugerirAnexosPorCnaes(todosOsCnaes);
+      setAnexosSugeridos(anexos);
+      
       const qtdCnaes = data.cnaes_secundarios?.length || 0;
-      toast.success(`Dados carregados da Receita Federal! ${qtdCnaes > 0 ? `${qtdCnaes} CNAEs secundários importados.` : ''}`);
+      toast.success(`Dados carregados da Receita Federal! ${qtdCnaes > 0 ? `${qtdCnaes} CNAEs secundários importados.` : ''} Anexos sugeridos: ${anexos.join(', ') || 'Nenhum'}`);
     } catch (err) {
       console.error('Erro ao buscar CNPJ:', err);
       toast.error(err.response?.data?.detail || 'Erro ao consultar CNPJ na Receita Federal');
