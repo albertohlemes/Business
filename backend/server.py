@@ -16984,9 +16984,9 @@ Seja abrangente na busca - inclua variações, sinônimos e produtos relacionado
                                     'revenda_st': prefix + '403',
                                     'insumo': prefix + '101',
                                     'insumo_st': prefix + '401',
-                                    'despesa': prefix + '556',
+                                    'despesa': prefix + '407',
                                     'despesa_st': prefix + '407',
-                                    'ativo_imobilizado': prefix + '551',
+                                    'ativo_imobilizado': prefix + '406',
                                     'ativo_imobilizado_st': prefix + '406',
                                     'combustivel': prefix + '653',
                                 }
