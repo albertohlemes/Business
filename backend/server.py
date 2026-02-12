@@ -25549,6 +25549,243 @@ async def get_impostos_retidos(
     }
 
 
+@api_router.get("/impostos-retidos/{company_id}/guias")
+async def get_guias_retencao(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Gera relatório de guias de retenção para serviços TOMADOS.
+    Separa as retenções por tipo de guia:
+    
+    - DARF 1708: IR Retido na Fonte (IRRF)
+    - DARF 5952: PCC (PIS + COFINS + CSLL) - Contribuições Sociais Retidas
+    - ISS: Uma guia por município (separado por código do município)
+    - INSS: GPS - Vai junto com o eSocial
+    
+    Cada guia contém:
+    - Lista de notas que geraram a retenção
+    - Valor total da guia
+    - Código de recolhimento
+    - Data de vencimento sugerida
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar documentos de serviços TOMADOS da competência
+    documentos = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "$or": [
+            {"modelo": "nfse", "tipo": "entrada"},
+            {"modelo": "nfse_tomado"},
+            {"tipo_operacao": "tomado"}
+        ],
+        **get_filtro_notas_ativas()
+    }, {"_id": 0}).to_list(10000)
+    
+    # Estruturas para acumular por tipo de guia
+    guia_ir = {
+        "codigo": "1708",
+        "descricao": "IRRF - Imposto de Renda Retido na Fonte",
+        "valor_total": 0,
+        "notas": []
+    }
+    
+    guia_pcc = {
+        "codigo": "5952",
+        "descricao": "PCC - Contribuições Sociais Retidas (PIS + COFINS + CSLL)",
+        "valor_total": 0,
+        "valor_pis": 0,
+        "valor_cofins": 0,
+        "valor_csll": 0,
+        "notas": []
+    }
+    
+    guias_iss = {}  # Dicionário por código do município
+    
+    guia_inss = {
+        "codigo": "GPS",
+        "descricao": "INSS - Contribuição Previdenciária Retida (vai no eSocial)",
+        "valor_total": 0,
+        "notas": []
+    }
+    
+    # Processar documentos
+    for doc in documentos:
+        numero_nf = doc.get('numero_nfe', '')
+        data_emissao = doc.get('data_emissao', '')
+        prestador = doc.get('emitente_nome', '')
+        cnpj_prestador = doc.get('emitente_cnpj', '')
+        valor_servicos = float(doc.get('valor_servicos', 0) or doc.get('valor_total', 0) or 0)
+        
+        # Código do município (para ISS)
+        cod_municipio = doc.get('codigo_municipio_servico', '') or doc.get('emitente_cod_municipio', '') or doc.get('codigo_municipio', '')
+        nome_municipio = doc.get('municipio_servico', '') or doc.get('emitente_municipio', '') or 'Não identificado'
+        uf_municipio = doc.get('emitente_uf', '') or doc.get('uf_servico', '') or ''
+        
+        # Extrair retenções do documento
+        iss_retido = float(doc.get('iss_retido', 0) or 0)
+        if isinstance(doc.get('iss_retido'), bool) or doc.get('iss_retido_flag'):
+            if doc.get('iss_retido_flag', False) or doc.get('iss_retido') == True:
+                iss_retido = float(doc.get('valor_iss', 0) or 0)
+        
+        ir_retido = float(doc.get('ir_retido', 0) or doc.get('irrf_retido', 0) or 0)
+        pis_retido = float(doc.get('pis_retido', 0) or 0)
+        cofins_retido = float(doc.get('cofins_retido', 0) or 0)
+        csll_retido = float(doc.get('csll_retido', 0) or 0)
+        inss_retido = float(doc.get('inss_retido', 0) or 0)
+        
+        # Verificar também nos serviços
+        for servico in doc.get('servicos', []):
+            if servico.get('iss_retido') == True or servico.get('iss_retido') == '1':
+                iss_retido += float(servico.get('valor_iss', 0) or 0)
+            ir_retido += float(servico.get('v_ir', 0) or servico.get('ir_retido', 0) or 0)
+            pis_retido += float(servico.get('v_pis', 0) or servico.get('pis_retido', 0) or 0)
+            cofins_retido += float(servico.get('v_cofins', 0) or servico.get('cofins_retido', 0) or 0)
+            csll_retido += float(servico.get('v_csll', 0) or servico.get('csll_retido', 0) or 0)
+            inss_retido += float(servico.get('v_inss', 0) or servico.get('inss_retido', 0) or 0)
+        
+        # Montar dados base da nota
+        nota_base = {
+            "numero_nf": numero_nf,
+            "data_emissao": data_emissao,
+            "prestador": prestador,
+            "cnpj_prestador": cnpj_prestador,
+            "valor_servicos": round(valor_servicos, 2)
+        }
+        
+        # DARF 1708 - IR Retido
+        if ir_retido > 0:
+            guia_ir["valor_total"] += ir_retido
+            guia_ir["notas"].append({
+                **nota_base,
+                "valor_retido": round(ir_retido, 2)
+            })
+        
+        # DARF 5952 - PCC (PIS + COFINS + CSLL)
+        valor_pcc = pis_retido + cofins_retido + csll_retido
+        if valor_pcc > 0:
+            guia_pcc["valor_total"] += valor_pcc
+            guia_pcc["valor_pis"] += pis_retido
+            guia_pcc["valor_cofins"] += cofins_retido
+            guia_pcc["valor_csll"] += csll_retido
+            guia_pcc["notas"].append({
+                **nota_base,
+                "valor_pis": round(pis_retido, 2),
+                "valor_cofins": round(cofins_retido, 2),
+                "valor_csll": round(csll_retido, 2),
+                "valor_retido": round(valor_pcc, 2)
+            })
+        
+        # ISS - Separado por município
+        if iss_retido > 0:
+            chave_mun = cod_municipio or nome_municipio
+            if chave_mun not in guias_iss:
+                guias_iss[chave_mun] = {
+                    "codigo_municipio": cod_municipio,
+                    "nome_municipio": nome_municipio,
+                    "uf": uf_municipio,
+                    "descricao": f"ISS Retido - {nome_municipio}/{uf_municipio}" if uf_municipio else f"ISS Retido - {nome_municipio}",
+                    "valor_total": 0,
+                    "notas": []
+                }
+            
+            guias_iss[chave_mun]["valor_total"] += iss_retido
+            guias_iss[chave_mun]["notas"].append({
+                **nota_base,
+                "valor_retido": round(iss_retido, 2)
+            })
+        
+        # GPS - INSS
+        if inss_retido > 0:
+            guia_inss["valor_total"] += inss_retido
+            guia_inss["notas"].append({
+                **nota_base,
+                "valor_retido": round(inss_retido, 2)
+            })
+    
+    # Calcular data de vencimento (dia 20 do mês seguinte)
+    mes, ano = map(int, competencia.split('/'))
+    if mes == 12:
+        mes_venc = 1
+        ano_venc = ano + 1
+    else:
+        mes_venc = mes + 1
+        ano_venc = ano
+    data_vencimento = f"20/{mes_venc:02d}/{ano_venc}"
+    
+    # Montar lista de guias
+    guias = []
+    
+    # DARF 1708 - IR
+    if guia_ir["valor_total"] > 0:
+        guia_ir["valor_total"] = round(guia_ir["valor_total"], 2)
+        guia_ir["data_vencimento"] = data_vencimento
+        guia_ir["qtd_notas"] = len(guia_ir["notas"])
+        guias.append(guia_ir)
+    
+    # DARF 5952 - PCC
+    if guia_pcc["valor_total"] > 0:
+        guia_pcc["valor_total"] = round(guia_pcc["valor_total"], 2)
+        guia_pcc["valor_pis"] = round(guia_pcc["valor_pis"], 2)
+        guia_pcc["valor_cofins"] = round(guia_pcc["valor_cofins"], 2)
+        guia_pcc["valor_csll"] = round(guia_pcc["valor_csll"], 2)
+        guia_pcc["data_vencimento"] = data_vencimento
+        guia_pcc["qtd_notas"] = len(guia_pcc["notas"])
+        guias.append(guia_pcc)
+    
+    # ISS - Uma guia por município
+    for chave, guia in guias_iss.items():
+        guia["valor_total"] = round(guia["valor_total"], 2)
+        guia["data_vencimento"] = f"10/{mes_venc:02d}/{ano_venc}"  # ISS geralmente vence dia 10
+        guia["qtd_notas"] = len(guia["notas"])
+        guias.append(guia)
+    
+    # GPS - INSS
+    if guia_inss["valor_total"] > 0:
+        guia_inss["valor_total"] = round(guia_inss["valor_total"], 2)
+        guia_inss["data_vencimento"] = f"20/{mes_venc:02d}/{ano_venc}"
+        guia_inss["qtd_notas"] = len(guia_inss["notas"])
+        guia_inss["observacao"] = "Este valor deve ser somado à GPS da folha de pagamento (eSocial)"
+        guias.append(guia_inss)
+    
+    # Calcular totais
+    total_ir = guia_ir["valor_total"]
+    total_pcc = guia_pcc["valor_total"]
+    total_iss = sum(g["valor_total"] for g in guias_iss.values())
+    total_inss = guia_inss["valor_total"]
+    total_geral = total_ir + total_pcc + total_iss + total_inss
+    
+    return {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', '')
+        },
+        "competencia": competencia,
+        "data_geracao": datetime.now().strftime("%d/%m/%Y %H:%M"),
+        "resumo": {
+            "total_guias": len(guias),
+            "total_ir_1708": round(total_ir, 2),
+            "total_pcc_5952": round(total_pcc, 2),
+            "total_iss": round(total_iss, 2),
+            "qtd_municipios_iss": len(guias_iss),
+            "total_inss_gps": round(total_inss, 2),
+            "total_geral": round(total_geral, 2)
+        },
+        "guias": guias,
+        "orientacoes": {
+            "darf_1708": "DARF código 1708 - IRRF sobre serviços profissionais. Vencimento: dia 20 do mês subsequente.",
+            "darf_5952": "DARF código 5952 - Retenções de PIS, COFINS e CSLL. Vencimento: dia 20 do mês subsequente. Somente se valor >= R$ 10,00.",
+            "iss": "Guia de ISS - Emitir no site da prefeitura de cada município. Vencimento varia por município (geralmente dia 10).",
+            "inss": "GPS - O valor de INSS retido deve ser somado à guia GPS da folha de pagamento, informado via eSocial."
+        }
+    }
+
+
 # ========== ENDPOINTS PARA CANCELAMENTO DE NFS-e ==========
 
 @api_router.post("/nfse/preview")
