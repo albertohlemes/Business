@@ -7990,7 +7990,9 @@ async def upload_xml_with_progress(
             "produtos_do_cache": total_stats["from_cache"],
             "produtos_de_regras": total_stats["from_rules"],
             "produtos_da_ia": total_stats["from_ai"],
-            "total_classificados": total_stats["total"]
+            "total_classificados": total_stats["total"],
+            "tempo_total_segundos": round(process_time, 2),
+            "arquivos_por_segundo": round(len(files)/process_time, 1) if process_time > 0 else 0
         },
         "resumo": {
             "total_arquivos": len(files),
