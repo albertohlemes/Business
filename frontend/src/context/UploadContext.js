@@ -305,6 +305,10 @@ export const UploadProvider = ({ children }) => {
     uploadInfo,
     minimized,
     
+    // Rastreamento de mudanças em documentos
+    documentsVersion,
+    notifyDocumentsChanged,
+    
     // Ações
     startUpload,
     cancelUpload,
