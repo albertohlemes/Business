@@ -22553,15 +22553,24 @@ async def inteligencia_tributaria(
                 a -= 1
             competencias_12m.append(f"{str(m).zfill(2)}/{a}")
         
-        # PRIORIDADE 1: Usar PGDAS_RBT12 se disponível (para Simples Nacional)
-        pgdas_rbt12 = company.get("pgdas_rbt12", 0)
+        # PRIORIDADE 1: Para Simples Nacional, calcular RBT12 a partir do histórico PGDAS
+        # O RBT12 deve ser calculado dinamicamente para cada competência (soma dos 12 meses ANTERIORES)
         historico_pgdas = company.get("historico_faturamento", {})
+        competencia_ref = f"{str(mes_atual).zfill(2)}/{ano_atual}"
         
-        if pgdas_rbt12 > 0 and regime_tributario == 'simples_nacional':
-            # Usar valor do PGDAS importado (fonte oficial)
-            rbt12 = pgdas_rbt12
-            qtd_meses_dados = 12  # PGDAS sempre tem dados completos
+        if regime_tributario == 'simples_nacional' and historico_pgdas:
+            # Calcular RBT12 dinamicamente para a competência específica
+            rbt12 = calcular_rbt12_do_historico(historico_pgdas, competencia_ref)
+            if rbt12 > 0:
+                qtd_meses_dados = 12  # Se tem histórico PGDAS, considera completo
+            else:
+                rbt12 = 0
+                qtd_meses_dados = 0
         else:
+            rbt12 = 0
+            qtd_meses_dados = 0
+        
+        if rbt12 <= 0:
             # PRIORIDADE 2: Calcular a partir dos documentos + histórico PGDAS + dados manuais
             # Buscar faturamento por competência do sistema
             pipeline_faturamento = [
