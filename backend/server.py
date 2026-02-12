@@ -23,6 +23,8 @@ import re
 import requests
 from io import BytesIO
 import io
+import zipfile
+import tempfile
 from collections import defaultdict
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 import json
