@@ -185,10 +185,12 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
     // === BENEFÍCIOS FISCAIS ===
     beneficio_fiscal_icms: false,
     tipo_beneficio_fiscal: '',
+    tipo_estabelecimento_beneficio: '',
     percentual_reducao_icms: 0,
     produtos_sem_credito_icms: [],
     produtos_sem_credito_descricao: '',
     credito_presumido_icms_percent: 20.0,
+    palavras_exclusao_personalizadas: [],
     
     // === SALDO CREDOR INICIAL ===
     possui_saldo_credor: false,
