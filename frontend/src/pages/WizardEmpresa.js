@@ -718,9 +718,9 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   {[
+                    { value: 'industria', label: 'Indústria', desc: 'Fabrica ou transforma produtos' },
+                    { value: 'distribuidor', label: 'Distribuidor', desc: 'Distribuição atacadista' },
                     { value: 'varejo', label: 'Varejo', desc: 'Venda ao consumidor final' },
-                    { value: 'atacado', label: 'Atacado', desc: 'Venda para revenda' },
-                    { value: 'distribuidor', label: 'Distribuidor', desc: 'Distribuição de produtos' },
                   ].map(perfil => (
                     <button
                       key={perfil.value}
