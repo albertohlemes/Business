@@ -6640,6 +6640,179 @@ async def init_upload(
     return {"upload_id": upload_id}
 
 
+# ============================================================
+# ENDPOINTS DE UPLOAD EM BACKGROUND (Celery)
+# ============================================================
+
+@api_router.post("/xml/upload-background")
+async def upload_background(
+    files: List[UploadFile] = File(...),
+    company_id: str = Form(...),
+    competencia: str = Form(...),
+    tipo: str = Form(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Upload de XMLs para processamento em background (Celery).
+    Retorna imediatamente com job_id para acompanhar o progresso.
+    
+    Ideal para uploads de 1.000+ arquivos.
+    """
+    import base64
+    from celery_tasks import process_xml_batch
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Gerar job_id
+    job_id = str(uuid.uuid4())
+    
+    # Ler e codificar arquivos em base64
+    xml_contents = []
+    for file in files:
+        try:
+            content = await file.read()
+            if content:
+                xml_contents.append({
+                    'filename': file.filename,
+                    'content_b64': base64.b64encode(content).decode('utf-8')
+                })
+        except Exception as e:
+            logger.warning(f"Erro ao ler arquivo {file.filename}: {e}")
+    
+    if not xml_contents:
+        raise HTTPException(status_code=400, detail="Nenhum arquivo válido encontrado")
+    
+    # Criar registro do job
+    job_record = {
+        'job_id': job_id,
+        'company_id': company_id,
+        'competencia': competencia,
+        'tipo': tipo,
+        'user_id': current_user.id,
+        'status': 'queued',
+        'total_files': len(xml_contents),
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.import_jobs.insert_one(job_record)
+    
+    # Enviar para fila Celery
+    try:
+        task = process_xml_batch.delay(
+            job_id=job_id,
+            xml_contents=xml_contents,
+            company_id=company_id,
+            competencia=competencia,
+            tipo=tipo,
+            user_id=current_user.id
+        )
+        
+        # Atualizar com task_id do Celery
+        await db.import_jobs.update_one(
+            {'job_id': job_id},
+            {'$set': {'celery_task_id': task.id, 'status': 'processing'}}
+        )
+        
+        logger.info(f"BACKGROUND-UPLOAD: Job {job_id} criado com {len(xml_contents)} arquivos")
+        
+        return {
+            "job_id": job_id,
+            "celery_task_id": task.id,
+            "status": "queued",
+            "total_files": len(xml_contents),
+            "message": f"Upload de {len(xml_contents)} arquivos iniciado em background. Você pode fechar esta página."
+        }
+    
+    except Exception as e:
+        logger.error(f"BACKGROUND-UPLOAD: Erro ao enviar para Celery: {e}")
+        # Fallback: Se Celery não estiver disponível, processar síncrono
+        await db.import_jobs.update_one(
+            {'job_id': job_id},
+            {'$set': {'status': 'error', 'error': str(e)}}
+        )
+        raise HTTPException(
+            status_code=503, 
+            detail=f"Serviço de processamento em background não disponível. Use o upload normal."
+        )
+
+
+@api_router.get("/xml/job-status/{job_id}")
+async def get_job_status(
+    job_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna o status de um job de importação em background.
+    """
+    job = await db.import_jobs.find_one({'job_id': job_id}, {'_id': 0})
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    
+    # Verificar acesso
+    if job.get('user_id') != current_user.id and current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Se ainda está processando, tentar obter progresso do Celery
+    if job.get('status') in ['queued', 'processing'] and job.get('celery_task_id'):
+        try:
+            from celery.result import AsyncResult
+            from celery_config import celery_app
+            
+            task_result = AsyncResult(job['celery_task_id'], app=celery_app)
+            
+            if task_result.state == 'PROCESSING':
+                meta = task_result.info or {}
+                job['progress'] = {
+                    'current': meta.get('current', 0),
+                    'total': meta.get('total', job.get('total_files', 0)),
+                    'status': meta.get('status', 'Processando...'),
+                    'importados': meta.get('importados', 0),
+                    'duplicados': meta.get('duplicados', 0),
+                    'erros': meta.get('erros', 0)
+                }
+            elif task_result.state == 'SUCCESS':
+                job['status'] = 'completed'
+            elif task_result.state == 'FAILURE':
+                job['status'] = 'error'
+                job['error'] = str(task_result.info)
+        except Exception as e:
+            logger.warning(f"Erro ao obter status do Celery: {e}")
+    
+    return job
+
+
+@api_router.get("/xml/jobs")
+async def list_jobs(
+    company_id: str = None,
+    status: str = None,
+    limit: int = 20,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lista jobs de importação do usuário.
+    """
+    query = {'user_id': current_user.id}
+    
+    if company_id:
+        query['company_id'] = company_id
+    
+    if status:
+        query['status'] = status
+    
+    jobs = await db.import_jobs.find(
+        query, 
+        {'_id': 0, 'results': 0, 'errors': 0, 'duplicadas': 0}  # Excluir campos grandes
+    ).sort('created_at', -1).limit(limit).to_list(length=limit)
+    
+    return {"jobs": jobs, "total": len(jobs)}
+
+
 @api_router.post("/xml/upload-zip")
 async def upload_zip_with_progress(
     file: UploadFile = File(...),
