@@ -14,9 +14,9 @@ import os
 
 logger = logging.getLogger(__name__)
 
-# Conexão MongoDB para tasks
+# Conexão MongoDB para tasks - usar mesmo DB do servidor principal
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
-DB_NAME = os.environ.get('DB_NAME', 'business_conta')
+DB_NAME = os.environ.get('DB_NAME', 'test_database')
 
 
 def get_db():
