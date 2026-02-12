@@ -553,7 +553,8 @@ const Documents = ({ user, onLogout }) => {
   const handleStreamingUpload = async (files, tipoConfig, token) => {
     // Usar o upload global com progresso
     try {
-      await startUpload(files, ctxCompany.id, selectedCompetencia, operacao);
+      const empresaNome = ctxCompany?.razao_social || ctxCompany?.nome_fantasia || 'Empresa';
+      await startUpload(files, ctxCompany.id, selectedCompetencia, empresaNome, operacao);
       // O progresso será mostrado pelo GlobalUploadProgress
     } catch (err) {
       console.error('Erro no upload:', err);
