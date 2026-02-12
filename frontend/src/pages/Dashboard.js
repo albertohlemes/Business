@@ -6,7 +6,7 @@ import { useAppContext } from '../context/AppContext';
 import { 
   Building2, FileText, CheckCircle, AlertTriangle, TrendingUp, 
   ArrowDownCircle, ArrowUpCircle, Receipt, FileCheck, 
-  DollarSign, Percent, Calculator, ChevronRight, Scale, Lightbulb
+  DollarSign, Percent, Calculator, ChevronRight, Scale, Lightbulb, X, Gift
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -16,6 +16,7 @@ const Dashboard = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia, openSelector } = useAppContext();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showBeneficioModal, setShowBeneficioModal] = useState(false);
 
   useEffect(() => {
     if (selectedCompany && selectedCompetencia) {
