@@ -27861,7 +27861,7 @@ IMPORTANTE:
 
         # Criar instância do LlmChat
         llm = LlmChat(
-            api_key=os.environ.get('EMERGENT_API_KEY'),
+            api_key=os.environ.get('EMERGENT_LLM_KEY'),
             session_id=f"wizard-palavras-{uuid.uuid4().hex[:8]}",
             system_message="Você é um contador fiscal brasileiro especialista em classificação de produtos."
         )
