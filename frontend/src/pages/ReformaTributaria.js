@@ -12,7 +12,7 @@ import Layout from '../components/Layout';
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const ReformaTributaria = ({ user, onLogout }) => {
-  const { selectedCompany, selectedCompetencia } = useApp();
+  const { selectedCompany, selectedCompetencia } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
