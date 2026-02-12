@@ -313,18 +313,22 @@ const DocumentDetailModal = ({ document, onClose }) => {
                 <Package className="w-4 h-4 text-emerald-400" />
                 <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Soma dos Produtos ({produtos.length} itens)</span>
               </div>
-              <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+              <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">Valor Total</p>
-                  <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.valor_total)}</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.valor_total + (valorCapaNF.total_fcp_st || 0))}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] text-[#666] uppercase">ICMS</p>
-                  <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.v_icms)}</p>
+                  <p className="text-[10px] text-[#666] uppercase">vProd</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.valor_produto)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">ICMS-ST</p>
                   <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.v_icms_st)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">FCP-ST</p>
+                  <p className="text-sm font-bold text-yellow-400">{formatCurrency(valorCapaNF.total_fcp_st)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">IPI</p>
@@ -345,6 +349,10 @@ const DocumentDetailModal = ({ document, onClose }) => {
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">Desconto</p>
                   <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.v_desconto)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">ICMS</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.v_icms)}</p>
                 </div>
               </div>
               {/* PIS/COFINS extras (só dos produtos) */}
