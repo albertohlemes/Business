@@ -9247,6 +9247,8 @@ async def get_dashboard_stats(
             "icms_despesa_desconsiderado": round(credito_icms_despesa_desconsiderado, 2),
             "icms_beneficio_desconsiderado": round(credito_icms_beneficio_desconsiderado, 2),
             "icms_total_desconsiderado": round(credito_icms_st_desconsiderado + credito_icms_despesa_desconsiderado + credito_icms_beneficio_desconsiderado, 2),
+            "produtos_beneficio_excluidos": produtos_beneficio_excluidos[:50],  # Limitar a 50 para não sobrecarregar
+            "total_produtos_beneficio_excluidos": len(produtos_beneficio_excluidos),
             "pis": round(credito_pis, 2),
             "cofins": round(credito_cofins, 2),
             "total": round(credito_icms + credito_pis + credito_cofins, 2)
