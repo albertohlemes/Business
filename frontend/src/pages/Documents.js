@@ -411,6 +411,14 @@ const Documents = ({ user, onLogout }) => {
     if (!tipoConfig) return;
     
     const token = localStorage.getItem('token');
+    
+    // Verificar se é um arquivo ZIP
+    if (files.length === 1 && files[0].name.toLowerCase().endsWith('.zip')) {
+      await handleZipUpload(files[0], tipoConfig, token);
+      e.target.value = '';
+      return;
+    }
+    
     const isXmlUpload = tipoConfig.importType === 'xml' || 
       (tipoConfig.importType === 'both' && files[0].name.toLowerCase().endsWith('.xml'));
     
@@ -431,6 +439,120 @@ const Documents = ({ user, onLogout }) => {
     }
     
     e.target.value = '';
+  };
+
+  // Upload de arquivo ZIP
+  const handleZipUpload = async (zipFile, tipoConfig, token) => {
+    try {
+      const empresaNome = ctxCompany?.razao_social || ctxCompany?.nome_fantasia || 'Empresa';
+      
+      // Primeiro, enviar o ZIP para extração
+      const formData = new FormData();
+      formData.append('file', zipFile);
+      formData.append('company_id', ctxCompany.id);
+      formData.append('competencia', selectedCompetencia);
+      formData.append('tipo', operacao);
+      
+      toast.loading('Extraindo arquivos do ZIP...', { id: 'zip-extract' });
+      
+      const initResponse = await axios.post(`${API}/xml/upload-zip-process`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        },
+        timeout: 120000 // 2 minutos para extrair o ZIP
+      });
+      
+      toast.dismiss('zip-extract');
+      
+      if (initResponse.data.upload_id) {
+        toast.success(`ZIP extraído! ${initResponse.data.total_files} XMLs encontrados.`, { duration: 3000 });
+        
+        // Usar o sistema de upload streaming com o upload_id
+        await startUpload(
+          null, // Não temos os arquivos diretamente, mas o backend já os tem
+          ctxCompany.id, 
+          selectedCompetencia, 
+          empresaNome, 
+          operacao,
+          initResponse.data.upload_id // Passar o upload_id do ZIP
+        );
+      }
+    } catch (err) {
+      toast.dismiss('zip-extract');
+      console.error('Erro no upload do ZIP:', err);
+      toast.error(err.response?.data?.detail || 'Erro ao processar arquivo ZIP');
+    }
+  };
+
+  // Drag and Drop handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Verificar se saiu realmente da área de drop
+    if (e.currentTarget.contains(e.relatedTarget)) return;
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+    
+    const tipoConfig = getTipoConfig();
+    if (!tipoConfig) return;
+    
+    const token = localStorage.getItem('token');
+    
+    // Verificar se é um arquivo ZIP
+    if (files.length === 1 && files[0].name.toLowerCase().endsWith('.zip')) {
+      await handleZipUpload(files[0], tipoConfig, token);
+      return;
+    }
+    
+    // Filtrar apenas arquivos aceitos
+    const acceptedExtensions = (tipoConfig.accept || '.xml').split(',').map(ext => ext.trim().toLowerCase());
+    const validFiles = files.filter(file => {
+      const ext = '.' + file.name.split('.').pop().toLowerCase();
+      return acceptedExtensions.includes(ext) || acceptedExtensions.includes('.zip');
+    });
+    
+    if (validFiles.length === 0) {
+      toast.error('Nenhum arquivo válido encontrado. Aceitos: ' + acceptedExtensions.join(', ') + ', .zip');
+      return;
+    }
+    
+    const isXmlUpload = tipoConfig.importType === 'xml' || 
+      (tipoConfig.importType === 'both' && validFiles[0].name.toLowerCase().endsWith('.xml'));
+    
+    // Se for NFS-e prestados (saída de serviços), abrir modal de cancelamento
+    if (tipoDoc === 'servicos_prestados' && isXmlUpload) {
+      setNfseFilesForCancellation(validFiles);
+      setShowNfseCancellation(true);
+      return;
+    }
+    
+    // Para poucos arquivos XML ou arquivos não-XML, usar upload direto
+    if (!isXmlUpload || validFiles.length <= 10) {
+      await handleDirectUpload(validFiles, tipoConfig, token);
+    } else {
+      // Para muitos XMLs, usar upload com streaming e SSE
+      await handleStreamingUpload(validFiles, tipoConfig, token);
+    }
   };
 
   // Callback quando importação de NFS-e com cancelamentos é concluída
