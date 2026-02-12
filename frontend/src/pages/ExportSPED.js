@@ -192,6 +192,76 @@ const ExportSPED = ({ user, onLogout }) => {
               <p className="text-sm text-[#A1A1AA] mt-1">Formato: MM/AAAA. Somente documentos desta competência serão exportados.</p>
             </div>
 
+            {/* Opções de Configuração do SPED */}
+            <div className="bg-[#0C0C0C] rounded-lg p-5 border border-[#2A2A2A]">
+              <div className="flex items-center gap-2 mb-4">
+                <Settings className="w-5 h-5 text-[#C8A951]" />
+                <h3 className="font-semibold text-white">Opções de Geração</h3>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                {/* Zerar ICMS ST */}
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div 
+                    onClick={() => setOpcoes(prev => ({...prev, zerarIcmsSt: !prev.zerarIcmsSt}))}
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                      opcoes.zerarIcmsSt 
+                        ? 'bg-[#C8A951] border-[#C8A951]' 
+                        : 'border-[#666] group-hover:border-[#888]'
+                    }`}
+                  >
+                    {opcoes.zerarIcmsSt && <Check className="w-3 h-3 text-[#0C0C0C]" />}
+                  </div>
+                  <span className="text-sm text-[#E0E0E0]">Zerar ICMS ST</span>
+                </label>
+
+                {/* Incluir Despesas */}
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div 
+                    onClick={() => setOpcoes(prev => ({...prev, incluirDespesas: !prev.incluirDespesas}))}
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                      opcoes.incluirDespesas 
+                        ? 'bg-[#C8A951] border-[#C8A951]' 
+                        : 'border-[#666] group-hover:border-[#888]'
+                    }`}
+                  >
+                    {opcoes.incluirDespesas && <Check className="w-3 h-3 text-[#0C0C0C]" />}
+                  </div>
+                  <span className="text-sm text-[#E0E0E0]">Incluir Despesas</span>
+                </label>
+
+                {/* Simples Nacional */}
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div 
+                    onClick={() => setOpcoes(prev => ({...prev, simplesNacional: !prev.simplesNacional}))}
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                      opcoes.simplesNacional 
+                        ? 'bg-[#C8A951] border-[#C8A951]' 
+                        : 'border-[#666] group-hover:border-[#888]'
+                    }`}
+                  >
+                    {opcoes.simplesNacional && <Check className="w-3 h-3 text-[#0C0C0C]" />}
+                  </div>
+                  <span className="text-sm text-[#E0E0E0]">Simples Nacional</span>
+                </label>
+
+                {/* Benefício Fiscal */}
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div 
+                    onClick={() => setOpcoes(prev => ({...prev, beneficioFiscal: !prev.beneficioFiscal}))}
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                      opcoes.beneficioFiscal 
+                        ? 'bg-[#C8A951] border-[#C8A951]' 
+                        : 'border-[#666] group-hover:border-[#888]'
+                    }`}
+                  >
+                    {opcoes.beneficioFiscal && <Check className="w-3 h-3 text-[#0C0C0C]" />}
+                  </div>
+                  <span className="text-sm text-[#E0E0E0]">Benefício Fiscal</span>
+                </label>
+              </div>
+            </div>
+
             {/* Aviso se não houver documentos */}
             {selectedCompany && availableCompetencias.length === 0 && (
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-start gap-3">
