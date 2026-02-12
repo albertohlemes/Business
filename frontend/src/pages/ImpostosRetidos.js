@@ -772,6 +772,206 @@ const ImpostosRetidos = ({ user, onLogout }) => {
                     </div>
                   </>
                 )}
+
+                {/* Aba de Guias de Recolhimento */}
+                {activeTab === 'guias' && (
+                  <div className="space-y-6">
+                    {loadingGuias ? (
+                      <div className="flex items-center justify-center py-16">
+                        <Loader2 className="w-12 h-12 text-[#C8A951] animate-spin" />
+                      </div>
+                    ) : guias ? (
+                      <>
+                        {/* Resumo das Guias */}
+                        <div className="bg-gradient-to-r from-[#C8A951]/10 to-[#C8A951]/5 border border-[#C8A951]/30 rounded-xl p-5">
+                          <div className="flex items-center gap-3 mb-4">
+                            <Receipt className="w-6 h-6 text-[#C8A951]" />
+                            <h3 className="text-lg font-semibold text-white">Resumo das Guias - Competência {selectedCompetencia}</h3>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
+                              <p className="text-[10px] text-green-300 uppercase tracking-wider">DARF 1708 (IR)</p>
+                              <p className="text-xl font-bold text-green-400">{formatCurrency(guias.resumo?.total_ir_1708)}</p>
+                            </div>
+                            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 text-center">
+                              <p className="text-[10px] text-purple-300 uppercase tracking-wider">DARF 5952 (PCC)</p>
+                              <p className="text-xl font-bold text-purple-400">{formatCurrency(guias.resumo?.total_pcc_5952)}</p>
+                            </div>
+                            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-center">
+                              <p className="text-[10px] text-blue-300 uppercase tracking-wider">ISS ({guias.resumo?.qtd_municipios_iss || 0} mun.)</p>
+                              <p className="text-xl font-bold text-blue-400">{formatCurrency(guias.resumo?.total_iss)}</p>
+                            </div>
+                            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-center">
+                              <p className="text-[10px] text-red-300 uppercase tracking-wider">GPS (INSS)</p>
+                              <p className="text-xl font-bold text-red-400">{formatCurrency(guias.resumo?.total_inss_gps)}</p>
+                            </div>
+                            <div className="bg-[#C8A951]/10 border border-[#C8A951]/30 rounded-lg p-3 text-center">
+                              <p className="text-[10px] text-[#C8A951] uppercase tracking-wider">Total Geral</p>
+                              <p className="text-xl font-bold text-[#C8A951]">{formatCurrency(guias.resumo?.total_geral)}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Lista de Guias */}
+                        {guias.guias?.length > 0 ? (
+                          <div className="space-y-4">
+                            {guias.guias.map((guia, idx) => (
+                              <div key={idx} className={`rounded-xl border overflow-hidden ${
+                                guia.codigo === '1708' ? 'bg-green-500/5 border-green-500/30' :
+                                guia.codigo === '5952' ? 'bg-purple-500/5 border-purple-500/30' :
+                                guia.codigo === 'GPS' ? 'bg-red-500/5 border-red-500/30' :
+                                'bg-blue-500/5 border-blue-500/30'
+                              }`}>
+                                {/* Header da Guia */}
+                                <div className="p-4 flex items-center justify-between">
+                                  <div className="flex items-center gap-4">
+                                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
+                                      guia.codigo === '1708' ? 'bg-green-500/20' :
+                                      guia.codigo === '5952' ? 'bg-purple-500/20' :
+                                      guia.codigo === 'GPS' ? 'bg-red-500/20' :
+                                      'bg-blue-500/20'
+                                    }`}>
+                                      {guia.codigo_municipio ? <MapPin className="w-7 h-7 text-blue-400" /> :
+                                       guia.codigo === 'GPS' ? <Users className="w-7 h-7 text-red-400" /> :
+                                       <Receipt className={`w-7 h-7 ${guia.codigo === '1708' ? 'text-green-400' : 'text-purple-400'}`} />}
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                          guia.codigo === '1708' ? 'bg-green-500/30 text-green-300' :
+                                          guia.codigo === '5952' ? 'bg-purple-500/30 text-purple-300' :
+                                          guia.codigo === 'GPS' ? 'bg-red-500/30 text-red-300' :
+                                          'bg-blue-500/30 text-blue-300'
+                                        }`}>
+                                          {guia.codigo || 'ISS'}
+                                        </span>
+                                        <h4 className="text-white font-semibold">{guia.descricao}</h4>
+                                      </div>
+                                      <p className="text-sm text-[#A1A1AA] mt-1">
+                                        {guia.qtd_notas} nota(s) • Vencimento: <span className="text-white font-medium">{guia.data_vencimento}</span>
+                                      </p>
+                                      {guia.observacao && (
+                                        <p className="text-xs text-amber-400 mt-1 flex items-center gap-1">
+                                          <AlertTriangle className="w-3 h-3" />
+                                          {guia.observacao}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className={`text-3xl font-bold ${
+                                      guia.codigo === '1708' ? 'text-green-400' :
+                                      guia.codigo === '5952' ? 'text-purple-400' :
+                                      guia.codigo === 'GPS' ? 'text-red-400' :
+                                      'text-blue-400'
+                                    }`}>
+                                      {formatCurrency(guia.valor_total)}
+                                    </p>
+                                    {guia.codigo === '5952' && (
+                                      <p className="text-xs text-[#666] mt-1">
+                                        PIS: {formatCurrency(guia.valor_pis)} | COFINS: {formatCurrency(guia.valor_cofins)} | CSLL: {formatCurrency(guia.valor_csll)}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Notas da Guia */}
+                                <div className="border-t border-[#2A2A2A] bg-black/20 p-4">
+                                  <p className="text-xs text-[#A1A1AA] mb-3 uppercase tracking-wider">Notas que compõem esta guia:</p>
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                      <thead>
+                                        <tr className="text-[#666] text-xs">
+                                          <th className="text-left py-2 px-3">NF</th>
+                                          <th className="text-left py-2 px-3">Data</th>
+                                          <th className="text-left py-2 px-3">Prestador</th>
+                                          <th className="text-right py-2 px-3">Valor Serviço</th>
+                                          <th className="text-right py-2 px-3">Valor Retido</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {guia.notas?.slice(0, 10).map((nota, nIdx) => (
+                                          <tr key={nIdx} className="border-t border-[#2A2A2A]/50 hover:bg-white/5">
+                                            <td className="py-2 px-3 text-white font-medium">{nota.numero_nf}</td>
+                                            <td className="py-2 px-3 text-[#A1A1AA]">{formatDate(nota.data_emissao)}</td>
+                                            <td className="py-2 px-3">
+                                              <p className="text-white truncate max-w-[200px]">{nota.prestador}</p>
+                                              <p className="text-xs text-[#666]">{nota.cnpj_prestador}</p>
+                                            </td>
+                                            <td className="py-2 px-3 text-right text-[#A1A1AA]">{formatCurrency(nota.valor_servicos)}</td>
+                                            <td className={`py-2 px-3 text-right font-bold ${
+                                              guia.codigo === '1708' ? 'text-green-400' :
+                                              guia.codigo === '5952' ? 'text-purple-400' :
+                                              guia.codigo === 'GPS' ? 'text-red-400' :
+                                              'text-blue-400'
+                                            }`}>
+                                              {formatCurrency(nota.valor_retido)}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                    {guia.notas?.length > 10 && (
+                                      <p className="text-center text-[#666] text-xs py-2 border-t border-[#2A2A2A]">
+                                        ... e mais {guia.notas.length - 10} nota(s)
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-16">
+                            <Receipt className="w-16 h-16 text-[#A1A1AA] mx-auto mb-4 opacity-30" />
+                            <h3 className="text-white font-medium mb-2">Nenhuma guia a recolher</h3>
+                            <p className="text-[#A1A1AA]">Não há retenções de impostos para gerar guias nesta competência</p>
+                          </div>
+                        )}
+
+                        {/* Orientações */}
+                        {guias.orientacoes && (
+                          <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl p-5">
+                            <h4 className="text-white font-medium mb-4 flex items-center gap-2">
+                              <Info className="w-5 h-5 text-[#C8A951]" />
+                              Orientações para Recolhimento
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                              <div className="flex gap-3">
+                                <div className="w-2 h-2 rounded-full bg-green-400 mt-1.5 flex-shrink-0" />
+                                <p className="text-[#A1A1AA]">{guias.orientacoes.darf_1708}</p>
+                              </div>
+                              <div className="flex gap-3">
+                                <div className="w-2 h-2 rounded-full bg-purple-400 mt-1.5 flex-shrink-0" />
+                                <p className="text-[#A1A1AA]">{guias.orientacoes.darf_5952}</p>
+                              </div>
+                              <div className="flex gap-3">
+                                <div className="w-2 h-2 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
+                                <p className="text-[#A1A1AA]">{guias.orientacoes.iss}</p>
+                              </div>
+                              <div className="flex gap-3">
+                                <div className="w-2 h-2 rounded-full bg-red-400 mt-1.5 flex-shrink-0" />
+                                <p className="text-[#A1A1AA]">{guias.orientacoes.inss}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-16">
+                        <Receipt className="w-16 h-16 text-[#A1A1AA] mx-auto mb-4 opacity-30" />
+                        <h3 className="text-white font-medium mb-2">Carregando guias...</h3>
+                        <button
+                          onClick={fetchGuias}
+                          className="mt-4 px-4 py-2 bg-[#C8A951] text-black rounded-lg hover:bg-[#D4B85C] transition-colors"
+                        >
+                          Carregar Guias
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                )}
               </div>
             </div>
           </>
