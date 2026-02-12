@@ -166,6 +166,12 @@ const Documents = ({ user, onLogout }) => {
   const [isDragging, setIsDragging] = useState(false);
   const dropZoneRef = useRef(null);
 
+  // ZIP Preview Modal
+  const [zipPreviewOpen, setZipPreviewOpen] = useState(false);
+  const [zipPreviewFiles, setZipPreviewFiles] = useState([]);
+  const [zipSelectedFiles, setZipSelectedFiles] = useState([]);
+  const [zipFileName, setZipFileName] = useState('');
+
   // Carregar documentos quando selecionar tipo ou mudar filtro
   useEffect(() => {
     if (ctxCompany && operacao && tipoDoc) {
