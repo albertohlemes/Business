@@ -1365,6 +1365,7 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 {[
                   { field: 'apura_icms', label: 'ICMS' },
                   { field: 'apura_icms_st', label: 'ICMS ST' },
+                  { field: 'apura_ipi', label: 'IPI' },
                   { field: 'apura_pis_cofins', label: 'PIS/COFINS' },
                   { field: 'apura_iss', label: 'ISS' },
                 ].map(imposto => (
