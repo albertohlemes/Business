@@ -769,10 +769,10 @@ const Companies = ({ user, onLogout }) => {
                 <Upload className="w-5 h-5" />
                 Importar
               </button>
-              {/* Botão Nova Empresa */}
+              {/* Botão Nova Empresa - Vai para o Wizard */}
               <button
                 data-testid="add-company-button"
-                onClick={handleNewCompany}
+                onClick={() => navigate('/wizard-empresa')}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#C8A951] text-black rounded font-medium hover:bg-[#B09240] transition-all active:scale-95"
             >
               <Plus className="w-5 h-5" />
