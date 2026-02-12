@@ -487,11 +487,32 @@ const ImpostosRetidos = ({ user, onLogout }) => {
                     </div>
                   </button>
                 )}
+                
+                {/* Aba de Guias de Recolhimento */}
+                <button
+                  onClick={() => setActiveTab('guias')}
+                  className={`flex-1 py-4 px-6 text-center font-medium transition-all ${
+                    activeTab === 'guias'
+                      ? 'text-[#C8A951] border-b-2 border-[#C8A951] bg-[#C8A951]/5'
+                      : 'text-[#A1A1AA] hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <Receipt className="w-5 h-5" />
+                    Guias de Recolhimento
+                    {guias?.resumo?.total_guias > 0 && (
+                      <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">
+                        {guias.resumo.total_guias}
+                      </span>
+                    )}
+                  </div>
+                </button>
               </div>
 
               {/* Content Area */}
               <div className="p-6">
-                {/* Toolbar */}
+                {/* Toolbar - só mostra nas abas tomados/prestados */}
+                {activeTab !== 'guias' && (
                 <div className="flex items-center justify-between mb-4">
                   <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A1A1AA]" />
