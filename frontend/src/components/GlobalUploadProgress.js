@@ -430,34 +430,42 @@ const GlobalUploadProgress = () => {
             </div>
             
             {/* Resumo - Linha 1 */}
-            <div className="grid grid-cols-3 gap-3 mt-4">
-              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-white">{uploadResults.resumo?.total_arquivos || 0}</p>
-                <p className="text-xs text-[#A1A1AA]">Total Arquivos</p>
+            <div className="grid grid-cols-4 gap-2 mt-4">
+              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-2 text-center">
+                <p className="text-xl font-bold text-white">{uploadResults.resumo?.total_arquivos || 0}</p>
+                <p className="text-[10px] text-[#A1A1AA]">Total</p>
               </div>
-              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-green-400">{uploadResults.resumo?.importados || uploadResults.success?.length || 0}</p>
-                <p className="text-xs text-green-300">Importados</p>
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-center">
+                <p className="text-xl font-bold text-green-400">{uploadResults.resumo?.importados || uploadResults.success?.length || 0}</p>
+                <p className="text-[10px] text-green-300">Importados</p>
               </div>
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-amber-400">{uploadResults.resumo?.duplicados || uploadResults.duplicadas?.length || 0}</p>
-                <p className="text-xs text-amber-300">Duplicados</p>
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 text-center">
+                <p className="text-xl font-bold text-amber-400">{uploadResults.resumo?.duplicados || uploadResults.duplicadas?.length || 0}</p>
+                <p className="text-[10px] text-amber-300">Duplicados</p>
+              </div>
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 text-center">
+                <p className="text-xl font-bold text-orange-400">{uploadResults.resumo?.rejeitados_cnpj || uploadResults.rejeitadas_cnpj?.length || 0}</p>
+                <p className="text-[10px] text-orange-300">Rejeit. CNPJ</p>
               </div>
             </div>
             
             {/* Resumo - Linha 2 */}
-            <div className="grid grid-cols-3 gap-3 mt-3">
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-red-400">{uploadResults.resumo?.erros || uploadResults.errors?.length || 0}</p>
-                <p className="text-xs text-red-300">Erros</p>
+            <div className="grid grid-cols-4 gap-2 mt-2">
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center">
+                <p className="text-xl font-bold text-red-400">{uploadResults.resumo?.erros || uploadResults.errors?.length || 0}</p>
+                <p className="text-[10px] text-red-300">Erros</p>
               </div>
-              <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-gray-400">{uploadResults.resumo?.notas_canceladas || uploadResults.notas_canceladas?.length || 0}</p>
-                <p className="text-xs text-gray-300">Canceladas</p>
+              <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-2 text-center">
+                <p className="text-xl font-bold text-gray-400">{uploadResults.resumo?.notas_canceladas || uploadResults.notas_canceladas?.length || 0}</p>
+                <p className="text-[10px] text-gray-300">Canceladas</p>
               </div>
-              <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-purple-400">{uploadResults.resumo?.desconsideradas_devolucao || uploadResults.notas_desconsideradas_devolucao?.length || 0}</p>
-                <p className="text-xs text-purple-300">Devoluções</p>
+              <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-2 text-center">
+                <p className="text-xl font-bold text-purple-400">{uploadResults.resumo?.desconsideradas_devolucao || uploadResults.notas_desconsideradas_devolucao?.length || 0}</p>
+                <p className="text-[10px] text-purple-300">Devoluções</p>
+              </div>
+              <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-2 text-center">
+                <p className="text-xl font-bold text-cyan-400">{uploadResults.resumo?.alertas_cfop || 0}</p>
+                <p className="text-[10px] text-cyan-300">Alertas CFOP</p>
               </div>
             </div>
           </div>
