@@ -549,80 +549,22 @@ const Documents = ({ user, onLogout }) => {
     setTimeout(() => setUploading(false), 500);
   };
 
-  // Upload com streaming (para muitos XMLs)
+  // Upload com streaming (para muitos XMLs) - Redireciona para página de importação
   const handleStreamingUpload = async (files, tipoConfig, token) => {
-    setUploading(true);
-    setUploadProgress({ current: 0, total: files.length, percent: 0 });
+    // Converter FileList para Array para poder passar via state
+    const filesArray = Array.from(files);
     
-    // Resetar flag de resultado exibido para novo upload
-    resultDisplayedRef.current = false;
-    
-    // Variáveis para controle de timeout global
-    let lastProgressTime = Date.now();
-    let globalTimeoutId = null;
-    // 5 minutos sem progresso = timeout (para volumes muito grandes como 4000+ arquivos)
-    const GLOBAL_TIMEOUT_MS = 300000;
-    
-    // Função para verificar e disparar timeout
-    const checkGlobalTimeout = () => {
-      const elapsed = Date.now() - lastProgressTime;
-      if (elapsed >= GLOBAL_TIMEOUT_MS) {
-        console.error('Upload timeout: sem progresso por 60 segundos');
-        handleUploadTimeout();
+    // Redirecionar para página de importação dedicada
+    navigate('/importacao', {
+      state: {
+        files: filesArray,
+        companyId: ctxCompany.id,
+        companyName: ctxCompany.razao_social || ctxCompany.nome_fantasia,
+        competencia: selectedCompetencia,
+        tipo: operacao
       }
-    };
-    
-    // Função para lidar com timeout
-    const handleUploadTimeout = () => {
-      if (globalTimeoutId) clearInterval(globalTimeoutId);
-      if (eventSourceRef.current) eventSourceRef.current.close();
-      
-      // Não mostrar erro de timeout se já mostramos resultado
-      if (resultDisplayedRef.current) {
-        setUploading(false);
-        return;
-      }
-      
-      const errorMsg = `Importação travou - sem resposta do servidor por ${GLOBAL_TIMEOUT_MS / 1000} segundos. Clique no X para fechar.`;
-      
-      // Atualizar estado global com erro
-      setUploadError(errorMsg);
-      
-      setUploadResult({
-        tipo: 'erro',
-        total: files.length,
-        sucesso: 0,
-        erros: files.length,
-        processados: [],
-        rejeitados: [{
-          arquivo: 'Timeout de importação',
-          motivo: errorMsg
-        }]
-      });
-      setShowUploadResult(true);
-      setUploading(false);
-    };
-    
-    // Iniciar verificação periódica de timeout
-    globalTimeoutId = setInterval(checkGlobalTimeout, 5000);
-    
-    // Função para atualizar timestamp de último progresso
-    const updateLastProgress = () => {
-      lastProgressTime = Date.now();
-    };
-    
-    try {
-      // 1. Iniciar upload
-      const initFormData = new FormData();
-      initFormData.append('company_id', ctxCompany.id);
-      initFormData.append('competencia', selectedCompetencia);
-      initFormData.append('tipo', operacao);
-      initFormData.append('total_files', files.length);
-      
-      const initResponse = await axios.post(`${API}/xml/upload-init`, initFormData, {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 30000 // 30s timeout para inicialização
-      });
+    });
+  };
       
       updateLastProgress(); // Atualizar timestamp
       
