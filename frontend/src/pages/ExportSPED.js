@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { Download, FileText, Calendar, AlertCircle } from 'lucide-react';
+import { Download, FileText, Calendar, AlertCircle, Settings, Check } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -15,6 +15,14 @@ const ExportSPED = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [documentsCount, setDocumentsCount] = useState(0);
   const [availableCompetencias, setAvailableCompetencias] = useState([]);
+  
+  // Opções de configuração do SPED
+  const [opcoes, setOpcoes] = useState({
+    zerarIcmsSt: false,
+    incluirDespesas: true,
+    simplesNacional: false,
+    beneficioFiscal: false,
+  });
 
   useEffect(() => {
     fetchCompanies();
