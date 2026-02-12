@@ -1324,59 +1324,123 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                   Defina os percentuais de presunção que serão aplicados no cálculo do IRPJ e CSLL
                 </p>
                 
-                {/* Se for MISTA, mostra dois campos */}
+                {/* Se for MISTA, mostra campos separados para Comércio e Serviços */}
                 {formData.tipo_atividade === 'mista' ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-[#A1A1AA] mb-1">
-                        Presunção Comércio/Indústria (% IRPJ)
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.percentual_presuncao_irpj || 8}
-                        onChange={(e) => handleChange('percentual_presuncao_irpj', parseFloat(e.target.value) || 8)}
-                        className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
-                        placeholder="8%"
-                        min="1"
-                        max="32"
-                      />
-                      <p className="text-xs text-[#666] mt-1">Padrão: 8% para comércio e indústria</p>
+                  <div className="space-y-4">
+                    {/* Comércio/Indústria */}
+                    <div className="p-3 bg-[#0C0C0C] rounded-lg border border-[#2A2A2A]">
+                      <h4 className="text-sm text-blue-400 font-medium mb-3">📦 Comércio / Indústria</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm text-[#A1A1AA] mb-1">
+                            Presunção IRPJ (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={formData.percentual_presuncao_irpj || 8}
+                            onChange={(e) => handleChange('percentual_presuncao_irpj', parseFloat(e.target.value) || 8)}
+                            className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                            placeholder="8%"
+                            min="1"
+                            max="32"
+                          />
+                          <p className="text-xs text-[#666] mt-1">Padrão: 8%</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm text-[#A1A1AA] mb-1">
+                            Presunção CSLL (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={formData.percentual_presuncao_csll || 12}
+                            onChange={(e) => handleChange('percentual_presuncao_csll', parseFloat(e.target.value) || 12)}
+                            className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                            placeholder="12%"
+                            min="1"
+                            max="32"
+                          />
+                          <p className="text-xs text-[#666] mt-1">Padrão: 12%</p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm text-[#A1A1AA] mb-1">
-                        Presunção Serviços (% IRPJ)
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.percentual_presuncao_servicos_irpj || 32}
-                        onChange={(e) => handleChange('percentual_presuncao_servicos_irpj', parseFloat(e.target.value) || 32)}
-                        className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
-                        placeholder="32%"
-                        min="1"
-                        max="32"
-                      />
-                      <p className="text-xs text-[#666] mt-1">Padrão: 32% para serviços</p>
+                    
+                    {/* Serviços */}
+                    <div className="p-3 bg-[#0C0C0C] rounded-lg border border-[#2A2A2A]">
+                      <h4 className="text-sm text-purple-400 font-medium mb-3">🔧 Serviços</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm text-[#A1A1AA] mb-1">
+                            Presunção IRPJ (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={formData.percentual_presuncao_servicos_irpj || 32}
+                            onChange={(e) => handleChange('percentual_presuncao_servicos_irpj', parseFloat(e.target.value) || 32)}
+                            className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                            placeholder="32%"
+                            min="1"
+                            max="32"
+                          />
+                          <p className="text-xs text-[#666] mt-1">Padrão: 32%</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm text-[#A1A1AA] mb-1">
+                            Presunção CSLL (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={formData.percentual_presuncao_servicos_csll || 32}
+                            onChange={(e) => handleChange('percentual_presuncao_servicos_csll', parseFloat(e.target.value) || 32)}
+                            className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                            placeholder="32%"
+                            min="1"
+                            max="32"
+                          />
+                          <p className="text-xs text-[#666] mt-1">Padrão: 32%</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ) : (
-                  <div>
-                    <label className="block text-sm text-[#A1A1AA] mb-1">
-                      Percentual de Presunção IRPJ (%)
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.percentual_presuncao_irpj || (formData.tipo_atividade === 'servicos' ? 32 : 8)}
-                      onChange={(e) => handleChange('percentual_presuncao_irpj', parseFloat(e.target.value) || 8)}
-                      className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
-                      placeholder={formData.tipo_atividade === 'servicos' ? '32%' : '8%'}
-                      min="1"
-                      max="32"
-                    />
-                    <p className="text-xs text-[#666] mt-1">
-                      {formData.tipo_atividade === 'servicos' 
-                        ? 'Padrão: 32% para prestação de serviços' 
-                        : 'Padrão: 8% para comércio e indústria'}
-                    </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-[#A1A1AA] mb-1">
+                        Percentual de Presunção IRPJ (%)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.percentual_presuncao_irpj || (formData.tipo_atividade === 'servicos' ? 32 : 8)}
+                        onChange={(e) => handleChange('percentual_presuncao_irpj', parseFloat(e.target.value) || 8)}
+                        className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                        placeholder={formData.tipo_atividade === 'servicos' ? '32%' : '8%'}
+                        min="1"
+                        max="32"
+                      />
+                      <p className="text-xs text-[#666] mt-1">
+                        {formData.tipo_atividade === 'servicos' 
+                          ? 'Padrão: 32% para serviços' 
+                          : 'Padrão: 8% para comércio/indústria'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-[#A1A1AA] mb-1">
+                        Percentual de Presunção CSLL (%)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.percentual_presuncao_csll || (formData.tipo_atividade === 'servicos' ? 32 : 12)}
+                        onChange={(e) => handleChange('percentual_presuncao_csll', parseFloat(e.target.value) || 12)}
+                        className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                        placeholder={formData.tipo_atividade === 'servicos' ? '32%' : '12%'}
+                        min="1"
+                        max="32"
+                      />
+                      <p className="text-xs text-[#666] mt-1">
+                        {formData.tipo_atividade === 'servicos' 
+                          ? 'Padrão: 32% para serviços' 
+                          : 'Padrão: 12% para comércio/indústria'}
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
