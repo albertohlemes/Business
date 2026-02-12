@@ -43,8 +43,5 @@ celery_app.conf.update(
     task_reject_on_worker_lost=True,
 )
 
-# Configurar rotas de tarefas (opcional)
-celery_app.conf.task_routes = {
-    'celery_tasks.process_xml_batch': {'queue': 'xml_processing'},
-    'celery_tasks.process_single_xml': {'queue': 'xml_processing'},
-}
+# Usar queue padrão 'celery' para todas as tarefas
+# Não definir task_routes para simplificar
