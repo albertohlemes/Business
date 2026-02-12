@@ -442,47 +442,54 @@ const Documents = ({ user, onLogout }) => {
     e.target.value = '';
   };
 
-  // Upload de arquivo ZIP
+  // Upload de arquivo ZIP - extrai no browser e envia XMLs
   const handleZipUpload = async (zipFile, tipoConfig, token) => {
     try {
       const empresaNome = ctxCompany?.razao_social || ctxCompany?.nome_fantasia || 'Empresa';
       
-      // Primeiro, enviar o ZIP para extração
-      const formData = new FormData();
-      formData.append('file', zipFile);
-      formData.append('company_id', ctxCompany.id);
-      formData.append('competencia', selectedCompetencia);
-      formData.append('tipo', operacao);
-      
       toast.loading('Extraindo arquivos do ZIP...', { id: 'zip-extract' });
       
-      const initResponse = await axios.post(`${API}/xml/upload-zip-process`, formData, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        },
-        timeout: 120000 // 2 minutos para extrair o ZIP
+      // Extrair ZIP usando JSZip no browser
+      const zip = new JSZip();
+      const zipContent = await zip.loadAsync(zipFile);
+      
+      // Coletar todos os arquivos XML do ZIP
+      const xmlFiles = [];
+      const promises = [];
+      
+      zipContent.forEach((relativePath, zipEntry) => {
+        if (!zipEntry.dir && relativePath.toLowerCase().endsWith('.xml')) {
+          const promise = zipEntry.async('blob').then(blob => {
+            const fileName = relativePath.split('/').pop(); // Pegar apenas o nome do arquivo
+            const file = new File([blob], fileName, { type: 'application/xml' });
+            xmlFiles.push(file);
+          });
+          promises.push(promise);
+        }
       });
+      
+      await Promise.all(promises);
       
       toast.dismiss('zip-extract');
       
-      if (initResponse.data.upload_id) {
-        toast.success(`ZIP extraído! ${initResponse.data.total_files} XMLs encontrados.`, { duration: 3000 });
-        
-        // Usar o sistema de upload streaming com o upload_id
-        await startUpload(
-          null, // Não temos os arquivos diretamente, mas o backend já os tem
-          ctxCompany.id, 
-          selectedCompetencia, 
-          empresaNome, 
-          operacao,
-          initResponse.data.upload_id // Passar o upload_id do ZIP
-        );
+      if (xmlFiles.length === 0) {
+        toast.error('Nenhum arquivo XML encontrado no ZIP');
+        return;
       }
+      
+      toast.success(`ZIP extraído! ${xmlFiles.length} XMLs encontrados. Iniciando importação...`, { duration: 3000 });
+      
+      // Usar o sistema de upload normal com os arquivos extraídos
+      if (xmlFiles.length <= 10) {
+        await handleDirectUpload(xmlFiles, tipoConfig, token);
+      } else {
+        await handleStreamingUpload(xmlFiles, tipoConfig, token);
+      }
+      
     } catch (err) {
       toast.dismiss('zip-extract');
       console.error('Erro no upload do ZIP:', err);
-      toast.error(err.response?.data?.detail || 'Erro ao processar arquivo ZIP');
+      toast.error(err.message || 'Erro ao processar arquivo ZIP');
     }
   };
 
