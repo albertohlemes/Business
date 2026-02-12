@@ -265,16 +265,24 @@ const ApuracaoICMS = ({ user, onLogout }) => {
       setBeneficioDetalhes(response.data);
     } catch (err) {
       console.error('Erro ao carregar detalhes do benefício fiscal:', err);
-      alert('Erro ao carregar detalhes do benefício fiscal');
     } finally {
       setLoadingBeneficioDetalhes(false);
     }
   };
 
+  // Carregar detalhes do benefício fiscal automaticamente quando houver dados
+  useEffect(() => {
+    if (dados?.desconsiderados?.beneficio_fiscal?.valor_icms > 0 && !beneficioDetalhes) {
+      fetchBeneficioDetalhes();
+    }
+  }, [dados?.desconsiderados?.beneficio_fiscal?.valor_icms]);
+
   // Abrir modal de benefício fiscal
   const handleOpenBeneficioModal = () => {
     setShowBeneficioModal(true);
-    fetchBeneficioDetalhes();
+    if (!beneficioDetalhes) {
+      fetchBeneficioDetalhes();
+    }
   };
 
   // Exportar relatório de benefício fiscal
