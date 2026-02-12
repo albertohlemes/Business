@@ -6,7 +6,7 @@ import {
   Package, ShoppingCart, Truck, Building2, ChevronDown, ChevronUp
 } from 'lucide-react';
 import axios from 'axios';
-import { useApp } from '../context/AppContext';
+import { useAppContext } from '../context/AppContext';
 import Layout from '../components/Layout';
 
 const API = process.env.REACT_APP_BACKEND_URL;
