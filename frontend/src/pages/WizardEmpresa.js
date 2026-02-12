@@ -1334,6 +1334,11 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
         );
         
       case 4:
+        // Determinar se deve mostrar campo Revenda ou Materiais para Aplicação
+        const isServicos = formData.tipo_atividade === 'servicos';
+        const isMista = formData.tipo_atividade === 'mista';
+        const isComercioOuIndustria = ['comercio', 'industria'].includes(formData.tipo_atividade);
+        
         return (
           <div className="space-y-6">
             {/* Seção IA - Gerar Palavras-Chave Automaticamente */}
@@ -1388,40 +1393,156 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
               </div>
             </div>
             
-            {/* Revenda */}
-            <div className="bg-[#141414] rounded-lg p-4">
-              <h3 className="text-white font-medium mb-3 flex items-center gap-2">
-                <Store className="w-5 h-5 text-green-400" />
-                Produtos para Revenda
-              </h3>
-              <div className="flex gap-2 mb-3">
-                <input
-                  type="text"
-                  value={newKeyword.comercializados}
-                  onChange={(e) => setNewKeyword(prev => ({ ...prev, comercializados: e.target.value }))}
-                  onKeyPress={(e) => e.key === 'Enter' && addKeyword('comercializados')}
-                  className="flex-1 px-3 py-2 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
-                  placeholder="Ex: eletrônicos, roupas, calçados..."
-                />
-                <button
-                  onClick={() => addKeyword('comercializados')}
-                  className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors"
-                >
-                  Adicionar
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.produtos_comercializados.map(keyword => (
-                  <span
-                    key={keyword}
-                    className="px-3 py-1 bg-green-500/10 text-green-400 rounded-full text-sm flex items-center gap-1"
+            {/* REVENDA - Só para Comércio/Indústria */}
+            {isComercioOuIndustria && (
+              <div className="bg-[#141414] rounded-lg p-4">
+                <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <Store className="w-5 h-5 text-green-400" />
+                  Produtos para Revenda
+                </h3>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={newKeyword.comercializados}
+                    onChange={(e) => setNewKeyword(prev => ({ ...prev, comercializados: e.target.value }))}
+                    onKeyPress={(e) => e.key === 'Enter' && addKeyword('comercializados')}
+                    className="flex-1 px-3 py-2 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                    placeholder="Ex: eletrônicos, roupas, calçados..."
+                  />
+                  <button
+                    onClick={() => addKeyword('comercializados')}
+                    className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors"
                   >
-                    {keyword}
-                    <button onClick={() => removeKeyword('comercializados', keyword)} className="hover:text-white">×</button>
-                  </span>
-                ))}
+                    Adicionar
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.produtos_comercializados.map(keyword => (
+                    <span
+                      key={keyword}
+                      className="px-3 py-1 bg-green-500/10 text-green-400 rounded-full text-sm flex items-center gap-1"
+                    >
+                      {keyword}
+                      <button onClick={() => removeKeyword('comercializados', keyword)} className="hover:text-white">×</button>
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+            
+            {/* MATERIAIS PARA APLICAÇÃO EM SERVIÇOS - Para Serviços (substitui Revenda) */}
+            {isServicos && (
+              <div className="bg-[#141414] rounded-lg p-4 border border-purple-500/30">
+                <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <Wrench className="w-5 h-5 text-purple-400" />
+                  Materiais para Aplicação em Serviços
+                </h3>
+                <p className="text-xs text-[#666] mb-3">Ex: Peças para manutenção, materiais de construção aplicados em obras</p>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={newKeyword.servico}
+                    onChange={(e) => setNewKeyword(prev => ({ ...prev, servico: e.target.value }))}
+                    onKeyPress={(e) => e.key === 'Enter' && addKeyword('servico')}
+                    className="flex-1 px-3 py-2 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                    placeholder="Ex: peças, componentes, materiais..."
+                  />
+                  <button
+                    onClick={() => addKeyword('servico')}
+                    className="px-4 py-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.produtos_aplicacao_servico.map(keyword => (
+                    <span
+                      key={keyword}
+                      className="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-full text-sm flex items-center gap-1"
+                    >
+                      {keyword}
+                      <button onClick={() => removeKeyword('servico', keyword)} className="hover:text-white">×</button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* MISTA: Mostra REVENDA + MATERIAIS PARA APLICAÇÃO */}
+            {isMista && (
+              <>
+                {/* Revenda para parte comercial */}
+                <div className="bg-[#141414] rounded-lg p-4">
+                  <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                    <Store className="w-5 h-5 text-green-400" />
+                    Produtos para Revenda (Atividade Comercial)
+                  </h3>
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={newKeyword.comercializados}
+                      onChange={(e) => setNewKeyword(prev => ({ ...prev, comercializados: e.target.value }))}
+                      onKeyPress={(e) => e.key === 'Enter' && addKeyword('comercializados')}
+                      className="flex-1 px-3 py-2 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                      placeholder="Ex: eletrônicos, roupas, calçados..."
+                    />
+                    <button
+                      onClick={() => addKeyword('comercializados')}
+                      className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors"
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.produtos_comercializados.map(keyword => (
+                      <span
+                        key={keyword}
+                        className="px-3 py-1 bg-green-500/10 text-green-400 rounded-full text-sm flex items-center gap-1"
+                      >
+                        {keyword}
+                        <button onClick={() => removeKeyword('comercializados', keyword)} className="hover:text-white">×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Materiais para aplicação na parte de serviços */}
+                <div className="bg-[#141414] rounded-lg p-4 border border-purple-500/30">
+                  <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                    <Wrench className="w-5 h-5 text-purple-400" />
+                    Materiais para Aplicação em Serviços (Atividade de Serviços)
+                  </h3>
+                  <p className="text-xs text-[#666] mb-3">Ex: Peças para manutenção, materiais de construção aplicados em obras</p>
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={newKeyword.servico}
+                      onChange={(e) => setNewKeyword(prev => ({ ...prev, servico: e.target.value }))}
+                      onKeyPress={(e) => e.key === 'Enter' && addKeyword('servico')}
+                      className="flex-1 px-3 py-2 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                      placeholder="Ex: peças, componentes, materiais..."
+                    />
+                    <button
+                      onClick={() => addKeyword('servico')}
+                      className="px-4 py-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors"
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.produtos_aplicacao_servico.map(keyword => (
+                      <span
+                        key={keyword}
+                        className="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-full text-sm flex items-center gap-1"
+                      >
+                        {keyword}
+                        <button onClick={() => removeKeyword('servico', keyword)} className="hover:text-white">×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
             
             {/* Insumos */}
             <div className="bg-[#141414] rounded-lg p-4">
@@ -1493,42 +1614,77 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
               </div>
             </div>
             
-            {/* Serviços - só mostra para empresas de serviço/mista */}
-            {(formData.tipo_atividade === 'servicos' || formData.tipo_atividade === 'mista') && (
-              <div className="bg-[#141414] rounded-lg p-4">
-                <h3 className="text-white font-medium mb-3 flex items-center gap-2">
-                  <Wrench className="w-5 h-5 text-purple-400" />
-                  Materiais para Aplicação em Serviços
-                </h3>
-                <div className="flex gap-2 mb-3">
-                  <input
-                    type="text"
-                    value={newKeyword.servico}
-                    onChange={(e) => setNewKeyword(prev => ({ ...prev, servico: e.target.value }))}
-                    onKeyPress={(e) => e.key === 'Enter' && addKeyword('servico')}
-                    className="flex-1 px-3 py-2 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
-                    placeholder="Ex: peças, componentes, materiais..."
-                  />
-                  <button
-                    onClick={() => addKeyword('servico')}
-                    className="px-4 py-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors"
-                  >
-                    Adicionar
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.produtos_aplicacao_servico.map(keyword => (
-                    <span
-                      key={keyword}
-                      className="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-full text-sm flex items-center gap-1"
-                    >
-                      {keyword}
-                      <button onClick={() => removeKeyword('servico', keyword)} className="hover:text-white">×</button>
-                    </span>
-                  ))}
-                </div>
+            {/* ATIVO IMOBILIZADO - NOVO */}
+            <div className="bg-[#141414] rounded-lg p-4 border border-cyan-500/30">
+              <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-cyan-400" />
+                Ativo Imobilizado
+              </h3>
+              <p className="text-xs text-[#666] mb-3">Máquinas, equipamentos, veículos, móveis e utensílios para uso permanente</p>
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  value={newKeyword.ativo_imobilizado || ''}
+                  onChange={(e) => setNewKeyword(prev => ({ ...prev, ativo_imobilizado: e.target.value }))}
+                  onKeyPress={(e) => e.key === 'Enter' && addKeyword('ativo_imobilizado')}
+                  className="flex-1 px-3 py-2 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg text-white focus:border-cyan-500 focus:outline-none"
+                  placeholder="Ex: computador, máquina, veículo, móvel..."
+                />
+                <button
+                  onClick={() => addKeyword('ativo_imobilizado')}
+                  className="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors"
+                >
+                  Adicionar
+                </button>
               </div>
-            )}
+              <div className="flex flex-wrap gap-2">
+                {(formData.produtos_ativo_imobilizado || []).map(keyword => (
+                  <span
+                    key={keyword}
+                    className="px-3 py-1 bg-cyan-500/10 text-cyan-400 rounded-full text-sm flex items-center gap-1"
+                  >
+                    {keyword}
+                    <button onClick={() => removeKeyword('ativo_imobilizado', keyword)} className="hover:text-white">×</button>
+                  </span>
+                ))}
+              </div>
+            </div>
+            
+            {/* COMBUSTÍVEL - NOVO */}
+            <div className="bg-[#141414] rounded-lg p-4 border border-red-500/30">
+              <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                <Fuel className="w-5 h-5 text-red-400" />
+                Combustível
+              </h3>
+              <p className="text-xs text-[#666] mb-3">Gasolina, diesel, etanol, GNV e derivados de petróleo</p>
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  value={newKeyword.combustivel || ''}
+                  onChange={(e) => setNewKeyword(prev => ({ ...prev, combustivel: e.target.value }))}
+                  onKeyPress={(e) => e.key === 'Enter' && addKeyword('combustivel')}
+                  className="flex-1 px-3 py-2 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg text-white focus:border-red-500 focus:outline-none"
+                  placeholder="Ex: gasolina, diesel, etanol..."
+                />
+                <button
+                  onClick={() => addKeyword('combustivel')}
+                  className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                >
+                  Adicionar
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(formData.produtos_combustivel || []).map(keyword => (
+                  <span
+                    key={keyword}
+                    className="px-3 py-1 bg-red-500/10 text-red-400 rounded-full text-sm flex items-center gap-1"
+                  >
+                    {keyword}
+                    <button onClick={() => removeKeyword('combustivel', keyword)} className="hover:text-white">×</button>
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         );
         
