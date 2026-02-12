@@ -181,11 +181,16 @@ def comparar_faturamento_pgdas_sistema(
 
 def gerar_historico_para_salvar(
     dados_pgdas: Dict,
-    historico_existente: Dict[str, Dict] = None
+    historico_existente: Dict[str, Dict] = None,
+    periodo_apuracao: str = None
 ) -> Dict[str, Dict]:
     """
     Gera o histórico de faturamento para salvar na empresa,
     mesclando dados do PGDAS com histórico existente.
+    
+    IMPORTANTE: O faturamento do período de apuração (PA) do PGDAS NÃO deve
+    entrar no histórico como parte do RBT12 para a mesma competência.
+    O RBT12 deve ser dos 12 meses ANTERIORES ao PA.
     
     Cada entrada tem:
     - valor: float
@@ -196,19 +201,27 @@ def gerar_historico_para_salvar(
     Args:
         dados_pgdas: Dados extraídos do PGDAS
         historico_existente: Histórico já salvo na empresa
+        periodo_apuracao: Período de apuração do PGDAS (MM/YYYY) - usado para não excluir incorretamente
         
     Returns:
         Dict com histórico atualizado
     """
-    historico = historico_existente or {}
+    historico = historico_existente.copy() if historico_existente else {}
     data_importacao = datetime.now().isoformat()
     
+    # Obter período de apuração
+    pa = periodo_apuracao or dados_pgdas.get("periodo_apuracao")
+    
+    # O faturamento mensal do PGDAS inclui tanto os 12 meses anteriores
+    # quanto o mês do próprio período de apuração.
+    # TODOS devem ser salvos no histórico para que competências futuras possam calcular o RBT12.
     for mes, valor in dados_pgdas.get("faturamento_mensal", {}).items():
         historico[mes] = {
             "valor": valor,
             "origem": "pgdas",
             "data_importacao": data_importacao,
-            "bloqueado": True
+            "bloqueado": True,
+            "periodo_apuracao_origem": pa  # Indica de qual PGDAS veio o dado
         }
     
     return historico
