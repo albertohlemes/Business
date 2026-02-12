@@ -614,6 +614,9 @@ const Layout = ({ user, onLogout, children }) => {
           </div>
         </div>
       )}
+
+      {/* Indicador de Jobs em Background */}
+      <BackgroundJobsIndicator />
     </div>
   );
 };
