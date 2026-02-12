@@ -2406,13 +2406,6 @@ const Documents = ({ user, onLogout }) => {
                         <td className="px-4 py-3 text-right w-20" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
                             <button
-                              onClick={() => fetchDocumentDetail(doc.id)}
-                              className="p-1.5 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
-                              title="Ver detalhes"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button
                               onClick={() => handleDeleteDocument(doc.id, doc.numero_nfe)}
                               className="p-1.5 text-[#A1A1AA] hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
                               title="Excluir"
