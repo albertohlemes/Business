@@ -413,6 +413,7 @@ const UserPermissions = () => {
         </div>
       </div>
     </div>
+    </Layout>
   );
 };
 
