@@ -398,16 +398,14 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       combustivel: 'combustivel',
       sem_credito: 'produtos_sem_credito_icms',
     };
-      insumos: 'insumos_producao',
-      despesa: 'produtos_despesa',
-      servico: 'produtos_aplicacao_servico',
-    };
     
     const field = fieldMap[category];
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].filter(k => k !== keyword)
-    }));
+    if (field) {
+      setFormData(prev => ({
+        ...prev,
+        [field]: prev[field].filter(k => k !== keyword)
+      }));
+    }
   };
 
   const validateStep = () => {
