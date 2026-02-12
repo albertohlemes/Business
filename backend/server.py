@@ -13511,11 +13511,16 @@ async def resolver_alerta_cfop_lote(
                 cfop_atual = prod.get('cfop', '')
                 
                 if acao == 'converter_compra':
-                    # Converter para CFOP de compra
+                    # Converter para CFOP de compra - RESPEITANDO ST
+                    cfop_original = prod.get('cfop_original_emissor', '')
+                    cfops_st = ['5403', '5405', '5408', '5409', '5410', '5411', '5412', '5413', '5414', '5415',
+                               '6403', '6404', '6405', '6408', '6409', '6410', '6411', '6412', '6413', '6414', '6415']
+                    is_st = cfop_original in cfops_st
+                    
                     if cfop_atual.startswith('1'):
-                        novo_cfop = '1102'
+                        novo_cfop = '1403' if is_st else '1102'
                     elif cfop_atual.startswith('2'):
-                        novo_cfop = '2102'
+                        novo_cfop = '2403' if is_st else '2102'
                     else:
                         novo_cfop = cfop_atual
                     produtos[idx]['cfop'] = novo_cfop
