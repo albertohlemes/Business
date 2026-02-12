@@ -8775,6 +8775,13 @@ async def get_dashboard_stats(
     
     # Verificar se a empresa tem benefício fiscal ativo
     beneficio_fiscal_ativo = company.get('beneficio_fiscal_icms', False)
+    produtos_sem_credito_config = company.get('produtos_sem_credito_icms', [])
+    tipo_beneficio = company.get('tipo_beneficio_fiscal', '')
+    
+    logger.info(f"BENEFICIO FISCAL: Ativo={beneficio_fiscal_ativo}, Tipo={tipo_beneficio}, Lista={produtos_sem_credito_config}")
+    
+    # Lista para rastrear produtos afetados pelo benefício
+    produtos_beneficio_excluidos = []
     
     # Flags de desconsiderar ICMS
     desconsiderar_icms_despesas = company.get('desconsiderar_icms_despesas', False)
