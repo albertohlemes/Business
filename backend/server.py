@@ -1623,6 +1623,7 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
         vIPI_total = float(total.get('vIPI', 0) or 0)
         vST_total = float(total.get('vST', 0) or 0)
         vICMSST_total = float(total.get('vICMSST', 0) or 0) or vST_total
+        vFCPST_total = float(total.get('vFCPST', 0) or 0)  # Fundo de Combate à Pobreza sobre ST
         
         if isinstance(det, dict):
             det = [det]
@@ -1798,6 +1799,7 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             'total_desconto': vDesc_total,
             'total_ipi': vIPI_total,
             'total_icms_st': vICMSST_total,
+            'total_fcp_st': vFCPST_total,  # FCP-ST (Fundo de Combate à Pobreza sobre ST)
             'produtos': produtos,
             # NFe referenciada (para devoluções)
             'nfe_referenciada': nfe_referenciada,
