@@ -7594,6 +7594,7 @@ async def upload_xml_with_progress(
     all_results["relatorio_conversoes"].extend(conversion_report)
     all_results["alertas_cfop"].extend(alertas_cfop)
     all_results["notas_desconsideradas_devolucao"].extend(notas_desconsideradas_processadas)
+    all_results["notas_canceladas"].extend(notas_canceladas)
     
     progress["all_results"] = all_results
     
@@ -7617,6 +7618,7 @@ async def upload_xml_with_progress(
             "relatorio_conversoes": all_results["relatorio_conversoes"],
             "alertas_cfop": all_results["alertas_cfop"],
             "notas_desconsideradas_devolucao": all_results.get("notas_desconsideradas_devolucao", []),
+            "notas_canceladas": all_results.get("notas_canceladas", []),
             "total_conversoes": sum(len(r.get('conversoes', [])) for r in all_results["relatorio_conversoes"]),
             "total_alertas_cfop": sum(len(a.get('alertas', [])) for a in all_results["alertas_cfop"]),
             "performance": {
@@ -7633,7 +7635,8 @@ async def upload_xml_with_progress(
                 "rejeitados_competencia": 0,
                 "erros": len(all_results["errors"]),
                 "alertas_cfop": len(all_results["alertas_cfop"]),
-                "desconsideradas_devolucao": len(all_results.get("notas_desconsideradas_devolucao", []))
+                "desconsideradas_devolucao": len(all_results.get("notas_desconsideradas_devolucao", [])),
+                "notas_canceladas": len(all_results.get("notas_canceladas", []))
             }
         }
         
