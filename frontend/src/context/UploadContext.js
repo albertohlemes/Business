@@ -23,6 +23,14 @@ export const UploadProvider = ({ children }) => {
   const [uploadInfo, setUploadInfo] = useState({ empresa: '', competencia: '' });
   const [minimized, setMinimized] = useState(false);
   
+  // Estado para rastrear mudanças em documentos (incrementa a cada mudança)
+  const [documentsVersion, setDocumentsVersion] = useState(0);
+  
+  // Função para notificar que houve mudança nos documentos (exclusão, importação, etc.)
+  const notifyDocumentsChanged = useCallback(() => {
+    setDocumentsVersion(prev => prev + 1);
+  }, []);
+  
   // Referência para o EventSource e polling
   const eventSourceRef = useRef(null);
   const uploadIdRef = useRef(null);
