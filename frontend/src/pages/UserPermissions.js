@@ -187,7 +187,7 @@ const UserPermissions = ({ user, onLogout }) => {
 
   if (loading) {
     return (
-      <Layout user={currentUser} onLogout={() => {}}>
+      <Layout user={user} onLogout={onLogout}>
         <div className="flex items-center justify-center h-64">
           <RefreshCw className="w-8 h-8 text-[#C8A951] animate-spin" />
         </div>
@@ -196,7 +196,7 @@ const UserPermissions = ({ user, onLogout }) => {
   }
 
   return (
-    <Layout user={currentUser} onLogout={() => {}}>
+    <Layout user={user} onLogout={onLogout}>
       <div className="p-6 space-y-6" data-testid="user-permissions-page">
         {/* Header */}
         <div className="flex items-center justify-between">
