@@ -822,8 +822,10 @@ class XMLDocument(BaseModel):
     valor_total: float
     valor_servicos: float = 0.0
     # Totais extras (IPI, ST, frete, etc)
+    total_produtos: float = 0.0  # vProd - soma dos valores dos produtos
     total_ipi: float = 0.0
     total_icms_st: float = 0.0
+    total_fcp_st: float = 0.0  # FCP-ST (Fundo de Combate à Pobreza sobre ST)
     total_frete: float = 0.0
     total_seguro: float = 0.0
     total_outras_despesas: float = 0.0
