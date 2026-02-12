@@ -14018,10 +14018,10 @@ def obter_cfop_por_categoria(categoria: str, cfop_atual: str) -> str:
         'revenda': '102',       # Compra para comercialização
         'produto': '102',       # Alias para revenda
         'insumo': '101',        # Compra para industrialização
-        'despesa': '407',       # Compra para uso e consumo
-        'uso_consumo': '407',   # Alias para despesa
-        'ativo_imobilizado': '406',  # Compra de bem para ativo imobilizado
-        'ativo': '406',         # Alias para ativo
+        'despesa': '556',       # Compra para uso e consumo (sem ST = 1556)
+        'uso_consumo': '556',   # Alias para despesa
+        'ativo_imobilizado': '551',  # Compra de bem para ativo imobilizado (sem ST = 1551)
+        'ativo': '551',         # Alias para ativo
         'combustivel': '653',   # Compra de combustível para uso (frota própria)
         'servico_aplicacao': '128',  # Compra para prestação de serviço
         'servico': '933',       # Serviço tomado (NFS-e)
@@ -14029,15 +14029,15 @@ def obter_cfop_por_categoria(categoria: str, cfop_atual: str) -> str:
         'devolucao': '201',     # Devolução de compra
     }
     
-    # Mapeamento com ST (4xx)
+    # Mapeamento com ST (4xx) - mercadorias com substituição tributária
     mapeamento_st = {
         'revenda': '403',       # Compra para comercialização com ST
         'produto': '403',       # Alias para revenda com ST
         'insumo': '401',        # Compra para industrialização com ST
-        'despesa': '407',       # Uso e consumo (geralmente não tem ST, mantém 407)
-        'uso_consumo': '407',   # Alias para despesa
-        'ativo_imobilizado': '406',  # Ativo imobilizado (geralmente não tem ST, mantém 406)
-        'ativo': '406',         # Alias para ativo
+        'despesa': '407',       # Uso e consumo com ST (1407/2407)
+        'uso_consumo': '407',   # Alias para despesa com ST
+        'ativo_imobilizado': '406',  # Ativo imobilizado com ST (1406/2406)
+        'ativo': '406',         # Alias para ativo com ST
         'combustivel': '653',   # Combustível (mantém)
         'servico_aplicacao': '128',  # Compra para prestação de serviço
         'servico': '933',       # Serviço
