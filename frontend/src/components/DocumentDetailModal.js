@@ -79,6 +79,7 @@ const DocumentDetailModal = ({ document, onClose }) => {
   // Valores da capa da NF
   const valorCapaNF = {
     valor_total: document.valor_total || 0,
+    valor_produtos: document.total_produtos || document.valor_produtos || 0,  // vProd total da capa
     icms_total: document.icms_total || 0,
     total_icms_st: document.total_icms_st || 0,
     total_ipi: document.total_ipi || 0,
@@ -88,19 +89,20 @@ const DocumentDetailModal = ({ document, onClose }) => {
     total_desconto: document.total_desconto || 0,
   };
 
-  // Calcular valor total correto considerando todos os componentes
-  // Valor Total NF = Valor Produtos + IPI + ST + Frete + Seguro + Outras Despesas - Desconto
-  const valorTotalCalculado = 
-    totaisProdutos.valor_total + 
-    (valorCapaNF.total_ipi || 0) + 
-    (valorCapaNF.total_icms_st || 0) + 
-    (valorCapaNF.total_frete || 0) + 
-    (valorCapaNF.total_seguro || 0) + 
-    (valorCapaNF.total_outras_despesas || 0) - 
-    (valorCapaNF.total_desconto || 0);
+  // Calcular valor total usando a fórmula da NF-e:
+  // vNF = vProd - vDesc + vFrete + vSeg + vOutro + vIPI + vICMSST
+  // Usando os valores dos PRODUTOS (não da capa) para calcular
+  const valorTotalCalculadoProdutos = 
+    totaisProdutos.valor_produto +  // vProd (soma dos vProd dos itens)
+    totaisProdutos.v_ipi +          // IPI dos itens
+    totaisProdutos.v_icms_st +      // ICMS-ST dos itens
+    totaisProdutos.v_frete +        // Frete dos itens
+    totaisProdutos.v_seguro +       // Seguro dos itens
+    totaisProdutos.v_outras_despesas - // Outras desp dos itens
+    totaisProdutos.v_desconto;      // Desconto dos itens
 
-  // A diferença real é entre o valor da capa e o valor calculado
-  const diferencaValorTotal = Math.abs(valorCapaNF.valor_total - valorTotalCalculado);
+  // A diferença real é entre o valor da capa e o valor calculado pelos produtos
+  const diferencaValorTotal = Math.abs(valorCapaNF.valor_total - valorTotalCalculadoProdutos);
 
   // Classe CSS baseada na divergência
   const getDivergenceClass = (valorCapa, valorProdutos) => {
