@@ -581,6 +581,7 @@ class CompanyCreate(BaseModel):
     codigo_empresa: str = ""  # ID customizado da empresa - obrigatório
     nome_fantasia: Optional[str] = None
     inscricao_estadual: Optional[str] = None
+    ie_isento: bool = False  # Flag para IE isento/não contribuinte
     inscricao_municipal: Optional[str] = None
     endereco: Optional[str] = None
     cidade: Optional[str] = None
