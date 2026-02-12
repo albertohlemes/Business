@@ -448,27 +448,31 @@ const Documents = ({ user, onLogout }) => {
     e.target.value = '';
   };
 
-  // Upload de arquivo ZIP - extrai no browser e envia XMLs
+  // Upload de arquivo ZIP - extrai no browser e mostra preview
   const handleZipUpload = async (zipFile, tipoConfig, token) => {
     try {
-      const empresaNome = ctxCompany?.razao_social || ctxCompany?.nome_fantasia || 'Empresa';
-      
       toast.loading('Extraindo arquivos do ZIP...', { id: 'zip-extract' });
       
       // Extrair ZIP usando JSZip no browser
       const zip = new JSZip();
       const zipContent = await zip.loadAsync(zipFile);
       
-      // Coletar todos os arquivos XML do ZIP
-      const xmlFiles = [];
+      // Coletar todos os arquivos XML do ZIP com informações
+      const xmlFilesInfo = [];
       const promises = [];
       
       zipContent.forEach((relativePath, zipEntry) => {
         if (!zipEntry.dir && relativePath.toLowerCase().endsWith('.xml')) {
           const promise = zipEntry.async('blob').then(blob => {
-            const fileName = relativePath.split('/').pop(); // Pegar apenas o nome do arquivo
+            const fileName = relativePath.split('/').pop();
             const file = new File([blob], fileName, { type: 'application/xml' });
-            xmlFiles.push(file);
+            xmlFilesInfo.push({
+              file,
+              name: fileName,
+              size: blob.size,
+              path: relativePath,
+              selected: true
+            });
           });
           promises.push(promise);
         }
@@ -478,24 +482,83 @@ const Documents = ({ user, onLogout }) => {
       
       toast.dismiss('zip-extract');
       
-      if (xmlFiles.length === 0) {
+      if (xmlFilesInfo.length === 0) {
         toast.error('Nenhum arquivo XML encontrado no ZIP');
         return;
       }
       
-      toast.success(`ZIP extraído! ${xmlFiles.length} XMLs encontrados. Iniciando importação...`, { duration: 3000 });
+      // Ordenar por nome
+      xmlFilesInfo.sort((a, b) => a.name.localeCompare(b.name));
       
-      // Usar o sistema de upload normal com os arquivos extraídos
-      if (xmlFiles.length <= 10) {
-        await handleDirectUpload(xmlFiles, tipoConfig, token);
-      } else {
-        await handleStreamingUpload(xmlFiles, tipoConfig, token);
+      // Se tiver poucos arquivos, processar diretamente
+      if (xmlFilesInfo.length <= 5) {
+        const files = xmlFilesInfo.map(f => f.file);
+        toast.success(`${xmlFilesInfo.length} XMLs encontrados. Iniciando importação...`, { duration: 2000 });
+        await handleDirectUpload(files, tipoConfig, token);
+        return;
       }
+      
+      // Se tiver muitos arquivos, mostrar preview
+      setZipFileName(zipFile.name);
+      setZipPreviewFiles(xmlFilesInfo);
+      setZipSelectedFiles(xmlFilesInfo.map((_, i) => i));
+      setZipPreviewOpen(true);
       
     } catch (err) {
       toast.dismiss('zip-extract');
       console.error('Erro no upload do ZIP:', err);
       toast.error(err.message || 'Erro ao processar arquivo ZIP');
+    }
+  };
+
+  // Confirmar importação do ZIP após preview
+  const handleZipConfirm = async () => {
+    const tipoConfig = getTipoConfig();
+    if (!tipoConfig) return;
+    
+    const token = localStorage.getItem('token');
+    
+    // Filtrar apenas arquivos selecionados
+    const selectedFiles = zipPreviewFiles
+      .filter((_, i) => zipSelectedFiles.includes(i))
+      .map(f => f.file);
+    
+    if (selectedFiles.length === 0) {
+      toast.error('Nenhum arquivo selecionado');
+      return;
+    }
+    
+    setZipPreviewOpen(false);
+    
+    toast.success(`Iniciando importação de ${selectedFiles.length} XMLs...`, { duration: 2000 });
+    
+    if (selectedFiles.length <= 10) {
+      await handleDirectUpload(selectedFiles, tipoConfig, token);
+    } else {
+      await handleStreamingUpload(selectedFiles, tipoConfig, token);
+    }
+    
+    // Limpar estado
+    setZipPreviewFiles([]);
+    setZipSelectedFiles([]);
+    setZipFileName('');
+  };
+
+  // Toggle seleção de arquivo no preview
+  const toggleZipFileSelection = (index) => {
+    setZipSelectedFiles(prev => 
+      prev.includes(index) 
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
+    );
+  };
+
+  // Selecionar/deselecionar todos
+  const toggleSelectAllZip = () => {
+    if (zipSelectedFiles.length === zipPreviewFiles.length) {
+      setZipSelectedFiles([]);
+    } else {
+      setZipSelectedFiles(zipPreviewFiles.map((_, i) => i));
     }
   };
 
