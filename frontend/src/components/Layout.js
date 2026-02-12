@@ -218,20 +218,23 @@ const Layout = ({ user, onLogout, children }) => {
     
     const Icon = item.icon;
     const active = isActive(item.href);
+    const indented = item.indent === true;
     
     return (
       <Link
         to={item.href}
         data-testid={item.testId}
         onClick={() => setMobileMenuOpen(false)}
-        className={`flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg transition-all duration-200 ${
+        className={`flex items-center gap-3 py-2.5 text-sm rounded-lg transition-all duration-200 ${
+          indented ? 'px-8' : 'px-4'
+        } ${
           active
             ? 'text-[#C8A951] bg-[#C8A951]/10 border-l-2 border-[#C8A951]'
             : 'text-[#A1A1AA] hover:text-white hover:bg-white/5'
         }`}
       >
-        <Icon className="w-4 h-4" />
-        <span>{item.name}</span>
+        <Icon className={`${indented ? 'w-3 h-3' : 'w-4 h-4'}`} />
+        <span className={indented ? 'text-xs' : ''}>{item.name}</span>
       </Link>
     );
   };
