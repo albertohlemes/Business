@@ -23,6 +23,7 @@ const STEP_ICONS = {
 };
 
 const WizardFechamento = ({ user, onLogout }) => {
+  const navigate = useNavigate();
   const { selectedCompany, selectedCompetencia } = useAppContext();
   const [loading, setLoading] = useState(true);
   const [wizard, setWizard] = useState(null);
