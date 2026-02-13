@@ -30336,20 +30336,76 @@ async def get_wizard_step_data(
     
     elif step_id == 6:  # Reforma Tributária
         # Buscar dados para cálculo da Reforma Tributária
-        # Usar o serviço existente
         try:
-            config = ConfiguracaoReformaTributaria()
-            apuracao = await calcular_apuracao(company_id, competencia, config, db)
+            # Buscar configuração
+            config_doc = await db.reforma_tributaria_config.find_one(
+                {"company_id": company_id},
+                {"_id": 0}
+            )
+            
+            config = ConfiguracaoReformaTributaria(
+                aliquota_cbs=Decimal(str(config_doc.get('aliquota_cbs', 8.80))) if config_doc else Decimal('8.80'),
+                aliquota_ibs=Decimal(str(config_doc.get('aliquota_ibs', 17.70))) if config_doc else Decimal('17.70')
+            )
+            
+            # Buscar documentos de entrada
+            docs_entrada = await db.xml_documents.find({
+                "company_id": company_id,
+                "competencia": competencia,
+                "tipo": "entrada",
+                "desconsiderada_devolucao": {"$ne": True}
+            }).to_list(length=100000)
+            
+            # Buscar documentos de saída
+            docs_saida = await db.xml_documents.find({
+                "company_id": company_id,
+                "competencia": competencia,
+                "tipo": "saida",
+                "desconsiderada_devolucao": {"$ne": True}
+            }).to_list(length=100000)
+            
+            # Classificar entradas
+            creditos = []
+            for doc in docs_entrada:
+                produtos = doc.get('produtos', [])
+                for prod in produtos:
+                    cfop = prod.get('cfop', '') or prod.get('cfop_original_emissor', '')
+                    ncm = prod.get('ncm', '')
+                    valor = Decimal(str(prod.get('valor_total', 0) or 0))
+                    
+                    if valor > 0:
+                        resultado = classificar_entrada(cfop, ncm, valor, config)
+                        creditos.append(resultado)
+            
+            # Classificar saídas
+            debitos = []
+            for doc in docs_saida:
+                produtos = doc.get('produtos', [])
+                for prod in produtos:
+                    cfop = prod.get('cfop', '') or prod.get('cfop_original_emissor', '')
+                    ncm = prod.get('ncm', '')
+                    valor = Decimal(str(prod.get('valor_total', 0) or 0))
+                    
+                    if valor > 0:
+                        resultado = classificar_saida(cfop, ncm, valor, config)
+                        debitos.append(resultado)
+            
+            # Calcular apuração
+            apuracao = calcular_apuracao(creditos, debitos)
+            
             result["data"] = {
                 "apuracao": apuracao,
                 "config": {
-                    "aliquota_cbs": config.aliquota_cbs,
-                    "aliquota_ibs": config.aliquota_ibs,
-                    "aliquota_total": config.aliquota_total
-                }
+                    "aliquota_cbs": float(config.aliquota_cbs),
+                    "aliquota_ibs": float(config.aliquota_ibs),
+                    "aliquota_total": float(config.aliquota_total)
+                },
+                "total_entradas": len(docs_entrada),
+                "total_saidas": len(docs_saida)
             }
         except Exception as e:
-            result["data"] = {"error": str(e)}
+            import traceback
+            result["data"] = {"error": str(e), "traceback": traceback.format_exc()}
     
     elif step_id == 7:  # Concluído
         # Resumo final
