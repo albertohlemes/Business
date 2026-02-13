@@ -7483,11 +7483,12 @@ async def upload_xml_with_progress(
             chave_nfe = parsed_data['chave_nfe']
             modelo = parsed_data.get('modelo', xml_type)
             
-            cnpj_emitente = parsed_data.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
-            cnpj_destinatario = parsed_data.get('destinatario_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+            # IMPORTANTE: Usar strip() para remover espaços/caracteres de controle que podem vir do XML
+            cnpj_emitente = parsed_data.get('emitente_cnpj', '').strip().replace('.', '').replace('/', '').replace('-', '').strip()
+            cnpj_destinatario = parsed_data.get('destinatario_cnpj', '').strip().replace('.', '').replace('/', '').replace('-', '').strip()
             
             # Para CT-e, também precisamos do remetente (quem envia a carga)
-            cnpj_remetente = parsed_data.get('remetente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+            cnpj_remetente = parsed_data.get('remetente_cnpj', '').strip().replace('.', '').replace('/', '').replace('-', '').strip()
             
             # ================================================================
             # CLASSIFICAÇÃO AUTOMÁTICA DE TIPO (entrada/saída)
