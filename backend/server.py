@@ -29607,6 +29607,41 @@ async def batch_import_upload_estrutura(
             
             arquivos_empresa_processados = 0
             
+            # Carregar dados da empresa para classificação
+            company_doc = await db.companies.find_one({"id": company["id"]})
+            company_cnpj = company_doc.get("cnpj", "").replace(".", "").replace("/", "").replace("-", "") if company_doc else ""
+            uf_empresa = company_doc.get("uf", "") if company_doc else ""
+            regime_tributario = company_doc.get("regime_tributario", "simples_nacional") if company_doc else "simples_nacional"
+            
+            # Cache de vendas para classificação por aprendizado (uma vez por empresa)
+            sales_cache = {}
+            if not skip_ai:
+                try:
+                    pipeline = [
+                        {"$match": {"company_id": company["id"], "tipo": "saida"}},
+                        {"$unwind": "$produtos"},
+                        {"$group": {
+                            "_id": {
+                                "descricao": {"$toLower": "$produtos.descricao"},
+                                "codigo": "$produtos.codigo"
+                            },
+                            "categoria": {"$first": "$produtos.categoria_classificada"},
+                            "cfop": {"$first": "$produtos.cfop"},
+                            "count": {"$sum": 1}
+                        }},
+                        {"$match": {"count": {"$gte": 1}}}
+                    ]
+                    sales_products = await db.xml_documents.aggregate(pipeline).to_list(length=10000)
+                    for sp in sales_products:
+                        key = (sp["_id"]["descricao"] or "", sp["_id"]["codigo"] or "")
+                        if sp.get("categoria"):
+                            sales_cache[key] = {"categoria": sp["categoria"], "cfop": sp.get("cfop", "")}
+                except Exception as e:
+                    logger.warning(f"Erro ao carregar cache de vendas: {e}")
+            
+            # Estatísticas de classificação
+            classification_stats = {"from_cache": 0, "from_rules": 0, "from_ai": 0, "from_sales_inference": 0, "total": 0}
+            
             # Agrupar por competência
             by_competencia = {}
             for arq in data["arquivos"]:
