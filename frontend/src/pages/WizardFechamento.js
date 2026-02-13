@@ -15,7 +15,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
 const STEP_ICONS = {
   1: FileX,           // Notas Canceladas
   2: RotateCcw,       // Devoluções
-  3: AlertOctagon,    // CFOPs Distintos (NOVA)
+  3: AlertOctagon,    // Alertas de CFOP
   4: Package,         // Classificação CFOPs
   5: Receipt,         // PIS/COFINS Entradas
   6: Receipt,         // PIS/COFINS Saídas
