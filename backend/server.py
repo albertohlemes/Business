@@ -29567,13 +29567,26 @@ async def batch_import_upload_estrutura(
                         with open(arq["path"], 'r', encoding='utf-8') as f:
                             xml_content = f.read()
                         
-                        # Verificar se é XML válido
-                        if '<NFe' not in xml_content and '<nfeProc' not in xml_content:
+                        # Detectar tipo de documento e parsear
+                        parsed = None
+                        modelo = None
+                        
+                        # Verificar se é NFC-e
+                        if '<NFe' in xml_content or '<nfeProc' in xml_content:
+                            # Verificar se é NFC-e (modelo 65) ou NF-e (modelo 55)
+                            if 'mod>65</mod>' in xml_content or '-nfce' in arq["filename"].lower():
+                                parsed = parse_xml_nfce(xml_content)
+                                modelo = "nfce"
+                            else:
+                                parsed = parse_xml_nfe(xml_content)
+                                modelo = "nfe"
+                        elif '<CTeOS' in xml_content or '<CTe' in xml_content or '<cteProc' in xml_content:
+                            parsed = parse_xml_cte(xml_content)
+                            modelo = "cte"
+                        else:
                             empresa_result["erros"] += 1
                             continue
                         
-                        # Parsear XML
-                        parsed = parse_nfe_xml(xml_content)
                         if not parsed:
                             empresa_result["erros"] += 1
                             continue
@@ -29590,13 +29603,27 @@ async def batch_import_upload_estrutura(
                             empresa_result["duplicados"] += 1
                             continue
                         
+                        # Determinar tipo (entrada/saída) baseado no CNPJ
+                        company_doc = await db.companies.find_one({"id": company["id"]})
+                        company_cnpj = company_doc.get("cnpj", "").replace(".", "").replace("/", "").replace("-", "") if company_doc else ""
+                        emit_cnpj = parsed.get("cnpj_emitente", "").replace(".", "").replace("/", "").replace("-", "")
+                        dest_cnpj = parsed.get("cnpj_destinatario", "").replace(".", "").replace("/", "").replace("-", "")
+                        
+                        # Se a empresa é o emitente, é saída; se é destinatário, é entrada
+                        if emit_cnpj == company_cnpj:
+                            tipo = "saida"
+                        elif dest_cnpj == company_cnpj:
+                            tipo = "entrada"
+                        else:
+                            tipo = "entrada"  # Default para entrada se não identificar
+                        
                         # Criar documento
                         xml_doc = {
                             "id": str(uuid.uuid4()),
                             "company_id": company["id"],
                             "competencia": comp,
-                            "tipo": "entrada",  # Por padrão entrada
-                            "modelo": "nfe",
+                            "tipo": tipo,
+                            "modelo": modelo,
                             "xml_content": xml_content,
                             "uploaded_by": current_user.id,
                             "uploaded_at": datetime.now(timezone.utc).isoformat(),
