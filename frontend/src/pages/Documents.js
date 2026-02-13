@@ -4108,8 +4108,8 @@ const Documents = ({ user, onLogout }) => {
                 <div className="px-4 pb-4">
                   <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
                     <p className="text-sm text-purple-300">
-                      <strong>Modo Background:</strong> Para {zipSelectedFiles.length} arquivos, o processamento será feito em segundo plano. 
-                      Você pode fechar esta página e voltar depois para ver o resultado.
+                      <strong>Modo Background (Celery):</strong> O processamento será feito em segundo plano. 
+                      Você pode fechar esta página e acompanhar pelo indicador de <strong>Jobs</strong> no canto inferior esquerdo.
                     </p>
                   </div>
                 </div>
