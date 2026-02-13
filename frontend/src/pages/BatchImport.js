@@ -24,8 +24,81 @@ const BatchImport = ({ user, onLogout }) => {
   const [expandedHistory, setExpandedHistory] = useState(null);
   const [editingCodigo, setEditingCodigo] = useState(null);
   const [novoCodigo, setNovoCodigo] = useState('');
-  const [uploadProgress, setUploadProgress] = useState({ phase: '', percent: 0, detail: '' });
   const [showErrorReport, setShowErrorReport] = useState(false);
+  
+  // Estado do progresso persistente
+  const [activeImport, setActiveImport] = useState(null);
+  const [realProgress, setRealProgress] = useState(null);
+
+  // Verificar importações ativas ao carregar
+  const checkActiveImports = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/api/batch-import/active`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const active = response.data.active_imports || [];
+      if (active.length > 0) {
+        setActiveImport(active[0]);
+        setUploading(true);
+      } else {
+        setActiveImport(null);
+        setUploading(false);
+      }
+    } catch (err) {
+      console.error('Erro ao verificar importações ativas:', err);
+    }
+  }, []);
+
+  // Polling do progresso
+  useEffect(() => {
+    let interval;
+    if (activeImport && activeImport.import_id) {
+      interval = setInterval(async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await axios.get(
+            `${API}/api/batch-import/progress/${activeImport.import_id}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          
+          if (response.data.status === 'completed' || response.data.status === 'error') {
+            // Importação finalizada
+            setActiveImport(null);
+            setUploading(false);
+            setRealProgress(null);
+            loadHistory();
+            
+            if (response.data.status === 'completed') {
+              // Buscar resultado completo
+              const fullResult = await axios.get(
+                `${API}/api/batch-import/status/${activeImport.import_id}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              setResult({
+                ...fullResult.data,
+                total_empresas: fullResult.data.total_empresas || 0,
+                total_arquivos: fullResult.data.total_arquivos || 0,
+                total_importados: fullResult.data.total_importados || 0,
+                total_duplicados: fullResult.data.total_duplicados || 0,
+                total_erros: fullResult.data.total_erros || 0,
+                empresas_processadas: fullResult.data.empresas_processadas || [],
+                erros: fullResult.data.erros || []
+              });
+            }
+          } else {
+            setRealProgress(response.data.progress);
+          }
+        } catch (err) {
+          console.error('Erro ao buscar progresso:', err);
+        }
+      }, 1000); // Poll a cada 1 segundo
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeImport, loadHistory]);
 
   // Carregar histórico
   const loadHistory = useCallback(async () => {
@@ -56,7 +129,8 @@ const BatchImport = ({ user, onLogout }) => {
   useEffect(() => {
     loadHistory();
     loadEmpresas();
-  }, [loadHistory, loadEmpresas]);
+    checkActiveImports();
+  }, [loadHistory, loadEmpresas, checkActiveImports]);
 
   // Upload de arquivo
   const handleUpload = async () => {
