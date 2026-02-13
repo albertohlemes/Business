@@ -327,6 +327,13 @@ const WizardFechamento = ({ user, onLogout }) => {
                               <p className="text-white font-bold">NF {nota.nota_original.numero_nfe}</p>
                               <p className="text-xs text-[#888]">{nota.nota_original.data_emissao?.slice(0,10) || ''}</p>
                               <p className="text-white">R$ {(nota.nota_original.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                              {nota.nota_original.cfops?.length > 0 && (
+                                <div className="mt-1 flex gap-1 flex-wrap">
+                                  {nota.nota_original.cfops.map((c, i) => (
+                                    <span key={i} className="text-xs bg-emerald-500/20 text-emerald-300 px-1 rounded">{c}</span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="bg-amber-500/10 rounded p-2">
