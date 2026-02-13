@@ -1864,6 +1864,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
             </div>
           </div>
         )}
+        </div>
       </div>
     </Layout>
   );
