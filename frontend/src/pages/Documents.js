@@ -614,7 +614,7 @@ const Documents = ({ user, onLogout }) => {
       // Fallback para upload normal se background não disponível
       if (err.response?.status === 503) {
         toast.error('Processamento em background não disponível. Usando modo normal...');
-        await handleStreamingUpload(files, tipoConfig, token);
+        await handleStreamingUpload(files, tipoConfig, token, skipAi);
       } else {
         toast.error(err.response?.data?.detail || 'Erro ao enviar para processamento em background');
       }
