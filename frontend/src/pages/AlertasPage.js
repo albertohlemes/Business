@@ -126,8 +126,7 @@ const AlertasPage = ({ user, onLogout }) => {
                 return (
                   <div 
                     key={stepId}
-                    onClick={() => navigate('/wizard-fechamento')}
-                    className={`bg-[#0C0C0C] rounded-xl p-4 cursor-pointer hover:bg-[#1A1A1A] transition-all border ${
+                    className={`bg-[#0C0C0C] rounded-xl p-4 border ${
                       isCompleted ? 'border-emerald-500/30' : 'border-[#2A2A2A]'
                     }`}
                   >
@@ -150,12 +149,25 @@ const AlertasPage = ({ user, onLogout }) => {
                       {STEP_NAMES[stepId]}
                     </h3>
                     
-                    <div className="flex items-center gap-1 text-xs">
+                    <div className="flex items-center gap-1 text-xs mb-3">
                       <Clock className="w-3 h-3 text-[#666]" />
                       <span className="text-[#666] truncate">
                         {lastRun ? formatDate(lastRun) : 'Não processado'}
                       </span>
                     </div>
+                    
+                    {/* Botão Processar */}
+                    <button
+                      onClick={() => navigate(`/wizard-fechamento?step=${stepId}`)}
+                      className={`w-full py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-colors ${
+                        isCompleted 
+                          ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                      }`}
+                    >
+                      <Play className="w-3 h-3" />
+                      {isCompleted ? 'Reprocessar' : 'Processar'}
+                    </button>
                   </div>
                 );
               })}
