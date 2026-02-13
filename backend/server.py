@@ -9751,11 +9751,12 @@ async def get_dashboard_stats(
             else:
                 credito_icms += v_icms
             
-            # PIS e COFINS - USAR VALORES DO XML (não recalcular)
-            v_pis = float(prod.get('v_pis', 0) or 0)
-            v_cofins = float(prod.get('v_cofins', 0) or 0)
-            credito_pis += v_pis
-            credito_cofins += v_cofins
+            # PIS e COFINS - CALCULAR baseado na base de crédito (Lucro Real)
+            # O XML pode ter valores incorretos - usar base e alíquotas padrão
+            v_pis_xml = float(prod.get('v_pis', 0) or 0)
+            v_cofins_xml = float(prod.get('v_cofins', 0) or 0)
+            credito_pis_xml += v_pis_xml
+            credito_cofins_xml += v_cofins_xml
             
             # Calcular base de crédito para PIS/COFINS Lucro Real (COMPARATIVO HIPOTÉTICO)
             # Para o comparativo, consideramos que a empresa TERIA direito ao crédito
