@@ -465,9 +465,6 @@ const BatchImport = ({ user, onLogout }) => {
                   )}
                 </div>
               )}
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Resultado */}
