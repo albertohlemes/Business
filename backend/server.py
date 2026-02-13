@@ -30958,36 +30958,6 @@ async def complete_wizard_step(
                 
                 actions_taken.append(f"CFOP {cfop}: {count} produtos convertidos para {cfop_destino}")
             
-            elif acao == "converter_venda":
-                # Converter para CFOP de venda (saídas)
-                cfop_destino = "5102" if cfop.startswith(("1", "5")) else "6102"
-                
-                docs = await db.xml_documents.find({
-                    "company_id": company_id,
-                    "competencia": competencia,
-                    "produtos.cfop": cfop
-                }).to_list(length=1000)
-                
-                count = 0
-                for doc in docs:
-                    produtos_atualizados = doc.get("produtos", [])
-                    alterado = False
-                    for p in produtos_atualizados:
-                        if str(p.get("cfop")) == cfop:
-                            p["cfop_original_distinto"] = cfop
-                            p["cfop"] = cfop_destino
-                            p["cfop_convertido_wizard"] = True
-                            alterado = True
-                            count += 1
-                    
-                    if alterado:
-                        await db.xml_documents.update_one(
-                            {"id": doc["id"]},
-                            {"$set": {"produtos": produtos_atualizados}}
-                        )
-                
-                actions_taken.append(f"CFOP {cfop}: {count} produtos convertidos para {cfop_destino}")
-            
             elif acao == "converter_manual" and cfop_destino_manual:
                 # Converter para CFOP digitado manualmente
                 cfop_destino = str(cfop_destino_manual)
