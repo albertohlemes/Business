@@ -186,7 +186,14 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 
 ## Changelog
 
-### Dezembro/2025 (Sessão Atual)
+### Fevereiro/2026 (Sessão Atual - 13/02)
+- ✅ **CORREÇÃO CRÍTICA**: Dashboard e Apuração ICMS mostravam vendas/débitos incorretos
+  - Corrigido endpoints `/api/apuracao-icms`, `/api/apuracao-ipi`, `/api/apuracao-pis-cofins`
+  - Agora usam campo `tipo` do documento em vez de inferir por CFOP
+- ✅ Flags de ICMS agora persistem ao trocar de tela (lazy initialization no useState)
+- ✅ Menu ICMS ST exibe mensagem informativa quando não há dados
+
+### Dezembro/2025 (Sessão Anterior)
 - ✅ Sincronização Wizard ↔ Classificação Inteligente
 - ✅ Correção do formato de dados da Etapa 2 (Devoluções)
 - ✅ Etapa 3 aplica ação padrão "manter" automaticamente
