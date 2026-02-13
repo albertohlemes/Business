@@ -31236,6 +31236,534 @@ async def go_to_wizard_step(
 
 
 # ============================================================
+# RELATÓRIO DO WIZARD DE FECHAMENTO - PDF E EXCEL
+# ============================================================
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm, cm
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+import xlsxwriter
+
+
+def generate_wizard_report_pdf(data: Dict[str, Any]) -> io.BytesIO:
+    """Gera relatório PDF do Wizard de Fechamento"""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=15*mm, leftMargin=15*mm, topMargin=15*mm, bottomMargin=15*mm)
+    
+    styles = getSampleStyleSheet()
+    
+    # Estilos customizados
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16, alignment=TA_CENTER, spaceAfter=10)
+    subtitle_style = ParagraphStyle('Subtitle', parent=styles['Heading2'], fontSize=12, alignment=TA_CENTER, spaceAfter=10, textColor=colors.grey)
+    section_style = ParagraphStyle('Section', parent=styles['Heading2'], fontSize=11, spaceBefore=15, spaceAfter=5, textColor=colors.HexColor('#1a5f7a'))
+    normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=9, spaceAfter=3)
+    small_style = ParagraphStyle('Small', parent=styles['Normal'], fontSize=8, textColor=colors.grey)
+    
+    elements = []
+    
+    # Cabeçalho
+    elements.append(Paragraph("RELATÓRIO DO WIZARD DE FECHAMENTO FISCAL", title_style))
+    elements.append(Paragraph(f"Empresa: {data['empresa']['razao_social']}", subtitle_style))
+    elements.append(Paragraph(f"CNPJ: {data['empresa']['cnpj']} | Competência: {data['competencia']}", subtitle_style))
+    elements.append(Spacer(1, 5*mm))
+    
+    # Informações gerais
+    elements.append(Paragraph("INFORMAÇÕES GERAIS", section_style))
+    info_data = [
+        ["Data de Conclusão:", data.get('data_conclusao', '-')],
+        ["Usuário Responsável:", data.get('usuario_responsavel', '-')],
+        ["Status:", data.get('status', '-')],
+        ["Etapas Concluídas:", f"{len(data.get('etapas_concluidas', []))} de 7"]
+    ]
+    info_table = Table(info_data, colWidths=[120, 350])
+    info_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    elements.append(info_table)
+    elements.append(Spacer(1, 5*mm))
+    
+    # Etapa 1 - Notas Canceladas
+    if data.get('etapa_1'):
+        elements.append(Paragraph("ETAPA 1 - NOTAS CANCELADAS", section_style))
+        etapa1 = data['etapa_1']
+        elements.append(Paragraph(f"Total de notas confirmadas como canceladas: {etapa1.get('total', 0)}", normal_style))
+        
+        if etapa1.get('notas'):
+            table_data = [["NF", "Emitente", "Valor", "Data", "Ação"]]
+            for nota in etapa1['notas'][:50]:  # Limitar a 50
+                table_data.append([
+                    nota.get('numero_nfe', '-'),
+                    nota.get('emitente_nome', '-')[:35],
+                    f"R$ {nota.get('valor_total', 0):,.2f}",
+                    nota.get('data_emissao', '-')[:10],
+                    "Confirmada Cancelada"
+                ])
+            
+            t = Table(table_data, colWidths=[50, 180, 80, 70, 100])
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ALIGN', (2, 1), (2, -1), 'RIGHT'),
+            ]))
+            elements.append(t)
+        elements.append(Spacer(1, 3*mm))
+    
+    # Etapa 2 - Devoluções
+    if data.get('etapa_2'):
+        elements.append(Paragraph("ETAPA 2 - DEVOLUÇÕES DE TERCEIROS", section_style))
+        etapa2 = data['etapa_2']
+        elements.append(Paragraph(f"Total de notas desconsideradas: {etapa2.get('total', 0)}", normal_style))
+        
+        if etapa2.get('notas'):
+            table_data = [["NF Devolução", "Emitente", "Valor", "NF Original", "Motivo"]]
+            for nota in etapa2['notas'][:50]:
+                table_data.append([
+                    nota.get('numero_nfe', '-'),
+                    nota.get('emitente_nome', '-')[:30],
+                    f"R$ {nota.get('valor_total', 0):,.2f}",
+                    nota.get('nf_original', '-'),
+                    "Desconsiderada"
+                ])
+            
+            t = Table(table_data, colWidths=[60, 150, 70, 70, 100])
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ALIGN', (2, 1), (2, -1), 'RIGHT'),
+            ]))
+            elements.append(t)
+        elements.append(Spacer(1, 3*mm))
+    
+    # Etapa 3 - Alertas CFOP
+    if data.get('etapa_3'):
+        elements.append(Paragraph("ETAPA 3 - ALERTAS DE CFOP", section_style))
+        etapa3 = data['etapa_3']
+        elements.append(Paragraph(f"Total de CFOPs revisados: {etapa3.get('total', 0)}", normal_style))
+        
+        if etapa3.get('alteracoes'):
+            table_data = [["CFOP Original", "CFOP Novo", "Qtd Produtos", "Ação Aplicada"]]
+            for alt in etapa3['alteracoes'][:30]:
+                table_data.append([
+                    alt.get('cfop_original', '-'),
+                    alt.get('cfop_novo', '-'),
+                    str(alt.get('qtd_produtos', 0)),
+                    alt.get('acao', '-')
+                ])
+            
+            t = Table(table_data, colWidths=[100, 100, 80, 180])
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+            ]))
+            elements.append(t)
+        elements.append(Spacer(1, 3*mm))
+    
+    # Etapa 4 - Classificação
+    if data.get('etapa_4'):
+        elements.append(Paragraph("ETAPA 4 - CLASSIFICAÇÃO DE PRODUTOS", section_style))
+        etapa4 = data['etapa_4']
+        elements.append(Paragraph(f"Total de produtos classificados: {etapa4.get('total', 0)}", normal_style))
+        
+        # Resumo por categoria
+        if etapa4.get('resumo_categorias'):
+            table_data = [["Categoria", "Quantidade", "Valor Total"]]
+            for cat, dados in etapa4['resumo_categorias'].items():
+                table_data.append([
+                    cat.upper(),
+                    str(dados.get('qtd', 0)),
+                    f"R$ {dados.get('valor', 0):,.2f}"
+                ])
+            
+            t = Table(table_data, colWidths=[180, 100, 150])
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+            ]))
+            elements.append(t)
+        elements.append(Spacer(1, 3*mm))
+    
+    # Etapa 5/6 - PIS/COFINS
+    if data.get('etapa_5') or data.get('etapa_6'):
+        elements.append(Paragraph("ETAPAS 5/6 - CST PIS/COFINS", section_style))
+        
+        total_correcoes = (data.get('etapa_5', {}).get('total', 0) + data.get('etapa_6', {}).get('total', 0))
+        elements.append(Paragraph(f"Total de CSTs corrigidos: {total_correcoes}", normal_style))
+        
+        if data.get('etapa_5', {}).get('correcoes') or data.get('etapa_6', {}).get('correcoes'):
+            table_data = [["Tipo", "CST Original", "CST Corrigido", "Qtd Produtos"]]
+            
+            for corr in data.get('etapa_5', {}).get('correcoes', [])[:15]:
+                table_data.append([
+                    "Entrada",
+                    corr.get('cst_original', '-'),
+                    corr.get('cst_corrigido', '-'),
+                    str(corr.get('qtd', 0))
+                ])
+            
+            for corr in data.get('etapa_6', {}).get('correcoes', [])[:15]:
+                table_data.append([
+                    "Saída",
+                    corr.get('cst_original', '-'),
+                    corr.get('cst_corrigido', '-'),
+                    str(corr.get('qtd', 0))
+                ])
+            
+            if len(table_data) > 1:
+                t = Table(table_data, colWidths=[80, 120, 120, 100])
+                t.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 8),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('ALIGN', (3, 1), (3, -1), 'CENTER'),
+                ]))
+                elements.append(t)
+        elements.append(Spacer(1, 3*mm))
+    
+    # Rodapé
+    elements.append(Spacer(1, 10*mm))
+    elements.append(Paragraph(f"Relatório gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", small_style))
+    elements.append(Paragraph("Este documento é um registro das alterações realizadas pelo Wizard de Fechamento Fiscal.", small_style))
+    
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+def generate_wizard_report_excel(data: Dict[str, Any]) -> io.BytesIO:
+    """Gera relatório Excel do Wizard de Fechamento"""
+    buffer = io.BytesIO()
+    workbook = xlsxwriter.Workbook(buffer, {'in_memory': True})
+    
+    # Formatos
+    header_format = workbook.add_format({'bold': True, 'bg_color': '#1a5f7a', 'font_color': 'white', 'border': 1})
+    cell_format = workbook.add_format({'border': 1})
+    money_format = workbook.add_format({'border': 1, 'num_format': 'R$ #,##0.00'})
+    title_format = workbook.add_format({'bold': True, 'font_size': 14})
+    subtitle_format = workbook.add_format({'bold': True, 'font_size': 11, 'bg_color': '#e0e0e0'})
+    
+    # Aba Resumo
+    ws_resumo = workbook.add_worksheet('Resumo')
+    ws_resumo.set_column('A:A', 25)
+    ws_resumo.set_column('B:B', 50)
+    
+    ws_resumo.write('A1', 'RELATÓRIO DO WIZARD DE FECHAMENTO', title_format)
+    ws_resumo.write('A3', 'Empresa:', subtitle_format)
+    ws_resumo.write('B3', data['empresa']['razao_social'])
+    ws_resumo.write('A4', 'CNPJ:', subtitle_format)
+    ws_resumo.write('B4', data['empresa']['cnpj'])
+    ws_resumo.write('A5', 'Competência:', subtitle_format)
+    ws_resumo.write('B5', data['competencia'])
+    ws_resumo.write('A6', 'Data Conclusão:', subtitle_format)
+    ws_resumo.write('B6', data.get('data_conclusao', '-'))
+    ws_resumo.write('A7', 'Usuário:', subtitle_format)
+    ws_resumo.write('B7', data.get('usuario_responsavel', '-'))
+    ws_resumo.write('A8', 'Status:', subtitle_format)
+    ws_resumo.write('B8', data.get('status', '-'))
+    
+    # Resumo por etapa
+    row = 10
+    ws_resumo.write(f'A{row}', 'RESUMO POR ETAPA', title_format)
+    row += 1
+    
+    etapas_info = [
+        ('Etapa 1 - Canceladas', data.get('etapa_1', {}).get('total', 0)),
+        ('Etapa 2 - Devoluções', data.get('etapa_2', {}).get('total', 0)),
+        ('Etapa 3 - Alertas CFOP', data.get('etapa_3', {}).get('total', 0)),
+        ('Etapa 4 - Classificação', data.get('etapa_4', {}).get('total', 0)),
+        ('Etapa 5 - PIS/COFINS Entrada', data.get('etapa_5', {}).get('total', 0)),
+        ('Etapa 6 - PIS/COFINS Saída', data.get('etapa_6', {}).get('total', 0)),
+        ('Etapa 7 - Reforma Tributária', 'Revisado' if data.get('etapa_7') else '-'),
+    ]
+    
+    for etapa, valor in etapas_info:
+        ws_resumo.write(f'A{row}', etapa, cell_format)
+        ws_resumo.write(f'B{row}', str(valor), cell_format)
+        row += 1
+    
+    # Aba Etapa 1 - Canceladas
+    if data.get('etapa_1', {}).get('notas'):
+        ws1 = workbook.add_worksheet('1-Canceladas')
+        ws1.set_column('A:A', 15)
+        ws1.set_column('B:B', 40)
+        ws1.set_column('C:C', 15)
+        ws1.set_column('D:D', 15)
+        ws1.set_column('E:E', 20)
+        
+        headers = ['NF', 'Emitente', 'Valor', 'Data', 'Ação']
+        for col, h in enumerate(headers):
+            ws1.write(0, col, h, header_format)
+        
+        for row, nota in enumerate(data['etapa_1']['notas'], 1):
+            ws1.write(row, 0, nota.get('numero_nfe', ''), cell_format)
+            ws1.write(row, 1, nota.get('emitente_nome', ''), cell_format)
+            ws1.write(row, 2, nota.get('valor_total', 0), money_format)
+            ws1.write(row, 3, nota.get('data_emissao', '')[:10] if nota.get('data_emissao') else '', cell_format)
+            ws1.write(row, 4, 'Confirmada Cancelada', cell_format)
+    
+    # Aba Etapa 2 - Devoluções
+    if data.get('etapa_2', {}).get('notas'):
+        ws2 = workbook.add_worksheet('2-Devoluções')
+        ws2.set_column('A:A', 15)
+        ws2.set_column('B:B', 40)
+        ws2.set_column('C:C', 15)
+        ws2.set_column('D:D', 15)
+        ws2.set_column('E:E', 20)
+        
+        headers = ['NF Devolução', 'Emitente', 'Valor', 'NF Original', 'Motivo']
+        for col, h in enumerate(headers):
+            ws2.write(0, col, h, header_format)
+        
+        for row, nota in enumerate(data['etapa_2']['notas'], 1):
+            ws2.write(row, 0, nota.get('numero_nfe', ''), cell_format)
+            ws2.write(row, 1, nota.get('emitente_nome', ''), cell_format)
+            ws2.write(row, 2, nota.get('valor_total', 0), money_format)
+            ws2.write(row, 3, nota.get('nf_original', ''), cell_format)
+            ws2.write(row, 4, 'Desconsiderada', cell_format)
+    
+    # Aba Etapa 3 - Alertas CFOP
+    if data.get('etapa_3', {}).get('alteracoes'):
+        ws3 = workbook.add_worksheet('3-AlertasCFOP')
+        ws3.set_column('A:A', 15)
+        ws3.set_column('B:B', 15)
+        ws3.set_column('C:C', 15)
+        ws3.set_column('D:D', 30)
+        
+        headers = ['CFOP Original', 'CFOP Novo', 'Qtd Produtos', 'Ação']
+        for col, h in enumerate(headers):
+            ws3.write(0, col, h, header_format)
+        
+        for row, alt in enumerate(data['etapa_3']['alteracoes'], 1):
+            ws3.write(row, 0, alt.get('cfop_original', ''), cell_format)
+            ws3.write(row, 1, alt.get('cfop_novo', ''), cell_format)
+            ws3.write(row, 2, alt.get('qtd_produtos', 0), cell_format)
+            ws3.write(row, 3, alt.get('acao', ''), cell_format)
+    
+    # Aba Etapa 4 - Classificação
+    if data.get('etapa_4', {}).get('resumo_categorias'):
+        ws4 = workbook.add_worksheet('4-Classificação')
+        ws4.set_column('A:A', 25)
+        ws4.set_column('B:B', 15)
+        ws4.set_column('C:C', 20)
+        
+        headers = ['Categoria', 'Quantidade', 'Valor Total']
+        for col, h in enumerate(headers):
+            ws4.write(0, col, h, header_format)
+        
+        row = 1
+        for cat, dados in data['etapa_4']['resumo_categorias'].items():
+            ws4.write(row, 0, cat.upper(), cell_format)
+            ws4.write(row, 1, dados.get('qtd', 0), cell_format)
+            ws4.write(row, 2, dados.get('valor', 0), money_format)
+            row += 1
+    
+    workbook.close()
+    buffer.seek(0)
+    return buffer
+
+
+@api_router.get("/wizard-fechamento/relatorio/{company_id}")
+async def get_wizard_report(
+    company_id: str,
+    competencia: str = Query(...),
+    formato: str = Query("pdf", description="Formato: pdf ou excel"),
+    current_user: User = Depends(get_current_user)
+):
+    """Gera relatório consolidado do Wizard de Fechamento em PDF ou Excel"""
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar dados do wizard
+    wizard = await db.wizard_fechamento.find_one(
+        {"company_id": company_id, "competencia": competencia},
+        {"_id": 0}
+    )
+    
+    if not wizard:
+        raise HTTPException(status_code=404, detail="Wizard não encontrado para esta competência")
+    
+    # Buscar usuário que completou
+    usuario_id = None
+    for step_name, step_data in wizard.get('steps_data', {}).items():
+        if step_data.get('completed_by'):
+            usuario_id = step_data['completed_by']
+    
+    usuario = None
+    if usuario_id:
+        usuario = await db.users.find_one({"id": usuario_id}, {"_id": 0, "name": 1, "email": 1})
+    
+    # Montar dados do relatório
+    report_data = {
+        "empresa": {
+            "razao_social": company.get('razao_social', company.get('nome', '')),
+            "cnpj": company.get('cnpj', ''),
+            "id": company_id
+        },
+        "competencia": competencia,
+        "data_conclusao": wizard.get('updated_at', ''),
+        "usuario_responsavel": usuario.get('name', usuario.get('email', '-')) if usuario else '-',
+        "status": wizard.get('status', 'em andamento'),
+        "etapas_concluidas": wizard.get('steps_completed', [])
+    }
+    
+    # Etapa 1 - Notas Canceladas
+    notas_canceladas = wizard.get('steps_data', {}).get('notas_canceladas', {})
+    if notas_canceladas:
+        notas_ids = notas_canceladas.get('input_data', {}).get('notas_confirmar', [])
+        if notas_ids:
+            notas = await db.xml_documents.find(
+                {"id": {"$in": notas_ids}},
+                {"_id": 0, "numero_nfe": 1, "emitente_nome": 1, "valor_total": 1, "data_emissao": 1}
+            ).to_list(length=None)
+            report_data['etapa_1'] = {"total": len(notas), "notas": notas}
+    
+    # Etapa 2 - Devoluções
+    devolucoes = wizard.get('steps_data', {}).get('devolucoes', {})
+    if devolucoes:
+        notas_desc = devolucoes.get('input_data', {}).get('notas_desconsiderar', [])
+        notas_sem_orig = devolucoes.get('input_data', {}).get('desconsiderar_sem_original', [])
+        all_ids = []
+        for item in notas_desc:
+            if isinstance(item, dict):
+                if item.get('devolucao_id'):
+                    all_ids.append(item['devolucao_id'])
+            elif isinstance(item, str):
+                all_ids.append(item)
+        all_ids.extend(notas_sem_orig)
+        
+        if all_ids:
+            notas = await db.xml_documents.find(
+                {"id": {"$in": all_ids}},
+                {"_id": 0, "numero_nfe": 1, "emitente_nome": 1, "valor_total": 1, "nfe_referenciada": 1}
+            ).to_list(length=None)
+            for nota in notas:
+                nota['nf_original'] = nota.get('nfe_referenciada', '-')[:20] if nota.get('nfe_referenciada') else '-'
+            report_data['etapa_2'] = {"total": len(notas), "notas": notas}
+    
+    # Etapa 3 - Alertas CFOP
+    alertas = wizard.get('steps_data', {}).get('alertas_cfop', {})
+    if alertas:
+        acoes = alertas.get('input_data', {}).get('acoes_cfops', {})
+        alteracoes = []
+        for cfop, acao_data in acoes.items():
+            acao = acao_data.get('acao', 'manter')
+            cfop_novo = cfop
+            acao_texto = 'Mantido'
+            
+            if acao == 'converter_compra':
+                cfop_novo = acao_data.get('cfop_destino', cfop)
+                acao_texto = 'Convertido para compra'
+            elif acao == 'converter_manual':
+                cfop_novo = acao_data.get('cfop_destino_manual', cfop)
+                acao_texto = 'Convertido manual'
+            
+            alteracoes.append({
+                "cfop_original": cfop,
+                "cfop_novo": cfop_novo,
+                "qtd_produtos": acao_data.get('qtd', 0),
+                "acao": acao_texto
+            })
+        
+        report_data['etapa_3'] = {"total": len(alteracoes), "alteracoes": alteracoes}
+    
+    # Etapa 4 - Classificação
+    classificacao = wizard.get('steps_data', {}).get('classificacao', {})
+    if classificacao:
+        # Buscar resumo de categorias da competência
+        pipeline = [
+            {"$match": {"company_id": company_id, "competencia": competencia, "tipo": "entrada"}},
+            {"$unwind": "$produtos"},
+            {"$group": {
+                "_id": "$produtos.categoria_classificada",
+                "qtd": {"$sum": 1},
+                "valor": {"$sum": "$produtos.valor_total"}
+            }}
+        ]
+        categorias = await db.xml_documents.aggregate(pipeline).to_list(length=100)
+        resumo = {}
+        total = 0
+        for cat in categorias:
+            if cat['_id']:
+                resumo[cat['_id']] = {"qtd": cat['qtd'], "valor": cat['valor']}
+                total += cat['qtd']
+        report_data['etapa_4'] = {"total": total, "resumo_categorias": resumo}
+    
+    # Etapa 5/6 - PIS/COFINS (simplificado)
+    pis_entrada = wizard.get('steps_data', {}).get('pis_cofins_entrada', {})
+    pis_saida = wizard.get('steps_data', {}).get('pis_cofins_saida', {})
+    
+    if pis_entrada:
+        actions = pis_entrada.get('actions', [])
+        total = 0
+        for a in actions:
+            if 'corrigidos' in a:
+                try:
+                    total = int(a.split()[0])
+                except:
+                    pass
+        report_data['etapa_5'] = {"total": total, "correcoes": []}
+    
+    if pis_saida:
+        actions = pis_saida.get('actions', [])
+        total = 0
+        for a in actions:
+            if 'corrigidos' in a:
+                try:
+                    total = int(a.split()[0])
+                except:
+                    pass
+        report_data['etapa_6'] = {"total": total, "correcoes": []}
+    
+    # Etapa 7
+    if wizard.get('steps_data', {}).get('reforma_tributaria'):
+        report_data['etapa_7'] = {"revisado": True}
+    
+    # Gerar arquivo
+    company_name = company.get('razao_social', company.get('nome', 'Empresa'))[:30].replace(' ', '_')
+    comp_fmt = competencia.replace('/', '-')
+    
+    if formato.lower() == 'excel':
+        buffer = generate_wizard_report_excel(report_data)
+        filename = f"Wizard_Fechamento_{company_name}_{comp_fmt}.xlsx"
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    else:
+        buffer = generate_wizard_report_pdf(report_data)
+        filename = f"Wizard_Fechamento_{company_name}_{comp_fmt}.pdf"
+        media_type = "application/pdf"
+    
+    return StreamingResponse(
+        buffer,
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+# ============================================================
 # REFORMA TRIBUTÁRIA - IVA DUAL (CBS + IBS)
 # ============================================================
 
