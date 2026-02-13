@@ -263,8 +263,15 @@ async def _process_xmls_async(task, job_id: str, xml_contents: List[Dict],
                 'filename': filename,
                 'status': 'success',
                 'chave': chave_nfe,
-                'numero': numero_nfe
+                'numero': numero_nfe,
+                'tipo': tipo_calculado
             })
+            
+            # Contar por tipo
+            if tipo_calculado == 'entrada':
+                entradas_count += 1
+            else:
+                saidas_count += 1
             
             # Flush se atingiu tamanho
             if len(docs_to_insert) >= BULK_SIZE:
