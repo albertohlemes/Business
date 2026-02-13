@@ -85,7 +85,28 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 
 ## Bugs Corrigidos
 
-### Sessão Atual (Dezembro/2025)
+### Sessão Atual (Fevereiro/2026)
+11. ✅ **CORREÇÃO CRÍTICA - Dashboard e Apuração ICMS mostrando dados incorretos de vendas/débitos**:
+    - **Problema**: Dashboard e tela de Apuração ICMS mostravam valores de vendas/débitos mesmo quando a empresa não tinha notas de saída importadas
+    - **Causa Raiz**: Múltiplos endpoints usavam CFOP do produto para determinar se era entrada ou saída, ignorando o campo `tipo` do documento (que é a fonte da verdade, baseada no CNPJ do emitente)
+    - **Correção**: Modificados os seguintes endpoints no `server.py` para usar o campo `tipo` do documento:
+      - `/api/apuracao-icms/{company_id}` - Apuração de ICMS próprio
+      - `/api/apuracao-ipi/{company_id}` - Apuração de IPI
+      - `/api/apuracao-pis-cofins/{company_id}` - Apuração de PIS/COFINS
+    - **Regra Correta**: Usar `doc.get('tipo')` como fonte da verdade, nunca inferir pelo CFOP do produto
+
+12. ✅ **Flags de ICMS não persistiam ao trocar de tela**:
+    - **Problema**: Os checkboxes (Desconsiderar ICMS Despesas, Desconsiderar ICMS ST, Benefício Fiscal) perdiam a seleção ao navegar para outra tela e voltar
+    - **Causa Raiz**: Os states eram inicializados com `useState(false)` e só carregavam os valores corretos após o useEffect executar, causando um flash de valores incorretos
+    - **Correção**: Implementada lazy initialization nos estados usando função callback no `useState()` que lê do localStorage imediatamente
+    - **Arquivo**: `/app/frontend/src/pages/ApuracaoICMS.js`
+
+13. ✅ **Menu ICMS ST página em branco**:
+    - **Problema**: A aba ICMS ST aparecia em branco quando não havia dados
+    - **Correção**: Adicionada mensagem informativa quando não há movimentação de ICMS ST, explicando que o ICMS ST é cobrado apenas em operações com mercadorias sujeitas à substituição tributária
+    - **Arquivo**: `/app/frontend/src/pages/ApuracaoICMS.js`
+
+### Sessão Anterior (Dezembro/2025)
 1. ✅ **Sincronização Wizard ↔ Classificação Inteligente** - Mesmos critérios de busca em ambos endpoints
 2. ✅ **Etapa 2 - Devoluções**: Backend aceita formato correto enviado pelo frontend
 3. ✅ **Etapa 3 - Alertas CFOP**: Aplica ação padrão "manter" para CFOPs sem ação definida
