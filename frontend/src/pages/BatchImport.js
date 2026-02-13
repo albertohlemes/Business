@@ -30,6 +30,32 @@ const BatchImport = ({ user, onLogout }) => {
   const [activeImport, setActiveImport] = useState(null);
   const [realProgress, setRealProgress] = useState(null);
 
+  // Carregar histórico
+  const loadHistory = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/api/batch-import/historico`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setHistory(response.data.history || []);
+    } catch (err) {
+      console.error('Erro ao carregar histórico:', err);
+    }
+  }, []);
+
+  // Carregar mapeamento de empresas
+  const loadEmpresas = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/api/batch-import/empresas-mapeamento`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEmpresas(response.data);
+    } catch (err) {
+      console.error('Erro ao carregar empresas:', err);
+    }
+  }, []);
+
   // Verificar importações ativas ao carregar
   const checkActiveImports = useCallback(async () => {
     try {
@@ -49,6 +75,13 @@ const BatchImport = ({ user, onLogout }) => {
       console.error('Erro ao verificar importações ativas:', err);
     }
   }, []);
+
+  // Carregar dados iniciais
+  useEffect(() => {
+    loadHistory();
+    loadEmpresas();
+    checkActiveImports();
+  }, [loadHistory, loadEmpresas, checkActiveImports]);
 
   // Polling do progresso
   useEffect(() => {
@@ -99,38 +132,6 @@ const BatchImport = ({ user, onLogout }) => {
       if (interval) clearInterval(interval);
     };
   }, [activeImport, loadHistory]);
-
-  // Carregar histórico
-  const loadHistory = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API}/api/batch-import/historico`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setHistory(response.data.history || []);
-    } catch (err) {
-      console.error('Erro ao carregar histórico:', err);
-    }
-  }, []);
-
-  // Carregar mapeamento de empresas
-  const loadEmpresas = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API}/api/batch-import/empresas-mapeamento`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setEmpresas(response.data);
-    } catch (err) {
-      console.error('Erro ao carregar empresas:', err);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadHistory();
-    loadEmpresas();
-    checkActiveImports();
-  }, [loadHistory, loadEmpresas, checkActiveImports]);
 
   // Upload de arquivo
   const handleUpload = async () => {
