@@ -19324,7 +19324,7 @@ async def relacao_notas(
     # Processar notas
     notas = []
     for doc in documents:
-        # Determinar se é entrada ou saída pelo CFOP dos produtos
+        # Usar o campo 'tipo' como fonte de verdade (baseado em CNPJ do emitente)
         tipo_operacao = doc.get('tipo', '')
         produtos = doc.get('produtos', [])
         
