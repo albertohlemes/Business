@@ -29529,8 +29529,14 @@ async def batch_import_upload_estrutura(
         
         import_record["total_empresas"] = len(empresas_encontradas)
         
+        # Contar total de arquivos para progresso
+        total_arquivos_geral = sum(len(data["arquivos"]) for data in empresas_encontradas.values())
+        arquivos_processados = 0
+        empresa_atual_idx = 0
+        
         # Processar cada empresa
         for codigo, data in empresas_encontradas.items():
+            empresa_atual_idx += 1
             company = companies_map.get(codigo)
             
             if not company:
