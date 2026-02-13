@@ -30326,8 +30326,8 @@ async def get_wizard_step_data(
                 "emitente_cnpj": nota.get("emitente_cnpj"),
                 "valor_total": nota.get("valor_total"),
                 "data_emissao": nota.get("data_emissao"),
-                "cfops": cfops,  # Todos os CFOPs
-                "cfops_entrada": cfops_entrada,  # Apenas os de entrada
+                "cfops": cfops,  # Todos os CFOPs da nota
+                "cfops_devolucao": cfops_devolucao,  # Apenas CFOPs de devolução
                 "desconsiderada": nota.get("desconsiderada_devolucao", False),
                 "motivo_desconsideracao": nota.get("motivo_desconsideracao", ""),
                 "nota_original": None,
