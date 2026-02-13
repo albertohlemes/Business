@@ -21660,20 +21660,16 @@ async def apurar_pis_cofins(
     
     documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
     
-    # Inferir tipo_operacao para documentos que não têm
+    # Usar o campo 'tipo' que é a fonte de verdade para entrada/saída (baseado em CNPJ)
+    # O campo tipo_operacao é preenchido apenas para exibição se não existir
     for doc in documentos:
         if not doc.get('tipo_operacao'):
-            produtos = doc.get('produtos', [])
-            if produtos:
-                cfop = str(produtos[0].get('cfop', ''))
-                if cfop and cfop[0] in ['1', '2', '3']:
-                    doc['tipo_operacao'] = 'entrada'
-                elif cfop and cfop[0] in ['5', '6', '7']:
-                    doc['tipo_operacao'] = 'saida'
+            # Usar o campo 'tipo' como base
+            doc['tipo_operacao'] = doc.get('tipo', 'entrada')
     
-    # Separar por tipo
-    entradas = [d for d in documentos if d.get('tipo_operacao') == 'entrada']
-    saidas = [d for d in documentos if d.get('tipo_operacao') == 'saida']
+    # Separar por tipo - usar o campo 'tipo' como fonte principal
+    entradas = [d for d in documentos if d.get('tipo') == 'entrada' or d.get('tipo_operacao') == 'entrada']
+    saidas = [d for d in documentos if d.get('tipo') == 'saida' or d.get('tipo_operacao') == 'saida']
     
     # Inicializar resultados
     resultado = {
