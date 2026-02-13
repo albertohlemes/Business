@@ -66,6 +66,7 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 - `GET /api/wizard-fechamento/step/{company_id}/{step_id}` - Dados de etapa
 - `POST /api/wizard-fechamento/step/{company_id}/{step_id}/complete` - Completar etapa
 - `POST /api/wizard-fechamento/step/{company_id}/{step_id}/go` - Navegar para etapa
+- `GET /api/wizard-fechamento/relatorio/{company_id}` - **NOVO** Gerar relatório PDF/Excel
 
 ### Alertas CFOP (Classificação Inteligente)
 - `GET /api/alertas-cfop/{company_id}` - Listar alertas
