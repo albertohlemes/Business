@@ -366,13 +366,13 @@ const ReformaTributaria = ({ user, onLogout }) => {
                       <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
                         <span className="text-[#A1A1AA]">PIS</span>
                         <span className="text-white font-medium">
-                          {formatCurrency((apuracao.comparativo_regime_atual?.pis_cofins || 0) * 0.35)}
+                          {formatCurrency(apuracao.comparativo_regime_atual?.pis || 0)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
                         <span className="text-[#A1A1AA]">COFINS</span>
                         <span className="text-white font-medium">
-                          {formatCurrency((apuracao.comparativo_regime_atual?.pis_cofins || 0) * 0.65)}
+                          {formatCurrency(apuracao.comparativo_regime_atual?.cofins || 0)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center p-4 bg-amber-500/10 rounded-lg border border-amber-500/30">
