@@ -30026,6 +30026,22 @@ WIZARD_STEPS = [
 ]
 
 
+def get_filter_docs_nao_canceladas_ou_desconsideradas():
+    """Retorna filtro MongoDB para excluir documentos cancelados ou desconsiderados"""
+    return {
+        "$and": [
+            {"$or": [
+                {"cancelada": {"$exists": False}},
+                {"cancelada": False}
+            ]},
+            {"$or": [
+                {"desconsiderada_devolucao": {"$exists": False}},
+                {"desconsiderada_devolucao": False}
+            ]}
+        ]
+    }
+
+
 @api_router.get("/wizard-fechamento/status/{company_id}")
 async def get_wizard_status(
     company_id: str,
