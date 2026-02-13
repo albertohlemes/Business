@@ -205,6 +205,8 @@ export const UploadProvider = ({ children }) => {
             const total = data.total_files || 1;
             const percent = data.progress_percent || Math.round((processed / total) * 100);
             
+            console.log(`SSE Progress: ${processed}/${total} (${percent}%) - Status: ${data.status}`);
+            
             setProgress({
               current: processed,
               total: total,
@@ -217,12 +219,13 @@ export const UploadProvider = ({ children }) => {
         }
       };
 
-      eventSource.onerror = () => {
-        console.error('Erro na conexão SSE, iniciando polling de fallback...');
+      eventSource.onerror = (err) => {
+        console.error('Erro na conexão SSE:', err);
         eventSource.close();
         eventSourceRef.current = null;
         // Iniciar polling de fallback quando SSE falha
         if (!pollingIntervalRef.current) {
+          console.log('Ativando polling de fallback após erro SSE');
           startPollingFallback(upload_id, token);
         }
       };
