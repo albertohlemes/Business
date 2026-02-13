@@ -536,8 +536,9 @@ const Documents = ({ user, onLogout }) => {
       toast.success('Modo Rápido ativado - Importação sem classificação IA', { duration: 3000 });
     }
     
-    // Para muitos arquivos, usar upload em background
-    if (selectedFiles.length >= 500) {
+    // Para muitos arquivos (100+), usar upload em background (Celery)
+    if (selectedFiles.length >= 100) {
+      toast.info(`${selectedFiles.length} arquivos detectados - usando processamento em background`, { duration: 3000 });
       await handleBackgroundUpload(selectedFiles, tipoConfig, token);
     } else if (selectedFiles.length <= 10) {
       await handleDirectUpload(selectedFiles, tipoConfig, token);
