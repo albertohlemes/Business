@@ -30424,27 +30424,41 @@ async def get_wizard_step_data(
         company = await db.companies.find_one({"id": company_id}, {"_id": 0, "cnpj": 1})
         cnpj_empresa = (company.get('cnpj', '') if company else '').replace('.', '').replace('/', '').replace('-', '')
         
-        # Buscar TODAS as notas de ENTRADA emitidas por TERCEIROS (CNPJ diferente da empresa)
-        # Estas são potenciais devoluções de vendas feitas pela empresa
+        # CFOPs de ENTRADA (compras/devoluções recebidas)
+        cfops_entrada = [str(i) for i in range(1000, 4000)]  # 1xxx, 2xxx, 3xxx
+        
+        # Buscar notas com CFOPs de ENTRADA emitidas por TERCEIROS
+        # (ou seja, notas que sua empresa RECEBEU de fornecedores)
+        # Que podem ser devoluções de vendas anteriores
         notas_entrada_terceiros = await db.xml_documents.find({
             "company_id": company_id,
             "competencia": competencia,
-            "tipo": "entrada",
-            # Emitente diferente da própria empresa
-            "$or": [
-                {"emitente_cnpj": {"$ne": cnpj_empresa, "$exists": True}},
-                {"emitente_cnpj": {"$regex": f"^(?!{cnpj_empresa})"}} if cnpj_empresa else {}
-            ]
+            # CFOP deve ser de entrada (1xxx, 2xxx, 3xxx)
+            "produtos.cfop": {"$regex": "^[123]"},
+            # NFe referenciada indica que é uma devolução
+            "nfe_referenciada": {"$exists": True, "$ne": None, "$ne": ""}
         }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
             "emitente_cnpj": 1, "valor_total": 1, "data_emissao": 1, 
             "desconsiderada_devolucao": 1, "motivo_desconsideracao": 1,
             "produtos": 1, "nfe_referenciada": 1}).to_list(length=1000)
         
+        # Filtrar apenas terceiros (CNPJ diferente da empresa)
+        notas_filtradas = []
+        for nota in notas_entrada_terceiros:
+            cnpj_emit = (nota.get('emitente_cnpj', '') or '').replace('.', '').replace('/', '').replace('-', '')
+            # Verificar se é realmente um terceiro (não a própria empresa ou filial)
+            if cnpj_emit and cnpj_emit[:8] != cnpj_empresa[:8]:  # Compara raiz do CNPJ
+                notas_filtradas.append(nota)
+        
         # Para cada nota de entrada, buscar a nota de saída original referenciada
         devolucoes_com_original = []
-        for nota in notas_entrada_terceiros:
-            # Extrair CFOPs da nota
-            cfops = list(set([str(p.get('cfop', '')) for p in nota.get('produtos', []) if p.get('cfop')]))
+        for nota in notas_filtradas:
+            # Extrair CFOPs da nota - apenas os de entrada
+            cfops = list(set([str(p.get('cfop', '')) for p in nota.get('produtos', []) 
+                             if p.get('cfop') and str(p.get('cfop', ''))[0] in ['1', '2', '3']]))
+            
+            if not cfops:  # Se não tem CFOPs de entrada, pular
+                continue
             
             dev_info = {
                 "id": nota.get("id"),
@@ -30462,17 +30476,15 @@ async def get_wizard_step_data(
                 "nfe_referenciada": nota.get("nfe_referenciada", "")
             }
             
-            # Tentar encontrar a nota de saída original
+            # Tentar encontrar a nota de saída original pela chave referenciada
             nfe_ref = nota.get("nfe_referenciada", "")
             if nfe_ref and len(nfe_ref) >= 10:
                 # Buscar a nota original de SAÍDA da própria empresa
                 nota_original = await db.xml_documents.find_one({
                     "company_id": company_id,
-                    "tipo": "saida",
                     "$or": [
                         {"chave_nfe": nfe_ref},
-                        {"chave_nfe": {"$regex": nfe_ref[-20:] if len(nfe_ref) > 20 else nfe_ref}},
-                        {"numero_nfe": str(int(nfe_ref[-9:]))} if nfe_ref[-9:].isdigit() else {}
+                        {"chave_nfe": {"$regex": nfe_ref[-20:] if len(nfe_ref) > 20 else nfe_ref}}
                     ]
                 }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, 
                     "valor_total": 1, "data_emissao": 1, "desconsiderada_devolucao": 1})
