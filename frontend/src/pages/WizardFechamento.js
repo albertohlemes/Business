@@ -21,7 +21,8 @@ const STEP_ICONS = {
   7: Flag
 };
 
-const WizardFechamento = ({ user, onLogout, selectedCompany, selectedCompetencia }) => {
+const WizardFechamento = ({ user, onLogout }) => {
+  const { selectedCompany, selectedCompetencia } = useAppContext();
   const [loading, setLoading] = useState(true);
   const [wizard, setWizard] = useState(null);
   const [steps, setSteps] = useState([]);
