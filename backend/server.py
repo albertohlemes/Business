@@ -21494,14 +21494,9 @@ async def apurar_ipi(
             bc_ipi = float(prod.get('v_bc_ipi', 0) or 0)
             valor_ipi = float(prod.get('v_ipi', 0) or 0)
             
-            # Determinar tipo pela CFOP
-            cfop_primeiro = cfop[0] if cfop and cfop != 'SEM CFOP' else ''
-            if cfop_primeiro in ['1', '2', '3']:
-                tipo_item = 'entrada'
-            elif cfop_primeiro in ['5', '6', '7']:
-                tipo_item = 'saida'
-            else:
-                tipo_item = tipo_op
+            # CORREÇÃO: Usar o tipo do DOCUMENTO como fonte da verdade
+            # Não usar CFOP para determinar entrada/saída - isso causa bugs
+            tipo_item = tipo_op
             
             if tipo_item == 'entrada':
                 # Agrupar por CFOP - Entradas
