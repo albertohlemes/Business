@@ -7564,44 +7564,47 @@ async def upload_xml_with_progress(
                 natureza_operacao = parsed_data.get('natureza_operacao', '').upper()
                 cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
                 nfe_ref_devolucao = parsed_data.get('nfe_referenciada', '') or ''
-                        cfop and len(cfop) >= 1 and cfop[0] in ['1', '2', '3'] 
-                        for cfop in cfops_xml if cfop
-                    )
+                
+                # Verificar se TODOS os CFOPs já são de ENTRADA (1xxx, 2xxx, 3xxx)
+                cfops_sao_entrada = all(
+                    cfop and len(cfop) >= 1 and cfop[0] in ['1', '2', '3'] 
+                    for cfop in cfops_xml if cfop
+                )
+                
+                # Verificar se os CFOPs são especificamente de devolução de entrada
+                is_devolucao_por_cfop = any(cfop in CFOPS_DEVOLUCAO_ENTRADA for cfop in cfops_xml)
+                
+                logger.info(f"UPLOAD-STREAM DEVOLUÇÃO CHECK: NF {parsed_data.get('numero_nfe')} - CFOPs: {cfops_xml}, São entrada: {cfops_sao_entrada}, É devolução: {is_devolucao_por_cfop}")
+                
+                # CFOPs na lista global SEMPRE são desconsiderados
+                # Isso garante consistência com a importação em lote
+                if cfops_sao_entrada and is_devolucao_por_cfop:
+                    cfops_unicos = list(set(cfops_xml))[:3]
+                    is_devolucao_por_finalidade = str(finalidade_nfe) == '4'
+                    is_devolucao_por_natureza = any(termo in natureza_operacao for termo in ['DEVOLUC', 'DEV ', 'DEVOL'])
+                    tem_nfe_referenciada = bool(nfe_ref_devolucao and len(nfe_ref_devolucao) > 10)
                     
-                    # Verificar se os CFOPs são especificamente de devolução de entrada
-                    is_devolucao_por_cfop = any(cfop in CFOPS_DEVOLUCAO_ENTRADA for cfop in cfops_xml)
+                    logger.info(f"UPLOAD-STREAM DEVOLUÇÃO: Por finalidade: {is_devolucao_por_finalidade}, Por natureza: {is_devolucao_por_natureza}, Tem NFe Ref: {tem_nfe_referenciada}")
                     
-                    logger.info(f"UPLOAD-STREAM DEVOLUÇÃO CHECK: NF {parsed_data.get('numero_nfe')} - CFOPs: {cfops_xml}, São entrada: {cfops_sao_entrada}, É devolução: {is_devolucao_por_cfop}")
+                    # IMPORTANTE: CFOPs na lista global SEMPRE são desconsiderados
+                    is_devolucao_fornecedor = True
+                    motivo_devolucao = f"NF de terceiro com CFOP de devolução/bonificação ({parsed_data.get('emitente_nome', '')[:40]}) - CFOP: {', '.join(cfops_unicos)}"
                     
-                    # CFOPs na lista global SEMPRE são desconsiderados
-                    # Isso garante consistência com a importação em lote
-                    if cfops_sao_entrada and is_devolucao_por_cfop:
-                        cfops_unicos = list(set(cfops_xml))[:3]
-                        is_devolucao_por_finalidade = str(finalidade_nfe) == '4'
-                        is_devolucao_por_natureza = any(termo in natureza_operacao for termo in ['DEVOLUC', 'DEV ', 'DEVOL'])
-                        tem_nfe_referenciada = bool(nfe_ref_devolucao and len(nfe_ref_devolucao) > 10)
-                        
-                        logger.info(f"UPLOAD-STREAM DEVOLUÇÃO: Por finalidade: {is_devolucao_por_finalidade}, Por natureza: {is_devolucao_por_natureza}, Tem NFe Ref: {tem_nfe_referenciada}")
-                        
-                        # IMPORTANTE: CFOPs na lista global SEMPRE são desconsiderados
-                        is_devolucao_fornecedor = True
-                        motivo_devolucao = f"NF de terceiro com CFOP de devolução/bonificação ({parsed_data.get('emitente_nome', '')[:40]}) - CFOP: {', '.join(cfops_unicos)}"
-                        
-                        logger.info(f"UPLOAD-STREAM DEVOLUÇÃO: DETECTADA! {motivo_devolucao}")
-                        
-                        notas_devolucao_fornecedor.append({
-                            "tipo": "devolucao_entrada",
-                            "filename": file.filename,
-                            "chave_nfe": chave_nfe,
-                            "numero_nfe": parsed_data.get('numero_nfe', ''),
-                            "data_emissao": parsed_data.get('data_emissao', ''),
-                            "valor_total": parsed_data.get('valor_total', 0),
-                            "cfops": cfops_unicos,
-                            "emitente_cnpj": cnpj_emitente,
-                            "emitente_nome": parsed_data.get('emitente_nome', ''),
-                            "nfe_referenciada": nfe_ref_devolucao,
-                            "motivo": motivo_devolucao
-                        })
+                    logger.info(f"UPLOAD-STREAM DEVOLUÇÃO: DETECTADA! {motivo_devolucao}")
+                    
+                    notas_devolucao_fornecedor.append({
+                        "tipo": "devolucao_entrada",
+                        "filename": file.filename,
+                        "chave_nfe": chave_nfe,
+                        "numero_nfe": parsed_data.get('numero_nfe', ''),
+                        "data_emissao": parsed_data.get('data_emissao', ''),
+                        "valor_total": parsed_data.get('valor_total', 0),
+                        "cfops": cfops_unicos,
+                        "emitente_cnpj": cnpj_emitente,
+                        "emitente_nome": parsed_data.get('emitente_nome', ''),
+                        "nfe_referenciada": nfe_ref_devolucao,
+                        "motivo": motivo_devolucao
+                    })
             elif tipo == 'saida' and modelo != '57' and xml_type != 'cte':
                 # Com classificação automática, se tipo='saida', a empresa é o emitente
                 # Apenas validar se os CFOPs são de saída ou entrada
