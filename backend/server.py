@@ -9951,8 +9951,11 @@ async def get_dashboard_stats(
                     })
     else:
         # Lucro Presumido - calcular com alíquotas cumulativas
+        # No Lucro Presumido não há crédito de PIS/COFINS
         debito_pis = total_base_pis_cofins * ALIQ_PIS_LUCRO_PRESUMIDO
         debito_cofins = total_base_pis_cofins * ALIQ_COFINS_LUCRO_PRESUMIDO
+        credito_pis = 0  # Lucro Presumido não tem crédito
+        credito_cofins = 0  # Lucro Presumido não tem crédito
     
     # ISS (serviços)
     total_iss = 0
