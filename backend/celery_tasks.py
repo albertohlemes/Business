@@ -89,7 +89,8 @@ async def _process_xmls_async(task, job_id: str, xml_contents: List[Dict],
     if not company:
         raise Exception(f"Empresa não encontrada: {company_id}")
     
-    cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+    # IMPORTANTE: Limpar CNPJ da empresa de forma consistente com a limpeza do CNPJ do emitente
+    cnpj_empresa = company.get('cnpj', '').strip().replace('.', '').replace('/', '').replace('-', '').strip()
     
     # Pré-carregar cache de documentos existentes
     existing_docs_cache = set()
