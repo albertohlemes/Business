@@ -20,31 +20,6 @@ const Layout = ({ user, onLogout, children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [menuMode, setMenuMode] = useState('vertical');
   const { selectedCompany, selectedCompetencia, openSelector, uploadProgress, finishUpload } = useAppContext();
-  const [wizardSummary, setWizardSummary] = useState(null);
-
-  // Carregar status do wizard quando empresa/competência mudam
-  useEffect(() => {
-    const loadWizardSummary = async () => {
-      if (!selectedCompany?.id || !selectedCompetencia) {
-        setWizardSummary(null);
-        return;
-      }
-      
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(
-          `${API}/wizard-fechamento/summary/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setWizardSummary(response.data);
-      } catch (err) {
-        console.error('Erro ao carregar resumo do wizard:', err);
-        setWizardSummary(null);
-      }
-    };
-    
-    loadWizardSummary();
-  }, [selectedCompany, selectedCompetencia]);
 
   // Load menu preference from user
   useEffect(() => {
