@@ -30827,13 +30827,13 @@ async def complete_wizard_step(
         if total_desconsideradas > 0:
             actions_taken.append(f"Total: {total_desconsideradas} documentos excluídos da apuração")
     
-    elif step_id == 3:  # CFOPs Distintos - NOVA ETAPA
+    elif step_id == 3:  # CFOPs Distintos - Entradas e Saídas
         # Processar as ações definidas para cada CFOP distinto
-        acoes_cfops = step_data.get("acoes_cfops", {})  # {cfop: "ignorar|desconsiderar|converter"}
+        acoes_cfops = step_data.get("acoes_cfops", {})  # {cfop: "ignorar|desconsiderar|converter_compra|converter_venda"}
         
         for cfop, acao in acoes_cfops.items():
             if acao == "desconsiderar":
-                # Marcar produtos com esse CFOP como desconsiderados
+                # Marcar documentos com esse CFOP como desconsiderados
                 result = await db.xml_documents.update_many(
                     {
                         "company_id": company_id,
@@ -30849,26 +30849,27 @@ async def complete_wizard_step(
                 )
                 actions_taken.append(f"CFOP {cfop}: {result.modified_count} documentos desconsiderados")
             
-            elif acao == "converter":
-                # Converter para CFOP de compra
-                cfop_destino = "1102" if cfop.startswith("1") else "2102"
+            elif acao == "converter_compra":
+                # Converter para CFOP de compra (entradas)
+                cfop_destino = "1102" if cfop.startswith(("1", "5")) else "2102"
                 
-                # Buscar documentos e atualizar cada produto
                 docs = await db.xml_documents.find({
                     "company_id": company_id,
                     "competencia": competencia,
                     "produtos.cfop": cfop
                 }).to_list(length=1000)
                 
+                count = 0
                 for doc in docs:
                     produtos_atualizados = doc.get("produtos", [])
                     alterado = False
                     for p in produtos_atualizados:
-                        if p.get("cfop") == cfop:
+                        if str(p.get("cfop")) == cfop:
                             p["cfop_original_distinto"] = cfop
                             p["cfop"] = cfop_destino
                             p["cfop_convertido_wizard"] = True
                             alterado = True
+                            count += 1
                     
                     if alterado:
                         await db.xml_documents.update_one(
@@ -30876,7 +30877,37 @@ async def complete_wizard_step(
                             {"$set": {"produtos": produtos_atualizados}}
                         )
                 
-                actions_taken.append(f"CFOP {cfop} convertido para {cfop_destino}")
+                actions_taken.append(f"CFOP {cfop}: {count} produtos convertidos para {cfop_destino}")
+            
+            elif acao == "converter_venda":
+                # Converter para CFOP de venda (saídas)
+                cfop_destino = "5102" if cfop.startswith(("1", "5")) else "6102"
+                
+                docs = await db.xml_documents.find({
+                    "company_id": company_id,
+                    "competencia": competencia,
+                    "produtos.cfop": cfop
+                }).to_list(length=1000)
+                
+                count = 0
+                for doc in docs:
+                    produtos_atualizados = doc.get("produtos", [])
+                    alterado = False
+                    for p in produtos_atualizados:
+                        if str(p.get("cfop")) == cfop:
+                            p["cfop_original_distinto"] = cfop
+                            p["cfop"] = cfop_destino
+                            p["cfop_convertido_wizard"] = True
+                            alterado = True
+                            count += 1
+                    
+                    if alterado:
+                        await db.xml_documents.update_one(
+                            {"id": doc["id"]},
+                            {"$set": {"produtos": produtos_atualizados}}
+                        )
+                
+                actions_taken.append(f"CFOP {cfop}: {count} produtos convertidos para {cfop_destino}")
             
             elif acao == "ignorar":
                 actions_taken.append(f"CFOP {cfop}: ignorado (mantido sem alteração)")
