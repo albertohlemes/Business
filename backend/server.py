@@ -30492,47 +30492,93 @@ async def get_wizard_step_data(
             "cnpj_empresa": cnpj_empresa
         }
     
-    elif step_id == 3:  # CFOPs Distintos - NOVA ETAPA
+    elif step_id == 3:  # CFOPs Distintos - Entradas e Saídas com CFOPs especiais
         # Buscar documentos com CFOPs de operações distintas que precisam revisão
+        # Incluir tanto ENTRADAS quanto SAÍDAS
         cfops_distintos_list = list(CFOPS_OPERACOES_DISTINTAS.keys())
         
-        docs_com_cfops_distintos = await db.xml_documents.find({
+        # Buscar entradas com CFOPs distintos
+        docs_entrada = await db.xml_documents.find({
             **base_filter,
             "tipo": "entrada",
             "produtos.cfop": {"$in": cfops_distintos_list}
         }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
-            "valor_total": 1, "data_emissao": 1, "produtos": 1}).to_list(length=None)
+            "valor_total": 1, "data_emissao": 1, "produtos": 1, "tipo": 1}).to_list(length=None)
         
-        # Agrupar por CFOP e listar os produtos
+        # Buscar saídas com CFOPs distintos
+        docs_saida = await db.xml_documents.find({
+            **base_filter,
+            "tipo": "saida",
+            "produtos.cfop": {"$in": cfops_distintos_list}
+        }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
+            "valor_total": 1, "data_emissao": 1, "produtos": 1, "tipo": 1}).to_list(length=None)
+        
+        # Combinar todos os documentos
+        docs_com_cfops_distintos = docs_entrada + docs_saida
+        
+        # Agrupar por CFOP e listar os produtos com suas respectivas notas
         cfops_agrupados = {}
         for doc in docs_com_cfops_distintos:
+            tipo_doc = doc.get("tipo", "entrada")
             for p in doc.get("produtos", []):
-                cfop = p.get("cfop", "")
+                cfop = str(p.get("cfop", ""))
                 if cfop in CFOPS_OPERACOES_DISTINTAS:
                     if cfop not in cfops_agrupados:
+                        # Determinar tipo de operação pelo primeiro dígito do CFOP
+                        tipo_operacao = "entrada" if cfop[0] in ['1', '2', '3'] else "saida"
                         cfops_agrupados[cfop] = {
                             "cfop": cfop,
                             "descricao": CFOPS_OPERACOES_DISTINTAS[cfop],
+                            "tipo_operacao": tipo_operacao,
                             "produtos": [],
-                            "total_valor": 0
+                            "notas": {},  # Agrupar produtos por nota
+                            "total_valor": 0,
+                            "total_produtos": 0
                         }
-                    cfops_agrupados[cfop]["produtos"].append({
-                        "doc_id": doc["id"],
-                        "nfe": doc.get("numero_nfe", ""),
-                        "emitente": doc.get("emitente_nome", ""),
-                        "produto_descricao": p.get("descricao", ""),
-                        "valor": p.get("valor_total", 0)
-                    })
+                    
+                    # Agrupar produtos por nota fiscal
+                    nfe_key = doc.get("numero_nfe", "")
+                    if nfe_key not in cfops_agrupados[cfop]["notas"]:
+                        cfops_agrupados[cfop]["notas"][nfe_key] = {
+                            "doc_id": doc["id"],
+                            "numero_nfe": nfe_key,
+                            "chave_nfe": doc.get("chave_nfe", ""),
+                            "emitente": doc.get("emitente_nome", ""),
+                            "data_emissao": doc.get("data_emissao", ""),
+                            "valor_total_nfe": doc.get("valor_total", 0),
+                            "produtos": []
+                        }
+                    
+                    # Adicionar produto à nota
+                    produto_info = {
+                        "codigo": p.get("codigo", ""),
+                        "descricao": p.get("descricao", ""),
+                        "ncm": p.get("ncm", ""),
+                        "quantidade": p.get("quantidade", 0),
+                        "valor_unitario": p.get("valor_unitario", 0),
+                        "valor_total": p.get("valor_total", 0)
+                    }
+                    cfops_agrupados[cfop]["notas"][nfe_key]["produtos"].append(produto_info)
                     cfops_agrupados[cfop]["total_valor"] += p.get("valor_total", 0) or 0
+                    cfops_agrupados[cfop]["total_produtos"] += 1
+        
+        # Converter notas dict para lista e ordenar por CFOP
+        for cfop_key in cfops_agrupados:
+            cfops_agrupados[cfop_key]["notas"] = list(cfops_agrupados[cfop_key]["notas"].values())
+        
+        cfops_list = sorted(cfops_agrupados.values(), key=lambda x: x["cfop"])
         
         result["data"] = {
-            "cfops_distintos": list(cfops_agrupados.values()),
+            "cfops_distintos": cfops_list,
             "total_cfops": len(cfops_agrupados),
-            "total_produtos": sum(len(c["produtos"]) for c in cfops_agrupados.values()),
+            "total_produtos": sum(c["total_produtos"] for c in cfops_agrupados.values()),
+            "total_entradas": sum(1 for c in cfops_list if c["tipo_operacao"] == "entrada"),
+            "total_saidas": sum(1 for c in cfops_list if c["tipo_operacao"] == "saida"),
             "opcoes_acao": [
-                {"id": "ignorar", "label": "Ignorar (não classificar)", "description": "Mantém o CFOP original sem alteração"},
-                {"id": "desconsiderar", "label": "Desconsiderar da apuração", "description": "Exclui da apuração fiscal"},
-                {"id": "converter", "label": "Converter para compra", "description": "Converte para CFOP de compra (1102/2102)"}
+                {"id": "ignorar", "label": "Ignorar (manter CFOP)", "description": "Mantém o CFOP original sem alteração"},
+                {"id": "desconsiderar", "label": "Desconsiderar", "description": "Exclui da apuração fiscal"},
+                {"id": "converter_compra", "label": "Converter para Compra", "description": "Converte para CFOP de compra (1102/2102)"},
+                {"id": "converter_venda", "label": "Converter para Venda", "description": "Converte para CFOP de venda (5102/6102)"}
             ]
         }
     
