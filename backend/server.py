@@ -30475,7 +30475,7 @@ async def get_wizard_step_data(
             "total_classificados": len(produtos_classificados)
         }
     
-    elif step_id == 4:  # PIS/COFINS Entradas
+    elif step_id == 5:  # PIS/COFINS Entradas
         # Buscar entradas com divergências de CST - SEM LIMITE para totalizar corretamente
         docs_entrada = await db.xml_documents.find({
             **base_filter,
@@ -30511,7 +30511,7 @@ async def get_wizard_step_data(
             "total_divergencias": len(docs_com_divergencia)
         }
     
-    elif step_id == 5:  # PIS/COFINS Saídas
+    elif step_id == 6:  # PIS/COFINS Saídas
         # Similar ao passo 4, mas para saídas - SEM LIMITE para totalizar corretamente
         docs_saida = await db.xml_documents.find({
             **base_filter,
@@ -30529,7 +30529,7 @@ async def get_wizard_step_data(
             }
         }
     
-    elif step_id == 6:  # Reforma Tributária
+    elif step_id == 7:  # Reforma Tributária
         # Buscar dados para cálculo da Reforma Tributária
         try:
             # Buscar configuração
@@ -30602,7 +30602,7 @@ async def get_wizard_step_data(
             import traceback
             result["data"] = {"error": str(e), "traceback": traceback.format_exc()}
     
-    elif step_id == 7:  # Concluído
+    elif step_id == 8:  # Concluído
         # Resumo final
         wizard = await db.wizard_fechamento.find_one(
             {"company_id": company_id, "competencia": competencia},
@@ -30785,7 +30785,7 @@ async def complete_wizard_step(
             
             actions_taken.append(f"{total_classificados} produtos classificados")
     
-    elif step_id == 4:  # PIS/COFINS Entradas
+    elif step_id == 5:  # PIS/COFINS Entradas
         # Recalcular CST de entradas
         recalcular = step_data.get("recalcular_cst", False)
         if recalcular:
@@ -30823,7 +30823,7 @@ async def complete_wizard_step(
             
             actions_taken.append(f"{total_corrigidos} CSTs corrigidos nas entradas")
     
-    elif step_id == 5:  # PIS/COFINS Saídas
+    elif step_id == 6:  # PIS/COFINS Saídas
         # Similar ao passo 4, mas para saídas
         recalcular = step_data.get("recalcular_cst", False)
         if recalcular:
@@ -30861,7 +30861,7 @@ async def complete_wizard_step(
             
             actions_taken.append(f"{total_corrigidos} CSTs corrigidos nas saídas")
     
-    elif step_id == 6:  # Reforma Tributária
+    elif step_id == 7:  # Reforma Tributária
         # Apenas salvar que o cálculo foi revisado
         actions_taken.append("Cálculo da Reforma Tributária revisado")
     
@@ -30891,7 +30891,7 @@ async def complete_wizard_step(
     )
     
     # Se último passo, marcar como concluído
-    if step_id >= 6:
+    if step_id >= 7:
         await db.wizard_fechamento.update_one(
             {"company_id": company_id, "competencia": competencia},
             {"$set": {"status": "completed"}}
