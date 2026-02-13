@@ -5951,12 +5951,9 @@ async def upload_xml_batch(
                             "cfops": cfops_unicos,
                             "emitente_cnpj": cnpj_emitente,
                             "emitente_nome": parsed_data.get('emitente_nome', ''),
-                                "nfe_referenciada": nfe_ref_devolucao,
-                                "motivo": motivo_devolucao
-                            })
-                        else:
-                            # CFOP de entrada mas não atende critérios de devolução - processar normalmente
-                            logger.info(f"DEBUG: NF {parsed_data.get('numero_nfe')} - CFOP entrada mas não é devolução, processando normalmente")
+                            "nfe_referenciada": nfe_ref_devolucao,
+                            "motivo": motivo_devolucao
+                        })
                     else:
                         # CFOP de saída ou misto - processar normalmente (será convertido)
                         logger.info(f"DEBUG: NF {parsed_data.get('numero_nfe')} - CFOP saída/misto, processando como entrada normal")
