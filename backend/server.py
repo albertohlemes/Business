@@ -19905,22 +19905,15 @@ async def preview_delete_documents(
         "competencia": filters.competencia
     }
     
-    # Buscar todos os documentos primeiro para filtrar por tipo_operacao inferido
+    # Buscar todos os documentos e filtrar pelo campo 'tipo' (entrada/saida)
+    # O campo 'tipo' é definido na importação baseado no CNPJ do emitente vs empresa:
+    # - Se CNPJ emitente == CNPJ empresa -> tipo='saida' (empresa emitiu)
+    # - Se CNPJ emitente != CNPJ empresa -> tipo='entrada' (empresa recebeu)
     all_docs = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
     
-    # Inferir tipo_operacao para documentos que não têm
-    for doc in all_docs:
-        if not doc.get('tipo_operacao'):
-            produtos = doc.get('produtos', [])
-            if produtos:
-                cfop = str(produtos[0].get('cfop', ''))
-                if cfop and cfop[0] in ['1', '2', '3']:
-                    doc['tipo_operacao'] = 'entrada'
-                elif cfop and cfop[0] in ['5', '6', '7']:
-                    doc['tipo_operacao'] = 'saida'
-    
-    # Filtrar por tipo_operacao
-    filtered_docs = [d for d in all_docs if d.get('tipo_operacao') == filters.tipo_operacao]
+    # Filtrar pelo campo 'tipo' que é a fonte de verdade para entrada/saída
+    # Mapeamento: filters.tipo_operacao = 'entrada' ou 'saida' -> campo 'tipo'
+    filtered_docs = [d for d in all_docs if d.get('tipo') == filters.tipo_operacao]
     
     # Filtrar por modelo (se não for 'all')
     if filters.tipo_documento and filters.tipo_documento != 'all':
