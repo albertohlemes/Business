@@ -30307,14 +30307,15 @@ async def get_wizard_step_data(
             if cnpj_emit and cnpj_emit != cnpj_empresa:
                 notas_filtradas.append(nota)
         
-        # Para cada nota, extrair CFOPs e buscar nota referenciada
+        # Para cada nota, extrair CFOPs de DEVOLUÇÃO e buscar nota referenciada
         devolucoes_com_original = []
         for nota in notas_filtradas:
-            # Extrair todos os CFOPs únicos da nota
+            # Extrair todos os CFOPs únicos da nota que são DEVOLUÇÕES
             cfops = list(set([str(p.get('cfop', '')) for p in nota.get('produtos', []) if p.get('cfop')]))
-            cfops_entrada = [c for c in cfops if c and c[0] in ['1', '2', '3']]
+            cfops_devolucao = [c for c in cfops if c in CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL]
             
-            if not cfops_entrada:
+            # Se não tem CFOP de devolução, ignorar esta nota
+            if not cfops_devolucao:
                 continue
             
             dev_info = {
