@@ -219,11 +219,21 @@ export const UploadProvider = ({ children }) => {
 
       eventSource.onerror = () => {
         console.error('Erro na conexão SSE, iniciando polling de fallback...');
+        eventSource.close();
+        eventSourceRef.current = null;
         // Iniciar polling de fallback quando SSE falha
         if (!pollingIntervalRef.current) {
           startPollingFallback(upload_id, token);
         }
       };
+      
+      // FALLBACK: Se não receber eventos em 5 segundos, iniciar polling
+      const sseTimeoutId = setTimeout(() => {
+        console.log('SSE timeout - ativando polling de fallback');
+        if (eventSourceRef.current && !pollingIntervalRef.current) {
+          startPollingFallback(upload_id, token);
+        }
+      }, 5000);
 
       // 3. Enviar arquivos em lotes (apenas se temos arquivos - não no caso de ZIP já processado)
       if (files && files.length > 0) {
