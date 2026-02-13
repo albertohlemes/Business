@@ -322,7 +322,7 @@ async def _process_xmls_async(task, job_id: str, xml_contents: List[Dict],
         upsert=True
     )
     
-    logger.info(f"CELERY-TASK: Concluído job_id={job_id} - {len(results)} importados, {len(duplicadas)} duplicados, {len(errors)} erros")
+    logger.info(f"CELERY-TASK: Concluído job_id={job_id} - {len(results)} importados ({entradas_count} entradas, {saidas_count} saídas), {len(duplicadas)} duplicados, {len(errors)} erros")
     
     return job_result
 
