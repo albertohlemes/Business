@@ -30278,20 +30278,21 @@ async def get_wizard_step_data(
             "total": len(canceladas)
         }
     
-    elif step_id == 2:  # Devoluções - Notas de entrada com CFOP de entrada emitidas por terceiros/filiais
+    elif step_id == 2:  # Devoluções - Notas de entrada emitidas por terceiros com CFOP de DEVOLUÇÃO
         # Buscar a empresa para pegar o CNPJ
         company = await db.companies.find_one({"id": company_id}, {"_id": 0, "cnpj": 1})
         cnpj_empresa = (company.get('cnpj', '') if company else '').replace('.', '').replace('/', '').replace('-', '')
         
-        # Buscar notas de ENTRADA emitidas por TERCEIROS/FILIAIS com CFOP de ENTRADA (1xxx, 2xxx, 3xxx)
-        # Essas são potenciais devoluções de vendas da nossa empresa
+        # Buscar notas de ENTRADA emitidas por TERCEIROS/FILIAIS com CFOP de DEVOLUÇÃO
+        # Usar a lista específica de CFOPs de devolução (não qualquer CFOP de entrada)
+        # CFOPs como 1910, 2910 (bonificação) NÃO são devoluções e não devem aparecer aqui
         
         notas_terceiros_cfop_entrada = await db.xml_documents.find({
             "company_id": company_id,
             "competencia": competencia,
             "tipo": "entrada",
-            # CFOPs de entrada (1xxx, 2xxx, 3xxx)
-            "produtos.cfop": {"$regex": "^[123]"}
+            # Apenas CFOPs que são efetivamente devoluções
+            "produtos.cfop": {"$in": CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL}
         }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
             "emitente_cnpj": 1, "valor_total": 1, "data_emissao": 1, 
             "desconsiderada_devolucao": 1, "motivo_desconsideracao": 1,
