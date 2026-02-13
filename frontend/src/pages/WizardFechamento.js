@@ -386,7 +386,7 @@ const WizardFechamento = ({ user, onLogout }) => {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-amber-400">{data.total_cfops || 0}</p>
-                <p className="text-xs text-[#666]">CFOPs Distintos</p>
+                <p className="text-xs text-[#666]">Alertas CFOP</p>
               </div>
               <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-white">{data.total_pendentes || data.total_produtos || 0}</p>
