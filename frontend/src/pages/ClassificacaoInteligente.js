@@ -1058,9 +1058,9 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                           <div className="grid grid-cols-12 gap-2 px-2 font-medium">
                             <div className="col-span-1">NF-e</div>
                             <div className="col-span-3">Fornecedor</div>
-                            <div className="col-span-4">Produto</div>
+                            <div className="col-span-3">Produto</div>
                             <div className="col-span-1">NCM</div>
-                            <div className="col-span-1 text-center">CFOP Orig.</div>
+                            <div className="col-span-2 text-center">CFOP (Original → Atual)</div>
                             <div className="col-span-1 text-right">Valor</div>
                             <div className="col-span-1 text-center">Ação</div>
                           </div>
@@ -1073,11 +1073,17 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                             >
                               <div className="col-span-1 font-mono text-amber-400">{prod.numero_nfe}</div>
                               <div className="col-span-3 text-white truncate" title={prod.emitente}>{prod.emitente}</div>
-                              <div className="col-span-4 text-[#A1A1AA] truncate" title={prod.produto_descricao}>{prod.produto_descricao}</div>
+                              <div className="col-span-3 text-[#A1A1AA] truncate" title={prod.produto_descricao}>{prod.produto_descricao}</div>
                               <div className="col-span-1 text-[#666] font-mono text-xs">{prod.ncm}</div>
-                              <div className="col-span-1 text-center">
-                                <span className="px-2 py-0.5 bg-red-500/10 text-red-400 rounded text-xs font-mono">
+                              <div className="col-span-2 text-center flex items-center justify-center gap-1">
+                                <span className="px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded text-xs font-mono">
                                   {prod.cfop_original_emissor}
+                                </span>
+                                <span className="text-[#666]">→</span>
+                                <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 rounded text-xs font-mono">
+                                  {prod.cfop || grupo.cfop}
+                                </span>
+                              </div>
                                 </span>
                               </div>
                               <div className="col-span-1 text-right text-[#C8A951]">{formatCurrency(prod.valor)}</div>
