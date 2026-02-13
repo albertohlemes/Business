@@ -29934,7 +29934,7 @@ async def download_batch_script():
 WIZARD_STEPS = [
     {"id": 1, "name": "notas_canceladas", "title": "Notas Canceladas", "description": "Confirmar e processar notas fiscais canceladas"},
     {"id": 2, "name": "devolucoes", "title": "Devoluções de Fornecedores", "description": "Identificar devoluções e excluir notas referenciadas"},
-    {"id": 3, "name": "cfops_distintos", "title": "CFOPs Distintos", "description": "Revisar CFOPs de operações distintas (remessa, conserto, etc.)"},
+    {"id": 3, "name": "alertas_cfop", "title": "Alertas de CFOP", "description": "Revisar CFOPs de operações distintas pendentes de revisão"},
     {"id": 4, "name": "classificacao_cfop", "title": "Classificação de CFOPs", "description": "Converter e classificar CFOPs dos produtos"},
     {"id": 5, "name": "pis_cofins_entrada", "title": "PIS/COFINS Entradas", "description": "Corrigir CST de PIS e COFINS nas entradas"},
     {"id": 6, "name": "pis_cofins_saida", "title": "PIS/COFINS Saídas", "description": "Corrigir CST de PIS e COFINS nas saídas"},
