@@ -907,6 +907,48 @@ const WizardFechamento = ({ user, onLogout }) => {
               )}
             </div>
           </div>
+
+          {/* Histórico de Processamento */}
+          {wizard?.steps_completed?.length > 0 && (
+            <div className="mt-8 bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-emerald-400" />
+                Histórico do Processamento
+              </h3>
+              
+              <div className="space-y-3">
+                {steps.filter(s => wizard?.steps_completed?.includes(s.id)).map((step) => {
+                  const stepData = wizard?.steps_data?.[{1: 'canceladas', 2: 'devolucoes', 3: 'cfops_distintos', 4: 'classificacao', 5: 'pis_cofins_entrada', 6: 'pis_cofins_saida'}[step.id] || ''] || {};
+                  const Icon = STEP_ICONS[step.id] || CheckCircle;
+                  
+                  return (
+                    <div key={step.id} className="flex items-center justify-between bg-[#0C0C0C] rounded-lg p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                          <Icon className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">{step.title}</p>
+                          {stepData.actions?.length > 0 && (
+                            <p className="text-xs text-[#888]">{stepData.actions.slice(0, 2).join(' • ')}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        {stepData.completed_at && (
+                          <p className="text-xs text-emerald-400">
+                            ✓ {new Date(stepData.completed_at).toLocaleString('pt-BR', {
+                              day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Layout>
