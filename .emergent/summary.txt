@@ -250,7 +250,7 @@ INFO:     10.208.161.194:36684 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-87
 INFO:     10.208.169.194:53156 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:53156 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:53156 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.208.169.194:53156 - "GET /api/xml/documents?company_id=48a04e0a-edaf-4f9e-8734-068a78df692e&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=saida&modelo=65&status=ativa HTTP/1.1" 200 OK
+INFO:     10.208.169.194:53156 - "GET /api/xml/documents?company_id=entrada-saida-fix&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=saida&modelo=65&status=ativa HTTP/1.1" 200 OK
 INFO:     10.208.169.194:53156 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.161.194:36684 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
 INFO:     10.208.161.194:36684 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
@@ -310,7 +310,7 @@ INFO:     10.208.161.194:53714 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:34440 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:34440 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.161.194:56682 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.208.161.194:56682 - "GET /api/xml/documents?company_id=48a04e0a-edaf-4f9e-8734-068a78df692e&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=saida&modelo=55&status=ativa HTTP/1.1" 200 OK
+INFO:     10.208.161.194:56682 - "GET /api/xml/documents?company_id=entrada-saida-fix&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=saida&modelo=55&status=ativa HTTP/1.1" 200 OK
 INFO:     10.208.169.194:34454 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:34440 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
 INFO:     10.208.169.194:34440 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
@@ -318,13 +318,13 @@ INFO:     10.208.161.194:56682 - "GET /api/xml/documents/cfops/48a04e0a-edaf-4f9
 INFO:     10.208.161.194:56682 - "POST /api/xml/documents/preview-delete HTTP/1.1" 200 OK
 INFO:     10.208.161.194:56682 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:34440 - "POST /api/xml/documents/delete-bulk HTTP/1.1" 200 OK
-INFO:     10.208.169.194:34440 - "GET /api/xml/documents?company_id=48a04e0a-edaf-4f9e-8734-068a78df692e&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=saida&modelo=55&status=ativa HTTP/1.1" 200 OK
+INFO:     10.208.169.194:34440 - "GET /api/xml/documents?company_id=entrada-saida-fix&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=saida&modelo=55&status=ativa HTTP/1.1" 200 OK
 INFO:     10.208.161.194:56682 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.161.194:37444 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:34440 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:34440 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
 INFO:     10.208.161.194:37444 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.208.169.194:59066 - "GET /api/xml/documents?company_id=48a04e0a-edaf-4f9e-8734-068a78df692e&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
+INFO:     10.208.169.194:59066 - "GET /api/xml/documents?company_id=entrada-saida-fix&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
 INFO:     10.208.169.194:59066 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:34440 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
 INFO:     10.208.161.194:37444 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
@@ -332,13 +332,13 @@ INFO:     10.208.161.194:37444 - "GET /api/xml/documents/cfops/48a04e0a-edaf-4f9
 INFO:     10.208.161.194:37444 - "POST /api/xml/documents/preview-delete HTTP/1.1" 200 OK
 INFO:     10.208.169.194:51890 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:51880 - "POST /api/xml/documents/delete-bulk HTTP/1.1" 200 OK
-INFO:     10.208.169.194:51880 - "GET /api/xml/documents?company_id=48a04e0a-edaf-4f9e-8734-068a78df692e&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
+INFO:     10.208.169.194:51880 - "GET /api/xml/documents?company_id=entrada-saida-fix&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
 INFO:     10.208.161.194:48572 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:51880 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:51880 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:51880 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:51880 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.208.169.194:51890 - "GET /api/xml/documents?company_id=48a04e0a-edaf-4f9e-8734-068a78df692e&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
+INFO:     10.208.169.194:51890 - "GET /api/xml/documents?company_id=entrada-saida-fix&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
 INFO:     10.208.161.194:48572 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:51880 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
 INFO:     10.208.161.194:48572 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
@@ -377,7 +377,7 @@ INFO:     10.208.169.194:56572 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-87
 INFO:     10.208.169.194:56572 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.161.194:38786 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:56572 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.208.161.194:38786 - "GET /api/xml/documents?company_id=48a04e0a-edaf-4f9e-8734-068a78df692e&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
+INFO:     10.208.161.194:38786 - "GET /api/xml/documents?company_id=entrada-saida-fix&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
 INFO:     10.208.161.194:38786 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
 INFO:     10.208.169.194:56574 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
 INFO:     10.208.161.194:38786 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
