@@ -5558,8 +5558,9 @@ async def upload_xml_batch(
     if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    # Extrair CNPJ da empresa selecionada (limpar formatação)
-    cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+    # Extrair CNPJ da empresa selecionada (limpar formatação e espaços)
+    # IMPORTANTE: Usar strip() para garantir consistência na comparação
+    cnpj_empresa = company.get('cnpj', '').strip().replace('.', '').replace('/', '').replace('-', '').strip()
     uf_empresa = company.get('uf', 'SP')
     regime_tributario = company.get('regime_tributario', 'lucro_presumido')
     
