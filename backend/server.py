@@ -31017,9 +31017,7 @@ async def complete_wizard_step(
                         )
                 
                 actions_taken.append(f"CFOP {cfop}: {count} produtos convertidos para {cfop_destino} (manual)")
-            
-            elif acao == "ignorar":
-                actions_taken.append(f"CFOP {cfop}: mantido sem alteração")
+    
     
     elif step_id == 4:  # Classificação de CFOPs (antigo step 3)
         # Classificar produtos com IA se necessário
