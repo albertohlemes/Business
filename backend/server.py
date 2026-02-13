@@ -31426,9 +31426,11 @@ async def get_apuracao_reforma_tributaria(
     # Calcular apuração
     apuracao = calcular_apuracao(creditos, debitos)
     
-    # Calcular comparativo com regime atual (estimativa)
-    # Usando dados do SPED se disponível
+    # Calcular comparativo com regime atual
+    # Primeiro tentar do SPED, depois calcular dos XMLs
     regime_atual = {
+        'pis': 0,
+        'cofins': 0,
         'pis_cofins': 0,
         'icms': 0,
         'total': 0
@@ -31441,11 +31443,68 @@ async def get_apuracao_reforma_tributaria(
     
     if sped and sped.get('resumo'):
         resumo = sped['resumo']
-        regime_atual['pis_cofins'] = (
-            resumo.get('pis_a_recolher', 0) + 
-            resumo.get('cofins_a_recolher', 0)
-        )
-        regime_atual['icms'] = resumo.get('icms_a_recolher', 0)
+        regime_atual['pis'] = resumo.get('pis_a_recolher', 0) or 0
+        regime_atual['cofins'] = resumo.get('cofins_a_recolher', 0) or 0
+        regime_atual['pis_cofins'] = regime_atual['pis'] + regime_atual['cofins']
+        regime_atual['icms'] = resumo.get('icms_a_recolher', 0) or 0
+        regime_atual['total'] = regime_atual['pis_cofins'] + regime_atual['icms']
+    else:
+        # Calcular PIS/COFINS e ICMS baseado nos XMLs
+        regime_empresa = company.get('regime_tributario', 'lucro_real')
+        
+        # Alíquotas por regime
+        aliquotas = {
+            'lucro_real': {'pis': 1.65, 'cofins': 7.60},
+            'lucro_presumido': {'pis': 0.65, 'cofins': 3.00},
+            'simples_nacional': {'pis': 0.0, 'cofins': 0.0}
+        }
+        aliq = aliquotas.get(regime_empresa, aliquotas['lucro_real'])
+        
+        # Calcular débitos de PIS/COFINS das saídas
+        total_base_saida = 0
+        total_icms_saida = 0
+        
+        for doc in docs_saida:
+            for prod in doc.get('produtos', []):
+                valor = float(prod.get('valor_total', 0) or 0)
+                ncm = prod.get('ncm', '')
+                
+                # Verificar se é alíquota zero ou monofásico
+                if not is_ncm_aliquota_zero(ncm) and not is_ncm_monofasico(ncm):
+                    total_base_saida += valor
+                
+                # ICMS do produto
+                total_icms_saida += float(prod.get('valor_icms', 0) or 0)
+        
+        # Calcular créditos de PIS/COFINS das entradas (Lucro Real)
+        total_base_entrada = 0
+        total_icms_entrada = 0
+        
+        if regime_empresa == 'lucro_real':
+            for doc in docs_entrada:
+                for prod in doc.get('produtos', []):
+                    cfop = str(prod.get('cfop', ''))
+                    ncm = prod.get('ncm', '')
+                    valor = float(prod.get('valor_total', 0) or 0)
+                    
+                    # Verificar se CFOP gera crédito e se não é alíquota zero
+                    if cfop in CFOPS_COM_CREDITO_PIS_COFINS:
+                        if not is_ncm_aliquota_zero(ncm) and not is_ncm_monofasico(ncm):
+                            total_base_entrada += valor
+                    
+                    # ICMS entrada
+                    total_icms_entrada += float(prod.get('valor_icms', 0) or 0)
+        
+        # Calcular PIS/COFINS
+        pis_debito = total_base_saida * (aliq['pis'] / 100)
+        cofins_debito = total_base_saida * (aliq['cofins'] / 100)
+        pis_credito = total_base_entrada * (aliq['pis'] / 100) if regime_empresa == 'lucro_real' else 0
+        cofins_credito = total_base_entrada * (aliq['cofins'] / 100) if regime_empresa == 'lucro_real' else 0
+        
+        regime_atual['pis'] = max(0, pis_debito - pis_credito)
+        regime_atual['cofins'] = max(0, cofins_debito - cofins_credito)
+        regime_atual['pis_cofins'] = regime_atual['pis'] + regime_atual['cofins']
+        regime_atual['icms'] = max(0, total_icms_saida - total_icms_entrada)
         regime_atual['total'] = regime_atual['pis_cofins'] + regime_atual['icms']
     
     # Estatísticas por CST
