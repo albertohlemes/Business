@@ -108,7 +108,8 @@ async def _process_xmls_async(task, job_id: str, xml_contents: List[Dict],
     results = []
     errors = []
     duplicadas = []
-    rejeitadas_cnpj = []
+    entradas_count = 0
+    saidas_count = 0
     
     # Buffer para bulk insert
     docs_to_insert = []
