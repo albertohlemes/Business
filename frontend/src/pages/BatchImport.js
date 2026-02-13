@@ -64,6 +64,7 @@ const BatchImport = ({ user, onLogout }) => {
 
     setUploading(true);
     setResult(null);
+    setUploadProgress({ phase: 'Enviando arquivo...', percent: 5, detail: `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB` });
 
     try {
       const token = localStorage.getItem('token');
@@ -71,6 +72,21 @@ const BatchImport = ({ user, onLogout }) => {
       formData.append('file', selectedFile);
       if (competencia) formData.append('competencia', competencia);
       formData.append('skip_ai', skipAi.toString());
+
+      // Simular progresso durante upload
+      let currentPercent = 5;
+      const progressInterval = setInterval(() => {
+        currentPercent += Math.random() * 3;
+        if (currentPercent < 30) {
+          setUploadProgress(prev => ({ ...prev, phase: 'Enviando arquivo...', percent: Math.min(currentPercent, 30) }));
+        } else if (currentPercent < 50) {
+          setUploadProgress(prev => ({ ...prev, phase: 'Extraindo ZIP...', percent: Math.min(currentPercent, 50) }));
+        } else if (currentPercent < 80) {
+          setUploadProgress(prev => ({ ...prev, phase: 'Processando XMLs...', percent: Math.min(currentPercent, 80) }));
+        } else {
+          setUploadProgress(prev => ({ ...prev, phase: 'Salvando documentos...', percent: Math.min(currentPercent, 95) }));
+        }
+      }, 500);
 
       const response = await axios.post(
         `${API}/api/batch-import/upload-estrutura`,
@@ -80,15 +96,27 @@ const BatchImport = ({ user, onLogout }) => {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'
           },
-          timeout: 600000 // 10 minutos
+          timeout: 600000, // 10 minutos
+          onUploadProgress: (progressEvent) => {
+            const uploadPercent = Math.round((progressEvent.loaded * 30) / progressEvent.total);
+            setUploadProgress(prev => ({ ...prev, percent: Math.max(prev.percent, uploadPercent) }));
+          }
         }
       );
 
+      clearInterval(progressInterval);
+      setUploadProgress({ phase: 'Concluído!', percent: 100, detail: '' });
       setResult(response.data);
       loadHistory();
       setSelectedFile(null);
+      
+      // Se tiver erros, mostrar o relatório automaticamente
+      if (response.data.total_erros > 0) {
+        setShowErrorReport(true);
+      }
     } catch (err) {
       console.error('Erro no upload:', err);
+      setUploadProgress({ phase: 'Erro!', percent: 0, detail: '' });
       setResult({
         error: err.response?.data?.detail || 'Erro ao processar arquivo'
       });
