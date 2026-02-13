@@ -30350,42 +30350,62 @@ async def get_wizard_step_data(
             "total": len(canceladas)
         }
     
-    elif step_id == 2:  # Devoluções de Fornecedores
-        # Usar lista global de CFOPs de devolução
-        # Buscar notas de devolução de terceiros
-        devolucoes_raw = await db.xml_documents.find({
+    elif step_id == 2:  # Devoluções - Notas de entrada emitidas por terceiros
+        # Buscar a empresa para pegar o CNPJ
+        company = await db.companies.find_one({"id": company_id}, {"_id": 0, "cnpj": 1})
+        cnpj_empresa = (company.get('cnpj', '') if company else '').replace('.', '').replace('/', '').replace('-', '')
+        
+        # Buscar TODAS as notas de ENTRADA emitidas por TERCEIROS (CNPJ diferente da empresa)
+        # Estas são potenciais devoluções de vendas feitas pela empresa
+        notas_entrada_terceiros = await db.xml_documents.find({
             "company_id": company_id,
             "competencia": competencia,
             "tipo": "entrada",
+            # Emitente diferente da própria empresa
             "$or": [
-                {"desconsiderada_devolucao": True},
-                {"produtos.cfop": {"$in": CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL}}
+                {"emitente_cnpj": {"$ne": cnpj_empresa, "$exists": True}},
+                {"emitente_cnpj": {"$regex": f"^(?!{cnpj_empresa})"}} if cnpj_empresa else {}
             ]
         }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
-            "valor_total": 1, "data_emissao": 1, "desconsiderada_devolucao": 1,
-            "motivo_desconsideracao": 1, "produtos.cfop": 1, "nfe_referenciada": 1}).to_list(length=500)
+            "emitente_cnpj": 1, "valor_total": 1, "data_emissao": 1, 
+            "desconsiderada_devolucao": 1, "motivo_desconsideracao": 1,
+            "produtos": 1, "nfe_referenciada": 1}).to_list(length=1000)
         
-        # Para cada devolução, buscar a nota original referenciada
+        # Para cada nota de entrada, buscar a nota de saída original referenciada
         devolucoes_com_original = []
-        for dev in devolucoes_raw:
+        for nota in notas_entrada_terceiros:
+            # Extrair CFOPs da nota
+            cfops = list(set([str(p.get('cfop', '')) for p in nota.get('produtos', []) if p.get('cfop')]))
+            
             dev_info = {
-                **dev,
+                "id": nota.get("id"),
+                "numero_nfe": nota.get("numero_nfe"),
+                "chave_nfe": nota.get("chave_nfe"),
+                "emitente_nome": nota.get("emitente_nome"),
+                "emitente_cnpj": nota.get("emitente_cnpj"),
+                "valor_total": nota.get("valor_total"),
+                "data_emissao": nota.get("data_emissao"),
+                "cfops": cfops,
+                "desconsiderada": nota.get("desconsiderada_devolucao", False),
+                "motivo_desconsideracao": nota.get("motivo_desconsideracao", ""),
                 "nota_original": None,
-                "nota_original_encontrada": False
+                "nota_original_encontrada": False,
+                "nfe_referenciada": nota.get("nfe_referenciada", "")
             }
             
-            # Se tem NFe referenciada, buscar a nota original
-            nfe_ref = dev.get("nfe_referenciada", "")
+            # Tentar encontrar a nota de saída original
+            nfe_ref = nota.get("nfe_referenciada", "")
             if nfe_ref and len(nfe_ref) >= 10:
-                # Buscar por chave completa ou parcial
+                # Buscar a nota original de SAÍDA da própria empresa
                 nota_original = await db.xml_documents.find_one({
                     "company_id": company_id,
+                    "tipo": "saida",
                     "$or": [
                         {"chave_nfe": nfe_ref},
-                        {"chave_nfe": {"$regex": nfe_ref}},
-                        {"numero_nfe": nfe_ref.split("-")[-1] if "-" in nfe_ref else nfe_ref}
+                        {"chave_nfe": {"$regex": nfe_ref[-20:] if len(nfe_ref) > 20 else nfe_ref}},
+                        {"numero_nfe": str(int(nfe_ref[-9:]))} if nfe_ref[-9:].isdigit() else {}
                     ]
-                }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
+                }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, 
                     "valor_total": 1, "data_emissao": 1, "desconsiderada_devolucao": 1})
                 
                 if nota_original:
@@ -30398,7 +30418,9 @@ async def get_wizard_step_data(
             "notas_devolucao": devolucoes_com_original,
             "total": len(devolucoes_com_original),
             "total_com_original": sum(1 for d in devolucoes_com_original if d["nota_original_encontrada"]),
-            "cfops_devolucao": CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL
+            "total_sem_original": sum(1 for d in devolucoes_com_original if not d["nota_original_encontrada"]),
+            "total_desconsideradas": sum(1 for d in devolucoes_com_original if d["desconsiderada"]),
+            "cnpj_empresa": cnpj_empresa
         }
     
     elif step_id == 3:  # CFOPs Distintos - NOVA ETAPA
