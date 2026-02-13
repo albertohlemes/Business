@@ -13879,6 +13879,7 @@ async def alertas_cfop_operacoes_distintas(
     Busca documentos de entrada com produtos pendentes de revisão de CFOP.
     Estes são produtos que foram convertidos automaticamente durante o upload
     (CFOPs de operações distintas como bonificação, remessa, etc.)
+    IMPORTANTE: Usa os mesmos critérios do Wizard para garantir sincronização.
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
@@ -13888,10 +13889,16 @@ async def alertas_cfop_operacoes_distintas(
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Buscar documentos de entrada que tenham produtos pendentes de revisão
+    # IMPORTANTE: Excluir notas canceladas e desconsideradas para consistência com o Wizard
     documents = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia,
-        "tipo": "entrada"
+        "tipo": "entrada",
+        # Excluir notas canceladas e desconsideradas
+        "$and": [
+            {"$or": [{"cancelada": {"$ne": True}}, {"cancelada": {"$exists": False}}]},
+            {"$or": [{"desconsiderada_devolucao": {"$ne": True}}, {"desconsiderada_devolucao": {"$exists": False}}]}
+        ]
     }, {"_id": 0}).to_list(100000)
     
     alertas = []
