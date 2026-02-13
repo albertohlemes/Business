@@ -30850,16 +30850,68 @@ async def complete_wizard_step(
         # Processar as ações definidas para cada CFOP distinto
         acoes_cfops = step_data.get("acoes_cfops", {})
         
+        # Mapeamento de CFOPs de saída para entrada (mesma natureza)
+        # 5xxx -> 1xxx (interno), 6xxx -> 2xxx (interestadual)
+        def converter_cfop_para_entrada(cfop_original):
+            cfop = str(cfop_original)
+            if cfop.startswith('5'):
+                return '1' + cfop[1:]  # 5915 -> 1915
+            elif cfop.startswith('6'):
+                return '2' + cfop[1:]  # 6915 -> 2915
+            elif cfop.startswith('7'):
+                return '3' + cfop[1:]  # 7xxx -> 3xxx (exportação para importação)
+            else:
+                return cfop  # Já é entrada, mantém
+        
+        # Lista de CFOPs de entrada válidos (simplificada - principais)
+        cfops_entrada_validos = set()
+        for i in range(1000, 4000):
+            cfops_entrada_validos.add(str(i))
+        
         for cfop, acao_data in acoes_cfops.items():
             # Suportar formato antigo (string) e novo (objeto)
             if isinstance(acao_data, str):
                 acao = acao_data
                 cfop_destino_manual = None
             else:
-                acao = acao_data.get("acao", "ignorar")
+                acao = acao_data.get("acao", "converter_entrada_mesma_natureza")
                 cfop_destino_manual = acao_data.get("cfop_destino")
             
-            if acao == "desconsiderar":
+            if acao == "converter_entrada_mesma_natureza":
+                # Converter para CFOP de entrada com mesma natureza
+                cfop_destino = converter_cfop_para_entrada(cfop)
+                
+                # Verificar se o CFOP de destino é válido
+                if cfop_destino not in cfops_entrada_validos:
+                    actions_taken.append(f"CFOP {cfop}: CFOP de entrada {cfop_destino} pode não ser válido - verifique manualmente")
+                
+                docs = await db.xml_documents.find({
+                    "company_id": company_id,
+                    "competencia": competencia,
+                    "produtos.cfop": cfop
+                }).to_list(length=1000)
+                
+                count = 0
+                for doc in docs:
+                    produtos_atualizados = doc.get("produtos", [])
+                    alterado = False
+                    for p in produtos_atualizados:
+                        if str(p.get("cfop")) == cfop:
+                            p["cfop_original_distinto"] = cfop
+                            p["cfop"] = cfop_destino
+                            p["cfop_convertido_wizard"] = True
+                            alterado = True
+                            count += 1
+                    
+                    if alterado:
+                        await db.xml_documents.update_one(
+                            {"id": doc["id"]},
+                            {"$set": {"produtos": produtos_atualizados}}
+                        )
+                
+                actions_taken.append(f"CFOP {cfop} → {cfop_destino}: {count} produtos convertidos")
+            
+            elif acao == "desconsiderar":
                 # Marcar documentos com esse CFOP como desconsiderados
                 result = await db.xml_documents.update_many(
                     {
