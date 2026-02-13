@@ -29,6 +29,7 @@ const WizardFechamento = ({ user, onLogout }) => {
   const [currentStepData, setCurrentStepData] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [expandedItems, setExpandedItems] = useState({});
+  const [stepProgress, setStepProgress] = useState(null);  // Progresso da etapa atual
 
   // Carregar status do wizard
   const loadWizardStatus = useCallback(async () => {
