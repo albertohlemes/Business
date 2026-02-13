@@ -125,6 +125,9 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 ### P2 - Discrepância Dashboard vs SPED
 - Valores totais não batem entre dashboard e registro E110
 
+### P2 - Botão de Login travado
+- Botão fica em "Processando..." indefinidamente
+
 ### P2 - Botão de Login fica travado em "Processando..."
 - Comportamento intermitente
 
