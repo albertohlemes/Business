@@ -30094,6 +30094,61 @@ async def reset_wizard(
     return {"message": "Wizard reiniciado", "wizard": wizard}
 
 
+@api_router.get("/wizard-fechamento/summary/{company_id}")
+async def get_wizard_summary(
+    company_id: str,
+    competencia: str = Query(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Retorna um resumo do wizard para exibição no menu"""
+    wizard = await db.wizard_fechamento.find_one(
+        {"company_id": company_id, "competencia": competencia},
+        {"_id": 0, "status": 1, "current_step": 1, "steps_completed": 1, "steps_data": 1, "updated_at": 1}
+    )
+    
+    if not wizard:
+        return {
+            "has_wizard": False,
+            "message": "Nenhum processamento realizado",
+            "last_update": None,
+            "steps_summary": []
+        }
+    
+    # Montar resumo das etapas
+    steps_summary = []
+    step_names = {
+        1: "Notas Canceladas",
+        2: "Devoluções",
+        3: "Classificação CFOPs",
+        4: "PIS/COFINS Entradas",
+        5: "PIS/COFINS Saídas",
+        6: "Reforma Tributária"
+    }
+    
+    for step_id in range(1, 7):
+        step_key = {1: "notas_canceladas", 2: "devolucoes", 3: "classificacao_cfop", 
+                    4: "pis_cofins_entrada", 5: "pis_cofins_saida", 6: "reforma_tributaria"}.get(step_id, "")
+        step_data = wizard.get("steps_data", {}).get(step_key, {})
+        
+        steps_summary.append({
+            "step_id": step_id,
+            "name": step_names.get(step_id, ""),
+            "completed": step_id in wizard.get("steps_completed", []),
+            "completed_at": step_data.get("completed_at"),
+            "actions": step_data.get("actions", [])
+        })
+    
+    return {
+        "has_wizard": True,
+        "status": wizard.get("status", "in_progress"),
+        "current_step": wizard.get("current_step", 1),
+        "last_update": wizard.get("updated_at"),
+        "steps_completed": len(wizard.get("steps_completed", [])),
+        "total_steps": 6,
+        "steps_summary": steps_summary
+    }
+
+
 @api_router.get("/wizard-fechamento/step/{company_id}/{step_id}")
 async def get_wizard_step_data(
     company_id: str,
