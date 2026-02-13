@@ -997,7 +997,7 @@ const WizardFechamento = ({ user, onLogout }) => {
               
               <div className="space-y-3">
                 {steps.filter(s => wizard?.steps_completed?.includes(s.id)).map((step) => {
-                  const stepData = wizard?.steps_data?.[{1: 'canceladas', 2: 'devolucoes', 3: 'cfops_distintos', 4: 'classificacao', 5: 'pis_cofins_entrada', 6: 'pis_cofins_saida'}[step.id] || ''] || {};
+                  const stepData = wizard?.steps_data?.[{1: 'canceladas', 2: 'devolucoes', 3: 'alertas_cfop', 4: 'classificacao', 5: 'pis_cofins_entrada', 6: 'pis_cofins_saida'}[step.id] || ''] || {};
                   const Icon = STEP_ICONS[step.id] || CheckCircle;
                   
                   return (
