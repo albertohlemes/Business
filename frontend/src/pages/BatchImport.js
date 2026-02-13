@@ -159,11 +159,11 @@ const BatchImport = ({ user, onLogout }) => {
         }
       );
 
-      clearInterval(progressInterval);
-      setUploadProgress({ phase: 'Concluído!', percent: 100, detail: '' });
       setResult(response.data);
       loadHistory();
       setSelectedFile(null);
+      setActiveImport(null);
+      setRealProgress(null);
       
       // Se tiver erros, mostrar o relatório automaticamente
       if (response.data.total_erros > 0) {
@@ -171,10 +171,11 @@ const BatchImport = ({ user, onLogout }) => {
       }
     } catch (err) {
       console.error('Erro no upload:', err);
-      setUploadProgress({ phase: 'Erro!', percent: 0, detail: '' });
       setResult({
         error: err.response?.data?.detail || 'Erro ao processar arquivo'
       });
+      setActiveImport(null);
+      setRealProgress(null);
     } finally {
       setUploading(false);
     }
