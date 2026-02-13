@@ -7488,12 +7488,23 @@ async def upload_xml_with_progress(
             # Para CT-e, também precisamos do remetente (quem envia a carga)
             cnpj_remetente = parsed_data.get('remetente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
             
-            cnpj_valido = False
+            # ================================================================
+            # CLASSIFICAÇÃO AUTOMÁTICA DE TIPO (entrada/saída)
+            # Regra de negócio definitiva:
+            # - Se CNPJ emitente == CNPJ empresa -> SAÍDA (empresa emitiu)
+            # - Se CNPJ emitente != CNPJ empresa -> ENTRADA (empresa recebeu)
+            # Exceção: CT-e tem lógica própria (ver abaixo)
+            # ================================================================
+            if modelo != '57' and xml_type != 'cte':
+                tipo_calculado = 'saida' if cnpj_emitente == cnpj_empresa else 'entrada'
+                tipo = tipo_calculado  # Sobrescreve o tipo da sessão
+                logger.info(f"CLASSIFICAÇÃO AUTO (STREAM): NF {parsed_data.get('numero_nfe', '')} - CNPJ emit={cnpj_emitente}, CNPJ empresa={cnpj_empresa} -> {tipo}")
+            
+            cnpj_valido = True  # Validação já é feita pela classificação automática
             is_devolucao_fornecedor = False
             motivo_devolucao = ""
             nfe_ref_devolucao = ""
-            is_mesma_empresa = False  # Flag para notas onde emitente = destinatário = empresa
-            motivo_desconsideracao_mesma_empresa = ""
+            is_emissao_propria_entrada = False  # Não aplicável com classificação automática
             
             # ==== VALIDAÇÃO ESPECIAL PARA CT-e (Conhecimento de Transporte) ====
             # No CT-e:
