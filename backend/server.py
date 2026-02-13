@@ -29558,6 +29558,25 @@ async def batch_import_upload_estrutura(
                 "desconsiderados": 0
             }
             
+            # Atualizar progresso no banco - início da empresa
+            await db.batch_import_history.update_one(
+                {"import_id": import_id},
+                {"$set": {
+                    "progress": {
+                        "percent": int((arquivos_processados / total_arquivos_geral) * 100) if total_arquivos_geral > 0 else 0,
+                        "empresa_atual": empresa_result["razao_social"],
+                        "empresa_atual_idx": empresa_atual_idx,
+                        "total_empresas": len(empresas_encontradas),
+                        "arquivos_processados": arquivos_processados,
+                        "total_arquivos": total_arquivos_geral,
+                        "empresa_arquivos_processados": 0,
+                        "empresa_total_arquivos": len(data["arquivos"])
+                    }
+                }}
+            )
+            
+            arquivos_empresa_processados = 0
+            
             # Agrupar por competência
             by_competencia = {}
             for arq in data["arquivos"]:
