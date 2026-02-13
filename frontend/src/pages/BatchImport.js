@@ -126,8 +126,8 @@ const BatchImport = ({ user, onLogout }) => {
 
   return (
     <Layout user={user} onLogout={onLogout}>
-      <div className="h-full overflow-y-auto bg-[#0C0C0C] text-white p-6">
-        <div className="max-w-6xl mx-auto pb-10">
+      <div className="min-h-full bg-[#0C0C0C] text-white p-6">
+        <div className="max-w-6xl mx-auto pb-20">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold mb-2 flex items-center gap-3">

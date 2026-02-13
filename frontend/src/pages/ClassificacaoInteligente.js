@@ -734,7 +734,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
 
   return (
     <Layout user={user} onLogout={onLogout}>
-      <div className="h-full overflow-y-auto pb-10">
+      <div className="min-h-full pb-20">
         <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
