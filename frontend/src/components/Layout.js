@@ -66,10 +66,8 @@ const Layout = ({ user, onLogout, children }) => {
     nav.push({ name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' });
     nav.push({ name: 'Central de Alertas', href: '/alertas', icon: Bell, testId: 'nav-alertas' });
     
-    // Importação em Lote (disponível para admin e super_admin)
-    if (user?.role === 'admin' || user?.role === 'super_admin') {
-      nav.push({ name: 'Importação em Lote', href: '/batch-import', icon: Download, testId: 'nav-batch-import' });
-    }
+    // Importação em Lote (disponível para todos)
+    nav.push({ name: 'Importação em Lote', href: '/batch-import', icon: Download, testId: 'nav-batch-import' });
     
     // Se não tem empresa selecionada, mostra menu completo padrão
     if (!selectedCompany) {
