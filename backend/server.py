@@ -7028,6 +7028,8 @@ async def stream_upload_progress(upload_id: str):
         last_progress = -1
         retry_count = 0
         max_retries = 10  # Aguardar até 3 segundos para a sessão aparecer
+        stale_count = 0  # Contador para detectar progresso estagnado
+        max_stale = 60  # Máximo de iterações sem mudança (60 * 0.5s = 30 segundos)
         
         while True:
             # Usar a função que busca em memória e MongoDB
@@ -7044,9 +7046,30 @@ async def stream_upload_progress(upload_id: str):
                     break
             
             current_progress = progress.get("progress_percent", 0)
+            is_completed = progress.get("completed", False)
             
-            # Enviar atualização apenas se houver mudança
-            if current_progress != last_progress or progress.get("completed"):
+            # Detectar se o progresso está estagnado (mas não completou)
+            if current_progress == last_progress and not is_completed:
+                stale_count += 1
+                if stale_count >= max_stale:
+                    # Força envio de status atual para manter conexão viva
+                    event_data = {
+                        "status": progress.get("status", "processing"),
+                        "total_files": progress.get("total_files", 0),
+                        "processed_files": progress.get("processed_files", 0),
+                        "current_file": progress.get("current_file", ""),
+                        "current_step": progress.get("current_step", "Processando..."),
+                        "progress_percent": current_progress,
+                        "completed": False,
+                        "stale_warning": True
+                    }
+                    yield f"data: {json.dumps(event_data)}\n\n"
+                    stale_count = 0  # Reset para dar mais tempo
+            else:
+                stale_count = 0  # Reset se houve mudança
+            
+            # Enviar atualização se houver mudança ou completou
+            if current_progress != last_progress or is_completed:
                 event_data = {
                     "status": progress["status"],
                     "total_files": progress["total_files"],
@@ -7054,10 +7077,10 @@ async def stream_upload_progress(upload_id: str):
                     "current_file": progress["current_file"],
                     "current_step": progress["current_step"],
                     "progress_percent": progress["progress_percent"],
-                    "completed": progress.get("completed", False)
+                    "completed": is_completed
                 }
                 
-                if progress.get("completed") and progress.get("results"):
+                if is_completed and progress.get("results"):
                     event_data["results"] = progress["results"]
                     yield f"data: {json.dumps(event_data)}\n\n"
                     # Limpar dados após enviar resultados
@@ -7068,7 +7091,7 @@ async def stream_upload_progress(upload_id: str):
                 yield f"data: {json.dumps(event_data)}\n\n"
                 last_progress = current_progress
             
-            await asyncio.sleep(0.3)  # Verificar a cada 300ms
+            await asyncio.sleep(0.5)  # Verificar a cada 500ms (mais responsivo)
     
     return StreamingResponse(
         event_generator(),
