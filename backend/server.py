@@ -29396,6 +29396,36 @@ async def get_batch_import_status(
     return status
 
 
+@api_router.get("/batch-import/progress/{import_id}")
+async def get_batch_import_progress(
+    import_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Retorna o progresso atual de uma importação em andamento"""
+    doc = await db.batch_import_history.find_one(
+        {"import_id": import_id},
+        {"_id": 0, "status": 1, "progress": 1, "total_importados": 1, "total_erros": 1, "total_duplicados": 1}
+    )
+    
+    if not doc:
+        raise HTTPException(status_code=404, detail="Importação não encontrada")
+    
+    return doc
+
+
+@api_router.get("/batch-import/active")
+async def get_active_batch_imports(
+    current_user: User = Depends(get_current_user)
+):
+    """Retorna importações em andamento (para polling)"""
+    active = await db.batch_import_history.find(
+        {"status": "processing"},
+        {"_id": 0, "import_id": 1, "status": 1, "progress": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(length=10)
+    
+    return {"active_imports": active}
+
+
 @api_router.post("/batch-import/upload-estrutura")
 async def batch_import_upload_estrutura(
     file: UploadFile = File(...),
