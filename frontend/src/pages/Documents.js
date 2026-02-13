@@ -443,12 +443,18 @@ const Documents = ({ user, onLogout }) => {
       return;
     }
     
-    // Para poucos arquivos XML ou arquivos não-XML, usar upload direto
-    if (!isXmlUpload || files.length <= 10) {
+    // Para XMLs, mostrar modal de seleção de tipo de importação
+    if (isXmlUpload && files.length >= 1) {
+      setPendingUploadFiles(files);
+      setPendingUploadConfig(tipoConfig);
+      setShowUploadTypeModal(true);
+      e.target.value = '';
+      return;
+    }
+    
+    // Para arquivos não-XML, usar upload direto
+    if (!isXmlUpload) {
       await handleDirectUpload(files, tipoConfig, token);
-    } else {
-      // Para muitos XMLs, usar upload com streaming e SSE
-      await handleStreamingUpload(files, tipoConfig, token);
     }
     
     e.target.value = '';
