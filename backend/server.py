@@ -5786,8 +5786,9 @@ async def upload_xml_batch(
             # Para ENTRADA: o destinatário deve ser a empresa
             # Para SAÍDA: o emitente deve ser a empresa
             # Para NFC-e (modelo 65): emitente deve ser a empresa (NFC-e é sempre saída, consumidor final)
-            cnpj_emitente = parsed_data.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
-            cnpj_destinatario = parsed_data.get('destinatario_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+            # IMPORTANTE: Usar strip() para remover espaços/caracteres de controle que podem vir do XML
+            cnpj_emitente = parsed_data.get('emitente_cnpj', '').strip().replace('.', '').replace('/', '').replace('-', '').strip()
+            cnpj_destinatario = parsed_data.get('destinatario_cnpj', '').strip().replace('.', '').replace('/', '').replace('-', '').strip()
             
             # ================================================================
             # CLASSIFICAÇÃO AUTOMÁTICA DE TIPO (entrada/saída)
