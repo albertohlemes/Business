@@ -146,11 +146,55 @@ const ApuracaoICMS = ({ user, onLogout }) => {
   };
   
   // Flags de desconsiderar ICMS - estado local com persistência
-  const [desconsiderarDespesas, setDesconsiderarDespesas] = useState(false);
-  const [desconsiderarST, setDesconsiderarST] = useState(false);
-  const [beneficioFiscal, setBeneficioFiscal] = useState(false);
+  // Usar lazy initialization para evitar reset quando o componente remonta
+  const [desconsiderarDespesas, setDesconsiderarDespesas] = useState(() => {
+    // Tentar carregar do localStorage primeiro
+    if (selectedCompany?.id) {
+      const savedFlags = localStorage.getItem(`icms_flags_${selectedCompany.id}`);
+      if (savedFlags) {
+        try {
+          const parsed = JSON.parse(savedFlags);
+          return parsed.desconsiderarDespesas ?? selectedCompany?.desconsiderar_icms_despesas ?? false;
+        } catch {
+          return selectedCompany?.desconsiderar_icms_despesas ?? false;
+        }
+      }
+      return selectedCompany?.desconsiderar_icms_despesas ?? false;
+    }
+    return false;
+  });
+  const [desconsiderarST, setDesconsiderarST] = useState(() => {
+    if (selectedCompany?.id) {
+      const savedFlags = localStorage.getItem(`icms_flags_${selectedCompany.id}`);
+      if (savedFlags) {
+        try {
+          const parsed = JSON.parse(savedFlags);
+          return parsed.desconsiderarST ?? selectedCompany?.desconsiderar_icms_st ?? false;
+        } catch {
+          return selectedCompany?.desconsiderar_icms_st ?? false;
+        }
+      }
+      return selectedCompany?.desconsiderar_icms_st ?? false;
+    }
+    return false;
+  });
+  const [beneficioFiscal, setBeneficioFiscal] = useState(() => {
+    if (selectedCompany?.id) {
+      const savedFlags = localStorage.getItem(`icms_flags_${selectedCompany.id}`);
+      if (savedFlags) {
+        try {
+          const parsed = JSON.parse(savedFlags);
+          return parsed.beneficioFiscal ?? selectedCompany?.beneficio_fiscal_icms ?? false;
+        } catch {
+          return selectedCompany?.beneficio_fiscal_icms ?? false;
+        }
+      }
+      return selectedCompany?.beneficio_fiscal_icms ?? false;
+    }
+    return false;
+  });
   const [savingFlags, setSavingFlags] = useState(false);
-  const [flagsLoaded, setFlagsLoaded] = useState(false);
+  const [flagsLoaded, setFlagsLoaded] = useState(!!selectedCompany?.id);
 
   // Chave para localStorage baseada na empresa
   const getFlagsKey = useCallback((companyId) => `icms_flags_${companyId}`, []);
