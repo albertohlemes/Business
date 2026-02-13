@@ -1,11 +1,194 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Play, Clock, CheckCircle, AlertTriangle, ChevronRight, 
+  RefreshCw, FileX, RotateCcw, Package, Receipt, Calculator, Flag
+} from 'lucide-react';
+import axios from 'axios';
 import Layout from '../components/Layout';
 import DashboardInconsistencias from './DashboardInconsistencias';
+import { useAppContext } from '../context/AppContext';
+
+const API = process.env.REACT_APP_BACKEND_URL;
+
+// Ícones para cada etapa
+const STEP_ICONS = {
+  1: FileX,
+  2: RotateCcw,
+  3: Package,
+  4: Receipt,
+  5: Receipt,
+  6: Calculator,
+  7: Flag
+};
+
+const STEP_NAMES = {
+  1: 'Notas Canceladas',
+  2: 'Devoluções',
+  3: 'Classificação CFOPs',
+  4: 'PIS/COFINS Entradas',
+  5: 'PIS/COFINS Saídas',
+  6: 'Reforma Tributária'
+};
 
 const AlertasPage = ({ user, onLogout }) => {
+  const navigate = useNavigate();
+  const { selectedCompany, selectedCompetencia } = useAppContext();
+  const [wizardSummary, setWizardSummary] = useState(null);
+  const [loadingWizard, setLoadingWizard] = useState(true);
+
+  // Carregar status do wizard
+  const loadWizardSummary = useCallback(async () => {
+    if (!selectedCompany?.id || !selectedCompetencia) {
+      setWizardSummary(null);
+      setLoadingWizard(false);
+      return;
+    }
+    
+    setLoadingWizard(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/api/wizard-fechamento/summary/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setWizardSummary(response.data);
+    } catch (err) {
+      console.error('Erro ao carregar resumo do wizard:', err);
+      setWizardSummary(null);
+    } finally {
+      setLoadingWizard(false);
+    }
+  }, [selectedCompany, selectedCompetencia]);
+
+  useEffect(() => {
+    loadWizardSummary();
+  }, [loadWizardSummary]);
+
+  // Formatar data
+  const formatDate = (dateStr) => {
+    if (!dateStr) return null;
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('pt-BR') + ' às ' + date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <Layout user={user} onLogout={onLogout}>
-      <DashboardInconsistencias />
+      <div className="space-y-6">
+        {/* Card do Wizard de Fechamento */}
+        <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                <Flag className="w-6 h-6 text-purple-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Wizard de Fechamento Fiscal</h2>
+                <p className="text-sm text-[#A1A1AA]">
+                  {selectedCompany?.razao_social || 'Selecione uma empresa'} • {selectedCompetencia || 'Selecione a competência'}
+                </p>
+              </div>
+            </div>
+            
+            {selectedCompany && selectedCompetencia && (
+              <button
+                onClick={() => navigate('/wizard-fechamento')}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 font-medium transition-colors"
+              >
+                <Play className="w-5 h-5" />
+                {wizardSummary?.has_wizard ? 'Continuar Wizard' : 'Iniciar Wizard'}
+              </button>
+            )}
+          </div>
+
+          {/* Status das Etapas */}
+          {loadingWizard ? (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-purple-400" />
+            </div>
+          ) : !selectedCompany || !selectedCompetencia ? (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 text-center">
+              <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+              <p className="text-amber-400">Selecione uma empresa e competência para ver o status do fechamento</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[1, 2, 3, 4, 5, 6].map((stepId) => {
+                const stepSummary = wizardSummary?.steps_summary?.find(s => s.step_id === stepId);
+                const isCompleted = stepSummary?.completed || false;
+                const lastRun = stepSummary?.completed_at;
+                const Icon = STEP_ICONS[stepId];
+                
+                return (
+                  <div 
+                    key={stepId}
+                    onClick={() => navigate('/wizard-fechamento')}
+                    className={`bg-[#0C0C0C] rounded-xl p-4 cursor-pointer hover:bg-[#1A1A1A] transition-all border ${
+                      isCompleted ? 'border-emerald-500/30' : 'border-[#2A2A2A]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        isCompleted ? 'bg-emerald-500/20' : 'bg-[#1A1A1A]'
+                      }`}>
+                        {isCompleted ? (
+                          <CheckCircle className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <Icon className="w-4 h-4 text-[#666]" />
+                        )}
+                      </div>
+                      <span className={`text-xs font-bold ${isCompleted ? 'text-emerald-400' : 'text-[#666]'}`}>
+                        {stepId}/6
+                      </span>
+                    </div>
+                    
+                    <h3 className={`text-sm font-medium mb-1 ${isCompleted ? 'text-white' : 'text-[#A1A1AA]'}`}>
+                      {STEP_NAMES[stepId]}
+                    </h3>
+                    
+                    <div className="flex items-center gap-1 text-xs">
+                      <Clock className="w-3 h-3 text-[#666]" />
+                      <span className="text-[#666] truncate">
+                        {lastRun ? formatDate(lastRun) : 'Não processado'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Resumo Geral */}
+          {wizardSummary?.has_wizard && (
+            <div className="mt-4 pt-4 border-t border-[#2A2A2A] flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-[#A1A1AA]">
+                  Progresso: <span className="text-white font-bold">{wizardSummary.steps_completed}/{wizardSummary.total_steps}</span> etapas
+                </span>
+                {wizardSummary.status === 'completed' && (
+                  <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-1 rounded-full">
+                    Concluído
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => navigate('/wizard-fechamento')}
+                className="text-purple-400 hover:text-purple-300 flex items-center gap-1 text-sm"
+              >
+                Ver detalhes
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Dashboard de Inconsistências (componente existente) */}
+        <DashboardInconsistencias />
+      </div>
     </Layout>
   );
 };
