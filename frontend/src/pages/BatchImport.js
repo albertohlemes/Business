@@ -403,21 +403,68 @@ const BatchImport = ({ user, onLogout }) => {
                 )}
               </button>
 
-              {/* Barra de Progresso */}
+              {/* Barra de Progresso Real */}
               {uploading && (
-                <div className="mt-4 bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-purple-300 font-medium">{uploadProgress.phase}</span>
-                    <span className="text-sm text-[#A1A1AA]">{Math.round(uploadProgress.percent)}%</span>
+                <div className="mt-4 bg-[#141414] border border-purple-500/30 rounded-xl p-4 space-y-4">
+                  {/* Progresso Geral */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-purple-300 font-medium">
+                        {realProgress ? 'Processando XMLs...' : 'Enviando arquivo...'}
+                      </span>
+                      <span className="text-sm text-white font-bold">
+                        {realProgress?.percent || 0}%
+                      </span>
+                    </div>
+                    <div className="h-3 bg-[#0C0C0C] rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-300 ease-out"
+                        style={{ width: `${realProgress?.percent || 0}%` }}
+                      />
+                    </div>
+                    {realProgress && (
+                      <div className="flex items-center justify-between mt-2 text-xs text-[#666]">
+                        <span>{realProgress.arquivos_processados?.toLocaleString() || 0} / {realProgress.total_arquivos?.toLocaleString() || 0} arquivos</span>
+                        <span>Empresa {realProgress.empresa_atual_idx || 0} de {realProgress.total_empresas || 0}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="h-2 bg-[#0C0C0C] rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-300 ease-out"
-                      style={{ width: `${uploadProgress.percent}%` }}
-                    />
-                  </div>
-                  {uploadProgress.detail && (
-                    <p className="text-xs text-[#666] mt-2">{uploadProgress.detail}</p>
+
+                  {/* Progresso da Empresa Atual */}
+                  {realProgress?.empresa_atual && (
+                    <div className="border-t border-[#2A2A2A] pt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Building2 className="w-4 h-4 text-purple-400" />
+                        <span className="text-sm text-white font-medium truncate">{realProgress.empresa_atual}</span>
+                      </div>
+                      <div className="h-2 bg-[#0C0C0C] rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-300 ease-out"
+                          style={{ 
+                            width: `${realProgress.empresa_total_arquivos > 0 
+                              ? (realProgress.empresa_arquivos_processados / realProgress.empresa_total_arquivos) * 100 
+                              : 0}%` 
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between mt-2 text-xs">
+                        <span className="text-[#666]">
+                          {realProgress.empresa_arquivos_processados?.toLocaleString() || 0} / {realProgress.empresa_total_arquivos?.toLocaleString() || 0} arquivos
+                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-emerald-400">{realProgress.empresa_importados || 0} novos</span>
+                          <span className="text-amber-400">{realProgress.empresa_duplicados || 0} dup.</span>
+                          <span className="text-red-400">{realProgress.empresa_erros || 0} erros</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!realProgress && (
+                    <p className="text-xs text-[#666] text-center">Aguardando início do processamento...</p>
+                  )}
+                </div>
+              )}
                   )}
                 </div>
               )}
