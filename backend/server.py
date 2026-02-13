@@ -30531,16 +30531,37 @@ async def complete_wizard_step(
     
     elif step_id == 2:  # Devoluções
         # Marcar notas de devolução como desconsideradas
+        # E também marcar as notas originais referenciadas
         notas_ids = step_data.get("notas_desconsiderar", [])
+        notas_originais_ids = step_data.get("notas_originais_desconsiderar", [])
+        
+        total_desconsideradas = 0
+        
         if notas_ids:
             result = await db.xml_documents.update_many(
                 {"id": {"$in": notas_ids}},
                 {"$set": {
                     "desconsiderada_devolucao": True,
-                    "motivo_desconsideracao": "Confirmado via Wizard de Fechamento"
+                    "motivo_desconsideracao": "Devolução de terceiro - Confirmado via Wizard de Fechamento"
                 }}
             )
-            actions_taken.append(f"{result.modified_count} notas desconsideradas")
+            total_desconsideradas += result.modified_count
+            actions_taken.append(f"{result.modified_count} notas de devolução desconsideradas")
+        
+        # Excluir também as notas originais (que originaram a devolução)
+        if notas_originais_ids:
+            result = await db.xml_documents.update_many(
+                {"id": {"$in": notas_originais_ids}},
+                {"$set": {
+                    "desconsiderada_devolucao": True,
+                    "motivo_desconsideracao": "Nota original de devolução - Excluída via Wizard de Fechamento"
+                }}
+            )
+            total_desconsideradas += result.modified_count
+            actions_taken.append(f"{result.modified_count} notas originais desconsideradas")
+        
+        if total_desconsideradas > 0:
+            actions_taken.append(f"Total: {total_desconsideradas} documentos excluídos da apuração")
     
     elif step_id == 3:  # Classificação de CFOPs
         # Classificar produtos com IA se necessário
