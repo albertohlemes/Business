@@ -831,7 +831,7 @@ const WizardFechamento = ({ user, onLogout }) => {
       
       case 7: // Concluído
         return (
-          <div className="space-y-4 text-center">
+          <div className="space-y-6 text-center">
             <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
               <Flag className="w-10 h-10 text-emerald-400" />
             </div>
@@ -848,6 +848,43 @@ const WizardFechamento = ({ user, onLogout }) => {
                 ✓ Competência: {selectedCompetencia}<br />
                 ✓ Etapas concluídas: {data.steps_completed?.length || 0} de 6
               </p>
+            </div>
+            
+            {/* Seção de Relatórios */}
+            <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg p-5">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Download className="w-5 h-5 text-purple-400" />
+                <h4 className="text-lg font-semibold text-white">Exportar Relatório de Alterações</h4>
+              </div>
+              <p className="text-sm text-[#A1A1AA] mb-4">
+                Baixe o histórico completo de todas as alterações realizadas pelo wizard para fins de auditoria.
+              </p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => downloadReport('pdf')}
+                  disabled={downloadingReport}
+                  className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white py-2.5 px-5 rounded-lg inline-flex items-center gap-2 transition-colors"
+                >
+                  {downloadingReport === 'pdf' ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FileText className="w-4 h-4" />
+                  )}
+                  Baixar PDF
+                </button>
+                <button
+                  onClick={() => downloadReport('excel')}
+                  disabled={downloadingReport}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-2.5 px-5 rounded-lg inline-flex items-center gap-2 transition-colors"
+                >
+                  {downloadingReport === 'excel' ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="w-4 h-4" />
+                  )}
+                  Baixar Excel
+                </button>
+              </div>
             </div>
             
             <button
