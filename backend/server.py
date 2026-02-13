@@ -1570,7 +1570,7 @@ def parse_xml_evento_cancelamento(xml_content: str) -> Dict[str, Any]:
             'protocolo': n_prot
         }
         
-    except Exception as e:
+    except Exception:
         return None
 
 def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
@@ -3533,7 +3533,7 @@ async def buscar_dados_cnpj(cnpj: str):
             }
         else:
             raise HTTPException(status_code=404, detail="CNPJ não encontrado na Receita Federal")
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException:
         raise HTTPException(status_code=500, detail="Erro ao consultar Receita Federal")
 
 @api_router.post("/auth/register", response_model=User)
@@ -3615,7 +3615,7 @@ async def consultar_sintegra(cnpj: str, uf: str):
             "inscricao_estadual": "NAO ENCONTRADO",
             "status": "nao_encontrado",
             "motivo": "Não foi possível consultar automaticamente. Verifique manualmente no site do SINTEGRA.",
-            "url_sintegra": f"http://www.sintegra.gov.br/"
+            "url_sintegra": "http://www.sintegra.gov.br/"
         }
         
     except Exception as e:
@@ -5954,7 +5954,7 @@ async def upload_xml_batch(
                         # Para entradas com data de saída diferente, usar a competência da data de saída
                         # e adicionar uma observação (não rejeitar)
                         print(f"INFO: Documento {parsed_data.get('numero_nfe', '')} - Competência ajustada de {competencia} para {competencia_documento} (baseada na data de {tipo_data})")
-                except Exception as e:
+                except Exception:
                     # Se não conseguir parsear a data, usar competência selecionada
                     pass
             
@@ -6740,7 +6740,7 @@ async def upload_background(
         )
         raise HTTPException(
             status_code=503, 
-            detail=f"Serviço de processamento em background não disponível. Use o upload normal."
+            detail="Serviço de processamento em background não disponível. Use o upload normal."
         )
 
 
@@ -8731,7 +8731,7 @@ async def reprocess_batch(
                                 prod['cfop_sugerido'] = result.get('cfop', '')
                                 prod['justificativa_ia'] = result.get('justificativa', 'Classificado por IA no re-processamento')
                                 results['classificacoes_novas'] += 1
-                except Exception as e:
+                except Exception:
                     # Se falhar a classificação, continua sem classificar
                     pass
             
@@ -8759,7 +8759,7 @@ async def reprocess_batch(
                 results['with_st'] += 1
                 results['with_st'] += 1
                 
-        except Exception as e:
+        except Exception:
             results['errors'] += 1
     
     return results
@@ -9111,7 +9111,7 @@ async def get_integrity_summary(
                     "valor_db": valor_db,
                     "diferenca": round(valor_db - valor_xml, 2)
                 })
-        except Exception as e:
+        except Exception:
             erros += 1
     
     return {
@@ -10609,7 +10609,7 @@ async def apuracao_pis_cofins(
             is_saida = (tipo_op == 'saida')
             
             # Se não tem CFOP, usar "SEM CFOP" como chave
-            cfop_key = cfop if cfop else f"SEM CFOP"
+            cfop_key = cfop if cfop else "SEM CFOP"
             
             # USAR CST CALCULADO (não do XML)
             # Entrada: 50 (com crédito), 70 (sem crédito), 73 (alíquota zero), 98 (sem incidência)
@@ -10922,7 +10922,7 @@ async def apuracao_periodo(
             sem_credito = cfop in CFOPS_SEM_CREDITO
             
             # Usar CFOP como chave diretamente (não converter mais)
-            cfop_key = cfop if cfop else f"SEM CFOP"
+            cfop_key = cfop if cfop else "SEM CFOP"
             
             # Verificar ST/Despesa para entradas
             if is_entrada:
@@ -11165,7 +11165,7 @@ async def analise_aliquotas_saida(
                 produto_info['alertas'].append({
                     'tipo': 'info',
                     'imposto': 'ICMS',
-                    'mensagem': f'ICMS zerado - verificar se é isento, ST ou imune'
+                    'mensagem': 'ICMS zerado - verificar se é isento, ST ou imune'
                 })
             elif aliq_icms > 0 and abs(aliq_icms - ALIQ_ICMS_PADRAO) > 1:
                 # Verificar se é alíquota de outro estado ou redução de base
@@ -11191,7 +11191,7 @@ async def analise_aliquotas_saida(
                     produto_info['alertas'].append({
                         'tipo': 'info',
                         'imposto': 'PIS',
-                        'mensagem': f'PIS zerado - NCM não identificado como alíq. zero'
+                        'mensagem': 'PIS zerado - NCM não identificado como alíq. zero'
                     })
             elif aliq_pis > 0 and abs(aliq_pis - ALIQ_PIS_PADRAO) > 0.15:
                 produto_info['alertas'].append({
@@ -11209,7 +11209,7 @@ async def analise_aliquotas_saida(
                     produto_info['alertas'].append({
                         'tipo': 'info',
                         'imposto': 'COFINS',
-                        'mensagem': f'COFINS zerado - NCM não identificado como alíq. zero'
+                        'mensagem': 'COFINS zerado - NCM não identificado como alíq. zero'
                     })
             elif aliq_cofins > 0 and abs(aliq_cofins - ALIQ_COFINS_PADRAO) > 0.15:
                 produto_info['alertas'].append({
@@ -17368,7 +17368,7 @@ async def update_learned_rule(
     
     # Retornar dados atualizados para que o frontend possa mostrar o novo CFOP
     return {
-        "message": f"Regra atualizada com sucesso" + (f" ({docs_atualizados} documento(s) atualizados)" if docs_atualizados > 0 else ""),
+        "message": "Regra atualizada com sucesso" + (f" ({docs_atualizados} documento(s) atualizados)" if docs_atualizados > 0 else ""),
         "categoria": categoria,
         "cfop": novo_cfop,
         "documentos_atualizados": docs_atualizados
@@ -18919,7 +18919,7 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
                 "ncm": product.get('ncm', ''),
                 "categoria": "revenda",
                 "cfop": cfop,
-                "justificativa": f"Inferido de vendas (palavras-chave)"
+                "justificativa": "Inferido de vendas (palavras-chave)"
             })
             continue
         
@@ -20998,11 +20998,10 @@ async def exportar_beneficio_fiscal_detalhes(
     """
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.pagesizes import A4
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
-    from reportlab.lib.units import cm
     
     # Buscar dados
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
@@ -22146,7 +22145,7 @@ async def detalhamento_pis_cofins(
                         'aliquota_cofins': calc.get('aliquota_cofins', 0),
                         'valor_pis': 0,
                         'valor_cofins': 0,
-                        'gera_debito': not (cfop in CFOPS_SEM_DEBITO)
+                        'gera_debito': cfop not in CFOPS_SEM_DEBITO
                     }
                 saidas[chave]['quantidade'] += 1
                 saidas[chave]['valor_base'] += valor_base
@@ -22697,7 +22696,6 @@ async def process_document_with_ai(
     Processa documentos fiscais (imagem/PDF) usando IA para extrair dados.
     Usado para NFS-e e documentos de consumo (energia, internet, etc.)
     """
-    import tempfile
     
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
@@ -24520,7 +24518,7 @@ async def exportar_relatorio_consolidado_pdf(
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
     from reportlab.lib.units import mm
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.lib.enums import TA_CENTER
     import base64
     import tempfile
     import os
@@ -25470,8 +25468,7 @@ def formatCurrency(value):
 from services.pgdas_extractor import (
     extrair_dados_pgdas,
     comparar_faturamento_pgdas_sistema,
-    gerar_historico_para_salvar,
-    calcular_rbt12_do_historico
+    gerar_historico_para_salvar
 )
 
 # PyMuPDF para extração de texto do PDF
@@ -27331,7 +27328,7 @@ async def exportar_notas_ausentes(
         
         # Cabeçalho do relatório
         ws.merge_cells('A1:G1')
-        ws['A1'] = f"RELATÓRIO DE NOTAS FISCAIS AUSENTES - TODOS OS MODELOS"
+        ws['A1'] = "RELATÓRIO DE NOTAS FISCAIS AUSENTES - TODOS OS MODELOS"
         ws['A1'].font = Font(bold=True, size=14)
         ws['A1'].alignment = Alignment(horizontal='center')
         
@@ -27641,11 +27638,10 @@ async def exportar_documentos_categoria(
     """
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.pagesizes import A4
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
-    from reportlab.lib.units import cm
     
     # Buscar empresa
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
@@ -29345,7 +29341,6 @@ async def batch_import_upload_estrutura(
                     └── nota2.xml
     """
     import zipfile
-    import tempfile
     import shutil
     import re
     from pathlib import Path
