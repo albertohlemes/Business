@@ -29729,6 +29729,10 @@ async def batch_import_upload_estrutura(
                         
                         chave_nfe = parsed.get('chave_nfe', '')
                         
+                        # ==== VERIFICAR SE A NOTA ESTÁ CANCELADA PELO STATUS ====
+                        situacao = str(parsed.get('situacao', '100'))
+                        is_cancelada = situacao not in ['100']  # 100 = Autorizada
+                        
                         # Verificar duplicado
                         existing = await db.xml_documents.find_one({
                             "company_id": company["id"],
