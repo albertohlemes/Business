@@ -30419,45 +30419,45 @@ async def get_wizard_step_data(
             "total": len(canceladas)
         }
     
-    elif step_id == 2:  # Devoluções - Notas de entrada emitidas por terceiros
+    elif step_id == 2:  # Devoluções - Notas de entrada com CFOP de entrada emitidas por terceiros
         # Buscar a empresa para pegar o CNPJ
         company = await db.companies.find_one({"id": company_id}, {"_id": 0, "cnpj": 1})
         cnpj_empresa = (company.get('cnpj', '') if company else '').replace('.', '').replace('/', '').replace('-', '')
+        cnpj_raiz = cnpj_empresa[:8] if cnpj_empresa else ""
         
-        # CFOPs de ENTRADA (compras/devoluções recebidas)
-        cfops_entrada = [str(i) for i in range(1000, 4000)]  # 1xxx, 2xxx, 3xxx
+        # Buscar notas de ENTRADA emitidas por TERCEIROS com CFOP de ENTRADA (1xxx, 2xxx, 3xxx)
+        # Essas são potenciais devoluções de vendas da nossa empresa
+        # (Terceiro está devolvendo algo que compramos deles - usa CFOP de entrada como 1xxx)
         
-        # Buscar notas com CFOPs de ENTRADA emitidas por TERCEIROS
-        # (ou seja, notas que sua empresa RECEBEU de fornecedores)
-        # Que podem ser devoluções de vendas anteriores
-        notas_entrada_terceiros = await db.xml_documents.find({
+        notas_terceiros_cfop_entrada = await db.xml_documents.find({
             "company_id": company_id,
             "competencia": competencia,
-            # CFOP deve ser de entrada (1xxx, 2xxx, 3xxx)
-            "produtos.cfop": {"$regex": "^[123]"},
-            # NFe referenciada indica que é uma devolução
-            "nfe_referenciada": {"$exists": True, "$ne": None, "$ne": ""}
+            "tipo": "entrada",
+            # CFOPs de entrada (1xxx, 2xxx, 3xxx)
+            "produtos.cfop": {"$regex": "^[123]"}
         }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
             "emitente_cnpj": 1, "valor_total": 1, "data_emissao": 1, 
             "desconsiderada_devolucao": 1, "motivo_desconsideracao": 1,
-            "produtos": 1, "nfe_referenciada": 1}).to_list(length=1000)
+            "produtos": 1, "nfe_referenciada": 1}).to_list(length=2000)
         
-        # Filtrar apenas terceiros (CNPJ diferente da empresa)
+        # Filtrar apenas terceiros (CNPJ raiz diferente da empresa)
         notas_filtradas = []
-        for nota in notas_entrada_terceiros:
+        for nota in notas_terceiros_cfop_entrada:
             cnpj_emit = (nota.get('emitente_cnpj', '') or '').replace('.', '').replace('/', '').replace('-', '')
-            # Verificar se é realmente um terceiro (não a própria empresa ou filial)
-            if cnpj_emit and cnpj_emit[:8] != cnpj_empresa[:8]:  # Compara raiz do CNPJ
+            cnpj_emit_raiz = cnpj_emit[:8] if cnpj_emit else ""
+            
+            # Verificar se é terceiro (raiz do CNPJ diferente)
+            if cnpj_emit_raiz and cnpj_emit_raiz != cnpj_raiz:
                 notas_filtradas.append(nota)
         
-        # Para cada nota de entrada, buscar a nota de saída original referenciada
+        # Para cada nota, extrair CFOPs e buscar nota referenciada
         devolucoes_com_original = []
         for nota in notas_filtradas:
-            # Extrair CFOPs da nota - apenas os de entrada
-            cfops = list(set([str(p.get('cfop', '')) for p in nota.get('produtos', []) 
-                             if p.get('cfop') and str(p.get('cfop', ''))[0] in ['1', '2', '3']]))
+            # Extrair todos os CFOPs únicos da nota
+            cfops = list(set([str(p.get('cfop', '')) for p in nota.get('produtos', []) if p.get('cfop')]))
+            cfops_entrada = [c for c in cfops if c and c[0] in ['1', '2', '3']]
             
-            if not cfops:  # Se não tem CFOPs de entrada, pular
+            if not cfops_entrada:
                 continue
             
             dev_info = {
@@ -30468,7 +30468,8 @@ async def get_wizard_step_data(
                 "emitente_cnpj": nota.get("emitente_cnpj"),
                 "valor_total": nota.get("valor_total"),
                 "data_emissao": nota.get("data_emissao"),
-                "cfops": cfops,
+                "cfops": cfops,  # Todos os CFOPs
+                "cfops_entrada": cfops_entrada,  # Apenas os de entrada
                 "desconsiderada": nota.get("desconsiderada_devolucao", False),
                 "motivo_desconsideracao": nota.get("motivo_desconsideracao", ""),
                 "nota_original": None,
@@ -30476,10 +30477,9 @@ async def get_wizard_step_data(
                 "nfe_referenciada": nota.get("nfe_referenciada", "")
             }
             
-            # Tentar encontrar a nota de saída original pela chave referenciada
+            # Tentar encontrar a nota original pela chave referenciada
             nfe_ref = nota.get("nfe_referenciada", "")
             if nfe_ref and len(nfe_ref) >= 10:
-                # Buscar a nota original de SAÍDA da própria empresa
                 nota_original = await db.xml_documents.find_one({
                     "company_id": company_id,
                     "$or": [
@@ -30487,10 +30487,20 @@ async def get_wizard_step_data(
                         {"chave_nfe": {"$regex": nfe_ref[-20:] if len(nfe_ref) > 20 else nfe_ref}}
                     ]
                 }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, 
-                    "valor_total": 1, "data_emissao": 1, "desconsiderada_devolucao": 1})
+                    "valor_total": 1, "data_emissao": 1, "desconsiderada_devolucao": 1,
+                    "produtos": 1})
                 
                 if nota_original:
-                    dev_info["nota_original"] = nota_original
+                    # Extrair CFOPs da nota original também
+                    cfops_original = list(set([str(p.get('cfop', '')) for p in nota_original.get('produtos', []) if p.get('cfop')]))
+                    dev_info["nota_original"] = {
+                        "id": nota_original.get("id"),
+                        "numero_nfe": nota_original.get("numero_nfe"),
+                        "chave_nfe": nota_original.get("chave_nfe"),
+                        "valor_total": nota_original.get("valor_total"),
+                        "data_emissao": nota_original.get("data_emissao"),
+                        "cfops": cfops_original
+                    }
                     dev_info["nota_original_encontrada"] = True
             
             devolucoes_com_original.append(dev_info)
