@@ -18,7 +18,7 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 - Opção de "Importação Rápida" (sem classificação por IA)
 - Bulk insert otimizado no MongoDB
 
-### Importação em Lote (NOVO - 12/02/2026)
+### Importação em Lote
 - **3 formas de importação**:
   1. Upload via Interface Web (ZIP com estrutura de pastas)
   2. Script Python para servidor local (com cron)
@@ -27,7 +27,7 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 - Relatórios de importação (histórico, estatísticas)
 - **Arquivos**: `/app/backend/batch_import.py`, `/app/frontend/src/pages/BatchImport.js`
 
-### Módulo Reforma Tributária - IVA Dual (NOVO - 12/02/2026)
+### Módulo Reforma Tributária - IVA Dual
 - **Simulação CBS + IBS** para cenário 2027
 - Classificação automática por CFOP e NCM
 - **CST de Entradas** (Créditos): 50, 51, 52, 70
@@ -44,22 +44,39 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
   - Estatísticas por CST
 - **Arquivos**: `/app/backend/services/reforma_tributaria.py`, `/app/frontend/src/pages/ReformaTributaria.js`
 
+### Wizard de Fechamento Fiscal (NOVO - 13/02/2026)
+- **6 Etapas de Processamento**:
+  1. Notas Canceladas - Confirmar e processar notas fiscais canceladas
+  2. Devoluções de Fornecedores - Identificar devoluções e excluir notas referenciadas
+  3. Classificação de CFOPs - Converter e classificar CFOPs dos produtos
+  4. PIS/COFINS Entradas - Corrigir CST de PIS e COFINS nas entradas
+  5. PIS/COFINS Saídas - Corrigir CST de PIS e COFINS nas saídas
+  6. Reforma Tributária - Calcular IVA Dual (CBS + IBS)
+- **Funcionalidades**:
+  - Botões "Processar" em cada etapa na Central de Fechamento
+  - Navegação direta para etapa específica via URL (?step=X)
+  - Barra de progresso durante processamento
+  - Status individual de cada etapa (processado/não processado)
+  - Botões "Etapa Anterior" e "Próxima Etapa"
+  - Link "Voltar para Central"
+  - Persistência de estado no MongoDB
+- **Arquivos**: 
+  - `/app/frontend/src/pages/WizardFechamento.js`
+  - `/app/frontend/src/pages/AlertasPage.js` (Central de Fechamento)
+
 ### Módulo Simples Nacional
 - Dashboard específico com cálculo de alíquota efetiva
 - Suporte a ISS retido (aliquota_sem_iss)
 - Importação de PGDAS (PDF)
 
-### Correções na Sessão (12/02/2026)
-- ✅ Bug Celery corrigido (Redis instalado, task_routes removido, DB_NAME corrigido)
-- ✅ CFOPs 1915/1949 adicionados à lista de desconsideração
-- ✅ IA não reclassifica mais notas de terceiros com entrada
-- ✅ Validação de CFOP corrigida (notas de compra com CFOP 5xxx aceitas como entrada)
+## Endpoints do Wizard de Fechamento
 
-### Correções na Sessão (13/02/2026)
-- ✅ **Rolagem nas páginas corrigida**: Alterado CSS de `h-full overflow-y-auto` para `min-h-full` em:
-  - `/app/frontend/src/pages/BatchImport.js` (linha 129)
-  - `/app/frontend/src/pages/ClassificacaoInteligente.js` (linha 737)
-- ✅ Layout.js já possui `overflow-y-auto` no elemento `<main>`, permitindo rolagem natural das páginas
+- `GET /api/wizard-fechamento/status/{company_id}` - Status atual do wizard
+- `GET /api/wizard-fechamento/summary/{company_id}` - Resumo para a Central
+- `GET /api/wizard-fechamento/step/{company_id}/{step_id}` - Dados de uma etapa
+- `POST /api/wizard-fechamento/step/{company_id}/{step_id}/complete` - Completar etapa
+- `POST /api/wizard-fechamento/step/{company_id}/{step_id}/go` - Navegar para etapa
+- `POST /api/wizard-fechamento/reset/{company_id}` - Reiniciar wizard
 
 ## Endpoints da Reforma Tributária
 
@@ -82,6 +99,10 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 - Bug recorrente na alocação de competência fiscal
 - Verificar campo de data usado (`dhEmi` vs `dhSaiEnt`)
 
+### P1 - Problema de Deploy
+- Atualizações não aparecem em produção
+- Investigar CI/CD e cache
+
 ### P2 - Discrepância Dashboard vs SPED
 - Valores totais não batem entre dashboard e registro E110
 
@@ -98,12 +119,15 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 - Mover endpoints para estrutura de routers/
 - Separar lógica de negócio em services/
 
+### P1 - Relatórios por email
+- Enviar relatório por email ao final da importação em lote
+
 ## Backlog
 
 - Integração de CT-e (Conhecimentos de Transporte)
 - Testes automatizados de frontend (Cypress/Playwright)
 - Refatoração do WizardEmpresa.js
-- Notificações por email após importação em lote
+- Refatoração do Documents.js (+4000 linhas)
 
 ## Credenciais de Teste
 - **Super Admin**: alberto.lemes@businessconta.com.br / Business@2026
@@ -112,3 +136,18 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 - CBS: 8,80%
 - IBS: 17,70%
 - Total: 26,50%
+
+## Changelog
+
+### 13/02/2026
+- ✅ Implementado Wizard de Fechamento Fiscal com 6 etapas
+- ✅ Corrigido bug na navegação direta para etapa via URL
+- ✅ Corrigido bug no cálculo da Reforma Tributária (step 6)
+- ✅ Adicionada função auxiliar `get_filter_docs_nao_canceladas_ou_desconsideradas()`
+- ✅ Central de Alertas renomeada para Central de Fechamento
+- ✅ Adicionados botões "Processar" e "Reprocessar" por etapa
+
+### 12/02/2026
+- ✅ Corrigido bug de rolagem nas páginas
+- ✅ Corrigidos bugs da importação em lote
+- ✅ Implementada barra de progresso na importação em lote
