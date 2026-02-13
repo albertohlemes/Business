@@ -5943,36 +5943,36 @@ async def upload_xml_batch(
                     # - CFOPs já são de entrada (não são CFOPs de saída que serão convertidos)
                     # - E são CFOPs de devolução de entrada
                     if cfops_sao_entrada and is_devolucao_por_cfop:
+                        # CFOPs da lista CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL devem ser desconsiderados
+                        # MESMO SEM critérios adicionais (finNFe, NFe ref, natureza)
+                        # Isso garante consistência com a importação em lote
+                        
+                        cfops_unicos = list(set(cfops_xml))[:3]
                         is_devolucao_por_finalidade = str(finalidade_nfe) == '4'
                         is_devolucao_por_natureza = any(termo in natureza_operacao for termo in ['DEVOLUC', 'DEV ', 'DEVOL'])
                         tem_nfe_referenciada = bool(nfe_ref_devolucao and len(nfe_ref_devolucao) > 10)
                         
                         logger.info(f"DEBUG DEVOLUÇÃO: finNFe: {finalidade_nfe}, natOp: {natureza_operacao}, Tem NFe Ref: {tem_nfe_referenciada}")
                         
-                        # Confirmar com critérios adicionais para evitar falsos positivos
-                        if (is_devolucao_por_finalidade or 
-                            tem_nfe_referenciada or 
-                            is_devolucao_por_natureza):
-                            
-                            cfops_unicos = list(set(cfops_xml))[:3]
-                            
-                            logger.info(f"DEBUG DEVOLUÇÃO: DETECTADA! CFOPs únicos: {cfops_unicos}, NFe Ref: {nfe_ref_devolucao}")
-                            
-                            # Marcar como devolução do fornecedor (será processada mas desconsiderada)
-                            is_devolucao_fornecedor = True
-                            motivo_devolucao = f"Devolução emitida pelo fornecedor ({parsed_data.get('emitente_nome', '')[:40]}) - CFOP entrada: {', '.join(cfops_unicos)}, finNFe: {finalidade_nfe}"
-                            
-                            # Registrar para o relatório de retorno
-                            notas_devolucao_fornecedor.append({
-                                "tipo": "devolucao_entrada",
-                                "filename": file.filename,
-                                "chave_nfe": chave_nfe,
-                                "numero_nfe": parsed_data.get('numero_nfe', ''),
-                                "data_emissao": parsed_data.get('data_emissao', ''),
-                                "valor_total": parsed_data.get('valor_total', 0),
-                                "cfops": cfops_unicos,
-                                "emitente_cnpj": cnpj_emitente,
-                                "emitente_nome": parsed_data.get('emitente_nome', ''),
+                        # IMPORTANTE: CFOPs na lista global SEMPRE são desconsiderados
+                        # Critérios adicionais são apenas para log/documentação
+                        logger.info(f"DEBUG DEVOLUÇÃO: DETECTADA! CFOPs únicos: {cfops_unicos}, NFe Ref: {nfe_ref_devolucao}")
+                        
+                        # Marcar como devolução do fornecedor (será processada mas desconsiderada)
+                        is_devolucao_fornecedor = True
+                        motivo_devolucao = f"NF de terceiro com CFOP de devolução/bonificação ({parsed_data.get('emitente_nome', '')[:40]}) - CFOP: {', '.join(cfops_unicos)}"
+                        
+                        # Registrar para o relatório de retorno
+                        notas_devolucao_fornecedor.append({
+                            "tipo": "devolucao_entrada",
+                            "filename": file.filename,
+                            "chave_nfe": chave_nfe,
+                            "numero_nfe": parsed_data.get('numero_nfe', ''),
+                            "data_emissao": parsed_data.get('data_emissao', ''),
+                            "valor_total": parsed_data.get('valor_total', 0),
+                            "cfops": cfops_unicos,
+                            "emitente_cnpj": cnpj_emitente,
+                            "emitente_nome": parsed_data.get('emitente_nome', ''),
                                 "nfe_referenciada": nfe_ref_devolucao,
                                 "motivo": motivo_devolucao
                             })
