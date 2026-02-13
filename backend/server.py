@@ -7207,14 +7207,8 @@ async def upload_xml_with_progress(
     
     total_stats = {"from_cache": 0, "from_rules": 0, "from_ai": 0, "total": 0}
     
-    # CFOPs típicos de devolução de entrada
-    CFOPS_DEVOLUCAO_ENTRADA = ['1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209', '1210',
-                               '1411', '1410', '1503', '1504', '1553', '1660', '1661', '1662',
-                               '1920', '1921',  # Retorno de vasilhame/sacaria
-                               '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209', '2210',
-                               '2411', '2410', '2503', '2504', '2553', '2660', '2661', '2662',
-                               '2920', '2921',  # Retorno de vasilhame/sacaria interestadual
-                               '3201', '3202', '3211']
+    # Usar a lista global de CFOPs de devolução para garantir consistência
+    CFOPS_DEVOLUCAO_ENTRADA = CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL
     
     CFOPS_OPERACOES_DISTINTAS_UPLOAD = {
         '5910': 'Remessa em bonificação', '5911': 'Remessa de amostra grátis',
