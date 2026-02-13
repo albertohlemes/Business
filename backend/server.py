@@ -30742,9 +30742,33 @@ async def complete_wizard_step(
             actions_taken.append(f"Total: {total_desconsideradas} documentos excluídos da apuração")
     
     elif step_id == 3:  # Alertas de CFOP - Processar ações definidas
-        # Processar as ações definidas para cada CFOP
+        # IMPORTANTE: Buscar TODOS os CFOPs pendentes e aplicar ações
+        # Se o usuário não definiu ação para um CFOP, a ação padrão é "manter"
         acoes_cfops = step_data.get("acoes_cfops", {})
         
+        # 1. Primeiro, buscar TODOS os CFOPs únicos que estão pendentes
+        docs_pendentes = await db.xml_documents.find({
+            "company_id": company_id,
+            "competencia": competencia,
+            "tipo": "entrada",
+            "produtos.pendente_revisao_cfop": True
+        }).to_list(length=None)
+        
+        cfops_pendentes = set()
+        for doc in docs_pendentes:
+            for p in doc.get("produtos", []):
+                if p.get("pendente_revisao_cfop"):
+                    cfop = str(p.get("cfop", ""))
+                    if cfop:
+                        cfops_pendentes.add(cfop)
+        
+        # 2. Para cada CFOP pendente, aplicar a ação definida ou a ação padrão "manter"
+        for cfop in cfops_pendentes:
+            if cfop not in acoes_cfops:
+                # Ação padrão: manter o CFOP atual
+                acoes_cfops[cfop] = {"acao": "manter", "cfop_destino": cfop}
+        
+        # 3. Processar as ações
         for cfop, acao_data in acoes_cfops.items():
             # Suportar formato antigo (string) e novo (objeto)
             if isinstance(acao_data, str):
