@@ -713,20 +713,17 @@ const Documents = ({ user, onLogout }) => {
       return;
     }
     
-    // Para XMLs de entrada (NF-e entrada), mostrar modal de seleção de tipo de importação
-    if (isXmlUpload && operacao === 'entrada' && validFiles.length >= 1) {
+    // Para XMLs (entrada ou saída), mostrar modal de seleção de tipo de importação
+    if (isXmlUpload && validFiles.length >= 1) {
       setPendingUploadFiles(validFiles);
       setPendingUploadConfig(tipoConfig);
       setShowUploadTypeModal(true);
       return;
     }
     
-    // Para poucos arquivos XML ou arquivos não-XML, usar upload direto
-    if (!isXmlUpload || validFiles.length <= 10) {
+    // Para arquivos não-XML, usar upload direto
+    if (!isXmlUpload) {
       await handleDirectUpload(validFiles, tipoConfig, token);
-    } else {
-      // Para muitos XMLs, usar upload com streaming e SSE
-      await handleStreamingUpload(validFiles, tipoConfig, token);
     }
   };
 
