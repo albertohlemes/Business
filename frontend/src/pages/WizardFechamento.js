@@ -369,58 +369,115 @@ const WizardFechamento = ({ user, onLogout }) => {
           </div>
         );
       
-      case 3: // CFOPs Distintos - NOVA ETAPA
+      case 3: // CFOPs Distintos - Cards expandíveis
         return (
           <div className="space-y-4">
             <p className="text-[#A1A1AA]">
               Revise os CFOPs de operações distintas (remessa, conserto, consignação, etc.) e decida o que fazer com cada um.
             </p>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
-                <p className="text-3xl font-bold text-amber-400">{data.total_cfops || 0}</p>
-                <p className="text-sm text-[#666]">CFOPs Distintos</p>
+            <div className="grid grid-cols-4 gap-3">
+              <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-amber-400">{data.total_cfops || 0}</p>
+                <p className="text-xs text-[#666]">CFOPs</p>
               </div>
-              <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
-                <p className="text-3xl font-bold text-white">{data.total_produtos || 0}</p>
-                <p className="text-sm text-[#666]">Produtos Afetados</p>
+              <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-white">{data.total_produtos || 0}</p>
+                <p className="text-xs text-[#666]">Produtos</p>
+              </div>
+              <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-blue-400">{data.total_entradas || 0}</p>
+                <p className="text-xs text-[#666]">Entradas</p>
+              </div>
+              <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-emerald-400">{data.total_saidas || 0}</p>
+                <p className="text-xs text-[#666]">Saídas</p>
               </div>
             </div>
             
             {data.cfops_distintos?.length > 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm text-white font-medium">CFOPs encontrados:</p>
-                <div className="max-h-64 overflow-y-auto space-y-2">
-                  {data.cfops_distintos.map((cfop, idx) => (
-                    <div key={idx} className="bg-[#0C0C0C] rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <span className="text-purple-400 font-mono font-bold">{cfop.cfop}</span>
-                          <span className="text-white ml-2">{cfop.descricao}</span>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {data.cfops_distintos.map((cfopItem, idx) => (
+                  <div key={idx} className="bg-[#0C0C0C] rounded-lg overflow-hidden">
+                    {/* Header do CFOP - Clicável para expandir */}
+                    <div 
+                      className="p-4 cursor-pointer hover:bg-[#1a1a1a] transition-colors"
+                      onClick={(e) => {
+                        const target = e.currentTarget.nextElementSibling;
+                        if (target) target.classList.toggle('hidden');
+                        e.currentTarget.querySelector('.expand-icon')?.classList.toggle('rotate-180');
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className={`text-xs px-2 py-1 rounded ${cfopItem.tipo_operacao === 'entrada' ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                            {cfopItem.tipo_operacao === 'entrada' ? '↓ ENTRADA' : '↑ SAÍDA'}
+                          </span>
+                          <span className="text-purple-400 font-mono font-bold text-lg">{cfopItem.cfop}</span>
+                          <span className="text-white">{cfopItem.descricao}</span>
                         </div>
-                        <span className="text-xs text-[#666]">{cfop.produtos?.length || 0} produtos</span>
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs text-[#666]">{cfopItem.total_produtos || 0} produtos</span>
+                          <span className="text-emerald-400 font-medium">
+                            R$ {(cfopItem.total_valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                          </span>
+                          <ChevronDown className="w-5 h-5 text-[#666] expand-icon transition-transform" />
+                        </div>
                       </div>
-                      <p className="text-xs text-emerald-400">
-                        Total: R$ {(cfop.total_valor || 0).toFixed(2)}
-                      </p>
-                      <div className="mt-2 flex gap-2">
+                      
+                      {/* Seletor de ação */}
+                      <div className="mt-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
                         <select
-                          className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-sm text-white"
+                          className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm text-white"
                           defaultValue="ignorar"
                           onChange={(e) => {
                             const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
-                            acoes[cfop.cfop] = e.target.value;
+                            acoes[cfopItem.cfop] = e.target.value;
                             localStorage.setItem('wizard_acoes_cfops', JSON.stringify(acoes));
                           }}
                         >
-                          <option value="ignorar">Ignorar (manter original)</option>
+                          <option value="ignorar">Ignorar (manter CFOP original)</option>
                           <option value="desconsiderar">Desconsiderar da apuração</option>
-                          <option value="converter">Converter para compra (1102/2102)</option>
+                          <option value="converter_compra">Converter para compra (1102/2102)</option>
+                          <option value="converter_venda">Converter para venda (5102/6102)</option>
                         </select>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    
+                    {/* Conteúdo expandível - Notas e Produtos */}
+                    <div className="hidden border-t border-[#333] bg-[#0a0a0a] max-h-64 overflow-y-auto">
+                      {cfopItem.notas?.map((nota, nIdx) => (
+                        <div key={nIdx} className="p-3 border-b border-[#222] last:border-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-white font-medium">NF {nota.numero_nfe}</span>
+                              <span className="text-xs text-[#666]">{nota.data_emissao?.slice(0, 10)}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs text-[#888]">{nota.emitente}</span>
+                              <p className="text-emerald-400 text-sm">R$ {(nota.valor_total_nfe || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                            </div>
+                          </div>
+                          
+                          {/* Produtos da nota */}
+                          <div className="space-y-1 mt-2">
+                            {nota.produtos?.map((prod, pIdx) => (
+                              <div key={pIdx} className="flex items-center justify-between text-xs bg-[#111] rounded p-2">
+                                <div className="flex-1">
+                                  <p className="text-white truncate">{prod.descricao}</p>
+                                  <p className="text-[#666]">NCM: {prod.ncm || 'N/A'} | Qtd: {prod.quantidade}</p>
+                                </div>
+                                <span className="text-white ml-2">
+                                  R$ {(prod.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
