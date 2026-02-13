@@ -9653,8 +9653,10 @@ async def get_dashboard_stats(
     credito_icms_st_desconsiderado = 0  # Para mostrar quanto foi desconsiderado (ST)
     credito_icms_despesa_desconsiderado = 0  # Para mostrar quanto foi desconsiderado (Despesa)
     credito_icms_beneficio_desconsiderado = 0  # Para mostrar quanto foi desconsiderado (Benefício Fiscal)
-    credito_pis = 0
-    credito_cofins = 0
+    credito_pis = 0  # Valor CALCULADO
+    credito_cofins = 0  # Valor CALCULADO
+    credito_pis_xml = 0  # Valor do XML (para comparação)
+    credito_cofins_xml = 0  # Valor do XML (para comparação)
     
     # Base de crédito para PIS/COFINS no Lucro Real (produtos que geram direito a crédito)
     # Considera a classificação do produto (categoria, NCM, CST, CFOP)
