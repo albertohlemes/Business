@@ -30392,7 +30392,51 @@ async def get_wizard_step_data(
             "cfops_devolucao": CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL
         }
     
-    elif step_id == 3:  # Classificação de CFOPs
+    elif step_id == 3:  # CFOPs Distintos - NOVA ETAPA
+        # Buscar documentos com CFOPs de operações distintas que precisam revisão
+        cfops_distintos_list = list(CFOPS_OPERACOES_DISTINTAS.keys())
+        
+        docs_com_cfops_distintos = await db.xml_documents.find({
+            **base_filter,
+            "tipo": "entrada",
+            "produtos.cfop": {"$in": cfops_distintos_list}
+        }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
+            "valor_total": 1, "data_emissao": 1, "produtos": 1}).to_list(length=None)
+        
+        # Agrupar por CFOP e listar os produtos
+        cfops_agrupados = {}
+        for doc in docs_com_cfops_distintos:
+            for p in doc.get("produtos", []):
+                cfop = p.get("cfop", "")
+                if cfop in CFOPS_OPERACOES_DISTINTAS:
+                    if cfop not in cfops_agrupados:
+                        cfops_agrupados[cfop] = {
+                            "cfop": cfop,
+                            "descricao": CFOPS_OPERACOES_DISTINTAS[cfop],
+                            "produtos": [],
+                            "total_valor": 0
+                        }
+                    cfops_agrupados[cfop]["produtos"].append({
+                        "doc_id": doc["id"],
+                        "nfe": doc.get("numero_nfe", ""),
+                        "emitente": doc.get("emitente_nome", ""),
+                        "produto_descricao": p.get("descricao", ""),
+                        "valor": p.get("valor_total", 0)
+                    })
+                    cfops_agrupados[cfop]["total_valor"] += p.get("valor_total", 0) or 0
+        
+        result["data"] = {
+            "cfops_distintos": list(cfops_agrupados.values()),
+            "total_cfops": len(cfops_agrupados),
+            "total_produtos": sum(len(c["produtos"]) for c in cfops_agrupados.values()),
+            "opcoes_acao": [
+                {"id": "ignorar", "label": "Ignorar (não classificar)", "description": "Mantém o CFOP original sem alteração"},
+                {"id": "desconsiderar", "label": "Desconsiderar da apuração", "description": "Exclui da apuração fiscal"},
+                {"id": "converter", "label": "Converter para compra", "description": "Converte para CFOP de compra (1102/2102)"}
+            ]
+        }
+    
+    elif step_id == 4:  # Classificação de CFOPs (antigo step 3)
         # Buscar produtos sem classificação ou pendentes - SEM LIMITE para contar corretamente
         docs_entrada = await db.xml_documents.find({
             **base_filter,
