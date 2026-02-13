@@ -172,6 +172,7 @@ const Documents = ({ user, onLogout }) => {
   const [zipSelectedFiles, setZipSelectedFiles] = useState([]);
   const [zipFileName, setZipFileName] = useState('');
   const [skipAiClassification, setSkipAiClassification] = useState(false);  // Modo rápido sem IA
+  const [forceBackgroundUpload, setForceBackgroundUpload] = useState(false);  // Forçar uso do Celery
 
   // Carregar documentos quando selecionar tipo ou mudar filtro
   useEffect(() => {
