@@ -4049,7 +4049,7 @@ const Documents = ({ user, onLogout }) => {
                   onClick={handleZipConfirm}
                   disabled={zipSelectedFiles.length === 0}
                   className={`flex items-center gap-2 px-6 py-2.5 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
-                    zipSelectedFiles.length >= 500 
+                    (zipSelectedFiles.length >= 100 || forceBackgroundUpload)
                       ? 'bg-purple-500 hover:bg-purple-600' 
                       : skipAiClassification
                         ? 'bg-amber-500 hover:bg-amber-600'
@@ -4057,7 +4057,7 @@ const Documents = ({ user, onLogout }) => {
                   }`}
                 >
                   <Upload className="w-4 h-4" />
-                  {zipSelectedFiles.length >= 500 ? (
+                  {(zipSelectedFiles.length >= 100 || forceBackgroundUpload) ? (
                     <>Processar em Background ({zipSelectedFiles.length})</>
                   ) : skipAiClassification ? (
                     <>Importar Rápido ({zipSelectedFiles.length})</>
