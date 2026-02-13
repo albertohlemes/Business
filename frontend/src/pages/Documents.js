@@ -612,9 +612,21 @@ const Documents = ({ user, onLogout }) => {
       toast.dismiss('bg-upload');
       console.error('Erro no upload em background:', err);
       
-      // Fallback para upload normal se background não disponível
-      if (err.response?.status === 503) {
-        toast.error('Processamento em background não disponível. Usando modo normal...');
+      // Fallback para upload streaming em caso de:
+      // - 503 (serviço não disponível)
+      // - Timeout (ECONNABORTED)
+      // - Erro de rede (Network Error)
+      // - Erro 520/522 (Cloudflare timeout)
+      const shouldFallback = 
+        err.response?.status === 503 ||
+        err.response?.status === 520 ||
+        err.response?.status === 522 ||
+        err.code === 'ECONNABORTED' ||
+        err.message?.includes('Network Error') ||
+        err.message?.includes('timeout');
+      
+      if (shouldFallback) {
+        toast.info('Upload em background não disponível. Usando modo streaming...', { duration: 4000 });
         await handleStreamingUpload(files, tipoConfig, token, skipAi);
       } else {
         toast.error(err.response?.data?.detail || 'Erro ao enviar para processamento em background');
