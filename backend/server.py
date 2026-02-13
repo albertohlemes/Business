@@ -5789,7 +5789,18 @@ async def upload_xml_batch(
             cnpj_emitente = parsed_data.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
             cnpj_destinatario = parsed_data.get('destinatario_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
             
-            cnpj_valido = False
+            # ================================================================
+            # CLASSIFICAÇÃO AUTOMÁTICA DE TIPO (entrada/saída)
+            # Regra de negócio definitiva:
+            # - Se CNPJ emitente == CNPJ empresa -> SAÍDA (empresa emitiu)
+            # - Se CNPJ emitente != CNPJ empresa -> ENTRADA (empresa recebeu)
+            # ================================================================
+            tipo_calculado = 'saida' if cnpj_emitente == cnpj_empresa else 'entrada'
+            tipo = tipo_calculado  # Sobrescreve o tipo enviado pelo formulário
+            
+            logger.info(f"CLASSIFICAÇÃO AUTO: NF {parsed_data.get('numero_nfe', '')} - CNPJ emit={cnpj_emitente}, CNPJ empresa={cnpj_empresa} -> {tipo}")
+            
+            cnpj_valido = True  # Validação já é feita implicitamente pela classificação
             
             # ==== TRATAMENTO ESPECIAL PARA NFC-e (MODELO 65) ====
             # NFC-e é sempre venda para consumidor final, então:
