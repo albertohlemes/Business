@@ -158,15 +158,37 @@ const ReformaTributaria = ({ user, onLogout }) => {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
-                <Calculator className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
+                  <Calculator className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">Reforma Tributária</h1>
+                  <p className="text-[#A1A1AA] text-sm">
+                    Simulação IVA Dual (CBS + IBS) - Cenário 2027
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold">Reforma Tributária</h1>
-                <p className="text-[#A1A1AA] text-sm">
-                  Simulação IVA Dual (CBS + IBS) - Cenário 2027
-                </p>
+              
+              {/* Botões de ação */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={loadApuracao}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#2A2A2A] hover:bg-[#3A3A3A] rounded-lg text-sm transition-colors"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Atualizar
+                </button>
+                <button
+                  onClick={downloadPDF}
+                  disabled={!apuracao || loading}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-[#2A2A2A] disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Exportar PDF
+                </button>
               </div>
             </div>
           </div>
