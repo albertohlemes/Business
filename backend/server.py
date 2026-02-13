@@ -29753,17 +29753,8 @@ async def batch_import_upload_estrutura(
                         if tipo == "entrada" and modelo == "nfe":
                             cfops_produtos = [p.get('cfop', '') for p in parsed.get('produtos', [])]
                             
-                            # CFOPs de devolução/bonificação de terceiros para desconsiderar
-                            CFOPS_DEVOLUCAO_TERCEIROS = [
-                                '1201', '1202', '1203', '1204', '1208', '1209', '1410', '1411', '1503', '1504',
-                                '1553', '1660', '1661', '1662', '1915', '1916', '1918', '1919', '1920', '1921',
-                                '1949', '2201', '2202', '2203', '2204', '2208', '2209', '2410', '2411', '2503',
-                                '2504', '2553', '2660', '2661', '2662', '2915', '2916', '2918', '2919', '2920',
-                                '2921', '2949'
-                            ]
-                            
-                            # Verificar se deve desconsiderar
-                            cfops_devolucao = [c for c in cfops_produtos if c in CFOPS_DEVOLUCAO_TERCEIROS]
+                            # Verificar se deve desconsiderar (usando constante global)
+                            cfops_devolucao = [c for c in cfops_produtos if c in CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL]
                             if cfops_devolucao and not is_emissao_propria:
                                 desconsiderada_devolucao = True
                                 motivo_desconsideracao = f"NF de terceiro com CFOP de devolução/bonificação ({', '.join(cfops_devolucao[:3])})"
