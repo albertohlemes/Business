@@ -30283,12 +30283,12 @@ async def get_wizard_step_data(
         }
     
     elif step_id == 5:  # PIS/COFINS Saídas
-        # Similar ao passo 4, mas para saídas
+        # Similar ao passo 4, mas para saídas - SEM LIMITE para totalizar corretamente
         docs_saida = await db.xml_documents.find({
             **base_filter,
             "tipo": "saida"
         }, {"_id": 0, "id": 1, "numero_nfe": 1, "destinatario_nome": 1, "valor_total": 1,
-            "produtos": 1}).to_list(length=200)
+            "produtos": 1, "modelo": 1}).to_list(length=None)
         
         total_docs = len(docs_saida)
         
