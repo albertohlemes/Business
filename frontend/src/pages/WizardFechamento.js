@@ -635,6 +635,25 @@ const WizardFechamento = ({ user, onLogout }) => {
               </div>
             </div>
             
+            {/* Barra de Progresso durante processamento */}
+            {stepProgress && (
+              <div className="mb-6 bg-[#0C0C0C] rounded-xl p-4 border border-purple-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-purple-300 font-medium">{stepProgress.phase}</span>
+                  <span className="text-sm text-white font-bold">{Math.round(stepProgress.percent)}%</span>
+                </div>
+                <div className="h-2 bg-[#1A1A1A] rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-300 ease-out"
+                    style={{ width: `${stepProgress.percent}%` }}
+                  />
+                </div>
+                {stepProgress.detail && (
+                  <p className="text-xs text-[#666] mt-2">{stepProgress.detail}</p>
+                )}
+              </div>
+            )}
+            
             {renderStepContent()}
           </div>
 
