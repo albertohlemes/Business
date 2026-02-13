@@ -199,14 +199,12 @@ async def _process_xmls_async(task, job_id: str, xml_contents: List[Dict],
                     if cnpj_el is not None and cnpj_el.text:
                         cnpj_emitente = cnpj_el.text.strip()
             
-            # Validar CNPJ para tipo de operação
-            if tipo == 'saida' and cnpj_emitente != cnpj_empresa:
-                rejeitadas_cnpj.append({
-                    'filename': filename, 
-                    'cnpj_xml': cnpj_emitente,
-                    'cnpj_empresa': cnpj_empresa
-                })
-                continue
+            # CLASSIFICAÇÃO AUTOMÁTICA baseada na regra de negócio:
+            # - Se CNPJ emitente == CNPJ empresa -> SAÍDA (empresa emitiu)
+            # - Se CNPJ emitente != CNPJ empresa -> ENTRADA (empresa recebeu)
+            tipo_calculado = 'saida' if cnpj_emitente == cnpj_empresa else 'entrada'
+            
+            logger.debug(f"CELERY-TASK: Classificação - CNPJ emit={cnpj_emitente}, CNPJ empresa={cnpj_empresa} -> {tipo_calculado}")
             
             # Extrair dados básicos
             ide = root.find('.//nfe:ide', ns) or root.find('.//ide')
