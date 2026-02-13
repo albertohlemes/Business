@@ -544,9 +544,9 @@ const Documents = ({ user, onLogout }) => {
     // Para muitos arquivos (100+) OU se forçado, usar upload em background (Celery)
     if (selectedFiles.length >= 100 || forceBackgroundUpload) {
       toast.info(`${selectedFiles.length} arquivos - usando processamento em background (Celery)`, { duration: 4000 });
-      await handleBackgroundUpload(selectedFiles, tipoConfig, token);
+      await handleBackgroundUpload(selectedFiles, tipoConfig, token, skipAiClassification);
     } else if (selectedFiles.length <= 10) {
-      await handleDirectUpload(selectedFiles, tipoConfig, token);
+      await handleDirectUpload(selectedFiles, tipoConfig, token, skipAiClassification);
     } else {
       await handleStreamingUpload(selectedFiles, tipoConfig, token, skipAiClassification);
     }
