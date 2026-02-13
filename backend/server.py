@@ -30799,6 +30799,9 @@ async def complete_wizard_step(
                 # Converter para CFOP de compra (entradas)
                 cfop_destino = cfop_destino_manual or ("1102" if cfop.startswith("1") else "2102")
                 
+                # Determinar categoria baseada no CFOP de destino
+                categoria_cfop = obter_categoria_por_cfop(cfop_destino)
+                
                 docs = await db.xml_documents.find({
                     "company_id": company_id,
                     "competencia": competencia,
@@ -30816,6 +30819,15 @@ async def complete_wizard_step(
                             p["cfop"] = cfop_destino
                             p["pendente_revisao_cfop"] = False
                             p["cfop_convertido_wizard"] = True
+                            p["cfop_revisado_em"] = datetime.now(timezone.utc).isoformat()
+                            
+                            # SINCRONIZAR com Classificação Inteligente
+                            if categoria_cfop:
+                                p["categoria"] = categoria_cfop
+                                p["categoria_classificada"] = categoria_cfop
+                                p["categoria_origem"] = "wizard_converter_compra"
+                                p["categoria_classificada_em"] = datetime.now(timezone.utc).isoformat()
+                            
                             alterado = True
                             count += 1
                     
@@ -30825,7 +30837,7 @@ async def complete_wizard_step(
                             {"$set": {"produtos": produtos_atualizados}}
                         )
                 
-                actions_taken.append(f"CFOP {cfop} → {cfop_destino}: {count} produtos convertidos")
+                actions_taken.append(f"CFOP {cfop} → {cfop_destino}: {count} produtos convertidos e classificados")
             
             elif acao == "converter_manual" and cfop_destino_manual:
                 # Converter para CFOP digitado manualmente
