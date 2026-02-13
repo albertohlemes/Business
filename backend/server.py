@@ -30906,6 +30906,44 @@ async def complete_wizard_step(
                         )
                 
                 actions_taken.append(f"CFOP {cfop} → {cfop_destino}: {count} produtos convertidos e classificados (manual)")
+        
+        # 4. SINCRONIZAÇÃO FINAL: Garantir que NENHUM produto ficou com pendente_revisao_cfop=True
+        # Isso é uma proteção extra para garantir consistência
+        remaining = await db.xml_documents.find({
+            "company_id": company_id,
+            "competencia": competencia,
+            "tipo": "entrada",
+            "produtos.pendente_revisao_cfop": True
+        }).to_list(length=None)
+        
+        total_remanescentes = 0
+        for doc in remaining:
+            produtos = doc.get("produtos", [])
+            alterado = False
+            for p in produtos:
+                if p.get("pendente_revisao_cfop"):
+                    cfop = str(p.get("cfop", ""))
+                    categoria = obter_categoria_por_cfop(cfop) if cfop else "revenda"
+                    
+                    p["pendente_revisao_cfop"] = False
+                    p["cfop_revisado_wizard"] = True
+                    p["cfop_revisado_em"] = datetime.now(timezone.utc).isoformat()
+                    p["categoria"] = categoria
+                    p["categoria_classificada"] = categoria
+                    p["categoria_origem"] = "wizard_auto_sync"
+                    p["categoria_classificada_em"] = datetime.now(timezone.utc).isoformat()
+                    
+                    alterado = True
+                    total_remanescentes += 1
+            
+            if alterado:
+                await db.xml_documents.update_one(
+                    {"id": doc["id"]},
+                    {"$set": {"produtos": produtos}}
+                )
+        
+        if total_remanescentes > 0:
+            actions_taken.append(f"Sincronização: {total_remanescentes} produtos adicionais resolvidos automaticamente")
     
     
     elif step_id == 4:  # Classificação de CFOPs (antigo step 3)
