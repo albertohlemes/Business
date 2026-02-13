@@ -15,7 +15,7 @@ const BackgroundJobsIndicator = () => {
     if (!token) return;
 
     try {
-      const response = await axios.get(`${API}/xml/jobs?limit=10`, {
+      const response = await axios.get(`${API}/api/xml/jobs?limit=10`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -33,7 +33,7 @@ const BackgroundJobsIndicator = () => {
     if (!token) return null;
 
     try {
-      const response = await axios.get(`${API}/xml/job-status/${jobId}`, {
+      const response = await axios.get(`${API}/api/xml/job-status/${jobId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       return response.data;
