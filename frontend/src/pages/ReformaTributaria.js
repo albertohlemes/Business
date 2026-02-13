@@ -123,6 +123,35 @@ const ReformaTributaria = ({ user, onLogout }) => {
     return `${(value || 0).toFixed(2)}%`;
   };
 
+  // Download PDF
+  const downloadPDF = async () => {
+    if (!selectedCompany?.id || !selectedCompetencia) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/api/reforma-tributaria/relatorio-pdf/${selectedCompany.id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { competencia: selectedCompetencia },
+          responseType: 'blob'
+        }
+      );
+      
+      // Criar link de download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Reforma_Tributaria_${selectedCompetencia.replace('/', '-')}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Erro ao baixar PDF:', err);
+    }
+  };
+
   return (
     <Layout user={user} onLogout={onLogout}>
       <div className="min-h-screen bg-[#0C0C0C] text-white p-6">
