@@ -30848,9 +30848,17 @@ async def complete_wizard_step(
     
     elif step_id == 3:  # CFOPs Distintos - Entradas e Saídas
         # Processar as ações definidas para cada CFOP distinto
-        acoes_cfops = step_data.get("acoes_cfops", {})  # {cfop: "ignorar|desconsiderar|converter_compra|converter_venda"}
+        acoes_cfops = step_data.get("acoes_cfops", {})
         
-        for cfop, acao in acoes_cfops.items():
+        for cfop, acao_data in acoes_cfops.items():
+            # Suportar formato antigo (string) e novo (objeto)
+            if isinstance(acao_data, str):
+                acao = acao_data
+                cfop_destino_manual = None
+            else:
+                acao = acao_data.get("acao", "ignorar")
+                cfop_destino_manual = acao_data.get("cfop_destino")
+            
             if acao == "desconsiderar":
                 # Marcar documentos com esse CFOP como desconsiderados
                 result = await db.xml_documents.update_many(
@@ -30928,8 +30936,38 @@ async def complete_wizard_step(
                 
                 actions_taken.append(f"CFOP {cfop}: {count} produtos convertidos para {cfop_destino}")
             
+            elif acao == "converter_manual" and cfop_destino_manual:
+                # Converter para CFOP digitado manualmente
+                cfop_destino = str(cfop_destino_manual)
+                
+                docs = await db.xml_documents.find({
+                    "company_id": company_id,
+                    "competencia": competencia,
+                    "produtos.cfop": cfop
+                }).to_list(length=1000)
+                
+                count = 0
+                for doc in docs:
+                    produtos_atualizados = doc.get("produtos", [])
+                    alterado = False
+                    for p in produtos_atualizados:
+                        if str(p.get("cfop")) == cfop:
+                            p["cfop_original_distinto"] = cfop
+                            p["cfop"] = cfop_destino
+                            p["cfop_convertido_wizard"] = True
+                            alterado = True
+                            count += 1
+                    
+                    if alterado:
+                        await db.xml_documents.update_one(
+                            {"id": doc["id"]},
+                            {"$set": {"produtos": produtos_atualizados}}
+                        )
+                
+                actions_taken.append(f"CFOP {cfop}: {count} produtos convertidos para {cfop_destino} (manual)")
+            
             elif acao == "ignorar":
-                actions_taken.append(f"CFOP {cfop}: ignorado (mantido sem alteração)")
+                actions_taken.append(f"CFOP {cfop}: mantido sem alteração")
     
     elif step_id == 4:  # Classificação de CFOPs (antigo step 3)
         # Classificar produtos com IA se necessário
