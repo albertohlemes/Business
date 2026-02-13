@@ -451,7 +451,7 @@ const WizardFechamento = ({ user, onLogout }) => {
           </div>
         );
       
-      case 4: // PIS/COFINS Entradas
+      case 5: // PIS/COFINS Entradas
         return (
           <div className="space-y-4">
             <p className="text-[#A1A1AA]">
@@ -507,7 +507,7 @@ const WizardFechamento = ({ user, onLogout }) => {
           </div>
         );
       
-      case 5: // PIS/COFINS Saídas
+      case 6: // PIS/COFINS Saídas
         return (
           <div className="space-y-4">
             <p className="text-[#A1A1AA]">
@@ -546,7 +546,7 @@ const WizardFechamento = ({ user, onLogout }) => {
           </div>
         );
       
-      case 6: // Reforma Tributária
+      case 7: // Reforma Tributária
         return (
           <div className="space-y-4">
             <p className="text-[#A1A1AA]">
