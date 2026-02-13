@@ -24,6 +24,7 @@ const STEP_ICONS = {
 
 const WizardFechamento = ({ user, onLogout }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { selectedCompany, selectedCompetencia } = useAppContext();
   const [loading, setLoading] = useState(true);
   const [wizard, setWizard] = useState(null);
@@ -32,6 +33,7 @@ const WizardFechamento = ({ user, onLogout }) => {
   const [processing, setProcessing] = useState(false);
   const [expandedItems, setExpandedItems] = useState({});
   const [stepProgress, setStepProgress] = useState(null);  // Progresso da etapa atual
+  const [initialStepLoaded, setInitialStepLoaded] = useState(false);  // Flag para carregar etapa inicial
 
   // Carregar status do wizard
   const loadWizardStatus = useCallback(async () => {
