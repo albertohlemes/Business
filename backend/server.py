@@ -7547,107 +7547,23 @@ async def upload_xml_with_progress(
                 # CT-e validado, pular para o processamento normal
                 # (não passa pelas validações de NF-e abaixo)
             
-            # ==== DETECTAR NOTA DA PRÓPRIA EMPRESA (EMITENTE = DESTINATÁRIO) ==== (apenas para NF-e/NFC-e)
-            # Quando a empresa é emitente E destinatária, devemos:
-            # - Preservar o CFOP original (sem conversão)
-            # - Importar apenas no tipo correspondente ao CFOP
-            # - CFOP 5xxx/6xxx → apenas SAÍDA (desconsiderar entrada)
-            # - CFOP 1xxx/2xxx → apenas ENTRADA (desconsiderar saída)
-            # NOTA: CT-e já foi validado acima, pular esta seção
-            if modelo != '57' and xml_type != 'cte' and cnpj_emitente == cnpj_empresa and cnpj_destinatario == cnpj_empresa:
-                cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
-                cfops_saida = [c for c in cfops_xml if c and len(c) >= 1 and c[0] in ['5', '6', '7']]
-                cfops_entrada = [c for c in cfops_xml if c and len(c) >= 1 and c[0] in ['1', '2', '3']]
-                
-                logger.info(f"MESMA EMPRESA: NF {parsed_data.get('numero_nfe')} - Emitente=Destinatário={cnpj_empresa}")
-                logger.info(f"MESMA EMPRESA: CFOPs saída: {cfops_saida}, CFOPs entrada: {cfops_entrada}, Tipo import: {tipo}")
-                
-                # Determinar se os CFOPs são de saída ou entrada
-                if len(cfops_saida) >= len(cfops_entrada):
-                    # Maioria dos CFOPs são de saída - esta NF é de SAÍDA
-                    if tipo == 'entrada':
-                        # Tentando importar como ENTRADA uma NF de SAÍDA - DESCONSIDERAR
-                        is_mesma_empresa = True
-                        motivo_desconsideracao_mesma_empresa = f"NF emitida pela própria empresa com CFOP de saída ({', '.join(cfops_saida[:3])}). Deve ser escriturada apenas como SAÍDA."
-                        logger.info(f"MESMA EMPRESA: DESCONSIDERANDO na entrada - {motivo_desconsideracao_mesma_empresa}")
-                else:
-                    # Maioria dos CFOPs são de entrada - esta NF é de ENTRADA
-                    if tipo == 'saida':
-                        # Tentando importar como SAÍDA uma NF de ENTRADA - DESCONSIDERAR
-                        is_mesma_empresa = True
-                        motivo_desconsideracao_mesma_empresa = f"NF emitida pela própria empresa com CFOP de entrada ({', '.join(cfops_entrada[:3])}). Deve ser escriturada apenas como ENTRADA."
-                        logger.info(f"MESMA EMPRESA: DESCONSIDERANDO na saída - {motivo_desconsideracao_mesma_empresa}")
-                
-                # Se for desconsiderada, pular para o próximo arquivo
-                if is_mesma_empresa:
-                    # Registrar como nota desconsiderada (não erro, apenas informativo)
-                    results.append({
-                        "filename": file.filename,
-                        "status": "desconsiderada_mesma_empresa",
-                        "numero_nfe": parsed_data.get('numero_nfe', ''),
-                        "chave": chave_nfe,
-                        "motivo": motivo_desconsideracao_mesma_empresa,
-                        "cfops": cfops_saida if cfops_saida else cfops_entrada
-                    })
-                    continue
+            # Com a classificação automática, NF-e/NFC-e já foi classificado corretamente
+            # Apenas precisamos detectar devoluções do fornecedor para entradas
             
             # Se for CT-e, já foi validado acima - pular validações de NF-e
             if modelo == '57' or xml_type == 'cte':
                 pass  # CT-e já validado, continua para o processamento
             elif tipo == 'entrada':
-                # ==== VALIDAÇÃO SIMPLIFICADA PARA ENTRADA ====
-                # REGRA: Aceitar se:
-                # 1. Destinatário é a empresa (entrada normal) OU
-                # 2. Emitente é a empresa E CFOPs são de entrada (1xxx/2xxx/3xxx) - emissão própria entrada
-                
-                cfops_xml_check = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
-                cfops_sao_entrada = any(
-                    cfop and len(cfop) >= 1 and cfop[0] in ['1', '2', '3'] 
-                    for cfop in cfops_xml_check if cfop
-                )
-                
-                # Emissão própria com CFOP de entrada = aceitar como entrada
-                is_emissao_propria_entrada = (cnpj_emitente == cnpj_empresa and cfops_sao_entrada)
-                
-                # Entrada normal = destinatário é a empresa
-                is_entrada_normal = (cnpj_destinatario == cnpj_empresa)
-                
-                cnpj_valido = is_emissao_propria_entrada or is_entrada_normal
-                
-                if is_emissao_propria_entrada:
-                    logger.info(f"VALIDAÇÃO ENTRADA (EMISSÃO PRÓPRIA): NF {parsed_data.get('numero_nfe')} - CFOPs {cfops_xml_check[:3]} - ACEITO")
-                else:
-                    logger.info(f"VALIDAÇÃO ENTRADA: NF {parsed_data.get('numero_nfe')} - Dest: {cnpj_destinatario}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
-                
-                if not cnpj_valido:
-                    rejeitadas_cnpj.append({
-                        "filename": file.filename,
-                        "numero_nfe": parsed_data.get('numero_nfe', ''),
-                        "motivo": f"CNPJ do destinatário ({cnpj_destinatario}) não corresponde à empresa selecionada ({cnpj_empresa})",
-                        "emitente": parsed_data.get('emitente_nome', ''),
-                        "destinatario": parsed_data.get('destinatario_nome', '')
-                    })
-                    continue
-                
                 # ==== DETECTAR DEVOLUÇÃO DO FORNECEDOR ====
                 # IMPORTANTE: Desconsiderar APENAS quando:
-                # 1. Emitente é TERCEIRO (fornecedor) - já verificado acima
-                # 2. CFOP no XML já é de ENTRADA (1xxx/2xxx) - não foi convertido
+                # 1. Emitente é TERCEIRO (fornecedor) - tipo='entrada' pela classificação automática
+                # 2. CFOP no XML já é de ENTRADA (1xxx/2xxx)
                 # 3. CFOP é de devolução de entrada (1411, 2411, 1201, 2201, etc.)
-                # 
-                # NÃO desconsiderar quando:
-                # - CFOP no XML é de SAÍDA (5xxx/6xxx) que será convertido para entrada
-                # - Essas são devoluções de compra que fizemos, devem ser escrituradas normalmente
                 
-                if cnpj_emitente != cnpj_empresa:
-                    finalidade_nfe = parsed_data.get('finalidade_nfe', '1')
-                    natureza_operacao = parsed_data.get('natureza_operacao', '').upper()
-                    cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
-                    nfe_ref_devolucao = parsed_data.get('nfe_referenciada', '') or ''
-                    
-                    # Verificar se TODOS os CFOPs já são de ENTRADA (1xxx, 2xxx, 3xxx)
-                    # Se tiver CFOP de saída (5xxx, 6xxx), não é devolução do fornecedor
-                    cfops_sao_entrada = all(
+                finalidade_nfe = parsed_data.get('finalidade_nfe', '1')
+                natureza_operacao = parsed_data.get('natureza_operacao', '').upper()
+                cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
+                nfe_ref_devolucao = parsed_data.get('nfe_referenciada', '') or ''
                         cfop and len(cfop) >= 1 and cfop[0] in ['1', '2', '3'] 
                         for cfop in cfops_xml if cfop
                     )
