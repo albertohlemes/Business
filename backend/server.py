@@ -30419,15 +30419,13 @@ async def get_wizard_step_data(
             "total": len(canceladas)
         }
     
-    elif step_id == 2:  # Devoluções - Notas de entrada com CFOP de entrada emitidas por terceiros
+    elif step_id == 2:  # Devoluções - Notas de entrada com CFOP de entrada emitidas por terceiros/filiais
         # Buscar a empresa para pegar o CNPJ
         company = await db.companies.find_one({"id": company_id}, {"_id": 0, "cnpj": 1})
         cnpj_empresa = (company.get('cnpj', '') if company else '').replace('.', '').replace('/', '').replace('-', '')
-        cnpj_raiz = cnpj_empresa[:8] if cnpj_empresa else ""
         
-        # Buscar notas de ENTRADA emitidas por TERCEIROS com CFOP de ENTRADA (1xxx, 2xxx, 3xxx)
+        # Buscar notas de ENTRADA emitidas por TERCEIROS/FILIAIS com CFOP de ENTRADA (1xxx, 2xxx, 3xxx)
         # Essas são potenciais devoluções de vendas da nossa empresa
-        # (Terceiro está devolvendo algo que compramos deles - usa CFOP de entrada como 1xxx)
         
         notas_terceiros_cfop_entrada = await db.xml_documents.find({
             "company_id": company_id,
@@ -30440,14 +30438,13 @@ async def get_wizard_step_data(
             "desconsiderada_devolucao": 1, "motivo_desconsideracao": 1,
             "produtos": 1, "nfe_referenciada": 1}).to_list(length=2000)
         
-        # Filtrar apenas terceiros (CNPJ raiz diferente da empresa)
+        # Filtrar apenas terceiros/filiais (CNPJ COMPLETO diferente da empresa)
         notas_filtradas = []
         for nota in notas_terceiros_cfop_entrada:
             cnpj_emit = (nota.get('emitente_cnpj', '') or '').replace('.', '').replace('/', '').replace('-', '')
-            cnpj_emit_raiz = cnpj_emit[:8] if cnpj_emit else ""
             
-            # Verificar se é terceiro (raiz do CNPJ diferente)
-            if cnpj_emit_raiz and cnpj_emit_raiz != cnpj_raiz:
+            # Verificar se é terceiro/filial (CNPJ completo diferente)
+            if cnpj_emit and cnpj_emit != cnpj_empresa:
                 notas_filtradas.append(nota)
         
         # Para cada nota, extrair CFOPs e buscar nota referenciada
