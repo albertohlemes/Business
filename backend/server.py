@@ -10175,7 +10175,10 @@ async def get_dashboard_stats(
             "produtos_beneficio_excluidos": produtos_beneficio_excluidos[:50],  # Limitar a 50 para não sobrecarregar
             "total_produtos_beneficio_excluidos": len(produtos_beneficio_excluidos),
             "pis": round(credito_pis, 2),
+            "pis_xml": round(credito_pis_xml, 2) if regime_tributario == 'lucro_real' else None,
             "cofins": round(credito_cofins, 2),
+            "cofins_xml": round(credito_cofins_xml, 2) if regime_tributario == 'lucro_real' else None,
+            "base_credito": round(base_credito_pis_cofins_real, 2),
             "total": round(credito_icms + credito_pis + credito_cofins, 2)
         },
         "debitos": {
