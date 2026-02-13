@@ -30710,14 +30710,35 @@ async def complete_wizard_step(
     elif step_id == 2:  # Devoluções
         # Marcar notas de devolução como desconsideradas
         # E também marcar as notas originais referenciadas
-        notas_ids = step_data.get("notas_desconsiderar", [])
-        notas_originais_ids = step_data.get("notas_originais_desconsiderar", [])
+        # 
+        # Frontend envia em dois formatos:
+        # 1. notas_desconsiderar: [{ devolucao_id: ..., original_id: ... }] - notas com original encontrada
+        # 2. desconsiderar_sem_original: [id, id, ...] - notas sem original
+        
+        notas_raw = step_data.get("notas_desconsiderar", [])
+        notas_sem_original = step_data.get("desconsiderar_sem_original", [])
+        
+        # Extrair IDs das notas de devolução e originais
+        notas_devolucao_ids = []
+        notas_originais_ids = []
+        
+        for item in notas_raw:
+            if isinstance(item, dict):
+                if item.get("devolucao_id"):
+                    notas_devolucao_ids.append(item["devolucao_id"])
+                if item.get("original_id"):
+                    notas_originais_ids.append(item["original_id"])
+            elif isinstance(item, str):
+                notas_devolucao_ids.append(item)
+        
+        # Adicionar notas sem original
+        notas_devolucao_ids.extend(notas_sem_original)
         
         total_desconsideradas = 0
         
-        if notas_ids:
+        if notas_devolucao_ids:
             result = await db.xml_documents.update_many(
-                {"id": {"$in": notas_ids}},
+                {"id": {"$in": notas_devolucao_ids}},
                 {"$set": {
                     "desconsiderada_devolucao": True,
                     "motivo_desconsideracao": "Devolução de terceiro - Confirmado via Wizard de Fechamento"
