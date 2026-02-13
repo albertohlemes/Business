@@ -30331,16 +30331,20 @@ async def get_wizard_step_data(
             if tem_cfop_entrada_original:
                 notas_filtradas.append(nota)
         
-        # Para cada nota, extrair CFOPs de DEVOLUÇÃO e buscar nota referenciada
+        # Para cada nota filtrada, extrair CFOPs e buscar nota referenciada
         devolucoes_com_original = []
         for nota in notas_filtradas:
-            # Extrair todos os CFOPs únicos da nota que são DEVOLUÇÕES
-            cfops = list(set([str(p.get('cfop', '')) for p in nota.get('produtos', []) if p.get('cfop')]))
-            cfops_devolucao = [c for c in cfops if c in CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL]
+            # Extrair todos os CFOPs únicos da nota
+            produtos = nota.get('produtos', [])
+            cfops = list(set([str(p.get('cfop', '')) for p in produtos if p.get('cfop')]))
             
-            # Se não tem CFOP de devolução, ignorar esta nota
-            if not cfops_devolucao:
-                continue
+            # Extrair CFOPs originais do emissor
+            cfops_originais = []
+            for prod in produtos:
+                cfop_orig = prod.get('cfop_original_emissor') or prod.get('cfop_original') or prod.get('cfop', '')
+                if cfop_orig:
+                    cfops_originais.append(str(cfop_orig))
+            cfops_originais = list(set(cfops_originais))
             
             dev_info = {
                 "id": nota.get("id"),
@@ -30350,8 +30354,8 @@ async def get_wizard_step_data(
                 "emitente_cnpj": nota.get("emitente_cnpj"),
                 "valor_total": nota.get("valor_total"),
                 "data_emissao": nota.get("data_emissao"),
-                "cfops": cfops,  # Todos os CFOPs da nota
-                "cfops_devolucao": cfops_devolucao,  # Apenas CFOPs de devolução
+                "cfops": cfops,  # CFOPs atuais
+                "cfops_originais": cfops_originais,  # CFOPs originais do emissor
                 "desconsiderada": nota.get("desconsiderada_devolucao", False),
                 "motivo_desconsideracao": nota.get("motivo_desconsideracao", ""),
                 "nota_original": None,
