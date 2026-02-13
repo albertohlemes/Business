@@ -233,6 +233,10 @@ function App() {
               element={user ? <FechamentoMensal user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
+              path="/wizard-fechamento"
+              element={user ? <WizardFechamento user={user} onLogout={handleLogout} selectedCompany={null} selectedCompetencia={null} /> : <Navigate to="/login" />}
+            />
+            <Route
               path="/audit-log"
               element={user ? <AuditLog user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
