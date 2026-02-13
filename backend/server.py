@@ -30406,12 +30406,63 @@ async def complete_wizard_step(
                 if produtos_para_classificar:
                     try:
                         emitente_uf = doc.get("emitente_uf", "")
+                        
+                        # Carregar cache de vendas para aprendizado (igual importação normal)
+                        sales_cache = {}
+                        try:
+                            pipeline = [
+                                {"$match": {"company_id": company_id, "tipo": "saida"}},
+                                {"$unwind": "$produtos"},
+                                {"$group": {
+                                    "_id": {
+                                        "descricao": {"$toLower": "$produtos.descricao"},
+                                        "codigo": "$produtos.codigo"
+                                    },
+                                    "categoria": {"$first": "$produtos.categoria_classificada"},
+                                    "cfop": {"$first": "$produtos.cfop"},
+                                    "count": {"$sum": 1}
+                                }},
+                                {"$match": {"count": {"$gte": 1}}}
+                            ]
+                            sales_products = await db.xml_documents.aggregate(pipeline).to_list(length=10000)
+                            for sp in sales_products:
+                                key = (sp["_id"]["descricao"] or "", sp["_id"]["codigo"] or "")
+                                if sp.get("categoria"):
+                                    sales_cache[key] = {"categoria": sp["categoria"], "cfop": sp.get("cfop", "")}
+                        except Exception as e:
+                            logger.warning(f"Erro ao carregar cache de vendas: {e}")
+                        
+                        # Calcular CST ANTES de classificar (igual importação normal)
+                        regime = company.get("regime_tributario", "simples_nacional")
+                        for product in produtos_para_classificar:
+                            cfop = product.get('cfop', '')
+                            ncm = product.get('ncm', '')
+                            
+                            # Salvar CFOP original do emissor
+                            if not product.get('cfop_original') and not product.get('cfop_original_emissor'):
+                                product['cfop_original_emissor'] = cfop
+                            
+                            # Calcular CST de PIS/COFINS
+                            cst_info = calcular_cst_pis_cofins(
+                                ncm=ncm,
+                                cfop=cfop,
+                                tipo_operacao="entrada",
+                                cst_xml=product.get('cst_pis_xml', product.get('cst_pis', '')),
+                                regime=regime
+                            )
+                            
+                            product['cst_pis_calculado'] = cst_info['cst_calculado']
+                            product['cst_cofins_calculado'] = cst_info['cst_calculado']
+                            product['cst_pis'] = cst_info['cst_calculado']
+                            product['cst_cofins'] = cst_info['cst_calculado']
+                        
+                        # Classificar com cache e IA
                         classifications, stats = await classify_products_with_cache(
                             produtos_para_classificar,
                             company_id,
                             company,
                             emitente_uf,
-                            {}
+                            sales_cache
                         )
                         
                         # Aplicar classificações
@@ -30419,7 +30470,10 @@ async def complete_wizard_step(
                             p_id = str(idx)
                             if p_id in classifications:
                                 result_class = classifications[p_id]
+                                cfop_original = product.get('cfop', '')
+                                product['cfop_original'] = cfop_original
                                 product['cfop'] = result_class['cfop']
+                                product['cfop_sugerido'] = result_class['cfop']
                                 product['categoria_classificada'] = result_class['categoria']
                                 product['justificativa_ia'] = result_class['justificativa']
                                 total_classificados += 1
