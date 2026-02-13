@@ -29896,6 +29896,9 @@ async def batch_import_upload_estrutura(
             import_record["total_arquivos"] += empresa_result["total_arquivos"]
             import_record["total_duplicados"] += empresa_result["duplicados"]
             import_record["total_erros"] += empresa_result["erros"]
+            
+            # Adicionar estatísticas de classificação à empresa
+            empresa_result["classificacao"] = classification_stats.copy()
             import_record["empresas_processadas"].append(empresa_result)
         
         # Atualizar status
@@ -29920,7 +29923,8 @@ async def batch_import_upload_estrutura(
             "total_erros": import_record["total_erros"],
             "empresas_nao_encontradas": len(import_record["empresas_nao_encontradas"]),
             "empresas_processadas": import_record["empresas_processadas"],
-            "erros": import_record["erros"][:100]  # Limitar a 100 erros na resposta
+            "erros": import_record["erros"][:100],
+            "skip_ai": skip_ai
         }
         
     except Exception as e:
