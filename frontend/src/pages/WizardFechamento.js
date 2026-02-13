@@ -109,34 +109,44 @@ const WizardFechamento = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('token');
       
-      // Simular progresso baseado na etapa
+      // Progresso baseado na etapa com velocidade proporcional ao tempo real
       let progressInterval;
       const step = wizard.current_step;
       
       if (step === 3 || step === 4 || step === 5) {
-        // Etapas que processam muitos itens - simular progresso
+        // Etapas que processam muitos itens - progresso mais lento e proporcional
         let percent = 0;
         const phases = {
-          3: ['Carregando produtos...', 'Classificando com IA...', 'Aplicando memorizações...', 'Salvando...'],
-          4: ['Analisando entradas...', 'Calculando CSTs...', 'Corrigindo divergências...', 'Salvando...'],
-          5: ['Analisando saídas...', 'Calculando CSTs...', 'Aplicando correções...', 'Salvando...']
+          3: ['Carregando produtos...', 'Classificando com IA...', 'Aplicando memorizações...', 'Salvando classificações...'],
+          4: ['Analisando entradas...', 'Calculando CSTs...', 'Corrigindo divergências...', 'Finalizando...'],
+          5: ['Analisando saídas...', 'Calculando CSTs...', 'Aplicando correções...', 'Finalizando...']
         };
         
         const stepPhases = phases[step] || ['Processando...'];
         let phaseIdx = 0;
         
+        // Progresso mais lento: step 3 com IA demora mais
+        const incrementSpeed = step === 3 ? 1.5 : 3;
+        
         progressInterval = setInterval(() => {
-          percent += Math.random() * 8;
-          if (percent >= 25 && phaseIdx === 0) phaseIdx = 1;
+          // Desacelerar à medida que se aproxima do fim
+          const speedFactor = percent < 30 ? 1.0 : (percent < 60 ? 0.6 : (percent < 80 ? 0.3 : 0.1));
+          percent += incrementSpeed * speedFactor * Math.random();
+          
+          // Mudar fase baseado no progresso
+          if (percent >= 20 && phaseIdx === 0) phaseIdx = 1;
           if (percent >= 50 && phaseIdx === 1) phaseIdx = 2;
-          if (percent >= 75 && phaseIdx === 2) phaseIdx = 3;
+          if (percent >= 80 && phaseIdx === 2) phaseIdx = 3;
+          
+          // Limitar a 85% para deixar espaço para o salvamento real
+          const displayPercent = Math.min(percent, 85);
           
           setStepProgress({
             phase: stepPhases[Math.min(phaseIdx, stepPhases.length - 1)],
-            percent: Math.min(percent, 95),
-            detail: ''
+            percent: displayPercent,
+            detail: displayPercent > 80 ? 'Aguarde, salvando no banco de dados...' : ''
           });
-        }, 300);
+        }, 500);  // Intervalo mais longo
       } else {
         // Etapas simples
         setStepProgress({ phase: 'Processando...', percent: 50, detail: '' });
