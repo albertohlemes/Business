@@ -30247,12 +30247,12 @@ async def get_wizard_step_data(
         }
     
     elif step_id == 4:  # PIS/COFINS Entradas
-        # Buscar entradas com divergências de CST
+        # Buscar entradas com divergências de CST - SEM LIMITE para totalizar corretamente
         docs_entrada = await db.xml_documents.find({
             **base_filter,
             "tipo": "entrada"
         }, {"_id": 0, "id": 1, "numero_nfe": 1, "emitente_nome": 1, "valor_total": 1,
-            "produtos": 1}).to_list(length=200)
+            "produtos": 1}).to_list(length=None)
         
         total_docs = len(docs_entrada)
         docs_com_divergencia = []
@@ -30278,7 +30278,7 @@ async def get_wizard_step_data(
         
         result["data"] = {
             "total_documentos": total_docs,
-            "docs_com_divergencia": docs_com_divergencia[:50],
+            "docs_com_divergencia": docs_com_divergencia[:100],  # Limitar exibição, não contagem
             "total_divergencias": len(docs_com_divergencia)
         }
     
