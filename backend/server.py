@@ -29438,10 +29438,11 @@ async def batch_import_upload_estrutura(
     import re
     from pathlib import Path
     
-    if current_user.role not in ['admin', 'super_admin']:
-        raise HTTPException(status_code=403, detail="Apenas administradores podem fazer importações em lote")
+    # Todos os usuários autenticados podem fazer importação em lote
+    # (antes era restrito apenas a admin/super_admin)
     
     if not file.filename.endswith('.zip'):
+        raise HTTPException(status_code=400, detail="Arquivo deve ser um ZIP")
         raise HTTPException(status_code=400, detail="Arquivo deve ser um ZIP")
     
     # Criar ID da importação
@@ -30207,12 +30208,12 @@ async def get_wizard_step_data(
         }
     
     elif step_id == 3:  # Classificação de CFOPs
-        # Buscar produtos sem classificação ou pendentes
+        # Buscar produtos sem classificação ou pendentes - SEM LIMITE para contar corretamente
         docs_entrada = await db.xml_documents.find({
             **base_filter,
             "tipo": "entrada",
             "modelo": "nfe"
-        }, {"_id": 0, "id": 1, "numero_nfe": 1, "emitente_nome": 1, "produtos": 1}).to_list(length=200)
+        }, {"_id": 0, "id": 1, "numero_nfe": 1, "emitente_nome": 1, "produtos": 1}).to_list(length=None)
         
         produtos_pendentes = []
         produtos_classificados = []
@@ -30232,7 +30233,8 @@ async def get_wizard_step_data(
                     "valor": p.get("valor_total", 0)
                 }
                 
-                if not p.get("categoria_classificada"):
+                # Usar MESMA lógica da Central de Inteligência: pendente_revisao_cfop
+                if p.get("pendente_revisao_cfop") or not p.get("categoria_classificada"):
                     produtos_pendentes.append(produto_info)
                 else:
                     produtos_classificados.append(produto_info)
