@@ -269,35 +269,81 @@ const WizardFechamento = ({ user, onLogout }) => {
           </div>
         );
       
-      case 2: // Devoluções
+      case 2: // Devoluções - Notas de entrada emitidas por terceiros
         return (
           <div className="space-y-4">
             <p className="text-[#A1A1AA]">
-              Identifique notas de devolução de fornecedores que devem ser desconsideradas da apuração.
+              Identifique notas de entrada emitidas por terceiros que podem ser devoluções de vendas da sua empresa.
+              Ao lado de cada nota, é exibida a nota de venda original referenciada (se encontrada).
             </p>
+            
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-white">{data.total || 0}</p>
+                <p className="text-xs text-[#666]">Notas de Terceiros</p>
+              </div>
+              <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-emerald-400">{data.total_com_original || 0}</p>
+                <p className="text-xs text-[#666]">Com Original</p>
+              </div>
+              <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-amber-400">{data.total_sem_original || 0}</p>
+                <p className="text-xs text-[#666]">Sem Original</p>
+              </div>
+            </div>
             
             {data.notas_devolucao?.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-sm text-amber-400">
-                  {data.total} notas de devolução encontradas
-                </p>
-                <div className="max-h-64 overflow-y-auto space-y-2">
+                <div className="max-h-80 overflow-y-auto space-y-2">
                   {data.notas_devolucao.map((nota, idx) => (
-                    <div key={idx} className="bg-[#0C0C0C] rounded-lg p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-white font-medium">NF {nota.numero_nfe}</p>
-                          <p className="text-xs text-[#666]">{nota.emitente_nome}</p>
+                    <div key={idx} className={`bg-[#0C0C0C] rounded-lg p-3 ${nota.desconsiderada ? 'opacity-60' : ''}`}>
+                      {/* Layout em duas colunas */}
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Coluna 1: Nota de entrada (devolução) */}
+                        <div className="border-r border-[#333] pr-4">
+                          <p className="text-xs text-amber-400 font-medium mb-1">NOTA DE ENTRADA (TERCEIRO)</p>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-white font-bold">NF {nota.numero_nfe}</p>
+                              <p className="text-xs text-[#666] truncate">{nota.emitente_nome}</p>
+                              <p className="text-xs text-[#888]">{nota.data_emissao?.slice(0,10) || ''}</p>
+                            </div>
+                            <p className="text-white font-medium">R$ {(nota.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                          </div>
+                          {nota.cfops?.length > 0 && (
+                            <div className="mt-1 flex gap-1 flex-wrap">
+                              {nota.cfops.map((c, i) => (
+                                <span key={i} className="text-xs bg-purple-500/20 text-purple-300 px-1 rounded">{c}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <div className="text-right">
-                          <p className="text-white">R$ {(nota.valor_total || 0).toFixed(2)}</p>
-                          {nota.desconsiderada_devolucao && (
-                            <span className="text-xs text-amber-400">Já desconsiderada</span>
+                        
+                        {/* Coluna 2: Nota original referenciada */}
+                        <div className="pl-2">
+                          <p className="text-xs text-emerald-400 font-medium mb-1">NOTA ORIGINAL (SUA VENDA)</p>
+                          {nota.nota_original_encontrada && nota.nota_original ? (
+                            <div>
+                              <p className="text-white font-bold">NF {nota.nota_original.numero_nfe}</p>
+                              <p className="text-xs text-[#888]">{nota.nota_original.data_emissao?.slice(0,10) || ''}</p>
+                              <p className="text-white">R$ {(nota.nota_original.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                            </div>
+                          ) : (
+                            <div className="bg-amber-500/10 rounded p-2">
+                              <p className="text-amber-400 text-xs">⚠ Nota original não encontrada</p>
+                              <p className="text-[#666] text-xs mt-1">
+                                {nota.nfe_referenciada ? `Ref: ${nota.nfe_referenciada.slice(-15)}` : 'Sem referência no XML'}
+                              </p>
+                            </div>
                           )}
                         </div>
                       </div>
-                      {nota.motivo_desconsideracao && (
-                        <p className="text-xs text-[#666] mt-2">{nota.motivo_desconsideracao}</p>
+                      
+                      {/* Status de desconsideração */}
+                      {nota.desconsiderada && (
+                        <div className="mt-2 bg-emerald-500/10 rounded p-2">
+                          <p className="text-emerald-400 text-xs">✓ Já desconsiderada: {nota.motivo_desconsideracao}</p>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -305,12 +351,15 @@ const WizardFechamento = ({ user, onLogout }) => {
               </div>
             ) : (
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
-                <p className="text-emerald-400">✓ Nenhuma nota de devolução pendente</p>
+                <p className="text-emerald-400">✓ Nenhuma nota de entrada de terceiros encontrada</p>
               </div>
             )}
             
             <button
-              onClick={() => completeStep({ notas_desconsiderar: data.notas_devolucao?.filter(n => !n.desconsiderada_devolucao).map(n => n.id) || [] })}
+              onClick={() => completeStep({ 
+                notas_desconsiderar: data.notas_devolucao?.filter(n => !n.desconsiderada && n.nota_original_encontrada).map(n => ({ devolucao_id: n.id, original_id: n.nota_original?.id })) || [],
+                desconsiderar_sem_original: data.notas_devolucao?.filter(n => !n.desconsiderada && !n.nota_original_encontrada).map(n => n.id) || []
+              })}
               disabled={processing}
               className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-[#2A2A2A] text-white py-3 rounded-lg flex items-center justify-center gap-2"
             >
