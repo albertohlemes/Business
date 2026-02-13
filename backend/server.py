@@ -10603,9 +10603,10 @@ async def apuracao_pis_cofins(
             # Verificar se é transferência
             is_transferencia = cfop in CFOPS_TRANSFERENCIA
             
-            # Determinar entrada/saída pelo CFOP ou tipo do documento
-            is_entrada = primeiro_digito in ['1', '2', '3'] if primeiro_digito else (tipo_op == 'entrada')
-            is_saida = primeiro_digito in ['5', '6', '7'] if primeiro_digito else (tipo_op == 'saida')
+            # CORREÇÃO: Usar o tipo do DOCUMENTO como fonte da verdade (baseado no CNPJ do emitente)
+            # Não usar CFOP para determinar entrada/saída - isso causa bugs
+            is_entrada = (tipo_op == 'entrada')
+            is_saida = (tipo_op == 'saida')
             
             # Se não tem CFOP, usar "SEM CFOP" como chave
             cfop_key = cfop if cfop else f"SEM CFOP"
