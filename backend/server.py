@@ -19513,14 +19513,9 @@ async def relacao_notas_detalhada(
         # CFOP principal
         cfop_principal = max(cfop_valores.keys(), key=lambda k: cfop_valores[k]) if cfop_valores else ''
         
-        # Determinar tipo pela CFOP principal
+        # Usar o campo 'tipo' como fonte de verdade (baseado em CNPJ do emitente)
+        # NÃO sobrescrever pelo CFOP - a classificação é baseada no CNPJ
         tipo_operacao = doc.get('tipo', '')
-        if cfop_principal:
-            primeiro = cfop_principal[0] if cfop_principal else ''
-            if primeiro in ['1', '2', '3']:
-                tipo_operacao = 'entrada'
-            elif primeiro in ['5', '6', '7']:
-                tipo_operacao = 'saida'
         
         # Status da nota
         cancelada = doc.get('cancelada', False)
