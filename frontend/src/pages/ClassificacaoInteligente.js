@@ -1305,7 +1305,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                         {/* Lista de Produtos Expandida */}
                         {isExpanded && (
                           <div className="border-t border-[#2A2A2A]">
-                            <div className="max-h-96 overflow-y-auto">
+                            <div className="max-h-[500px] overflow-y-auto scroll-smooth">
                               <table className="w-full">
                                 <thead className="bg-[#0C0C0C] sticky top-0 z-10">
                                   <tr>
