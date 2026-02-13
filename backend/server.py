@@ -8165,6 +8165,10 @@ async def upload_xml_with_progress(
         progress["status"] = "completed"
         progress["completed"] = True
         progress["results"] = final_results
+        
+        # IMPORTANTE: Salvar imediatamente no MongoDB para garantir que o polling encontre
+        await save_upload_session(upload_id, progress)
+        logger.info(f"UPLOAD-STREAM: CONCLUÍDO - {len(all_results['success'])} importados, {len(all_results['errors'])} erros")
     else:
         progress["current_step"] = f"Lote processado ({processed_in_session}/{total_expected} arquivos)"
         progress["status"] = "processing"
