@@ -35,6 +35,44 @@ const WizardFechamento = ({ user, onLogout }) => {
   const [expandedItems, setExpandedItems] = useState({});
   const [stepProgress, setStepProgress] = useState(null);  // Progresso da etapa atual
   const [initialStepLoaded, setInitialStepLoaded] = useState(false);  // Flag para carregar etapa inicial
+  const [downloadingReport, setDownloadingReport] = useState(null);  // 'pdf' ou 'excel'
+
+  // Função para baixar relatório do wizard
+  const downloadReport = async (formato) => {
+    if (!selectedCompany?.id || !selectedCompetencia) return;
+    
+    setDownloadingReport(formato);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/api/wizard-fechamento/relatorio/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}&formato=${formato}`,
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+      
+      // Criar link de download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const ext = formato === 'excel' ? 'xlsx' : 'pdf';
+      const compFmt = selectedCompetencia.replace('/', '-');
+      const empresaNome = (selectedCompany.razao_social || selectedCompany.nome || 'Empresa').substring(0, 30).replace(/\s+/g, '_');
+      link.setAttribute('download', `Wizard_Fechamento_${empresaNome}_${compFmt}.${ext}`);
+      
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erro ao baixar relatório:', error);
+      alert('Erro ao gerar relatório. Tente novamente.');
+    } finally {
+      setDownloadingReport(null);
+    }
+  };
 
   // Carregar status do wizard
   const loadWizardStatus = useCallback(async () => {
