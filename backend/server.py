@@ -9870,7 +9870,10 @@ async def get_dashboard_stats(
             # 3. Sem incidência (CST 49 ou CFOP de remessa/devolução) - não gera débito
             # 4. Tributado (CST 01) - gera débito
             
-            if cfop_sem_debito or cst_calculado == '49':
+            # Usar CST calculado, se não tiver usar o do XML
+            cst_usado = cst_calculado if cst_calculado else cst_pis_saida
+            
+            if cfop_sem_debito or cst_usado == '49' or cst_pis_saida == '49':
                 # CFOP de remessa/devolução/transferência - CST 49 - não gera débito
                 total_cfop_sem_incidencia += valor_prod
             elif is_monofasico:
