@@ -30206,12 +30206,7 @@ async def get_wizard_step_data(
         }
     
     elif step_id == 2:  # Devoluções de Fornecedores
-        # CFOPs de devolução
-        CFOPS_DEVOLUCAO = ['1201', '1202', '1203', '1204', '1410', '1411', '1503', '1504',
-                          '1915', '1916', '1918', '1919', '1949', '2201', '2202', '2203', 
-                          '2204', '2410', '2411', '2503', '2504', '2915', '2916', '2918', 
-                          '2919', '2949']
-        
+        # Usar lista global de CFOPs de devolução
         # Buscar notas de devolução de terceiros
         devolucoes = await db.xml_documents.find({
             "company_id": company_id,
@@ -30219,7 +30214,7 @@ async def get_wizard_step_data(
             "tipo": "entrada",
             "$or": [
                 {"desconsiderada_devolucao": True},
-                {"produtos.cfop": {"$in": CFOPS_DEVOLUCAO}}
+                {"produtos.cfop": {"$in": CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL}}
             ]
         }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
             "valor_total": 1, "data_emissao": 1, "desconsiderada_devolucao": 1,
@@ -30228,7 +30223,7 @@ async def get_wizard_step_data(
         result["data"] = {
             "notas_devolucao": devolucoes,
             "total": len(devolucoes),
-            "cfops_devolucao": CFOPS_DEVOLUCAO
+            "cfops_devolucao": CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL
         }
     
     elif step_id == 3:  # Classificação de CFOPs
