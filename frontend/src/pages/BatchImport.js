@@ -24,6 +24,8 @@ const BatchImport = ({ user, onLogout }) => {
   const [expandedHistory, setExpandedHistory] = useState(null);
   const [editingCodigo, setEditingCodigo] = useState(null);
   const [novoCodigo, setNovoCodigo] = useState('');
+  const [uploadProgress, setUploadProgress] = useState({ phase: '', percent: 0, detail: '' });
+  const [showErrorReport, setShowErrorReport] = useState(false);
 
   // Carregar histórico
   const loadHistory = useCallback(async () => {
