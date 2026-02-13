@@ -29672,6 +29672,31 @@ async def batch_import_upload_estrutura(
                             "arquivo": arq["filename"],
                             "erro": str(e)
                         })
+                    finally:
+                        # Atualizar contadores de progresso
+                        arquivos_processados += 1
+                        arquivos_empresa_processados += 1
+                        
+                        # Atualizar progresso no banco a cada 50 arquivos ou no final da empresa
+                        if arquivos_empresa_processados % 50 == 0 or arquivos_empresa_processados == len(data["arquivos"]):
+                            await db.batch_import_history.update_one(
+                                {"import_id": import_id},
+                                {"$set": {
+                                    "progress": {
+                                        "percent": int((arquivos_processados / total_arquivos_geral) * 100) if total_arquivos_geral > 0 else 0,
+                                        "empresa_atual": empresa_result["razao_social"],
+                                        "empresa_atual_idx": empresa_atual_idx,
+                                        "total_empresas": len(empresas_encontradas),
+                                        "arquivos_processados": arquivos_processados,
+                                        "total_arquivos": total_arquivos_geral,
+                                        "empresa_arquivos_processados": arquivos_empresa_processados,
+                                        "empresa_total_arquivos": len(data["arquivos"]),
+                                        "empresa_importados": empresa_result["importados"],
+                                        "empresa_duplicados": empresa_result["duplicados"],
+                                        "empresa_erros": empresa_result["erros"]
+                                    }
+                                }}
+                            )
             
             import_record["total_arquivos"] += empresa_result["total_arquivos"]
             import_record["total_duplicados"] += empresa_result["duplicados"]
