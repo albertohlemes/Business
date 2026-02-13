@@ -5903,21 +5903,6 @@ async def upload_xml_batch(
                     else:
                         # CFOP de saída ou misto - processar normalmente (será convertido)
                         logger.info(f"DEBUG: NF {parsed_data.get('numero_nfe')} - CFOP saída/misto, processando como entrada normal")
-                else:  # saida
-                    cnpj_valido = cnpj_emitente == cnpj_empresa
-                    if not cnpj_valido:
-                        rejeitadas_cnpj.append({
-                            "filename": file.filename,
-                            "numero_nfe": parsed_data.get('numero_nfe', ''),
-                            "motivo": f"CNPJ do emitente ({cnpj_emitente}) não corresponde à empresa selecionada ({cnpj_empresa})",
-                            "emitente": parsed_data.get('emitente_nome', ''),
-                            "destinatario": parsed_data.get('destinatario_nome', '')
-                        })
-                        continue
-                    
-                    is_devolucao_fornecedor = False
-                    motivo_devolucao = ""
-                    nfe_ref_devolucao = ""
             
             # CALCULAR COMPETÊNCIA DO DOCUMENTO
             # Para ENTRADAS (compras): usar data_saida_entrada (dhSaiEnt) quando disponível
