@@ -1084,8 +1084,6 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                   {prod.cfop || grupo.cfop}
                                 </span>
                               </div>
-                                </span>
-                              </div>
                               <div className="col-span-1 text-right text-[#C8A951]">{formatCurrency(prod.valor)}</div>
                               <div className="col-span-1 text-center">
                                 <button
