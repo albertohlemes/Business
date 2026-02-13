@@ -437,7 +437,7 @@ const WizardFechamento = ({ user, onLogout }) => {
                         <select
                           id={`select-${cfopItem.cfop}`}
                           className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm text-white"
-                          defaultValue="ignorar"
+                          defaultValue="converter_entrada_mesma_natureza"
                           onChange={(e) => {
                             const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
                             const inputEl = document.getElementById(`input-cfop-${cfopItem.cfop}`);
@@ -450,10 +450,9 @@ const WizardFechamento = ({ user, onLogout }) => {
                             }
                           }}
                         >
-                          <option value="ignorar">Manter CFOP original</option>
+                          <option value="converter_entrada_mesma_natureza">Converter para entrada (mesma natureza)</option>
                           <option value="desconsiderar">Desconsiderar da apuração</option>
                           <option value="converter_compra">Converter para compra (1102/2102)</option>
-                          <option value="converter_venda">Converter para venda (5102/6102)</option>
                           <option value="converter_manual">Digitar CFOP manualmente...</option>
                         </select>
                       </div>
