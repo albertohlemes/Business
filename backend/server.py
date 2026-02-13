@@ -6611,11 +6611,15 @@ async def save_upload_session(upload_id: str, session_data: Dict):
     """Salva sessão de upload em memória e MongoDB"""
     upload_progress_store[upload_id] = session_data
     # Persistir no MongoDB de forma assíncrona
-    await db.upload_sessions.update_one(
-        {"upload_id": upload_id},
-        {"$set": {**session_data, "upload_id": upload_id, "updated_at": datetime.now(timezone.utc).isoformat()}},
-        upsert=True
-    )
+    try:
+        await db.upload_sessions.update_one(
+            {"upload_id": upload_id},
+            {"$set": {**session_data, "upload_id": upload_id, "updated_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True
+        )
+        logger.debug(f"UPLOAD-SESSION: Salvo upload_id={upload_id[:20]}...")
+    except Exception as e:
+        logger.error(f"UPLOAD-SESSION: Erro ao salvar no MongoDB: {e}")
 
 async def delete_upload_session(upload_id: str):
     """Remove sessão de upload da memória e do MongoDB"""
