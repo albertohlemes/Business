@@ -55,6 +55,12 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 - ✅ IA não reclassifica mais notas de terceiros com entrada
 - ✅ Validação de CFOP corrigida (notas de compra com CFOP 5xxx aceitas como entrada)
 
+### Correções na Sessão (13/02/2026)
+- ✅ **Rolagem nas páginas corrigida**: Alterado CSS de `h-full overflow-y-auto` para `min-h-full` em:
+  - `/app/frontend/src/pages/BatchImport.js` (linha 129)
+  - `/app/frontend/src/pages/ClassificacaoInteligente.js` (linha 737)
+- ✅ Layout.js já possui `overflow-y-auto` no elemento `<main>`, permitindo rolagem natural das páginas
+
 ## Endpoints da Reforma Tributária
 
 - `GET /api/reforma-tributaria/config/{company_id}` - Configuração de alíquotas
