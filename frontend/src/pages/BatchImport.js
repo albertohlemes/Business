@@ -516,19 +516,50 @@ const BatchImport = ({ user, onLogout }) => {
                         <h4 className="text-sm font-medium text-[#A1A1AA]">Detalhes por Empresa:</h4>
                         <div className="max-h-48 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-[#2A2A2A] scrollbar-track-transparent">
                           {result.empresas_processadas.map((emp, idx) => (
-                            <div key={idx} className="bg-[#0C0C0C] rounded-lg p-3 flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Building2 className="w-4 h-4 text-[#666]" />
-                                <span className="text-sm text-white truncate max-w-[300px]">{emp.razao_social}</span>
+                            <div key={idx} className="bg-[#0C0C0C] rounded-lg p-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Building2 className="w-4 h-4 text-[#666]" />
+                                  <span className="text-sm text-white truncate max-w-[300px]">{emp.razao_social}</span>
+                                </div>
+                                <div className="flex items-center gap-4 text-xs">
+                                  <span className="text-emerald-400">{emp.importados} novos</span>
+                                  <span className="text-amber-400">{emp.duplicados} dup.</span>
+                                  <span className="text-red-400">{emp.erros} erros</span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-4 text-xs">
-                                <span className="text-emerald-400">{emp.importados} novos</span>
-                                <span className="text-amber-400">{emp.duplicados} dup.</span>
-                                <span className="text-red-400">{emp.erros} erros</span>
-                              </div>
+                              {/* Estatísticas de classificação */}
+                              {emp.classificacao && !result.skip_ai && (
+                                <div className="mt-2 pt-2 border-t border-[#2A2A2A] flex items-center gap-4 text-xs text-[#666]">
+                                  <span>Classificação:</span>
+                                  {emp.classificacao.from_cache > 0 && (
+                                    <span className="text-purple-400">{emp.classificacao.from_cache} memorizados</span>
+                                  )}
+                                  {emp.classificacao.from_rules > 0 && (
+                                    <span className="text-blue-400">{emp.classificacao.from_rules} por regra</span>
+                                  )}
+                                  {emp.classificacao.from_sales_inference > 0 && (
+                                    <span className="text-cyan-400">{emp.classificacao.from_sales_inference} aprendizado</span>
+                                  )}
+                                  {emp.classificacao.from_ai > 0 && (
+                                    <span className="text-amber-400">{emp.classificacao.from_ai} IA</span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
+                      </div>
+                    )}
+
+                    {/* Indicador de modo */}
+                    {result.skip_ai !== undefined && (
+                      <div className={`mt-4 p-3 rounded-lg ${result.skip_ai ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-purple-500/10 border border-purple-500/30'}`}>
+                        <p className={`text-sm ${result.skip_ai ? 'text-amber-400' : 'text-purple-400'}`}>
+                          {result.skip_ai 
+                            ? '⚡ Importação Rápida - Produtos não foram classificados'
+                            : '🤖 Importação com Classificação - Produtos foram classificados automaticamente'}
+                        </p>
                       </div>
                     )}
 
