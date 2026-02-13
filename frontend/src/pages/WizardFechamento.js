@@ -47,7 +47,8 @@ const WizardFechamento = ({ user, onLogout }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      setWizard(response.data.wizard);
+      const wizardData = response.data.wizard;
+      setWizard(wizardData);
       setSteps(response.data.steps);
       
       // Verificar se tem step na URL para ir direto para aquela etapa
@@ -55,15 +56,25 @@ const WizardFechamento = ({ user, onLogout }) => {
       if (stepFromUrl && !initialStepLoaded) {
         const targetStep = parseInt(stepFromUrl);
         if (targetStep >= 1 && targetStep <= 7) {
-          // Ir para a etapa especificada na URL
-          await goToStep(targetStep);
-          setInitialStepLoaded(true);
-          return;
+          // Navegar diretamente para a etapa especificada na URL
+          try {
+            await axios.post(
+              `${API}/api/wizard-fechamento/step/${selectedCompany.id}/${targetStep}/go?competencia=${encodeURIComponent(selectedCompetencia)}`,
+              {},
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setWizard(prev => ({ ...prev, current_step: targetStep }));
+            await loadStepData(targetStep);
+            setInitialStepLoaded(true);
+            return;
+          } catch (err) {
+            console.error('Erro ao navegar para etapa da URL:', err);
+          }
         }
       }
       
       // Carregar dados da etapa atual
-      await loadStepData(response.data.wizard.current_step);
+      await loadStepData(wizardData.current_step);
     } catch (err) {
       console.error('Erro ao carregar wizard:', err);
     } finally {
