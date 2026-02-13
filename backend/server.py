@@ -30756,6 +30756,7 @@ async def complete_wizard_step(
             
             if acao == "manter":
                 # Apenas remover o flag pendente_revisao_cfop sem alterar o CFOP
+                # MAS TAMBÉM definir categoria_classificada baseada no CFOP atual
                 docs = await db.xml_documents.find({
                     "company_id": company_id,
                     "competencia": competencia,
@@ -30769,8 +30770,20 @@ async def complete_wizard_step(
                     alterado = False
                     for p in produtos_atualizados:
                         if str(p.get("cfop")) == cfop and p.get("pendente_revisao_cfop"):
+                            # Determinar categoria baseada no CFOP
+                            categoria_cfop = obter_categoria_por_cfop(cfop)
+                            
                             p["pendente_revisao_cfop"] = False
                             p["cfop_revisado_wizard"] = True
+                            p["cfop_revisado_em"] = datetime.now(timezone.utc).isoformat()
+                            
+                            # SINCRONIZAR com Classificação Inteligente
+                            if categoria_cfop:
+                                p["categoria"] = categoria_cfop
+                                p["categoria_classificada"] = categoria_cfop
+                                p["categoria_origem"] = "wizard_manter"
+                                p["categoria_classificada_em"] = datetime.now(timezone.utc).isoformat()
+                            
                             alterado = True
                             count += 1
                     
@@ -30780,7 +30793,7 @@ async def complete_wizard_step(
                             {"$set": {"produtos": produtos_atualizados}}
                         )
                 
-                actions_taken.append(f"CFOP {cfop}: {count} produtos mantidos (revisão concluída)")
+                actions_taken.append(f"CFOP {cfop}: {count} produtos mantidos e classificados")
             
             elif acao == "converter_compra":
                 # Converter para CFOP de compra (entradas)
