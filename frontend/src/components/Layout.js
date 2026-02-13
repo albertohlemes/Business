@@ -122,17 +122,6 @@ const Layout = ({ user, onLogout, children }) => {
       
       // 📤 EXPORTAÇÕES
       nav.push({ type: 'separator', label: 'Exportações' });
-      nav.push({ 
-        name: 'Wizard Fechamento', 
-        href: '/wizard-fechamento', 
-        icon: Lock, 
-        testId: 'nav-wizard-fechamento',
-        badge: wizardSummary?.has_wizard ? `${wizardSummary.steps_completed}/${wizardSummary.total_steps}` : null,
-        badgeColor: wizardSummary?.status === 'completed' ? 'emerald' : 'purple',
-        subtitle: wizardSummary?.has_wizard 
-          ? (wizardSummary.last_update ? `Último: ${new Date(wizardSummary.last_update).toLocaleDateString('pt-BR')}` : null)
-          : 'Não processado'
-      });
       nav.push({ name: 'Fechamento Mensal', href: '/fechamento-mensal', icon: FileOutput, testId: 'nav-fechamento-mensal' });
       nav.push({ name: 'SPED Fiscal', href: '/sped', icon: FileOutput, testId: 'nav-sped' });
       nav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
