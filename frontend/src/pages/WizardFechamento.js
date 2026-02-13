@@ -658,27 +658,37 @@ const WizardFechamento = ({ user, onLogout }) => {
           </div>
 
           {/* Navigation */}
-          {wizard?.current_step > 1 && wizard?.current_step < 7 && (
-            <div className="mt-4 flex justify-between">
-              <button
-                onClick={() => goToStep(wizard.current_step - 1)}
-                className="text-[#666] hover:text-white flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Etapa Anterior
-              </button>
+          <div className="mt-6 flex items-center justify-between">
+            <button
+              onClick={() => navigate('/alertas')}
+              className="text-[#666] hover:text-white flex items-center gap-2 text-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Voltar para Central
+            </button>
+            
+            <div className="flex items-center gap-3">
+              {wizard?.current_step > 1 && (
+                <button
+                  onClick={() => goToStep(wizard.current_step - 1)}
+                  className="bg-[#2A2A2A] hover:bg-[#3A3A3A] text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Etapa Anterior
+                </button>
+              )}
               
-              {wizard?.steps_completed?.includes(wizard.current_step) && (
+              {wizard?.current_step < 7 && wizard?.steps_completed?.includes(wizard.current_step) && (
                 <button
                   onClick={() => goToStep(wizard.current_step + 1)}
-                  className="text-purple-400 hover:text-purple-300 flex items-center gap-2"
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
                 >
                   Próxima Etapa
                   <ArrowRight className="w-4 h-4" />
                 </button>
               )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </Layout>
