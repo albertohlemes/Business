@@ -68,6 +68,29 @@ SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-change-in-product
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480
 
+# CFOPs de devolução/bonificação de TERCEIROS para desconsiderar da apuração
+# (notas de entrada onde o fornecedor está devolvendo algo ou enviando bonificação)
+CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL = [
+    # Série 1xxx (operações internas)
+    '1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209', '1210',
+    '1410', '1411',  # Devoluções de vendas para industrialização/comercialização
+    '1503', '1504', '1553',  # Entradas de devolução
+    '1660', '1661', '1662',  # Devoluções de remessas
+    '1915', '1916', '1918', '1919',  # Retornos de mercadoria remetida
+    '1920', '1921',  # Retorno de vasilhame/sacaria
+    '1949',  # Outras entradas não especificadas
+    # Série 2xxx (operações interestaduais)
+    '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209', '2210',
+    '2410', '2411',  # Devoluções de vendas para industrialização/comercialização
+    '2503', '2504', '2553',  # Entradas de devolução
+    '2660', '2661', '2662',  # Devoluções de remessas
+    '2915', '2916', '2918', '2919',  # Retornos de mercadoria remetida
+    '2920', '2921',  # Retorno de vasilhame/sacaria interestadual
+    '2949',  # Outras entradas não especificadas
+    # Série 3xxx (operações do exterior)
+    '3201', '3202', '3211'
+]
+
 security = HTTPBearer()
 
 from starlette.datastructures import UploadFile as StarletteUploadFile
