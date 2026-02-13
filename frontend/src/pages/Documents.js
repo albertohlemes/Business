@@ -502,15 +502,7 @@ const Documents = ({ user, onLogout }) => {
       // Ordenar por nome
       xmlFilesInfo.sort((a, b) => a.name.localeCompare(b.name));
       
-      // Se tiver poucos arquivos, processar diretamente
-      if (xmlFilesInfo.length <= 5) {
-        const files = xmlFilesInfo.map(f => f.file);
-        toast.success(`${xmlFilesInfo.length} XMLs encontrados. Iniciando importação...`, { duration: 2000 });
-        await handleDirectUpload(files, tipoConfig, token);
-        return;
-      }
-      
-      // Se tiver muitos arquivos, mostrar preview
+      // Mostrar preview para todos os ZIPs (permite escolher tipo de importação)
       setZipFileName(zipFile.name);
       setZipPreviewFiles(xmlFilesInfo);
       setZipSelectedFiles(xmlFilesInfo.map((_, i) => i));
