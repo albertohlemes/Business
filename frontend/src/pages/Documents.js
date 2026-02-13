@@ -760,7 +760,7 @@ const Documents = ({ user, onLogout }) => {
   };
 
   // Upload direto (para poucos arquivos ou não-XML)
-  const handleDirectUpload = async (files, tipoConfig, token) => {
+  const handleDirectUpload = async (files, tipoConfig, token, skipAi = false) => {
     setUploading(true);
     setUploadProgress({ current: 0, total: files.length, percent: 0 });
     
@@ -770,6 +770,7 @@ const Documents = ({ user, onLogout }) => {
       formData.append('competencia', selectedCompetencia);
       formData.append('tipo_operacao', operacao);
       formData.append('tipo_documento', tipoConfig.modelo);
+      formData.append('skip_ai', skipAi.toString());
       
       files.forEach(file => {
         formData.append('files', file);
