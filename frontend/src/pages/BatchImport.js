@@ -7,10 +7,11 @@ import {
 import axios from 'axios';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import Layout from '../components/Layout';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-const BatchImport = () => {
+const BatchImport = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('upload');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
