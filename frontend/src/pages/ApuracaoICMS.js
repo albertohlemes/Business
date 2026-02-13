@@ -1813,6 +1813,8 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                 </p>
               </div>
             )}
+            </>
+            )}
           </>
         )}
           </div>
