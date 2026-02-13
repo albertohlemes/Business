@@ -9908,6 +9908,10 @@ async def get_dashboard_stats(
     divergencias_pis_cofins = []
     
     if regime_tributario == 'lucro_real':
+        # CRÉDITO: Calcular com alíquotas do Lucro Real sobre a base de crédito
+        credito_pis = base_credito_pis_cofins_real * ALIQ_PIS_LUCRO_REAL
+        credito_cofins = base_credito_pis_cofins_real * ALIQ_COFINS_LUCRO_REAL
+        
         # DÉBITO: Calcular com alíquotas do Lucro Real (não usar XML)
         debito_pis = total_base_pis_cofins * ALIQ_PIS_LUCRO_REAL
         debito_cofins = total_base_pis_cofins * ALIQ_COFINS_LUCRO_REAL
