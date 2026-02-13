@@ -30278,33 +30278,57 @@ async def get_wizard_step_data(
             "total": len(canceladas)
         }
     
-    elif step_id == 2:  # Devoluções - Notas de entrada emitidas por terceiros com CFOP de DEVOLUÇÃO
+    elif step_id == 2:  # Devoluções - Notas de ENTRADA onde TERCEIRO emitiu nota de ENTRADA
         # Buscar a empresa para pegar o CNPJ
         company = await db.companies.find_one({"id": company_id}, {"_id": 0, "cnpj": 1})
         cnpj_empresa = (company.get('cnpj', '') if company else '').replace('.', '').replace('/', '').replace('-', '')
         
-        # Buscar notas de ENTRADA emitidas por TERCEIROS/FILIAIS com CFOP de DEVOLUÇÃO
-        # Usar a lista específica de CFOPs de devolução (não qualquer CFOP de entrada)
-        # CFOPs como 1910, 2910 (bonificação) NÃO são devoluções e não devem aparecer aqui
+        # CRITÉRIO CORRETO:
+        # - Mostrar apenas notas onde o TERCEIRO emitiu uma nota de ENTRADA (CFOP 1xxx, 2xxx, 3xxx)
+        # - NÃO mostrar notas onde o TERCEIRO emitiu uma nota de SAÍDA (CFOP 5xxx, 6xxx, 7xxx)
+        # 
+        # Exemplo: Se AHPOOLS emitiu nota com CFOP 5910 (saída/bonificação), NÃO mostrar
+        #          Se AHPOOLS emitiu nota com CFOP 1202 (devolução de compra), MOSTRAR
+        #
+        # O campo cfop_original_emissor preserva o CFOP original do XML antes de conversão
         
-        notas_terceiros_cfop_entrada = await db.xml_documents.find({
+        notas_terceiros = await db.xml_documents.find({
             "company_id": company_id,
             "competencia": competencia,
-            "tipo": "entrada",
-            # Apenas CFOPs que são efetivamente devoluções
-            "produtos.cfop": {"$in": CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL}
+            "tipo": "entrada"
         }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
             "emitente_cnpj": 1, "valor_total": 1, "data_emissao": 1, 
             "desconsiderada_devolucao": 1, "motivo_desconsideracao": 1,
             "produtos": 1, "nfe_referenciada": 1}).to_list(length=2000)
         
-        # Filtrar apenas terceiros/filiais (CNPJ COMPLETO diferente da empresa)
+        # Filtrar:
+        # 1. Apenas terceiros (CNPJ diferente da empresa)
+        # 2. Apenas notas onde o CFOP ORIGINAL do emissor é de ENTRADA (1xxx, 2xxx, 3xxx)
         notas_filtradas = []
-        for nota in notas_terceiros_cfop_entrada:
+        for nota in notas_terceiros:
             cnpj_emit = (nota.get('emitente_cnpj', '') or '').replace('.', '').replace('/', '').replace('-', '')
             
-            # Verificar se é terceiro/filial (CNPJ completo diferente)
-            if cnpj_emit and cnpj_emit != cnpj_empresa:
+            # Verificar se é terceiro (CNPJ diferente da empresa)
+            if not cnpj_emit or cnpj_emit == cnpj_empresa:
+                continue
+            
+            # Verificar se o CFOP ORIGINAL do emissor é de ENTRADA
+            # O terceiro precisa ter emitido uma nota de ENTRADA para aparecer aqui
+            produtos = nota.get('produtos', [])
+            tem_cfop_entrada_original = False
+            
+            for prod in produtos:
+                # Priorizar cfop_original_emissor (CFOP do XML original)
+                cfop_original = prod.get('cfop_original_emissor') or prod.get('cfop_original') or prod.get('cfop', '')
+                cfop_original = str(cfop_original)
+                
+                # Se o CFOP original começa com 1, 2 ou 3, o terceiro emitiu ENTRADA
+                if cfop_original and cfop_original[0] in ['1', '2', '3']:
+                    tem_cfop_entrada_original = True
+                    break
+            
+            # Só incluir se o terceiro emitiu nota de ENTRADA
+            if tem_cfop_entrada_original:
                 notas_filtradas.append(nota)
         
         # Para cada nota, extrair CFOPs de DEVOLUÇÃO e buscar nota referenciada
