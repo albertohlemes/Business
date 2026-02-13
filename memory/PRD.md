@@ -153,6 +153,7 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 - ✅ Correção do formato de dados da Etapa 2 (Devoluções)
 - ✅ Etapa 3 aplica ação padrão "manter" automaticamente
 - ✅ Filtro de canceladas/desconsideradas em todos endpoints de alertas
+- ✅ **CORREÇÃO CRÍTICA**: Adicionado `.strip()` na comparação de CNPJs para classificação entrada/saída - espaços ou caracteres extras no XML causavam classificação incorreta
 
 ### 13/02/2026 (Sessão Anterior)
 - ✅ Adicionada nova etapa no Wizard: "Alertas de CFOP"
