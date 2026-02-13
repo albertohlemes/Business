@@ -341,9 +341,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const closeSelector = () => {
-    if (selectedCompany) {
-      setShowSelector(false);
-    }
+    setShowSelector(false);
   };
 
   const clearSelection = () => {
