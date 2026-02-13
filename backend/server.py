@@ -7603,18 +7603,8 @@ async def upload_xml_with_progress(
                             "motivo": motivo_devolucao
                         })
             elif tipo == 'saida' and modelo != '57' and xml_type != 'cte':
-                # Validação de saída apenas para NF-e/NFC-e (CT-e já foi validado acima)
-                cnpj_valido = cnpj_emitente == cnpj_empresa
-                logger.info(f"VALIDAÇÃO SAÍDA: NF {parsed_data.get('numero_nfe')} - Emitente: {cnpj_emitente}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
-                if not cnpj_valido:
-                    rejeitadas_cnpj.append({
-                        "filename": file.filename,
-                        "numero_nfe": parsed_data.get('numero_nfe', ''),
-                        "motivo": f"CNPJ do emitente ({cnpj_emitente}) não corresponde à empresa selecionada ({cnpj_empresa})",
-                        "emitente": parsed_data.get('emitente_nome', ''),
-                        "destinatario": parsed_data.get('destinatario_nome', '')
-                    })
-                    continue
+                # Com classificação automática, se tipo='saida', a empresa é o emitente
+                # Apenas validar se os CFOPs são de saída ou entrada
                 
                 # ==== VALIDAR CFOP PARA SAÍDAS ====
                 # Se a empresa é emitente mas os CFOPs são de ENTRADA (1xxx, 2xxx, 3xxx),
@@ -7626,16 +7616,10 @@ async def upload_xml_with_progress(
                 
                 # Se TODOS os CFOPs são de entrada, esta NF não deve ser importada como saída
                 if cfops_entrada_na_saida and not cfops_saida:
-                    logger.info(f"VALIDAÇÃO SAÍDA: NF {parsed_data.get('numero_nfe')} tem apenas CFOPs de entrada {cfops_entrada_na_saida} - desconsiderando na importação de saídas")
-                    results.append({
-                        "filename": file.filename,
-                        "status": "desconsiderada_cfop_entrada",
-                        "numero_nfe": parsed_data.get('numero_nfe', ''),
-                        "chave": chave_nfe,
-                        "motivo": f"NF emitida pela empresa com CFOP de entrada ({', '.join(cfops_entrada_na_saida[:3])}). Esta é uma devolução a fornecedor e deve ser importada como ENTRADA.",
-                        "cfops": cfops_entrada_na_saida
-                    })
-                    continue
+                    logger.info(f"VALIDAÇÃO SAÍDA: NF {parsed_data.get('numero_nfe')} tem apenas CFOPs de entrada {cfops_entrada_na_saida} - reclassificando como ENTRADA")
+                    # Reclassificar como entrada em vez de rejeitar
+                    tipo = 'entrada'
+                    logger.info(f"RECLASSIFICAÇÃO: NF {parsed_data.get('numero_nfe')} de SAÍDA para ENTRADA devido aos CFOPs")
             
             data_emissao = parsed_data.get('data_emissao', '')
             data_saida_entrada = parsed_data.get('data_saida_entrada', '')  # dhSaiEnt
