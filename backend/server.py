@@ -30328,17 +30328,22 @@ async def get_wizard_step_data(
     result = {"step_id": step_id, "data": {}}
     
     if step_id == 1:  # Notas Canceladas
-        # Buscar notas potencialmente canceladas (situação != 100)
+        # Buscar APENAS notas que foram marcadas como canceladas durante a importação
+        # - cancelada: True = nota com XML de cancelamento importado junto
+        # - status: 'cancelada' = status identificado no próprio XML
+        # - evento_cancelamento existe = evento de cancelamento foi processado
         canceladas = await db.xml_documents.find({
             "company_id": company_id,
             "competencia": competencia,
             "$or": [
                 {"cancelada": True},
-                {"situacao": {"$ne": "100"}},
-                {"situacao_nfe": {"$regex": "cancel", "$options": "i"}}
+                {"status": "cancelada"},
+                {"evento_cancelamento": {"$exists": True, "$ne": None}},
+                {"data_cancelamento": {"$exists": True, "$ne": None}}
             ]
         }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1, 
-            "valor_total": 1, "data_emissao": 1, "cancelada": 1, "tipo": 1, "modelo": 1}).to_list(length=500)
+            "valor_total": 1, "data_emissao": 1, "cancelada": 1, "status": 1,
+            "data_cancelamento": 1, "tipo": 1, "modelo": 1}).to_list(length=500)
         
         result["data"] = {
             "notas_canceladas": canceladas,
