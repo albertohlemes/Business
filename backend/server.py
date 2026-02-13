@@ -21476,20 +21476,13 @@ async def apurar_ipi(
         if not produtos:
             continue
         
-        # Determinar tipo pela CFOP do primeiro produto
-        primeiro_cfop = str(produtos[0].get('cfop', ''))
-        if primeiro_cfop and primeiro_cfop[0] in ['1', '2', '3']:
-            tipo_op = 'entrada'
+        # CORREÇÃO: Usar o tipo do DOCUMENTO como fonte da verdade (baseado no CNPJ do emitente)
+        # Não usar CFOP para determinar entrada/saída - isso causa bugs
+        tipo_op = doc.get('tipo') or doc.get('tipo_operacao') or 'entrada'
+        if tipo_op == 'entrada':
             totais["entradas"]["qtd_docs"] += 1
-        elif primeiro_cfop and primeiro_cfop[0] in ['5', '6', '7']:
-            tipo_op = 'saida'
-            totais["saidas"]["qtd_docs"] += 1
         else:
-            tipo_op = doc.get('tipo_operacao', 'entrada')
-            if tipo_op == 'entrada':
-                totais["entradas"]["qtd_docs"] += 1
-            else:
-                totais["saidas"]["qtd_docs"] += 1
+            totais["saidas"]["qtd_docs"] += 1
         
         for prod in produtos:
             cfop = str(prod.get('cfop', 'SEM CFOP'))
