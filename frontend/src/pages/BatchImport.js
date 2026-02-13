@@ -346,6 +346,25 @@ const BatchImport = ({ user, onLogout }) => {
                   </>
                 )}
               </button>
+
+              {/* Barra de Progresso */}
+              {uploading && (
+                <div className="mt-4 bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-purple-300 font-medium">{uploadProgress.phase}</span>
+                    <span className="text-sm text-[#A1A1AA]">{Math.round(uploadProgress.percent)}%</span>
+                  </div>
+                  <div className="h-2 bg-[#0C0C0C] rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-300 ease-out"
+                      style={{ width: `${uploadProgress.percent}%` }}
+                    />
+                  </div>
+                  {uploadProgress.detail && (
+                    <p className="text-xs text-[#666] mt-2">{uploadProgress.detail}</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Resultado */}
@@ -365,28 +384,87 @@ const BatchImport = ({ user, onLogout }) => {
                 {result.error ? (
                   <p className="text-red-400">{result.error}</p>
                 ) : (
-                  <div className="grid grid-cols-5 gap-4">
-                    <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-white">{result.total_empresas}</p>
-                      <p className="text-sm text-[#666]">Empresas</p>
+                  <>
+                    <div className="grid grid-cols-5 gap-4">
+                      <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-white">{result.total_empresas}</p>
+                        <p className="text-sm text-[#666]">Empresas</p>
+                      </div>
+                      <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-white">{result.total_arquivos}</p>
+                        <p className="text-sm text-[#666]">Arquivos</p>
+                      </div>
+                      <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-emerald-400">{result.total_importados}</p>
+                        <p className="text-sm text-[#666]">Importados</p>
+                      </div>
+                      <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-amber-400">{result.total_duplicados}</p>
+                        <p className="text-sm text-[#666]">Duplicados</p>
+                      </div>
+                      <div className="bg-[#0C0C0C] rounded-lg p-4 text-center cursor-pointer hover:bg-[#1A1A1A] transition-colors"
+                           onClick={() => result.total_erros > 0 && setShowErrorReport(!showErrorReport)}>
+                        <p className="text-2xl font-bold text-red-400">{result.total_erros}</p>
+                        <p className="text-sm text-[#666]">Erros {result.total_erros > 0 && '▼'}</p>
+                      </div>
                     </div>
-                    <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-white">{result.total_arquivos}</p>
-                      <p className="text-sm text-[#666]">Arquivos</p>
-                    </div>
-                    <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-emerald-400">{result.total_importados}</p>
-                      <p className="text-sm text-[#666]">Importados</p>
-                    </div>
-                    <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-amber-400">{result.total_duplicados}</p>
-                      <p className="text-sm text-[#666]">Duplicados</p>
-                    </div>
-                    <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-red-400">{result.total_erros}</p>
-                      <p className="text-sm text-[#666]">Erros</p>
-                    </div>
-                  </div>
+
+                    {/* Resumo por Empresa */}
+                    {result.empresas_processadas && result.empresas_processadas.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <h4 className="text-sm font-medium text-[#A1A1AA]">Detalhes por Empresa:</h4>
+                        <div className="max-h-48 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-[#2A2A2A] scrollbar-track-transparent">
+                          {result.empresas_processadas.map((emp, idx) => (
+                            <div key={idx} className="bg-[#0C0C0C] rounded-lg p-3 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Building2 className="w-4 h-4 text-[#666]" />
+                                <span className="text-sm text-white truncate max-w-[300px]">{emp.razao_social}</span>
+                              </div>
+                              <div className="flex items-center gap-4 text-xs">
+                                <span className="text-emerald-400">{emp.importados} novos</span>
+                                <span className="text-amber-400">{emp.duplicados} dup.</span>
+                                <span className="text-red-400">{emp.erros} erros</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Relatório de Erros */}
+                    {showErrorReport && result.erros && result.erros.length > 0 && (
+                      <div className="mt-4 bg-red-500/5 border border-red-500/20 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-semibold text-red-400 flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4" />
+                            Relatório de Erros ({result.erros.length})
+                          </h4>
+                          <button 
+                            onClick={() => setShowErrorReport(false)}
+                            className="text-[#666] hover:text-white text-sm"
+                          >
+                            Fechar
+                          </button>
+                        </div>
+                        <div className="max-h-64 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-[#2A2A2A] scrollbar-track-transparent">
+                          {result.erros.map((erro, idx) => (
+                            <div key={idx} className="bg-[#0C0C0C] rounded-lg p-3 text-sm">
+                              <div className="flex items-start gap-2">
+                                <XCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-white font-medium truncate">{erro.arquivo || erro.file || 'Arquivo desconhecido'}</p>
+                                  <p className="text-red-300 text-xs mt-1">{erro.erro || erro.error || 'Erro desconhecido'}</p>
+                                  {erro.empresa && (
+                                    <p className="text-[#666] text-xs mt-1">Empresa: {erro.empresa}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
                 
                 {result.empresas_nao_encontradas > 0 && (
