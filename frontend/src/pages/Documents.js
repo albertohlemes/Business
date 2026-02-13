@@ -556,6 +556,7 @@ const Documents = ({ user, onLogout }) => {
     setZipSelectedFiles([]);
     setZipFileName('');
     setSkipAiClassification(false);  // Reset
+    setForceBackgroundUpload(false);  // Reset
   };
 
   // Upload em background (Celery) para grandes volumes
