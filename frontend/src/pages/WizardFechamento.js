@@ -50,6 +50,18 @@ const WizardFechamento = ({ user, onLogout }) => {
       setWizard(response.data.wizard);
       setSteps(response.data.steps);
       
+      // Verificar se tem step na URL para ir direto para aquela etapa
+      const stepFromUrl = searchParams.get('step');
+      if (stepFromUrl && !initialStepLoaded) {
+        const targetStep = parseInt(stepFromUrl);
+        if (targetStep >= 1 && targetStep <= 7) {
+          // Ir para a etapa especificada na URL
+          await goToStep(targetStep);
+          setInitialStepLoaded(true);
+          return;
+        }
+      }
+      
       // Carregar dados da etapa atual
       await loadStepData(response.data.wizard.current_step);
     } catch (err) {
@@ -57,7 +69,7 @@ const WizardFechamento = ({ user, onLogout }) => {
     } finally {
       setLoading(false);
     }
-  }, [selectedCompany, selectedCompetencia]);
+  }, [selectedCompany, selectedCompetencia, searchParams, initialStepLoaded]);
 
   // Carregar dados de uma etapa específica
   const loadStepData = async (stepId) => {
