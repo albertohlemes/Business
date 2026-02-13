@@ -200,6 +200,9 @@ async def _process_xmls_async(task, job_id: str, xml_contents: List[Dict],
                     if cnpj_el is not None and cnpj_el.text:
                         cnpj_emitente = cnpj_el.text.strip()
             
+            # LIMPAR CNPJ: remover pontuação e espaços extras
+            cnpj_emitente = cnpj_emitente.replace('.', '').replace('/', '').replace('-', '').strip()
+            
             # CLASSIFICAÇÃO AUTOMÁTICA baseada na regra de negócio:
             # - Se CNPJ emitente == CNPJ empresa -> SAÍDA (empresa emitiu)
             # - Se CNPJ emitente != CNPJ empresa -> ENTRADA (empresa recebeu)
