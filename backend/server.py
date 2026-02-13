@@ -29884,6 +29884,7 @@ async def batch_import_upload_estrutura(
                             "origem_importacao": "batch_upload",
                             "desconsiderada_devolucao": desconsiderada_devolucao,
                             "motivo_desconsideracao": motivo_desconsideracao,
+                            "cancelada": is_cancelada,  # Flag de cancelamento pelo status
                             **{k: v for k, v in parsed.items() if k != 'modelo'}
                         }
                         
