@@ -89,7 +89,7 @@ const Layout = ({ user, onLogout, children }) => {
     nav.push({ type: 'separator', label: 'Visão Geral' });
     nav.push({ name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' });
     nav.push({ name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' });
-    nav.push({ name: 'Central de Alertas', href: '/alertas', icon: Bell, testId: 'nav-alertas' });
+    nav.push({ name: 'Central de Fechamento', href: '/alertas', icon: Bell, testId: 'nav-alertas' });
     
     // Importação em Lote (disponível para todos)
     nav.push({ name: 'Importação em Lote', href: '/batch-import', icon: Download, testId: 'nav-batch-import' });
