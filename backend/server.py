@@ -6695,24 +6695,37 @@ async def upload_background(
     Retorna imediatamente com job_id para acompanhar o progresso.
     
     Ideal para uploads de 1.000+ arquivos.
+    
+    NOTA: Requer Redis e Celery rodando.
     """
     import base64
     
     # Verificar se Celery/Redis está disponível antes de prosseguir
+    redis_available = False
     try:
         import redis
         redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
         r = redis.from_url(redis_url, socket_connect_timeout=2)
         r.ping()
+        redis_available = True
     except Exception as redis_err:
         logger.warning(f"BACKGROUND-UPLOAD: Redis não disponível: {redis_err}")
+    
+    if not redis_available:
         raise HTTPException(
             status_code=503, 
             detail="Serviço de processamento em background não disponível. Redis não está conectado. Use o upload normal."
         )
     
     # Importar task do Celery apenas se Redis estiver OK
-    from celery_tasks import process_xml_batch
+    try:
+        from celery_tasks import process_xml_batch
+    except Exception as import_err:
+        logger.warning(f"BACKGROUND-UPLOAD: Erro ao importar celery_tasks: {import_err}")
+        raise HTTPException(
+            status_code=503, 
+            detail="Serviço de processamento em background não disponível. Use o upload normal."
+        )
     
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
