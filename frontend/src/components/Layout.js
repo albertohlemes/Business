@@ -287,7 +287,23 @@ const Layout = ({ user, onLogout, children }) => {
         }`}
       >
         <Icon className={`${indented ? 'w-3 h-3' : 'w-4 h-4'}`} />
-        <span className={indented ? 'text-xs' : ''}>{item.name}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={indented ? 'text-xs' : ''}>{item.name}</span>
+            {item.badge && (
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                item.badgeColor === 'emerald' ? 'bg-emerald-500/20 text-emerald-400' :
+                item.badgeColor === 'amber' ? 'bg-amber-500/20 text-amber-400' :
+                'bg-purple-500/20 text-purple-400'
+              }`}>
+                {item.badge}
+              </span>
+            )}
+          </div>
+          {item.subtitle && (
+            <span className="text-[10px] text-[#666] block truncate">{item.subtitle}</span>
+          )}
+        </div>
       </Link>
     );
   };
