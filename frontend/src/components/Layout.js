@@ -97,7 +97,8 @@ const Layout = ({ user, onLogout, children }) => {
       
       // 📤 EXPORTAÇÕES
       nav.push({ type: 'separator', label: 'Exportações' });
-      nav.push({ name: 'Fechamento Mensal', href: '/fechamento-mensal', icon: Lock, testId: 'nav-fechamento-mensal' });
+      nav.push({ name: 'Wizard Fechamento', href: '/wizard-fechamento', icon: Lock, testId: 'nav-wizard-fechamento' });
+      nav.push({ name: 'Fechamento Mensal', href: '/fechamento-mensal', icon: FileOutput, testId: 'nav-fechamento-mensal' });
       nav.push({ name: 'SPED Fiscal', href: '/sped', icon: FileOutput, testId: 'nav-sped' });
       nav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
       
