@@ -29673,7 +29673,9 @@ async def batch_import_upload_estrutura(
             "total_importados": import_record["total_importados"],
             "total_duplicados": import_record["total_duplicados"],
             "total_erros": import_record["total_erros"],
-            "empresas_nao_encontradas": len(import_record["empresas_nao_encontradas"])
+            "empresas_nao_encontradas": len(import_record["empresas_nao_encontradas"]),
+            "empresas_processadas": import_record["empresas_processadas"],
+            "erros": import_record["erros"][:100]  # Limitar a 100 erros na resposta
         }
         
     except Exception as e:
