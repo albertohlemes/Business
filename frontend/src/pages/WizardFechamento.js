@@ -435,19 +435,50 @@ const WizardFechamento = ({ user, onLogout }) => {
                       {/* Seletor de ação */}
                       <div className="mt-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
                         <select
+                          id={`select-${cfopItem.cfop}`}
                           className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm text-white"
                           defaultValue="ignorar"
                           onChange={(e) => {
                             const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
-                            acoes[cfopItem.cfop] = e.target.value;
-                            localStorage.setItem('wizard_acoes_cfops', JSON.stringify(acoes));
+                            const inputEl = document.getElementById(`input-cfop-${cfopItem.cfop}`);
+                            if (e.target.value === 'converter_manual') {
+                              if (inputEl) inputEl.style.display = 'block';
+                            } else {
+                              if (inputEl) inputEl.style.display = 'none';
+                              acoes[cfopItem.cfop] = { acao: e.target.value };
+                              localStorage.setItem('wizard_acoes_cfops', JSON.stringify(acoes));
+                            }
                           }}
                         >
-                          <option value="ignorar">Ignorar (manter CFOP original)</option>
+                          <option value="ignorar">Manter CFOP original</option>
                           <option value="desconsiderar">Desconsiderar da apuração</option>
                           <option value="converter_compra">Converter para compra (1102/2102)</option>
                           <option value="converter_venda">Converter para venda (5102/6102)</option>
+                          <option value="converter_manual">Digitar CFOP manualmente...</option>
                         </select>
+                      </div>
+                      
+                      {/* Input para CFOP manual */}
+                      <div 
+                        id={`input-cfop-${cfopItem.cfop}`} 
+                        className="mt-2 hidden"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="text"
+                          placeholder="Digite o CFOP (ex: 5949)"
+                          maxLength={4}
+                          className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm text-white"
+                          onChange={(e) => {
+                            const cfopDigitado = e.target.value.replace(/\D/g, '');
+                            if (cfopDigitado.length === 4) {
+                              const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
+                              acoes[cfopItem.cfop] = { acao: 'converter_manual', cfop_destino: cfopDigitado };
+                              localStorage.setItem('wizard_acoes_cfops', JSON.stringify(acoes));
+                            }
+                          }}
+                        />
+                        <p className="text-xs text-[#666] mt-1">Digite 4 dígitos do CFOP de destino</p>
                       </div>
                     </div>
                     
