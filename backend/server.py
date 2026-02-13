@@ -29994,6 +29994,133 @@ async def get_tabelas_reforma_tributaria(
     }
 
 
+@api_router.get("/reforma-tributaria/relatorio-pdf/{company_id}")
+async def get_relatorio_reforma_tributaria_pdf(
+    company_id: str,
+    competencia: str = Query(..., description="Competência no formato MM/YYYY"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Gera relatório PDF da simulação da Reforma Tributária
+    """
+    from fastapi.responses import StreamingResponse
+    from services.reforma_tributaria_pdf import generate_reforma_tributaria_pdf
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar configuração
+    config_doc = await db.reforma_tributaria_config.find_one(
+        {"company_id": company_id},
+        {"_id": 0}
+    )
+    
+    config = ConfiguracaoReformaTributaria(
+        aliquota_cbs=Decimal(str(config_doc.get('aliquota_cbs', 8.80))) if config_doc else Decimal('8.80'),
+        aliquota_ibs=Decimal(str(config_doc.get('aliquota_ibs', 17.70))) if config_doc else Decimal('17.70')
+    )
+    
+    # Buscar documentos de entrada
+    docs_entrada = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada",
+        "desconsiderada_devolucao": {"$ne": True}
+    }).to_list(length=100000)
+    
+    # Buscar documentos de saída
+    docs_saida = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "saida",
+        "desconsiderada_devolucao": {"$ne": True}
+    }).to_list(length=100000)
+    
+    # Classificar entradas
+    creditos = []
+    for doc in docs_entrada:
+        produtos = doc.get('produtos', [])
+        for prod in produtos:
+            cfop = prod.get('cfop', '') or prod.get('cfop_original_emissor', '')
+            ncm = prod.get('ncm', '')
+            valor = Decimal(str(prod.get('valor_total', 0) or 0))
+            if valor > 0:
+                resultado = classificar_entrada(cfop, ncm, valor, config)
+                creditos.append(resultado)
+    
+    # Classificar saídas
+    debitos = []
+    for doc in docs_saida:
+        produtos = doc.get('produtos', [])
+        for prod in produtos:
+            cfop = prod.get('cfop', '') or prod.get('cfop_original_emissor', '')
+            ncm = prod.get('ncm', '')
+            valor = Decimal(str(prod.get('valor_total', 0) or 0))
+            if valor > 0:
+                resultado = classificar_saida(cfop, ncm, valor, config)
+                debitos.append(resultado)
+    
+    # Calcular apuração
+    apuracao = calcular_apuracao(creditos, debitos)
+    
+    # Buscar SPED para comparativo
+    regime_atual = {'pis_cofins': 0, 'icms': 0, 'total': 0}
+    sped = await db.sped_files.find_one({
+        "company_id": company_id,
+        "competencia": competencia
+    }, {"_id": 0, "resumo": 1})
+    
+    if sped and sped.get('resumo'):
+        resumo = sped['resumo']
+        regime_atual['pis_cofins'] = resumo.get('pis_a_recolher', 0) + resumo.get('cofins_a_recolher', 0)
+        regime_atual['icms'] = resumo.get('icms_a_recolher', 0)
+        regime_atual['total'] = regime_atual['pis_cofins'] + regime_atual['icms']
+    
+    # Montar dados para o PDF
+    data = {
+        'company_id': company_id,
+        'competencia': competencia,
+        'config': {
+            'aliquota_cbs': float(config.aliquota_cbs),
+            'aliquota_ibs': float(config.aliquota_ibs),
+            'aliquota_total': float(config.aliquota_total)
+        },
+        'apuracao': apuracao,
+        'comparativo_regime_atual': regime_atual,
+        'diferenca': {
+            'valor': float(apuracao['saldo']['total']) - regime_atual['total'],
+            'percentual': (
+                ((float(apuracao['saldo']['total']) - regime_atual['total']) / regime_atual['total'] * 100)
+                if regime_atual['total'] > 0 else 0
+            )
+        },
+        'estatisticas': {
+            'entradas': {'documentos': len(docs_entrada), 'produtos': len(creditos)},
+            'saidas': {'documentos': len(docs_saida), 'produtos': len(debitos)}
+        }
+    }
+    
+    company_name = company.get('razao_social', company.get('nome_fantasia', 'Empresa'))
+    
+    # Gerar PDF
+    pdf_buffer = generate_reforma_tributaria_pdf(data, company_name)
+    
+    # Nome do arquivo
+    filename = f"Reforma_Tributaria_{company_name.replace(' ', '_')[:20]}_{competencia.replace('/', '-')}.pdf"
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
