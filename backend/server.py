@@ -30594,10 +30594,10 @@ async def get_wizard_step_data(
             "total_entradas": sum(1 for c in cfops_list if c["tipo_operacao"] == "entrada"),
             "total_saidas": sum(1 for c in cfops_list if c["tipo_operacao"] == "saida"),
             "opcoes_acao": [
-                {"id": "ignorar", "label": "Ignorar (manter CFOP)", "description": "Mantém o CFOP original sem alteração"},
+                {"id": "converter_entrada_mesma_natureza", "label": "Converter para entrada (mesma natureza)", "description": "Ex: 5915 → 1915"},
                 {"id": "desconsiderar", "label": "Desconsiderar", "description": "Exclui da apuração fiscal"},
                 {"id": "converter_compra", "label": "Converter para Compra", "description": "Converte para CFOP de compra (1102/2102)"},
-                {"id": "converter_venda", "label": "Converter para Venda", "description": "Converte para CFOP de venda (5102/6102)"}
+                {"id": "converter_manual", "label": "Digitar CFOP", "description": "Informar CFOP manualmente"}
             ]
         }
     
