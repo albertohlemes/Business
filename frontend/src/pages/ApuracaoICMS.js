@@ -1620,6 +1620,18 @@ const ApuracaoICMS = ({ user, onLogout }) => {
         {/* Aba ICMS ST */}
         {activeTab === 'icms_st' && (
           <>
+            {/* Verificar se há dados de ICMS ST */}
+            {(!dados?.icms_st || (dados.icms_st?.apuracao?.icms_st_gerado === 0 && dados.icms_st?.apuracao?.icms_st_devolucoes === 0)) ? (
+              <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-8 text-center">
+                <Truck className="w-16 h-16 text-[#666] mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-white mb-2">Sem Movimentação de ICMS ST</h3>
+                <p className="text-[#A1A1AA] max-w-md mx-auto">
+                  Não há notas fiscais com ICMS de Substituição Tributária (ST) nesta competência.
+                  O ICMS ST é cobrado em operações com mercadorias sujeitas à substituição tributária (CFOPs 5403, 5405, 6403, 6404, etc.).
+                </p>
+              </div>
+            ) : (
+            <>
             {/* Cards de Resumo ICMS ST */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <ResumoCard
