@@ -1,203 +1,171 @@
 <analysis>**original_problem_statement:**
-O objetivo inicial era corrigir bugs críticos no módulo do Simples Nacional. No entanto, o escopo foi expandido pelo usuário para incluir novas funcionalidades e otimizações de performance significativas.
+O escopo inicial de correção de bugs foi expandido para incluir a criação de novas funcionalidades, como a importação de XMLs via ZIP e um módulo de análise da Reforma Tributária. As solicitações mais recentes do usuário focaram em resolver um erro na funcionalidade de Importação em Lote e, em seguida, em uma nova feature significativa: um Wizard de Fechamento.
 
-As requisições do usuário durante a sessão foram:
-1.  **Importação de XML via ZIP**: Criar uma funcionalidade de arrastar e soltar (drag-and-drop) para importar arquivos ZIP contendo múltiplos XMLs.
-2.  **Melhoria de Feedback de Upload**: Melhorar o feedback visual durante a importação de grandes volumes de XMLs, pois a interface parecia travar, não informando se o processo estava em andamento.
-3.  **Sincronização de Dados**: Fazer com que a importação do PGDAS atualize automaticamente a planilha de Evolução Fiscal (Análise Horizontal).
-4.  **Melhoria de UI**: Melhorar a formatação de números e o alinhamento de colunas na tela de Evolução Fiscal.
-5.  **Otimização de Performance Extrema**: Otimizar radicalmente a importação para grandes volumes de XMLs (1.000 a 10.000+), pois o processo estava muito lento ou travando.
-6.  **Bugs de Atualização de UI**:
-    *   O dashboard principal não estava atualizando corretamente as informações para empresas do Simples Nacional.
-    *   O dashboard do Simples Nacional não estava exibindo a alíquota efetiva correta (descontando o ISS retido).
-7.  **Limite de Contagem**: O contador de documentos no dashboard estava travado em 10.000, mesmo havendo mais documentos.
-8.  **Agrupamento de Documentos**: Sugestão de agrupar os documentos de saída por dia, com subtotais, para facilitar a visualização de grandes volumes.
-9.  **Monitoramento de Jobs**: Pedido de uma forma para saber se a importação em background (via Celery) está em execução.
-10. **Bugs de Importação em Background**: A importação de ZIP em background não estava iniciando após a leitura do arquivo.
+As requisições do usuário para esta sessão foram:
+1.  **Correção da Importação em Lote**: Resolver um erro que impedia a importação de milhares de arquivos () e outro bug que classificava incorretamente as NFC-e como 'entrada'.
+2.  **Melhoria na Importação em Lote**: Adicionar uma barra de progresso persistente (geral e por empresa) e um relatório de erros detalhado, similar à funcionalidade de upload de documentos existente.
+3.  **Unificação da Lógica de Importação**: Garantir que a importação em lote (com a opção Importação Rápida desmarcada) execute exatamente os mesmos passos da importação normal, incluindo classificação com IA, memorização de regras e filtros de CFOP.
+4.  **Criação do Wizard de Fechamento**: Implementar um fluxo guiado passo a passo para as tarefas de fechamento fiscal (canceladas, devoluções, classificação, PIS/COFINS, etc.). O wizard deve salvar o progresso de cada etapa e permitir que o usuário saia e volte de onde parou.
+5.  **Melhorias de UI/UX para o Wizard**:
+    *   Renomear a página Central de Alertas para Central de Fechamento.
+    *   Mover o acesso ao Wizard de um item de menu para um card dentro da Central de Fechamento.
+    *   O card na Central de Fechamento deve mostrar o status individual de cada etapa do wizard (ex: Processado, Não processado).
+    *   Adicionar um botão Processar em cada etapa na Central de Fechamento para levar o usuário diretamente àquele passo no wizard.
+    *   O wizard deve ter botões claros de Próxima Etapa e Etapa Anterior.
+6.  **Opção de Importação Rápida Universal**: Adicionar uma caixa de diálogo em todos os botões de upload de documentos para perguntar se o usuário deseja uma Importação Rápida (sem IA) ou Importação Normal.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-A aplicação é um sistema de fechamento fiscal (React + FastAPI + MongoDB). Nesta sessão, o agente implementou uma série de melhorias focadas em performance de upload e experiência do usuário. Foi adicionado suporte a upload de arquivos ZIP com extração no cliente (). Foram implementadas otimizações de backend para uploads em massa, incluindo processamento paralelo de arquivos, inserções em lote no MongoDB () e criação de índices otimizados no banco de dados. Foi introduzido um sistema de processamento de tarefas em background com Celery e Redis para uploads muito grandes, junto com um indicador de jobs na UI. Também foram corrigidos bugs nos dashboards que não calculavam corretamente a alíquota do Simples Nacional com ISS retido. Por fim, foi adicionada uma opção de Importação Rápida que pula a classificação por IA para acelerar o processo.
+A aplicação é um sistema de fechamento fiscal com frontend em React, backend em FastAPI e banco de dados MongoDB.
+- O bug de rolagem nas páginas de importação foi corrigido e testado.
+- Os bugs críticos na funcionalidade de Importação em Lote foram resolvidos. O sistema agora processa NFC-e corretamente e classifica o tipo de operação (entrada/saída) adequadamente.
+- A página de Importação em Lote foi aprimorada com barras de progresso persistentes e em tempo real (via polling), além de um relatório de resultados e erros detalhado.
+- A lógica de negócio foi unificada para garantir que a importação em lote e a importação de documentos padrão sigam as mesmas regras de classificação e filtros, utilizando constantes globais para listas de CFOPs.
+- Foi criada a estrutura completa para o novo Wizard de Fechamento, incluindo endpoints no backend para gerenciar o estado e executar cada etapa, e uma nova página no frontend ().
+- A UI foi ajustada conforme as solicitações do usuário: a Central de Alertas foi renomeada para Central de Fechamento e agora contém um card para iniciar/continuar o Wizard, com status individual para cada etapa e botões para pular diretamente para um passo específico.
+- A página de  agora exibe um modal para escolher entre Importação Rápida e Normal antes de fazer o upload de arquivos.
 
 **Last working item**:
-- **Last item agent was working**: O agente estava investigando por que a importação em background (via Celery) não estava sendo iniciada após o upload de um arquivo ZIP. O usuário reportou que o processo travava após a leitura do arquivo.
-- **Status**: BLOCKED
-- **Agent Testing Done**: N (O agente verificou que os serviços Celery e Redis estavam rodando, mas não conseguiu identificar a causa da falha na inicialização da tarefa).
-- **Which testing method agent to use?**: Backend testing agent. O agente precisa criar um teste que envie um arquivo para o endpoint , verifique se a tarefa Celery é criada e, em seguida, monitore os logs do worker Celery () e o status da tarefa através do endpoint  para diagnosticar por que a tarefa não está sendo executada.
-- **User Testing Done**: N
+-   **Last item agent was working**: O agente estava finalizando as melhorias de usabilidade do Wizard de Fechamento e da Central de Fechamento. A última ação foi implementar a funcionalidade que permite ao usuário clicar em um card de etapa (ex: 3/6 Classificação CFOPs) na Central de Fechamento para ser levado diretamente àquela etapa dentro do Wizard.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: Y (Testes visuais via screenshot foram feitos para as mudanças de UI).
+-   **Which testing method agent to use?**: Frontend testing agent. O agente deve realizar um teste de ponta a ponta do novo fluxo:
+    1.  Verificar se a página  agora é a Central de Fechamento e exibe o card do Wizard.
+    2.  Clicar no botão Processar de uma etapa e confirmar que a navegação para  funciona.
+    3.  Dentro do wizard, verificar se os botões Próxima Etapa, Etapa Anterior e o link para voltar à Central funcionam.
+    4.  Simular o processamento de uma etapa e verificar se a barra de progresso aparece.
+    5.  Voltar à Central de Fechamento e confirmar se o status da etapa processada foi atualizado.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Importação de ZIP em background não inicia (P0)**
+-   **Issue 1: Deploy não reflete as atualizações (P1)**
 -   **Issue 2: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
 -   **Issue 3: Discrepância de valores entre Dashboard e SPED (P2)**
 -   **Issue 4: Botão de Login fica travado em Processando... (P2)**
 
 **Issues Detail**:
--   **Issue 1: Importação de ZIP em background não inicia (P0)**
-    *   **Attempted fixes**: O agente verificou que os serviços Celery e Redis estavam online e que os workers Celery estavam prontos para receber tarefas. No entanto, a causa da falha na comunicação entre o endpoint da API e o worker Celery não foi encontrada.
-    *   **Next debug checklist**:
-        1.  Verificar os logs do backend () no momento em que o endpoint  é chamado para ver se há algum erro sendo lançado.
-        2.  Revisar o código do endpoint  em  e a tarefa  em  para garantir que os dados (conteúdo do arquivo, IDs) estão sendo passados corretamente.
-        3.  Adicionar logs detalhados no início da tarefa Celery para confirmar se ela é sequer recebida pelo worker.
-        4.  Verificar a configuração do broker e backend do Celery em  para garantir que apontam para a instância correta do Redis.
-    *   **Why fix this issue and what will be achieved with the fix?**: Esta é uma funcionalidade crítica para a importação de grandes volumes de XML, que era uma das principais queixas do usuário. A correção permitirá uploads fire-and-forget, resolvendo problemas de timeout e travamento da UI.
-    *   **Status**: IN PROGRESS
-    *   **Is recurring issue?**: N
-    *   **Should Test frontend/backend/both after fix?**: backend
-    *   **Blocked on other issue**: Não
+-   **Issue 1: Deploy não reflete as atualizações (P1)**
+    -   **Attempted fixes**: Nenhum nesta sessão. É um problema recorrente e crítico.
+    -   **Next debug checklist**:
+        1.  Investigar o processo de build e deploy (CI/CD).
+        2.  Verificar problemas de cache (CDN, servidor web).
+        3.  Adicionar um número de versão visível no frontend para identificar o build em produção.
+    -   **Why fix this issue and what will be achieved with the fix?**: É um bloqueador que impede o usuário de usar qualquer nova funcionalidade em produção.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: both
 
 -   **Issue 2: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
-    *   **Attempted fixes**: Nenhuma nesta sessão. É um problema recorrente.
-    *   **Next debug checklist**: Revisar os endpoints de upload em  para verificar qual campo de data ( vs ) está sendo usado para determinar a competência fiscal dos documentos.
-    *   **Why fix this issue and what will be achieved with the fix?**: A correta alocação de documentos por competência é essencial para a apuração fiscal precisa.
-    *   **Status**: NOT STARTED
-    *   **Is recurring issue?**: Y
-    *   **Should Test frontend/backend/both after fix?**: backend
-
--   **Issue 3: Discrepância de valores entre Dashboard e SPED (P2)**
-    *   **Attempted fixes**: Nenhuma.
-    *   **Next debug checklist**: Comparar o valor total de débitos e créditos do registro  do SPED com a soma dos valores dos registros analíticos (, etc.).
-    *   **Why fix this issue and what will be achieved with the fix?**: Garante consistência e confiança nos dados apresentados.
-    *   **Status**: NOT STARTED
-    *   **Is recurring issue?**: N
-    *   **Should Test frontend/backend/both after fix?**: backend
-
--   **Issue 4: Botão de Login fica travado em Processando... (P2)**
-    *   **Attempted fixes**: Nenhuma.
-    *   **Next debug checklist**: Analisar a função  no componente de login. Garantir que o estado  seja desativado no bloco  da chamada da API.
-    *   **Why fix this issue and what will be achieved with the fix?**: É um bug crítico de usabilidade.
-    *   **Status**: NOT STARTED
-    *   **Is recurring issue?**: N
-    *   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Attempted fixes**: Nenhum nesta sessão.
+    -   **Next debug checklist**: Revisar a lógica nos endpoints de upload (, ) para garantir que o campo  é extraído da data de emissão/saída do XML (/), e não da data do upload.
+    -   **Why fix this issue and what will be achieved with the fix?**: Garante a precisão da apuração fiscal.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: backend
 
 **In progress Task List**:
--   Nenhuma.
+-   **Task 1: Finalizar e Validar o Wizard de Fechamento (P0)**
+    -   **Where to resume**: A estrutura e os fluxos de UI estão implementados. O próximo passo é realizar um teste funcional completo do wizard, executando cada etapa, verificando se a lógica do backend processa os dados corretamente e se a UI reflete o progresso e o status final de cada etapa na Central de Fechamento.
+    -   **What will be achieved with this?**: Entregar a nova funcionalidade principal solicitada pelo usuário, proporcionando um fluxo de trabalho guiado e robusto para o fechamento fiscal.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on something**: Não
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
-    *   **(P0) Implementar visualização agrupada por dia**: Na página de documentos, implementar a funcionalidade solicitada pelo usuário para agrupar documentos por dia, com subtotais. O trabalho deve começar em .
-    *   **(P1) Refatoração do **: Mover endpoints e lógica de negócio para uma estrutura de  e .
+    *   **(P1) Implementar visualização agrupada por dia**: Na página de documentos, adicionar a funcionalidade para agrupar documentos por dia com subtotais.
+    *   **(P1) Implementar relatórios por email para a importação em lote**: Adicionar o envio de um relatório por email ao final da importação em lote.
 *   **Future Tasks:**
-    *   **(P1) Integração de CT-e**: Desenvolver o fluxo para upload e gerenciamento de Conhecimentos de Transporte.
-    *   **(P2) Testes de Frontend**: Implementar testes automatizados com Cypress ou Playwright.
-    *   **(P2) Refatoração do **: Quebrar o componente em subcomponentes menores por etapa.
+    *   **(P1) Refatoração CRÍTICA do **: O arquivo agora excede 30.000 linhas e sua refatoração é urgente.
+    *   **(P1) Refatoração CRÍTICA do **: Com mais de 4.000 linhas, precisa ser dividido em componentes menores.
+    *   **(P1) Integração de CT-e**: Desenvolver o fluxo para Conhecimentos de Transporte.
+    *   **(P2) Testes Automatizados**: Implementar testes com Cypress ou Playwright.
 
 **Completed work in this session**
--   **Upload de ZIP com Drag-and-Drop**: Implementado em  usando a biblioteca  para extração no cliente.
--   **Otimização de Performance de Upload**:
-    *   Implementado Bulk Insert () e pré-leitura paralela de arquivos () no endpoint  em .
-    *   Criado script  e executado para adicionar índices compostos na coleção , acelerando a verificação de duplicatas.
--   **Sistema de Jobs em Background (Celery)**:
-    *   Instalado e configurado Celery e Redis.
-    *   Criados os arquivos  e .
-    *   Adicionados novos endpoints (, , ) em .
-    *   Criado o componente  e integrado ao  para monitorar os jobs.
--   **Importação Rápida (sem IA)**: Adicionada uma opção na UI () e lógica no backend () para pular a etapa de classificação por IA, acelerando drasticamente a importação de grandes volumes.
--   **Correção de Bugs nos Dashboards**:
-    *   Corrigido o cálculo da alíquota do Simples Nacional para exibir a  quando aplicável em  e .
-    *   Ajustada a lógica no endpoint  em  para usar a mesma função de cálculo do Simples Nacional do dashboard específico.
--   **Correção do Limite de Contagem**: Substituído o limite de  para  em 53 locais em , corrigindo a contagem de documentos no dashboard.
--   **Aumento de Timeouts**: Aumentados os timeouts de requisição no frontend (, ) e no backend () para evitar que conexões caiam durante uploads longos.
--   **Integração de Dados PGDAS na Análise Horizontal**: O endpoint  foi modificado para incluir dados de faturamento do PGDAS, e a página  foi atualizada para exibir esses dados.
-
-**Earlier issues found/mentioned but not fixed**
-*   Os mesmos listados em .
+-   **Bug de Rolagem Corrigido**: Resolvido o problema de falta de rolagem nas páginas  e .
+-   **Bugs Críticos da Importação em Lote Resolvidos**: Corrigido o erro  que impedia o processamento e o bug que classificava NFC-e como 'entrada'.
+-   **Feature: Melhorias na Importação em Lote**: Implementada barra de progresso em tempo real e relatório de erros detalhado, com persistência no banco de dados.
+-   **Feature: Wizard de Fechamento Fiscal**: Criada toda a estrutura (backend e frontend) para um novo fluxo guiado de fechamento, incluindo persistência de estado.
+-   **UX/UI Aprimorados**:
+    -   A Central de Alertas foi reestruturada como Central de Fechamento, tornando-se o ponto de entrada para o novo Wizard.
+    -   O Wizard ganhou navegação entre etapas e status individual por passo.
+    -   Adicionado um modal de confirmação (Importação Rápida vs Normal) em todos os fluxos de upload de documentos.
+-   **Refatoração da Lógica de Negócio**: A lógica de filtros (especialmente CFOPs de devolução) foi unificada em uma constante global no  para garantir consistência entre todas as formas de importação.
 
 **Known issue recurrence from previous fork**
-*   **Cálculo de Competência**: A alocação de notas fiscais para o mês correto () continua sendo um bug recorrente e não foi abordado nesta sessão.
+-   **Cálculo de Competência**: A alocação de notas fiscais para o mês correto () continua sendo um bug recorrente.
+-   **Problema de Deploy**: O usuário reportou repetidamente que as atualizações não aparecem na versão de produção.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-*   **Backend**: FastAPI, Pydantic, MongoDB, **Celery**, **Redis**.
-*   **Frontend**: React, React Hooks, Context API, Axios, TailwindCSS, **JSZip**.
-*   **Lógica de Negócio**: Otimização de performance de upload em massa, processamento assíncrono de tarefas, regras fiscais do Simples Nacional.
+-   **Backend**: FastAPI, Pydantic, MongoDB, Celery, Redis.
+-   **Frontend**: React, React Hooks, Context API, Axios, TailwindCSS.
+-   **Arquitetura**: Implementação de Wizard com estado persistente no backend e UI com polling para atualizações de progresso em tempo real.
 
 **key DB schema**
-*   Nenhuma alteração de schema.
-*   **Índices adicionados** na coleção  para otimizar a busca por duplicatas e documentos existentes:
-    *   : 
-    *   : 
-    *   : 
-
-**changes in tech stack**
--   **Backend**: Adicionado **Celery** para gerenciamento de filas de tarefas e **Redis** como broker e backend de resultados.
--   **Frontend**: Adicionada a biblioteca **JSZip** para manipulação de arquivos ZIP no lado do cliente.
+-   Foram adicionados novos modelos/coleções no MongoDB para gerenciar o estado e o progresso da  e do .
 
 **All files of reference**
-*   /app/backend/server.py
-*   /app/backend/celery_config.py
-*   /app/backend/celery_tasks.py
-*   /app/frontend/src/pages/Documents.js
-*   /app/frontend/src/pages/AnaliseHorizontal.js
-*   /app/frontend/src/pages/SimplesNacionalDashboard.js
-*   /app/frontend/src/pages/Dashboard.js
-*   /app/frontend/src/components/BackgroundJobsIndicator.js
-*   /app/frontend/src/context/UploadContext.js
-*   /app/memory/PRD.md
+-   /app/backend/server.py
+-   /app/frontend/src/pages/WizardFechamento.js
+-   /app/frontend/src/pages/AlertasPage.js
+-   /app/frontend/src/pages/BatchImport.js
+-   /app/frontend/src/pages/Documents.js
+-   /app/frontend/src/components/Layout.js
+-   /app/frontend/src/App.js
 
 **Areas that need refactoring**:
-*   ** (CRÍTICO)**: O arquivo continua monolítico e complexo. A adição da lógica de Celery, otimizações e correções de bugs aumentou a necessidade de refatoração urgente.
-*   ****: Este componente agora gerencia múltiplos modos de upload (streaming, background, com/sem IA), modais e manipulação de arquivos. Ele ultrapassou 4000 linhas e deve ser quebrado em componentes menores (ex: , ,  para a lógica de upload).
+-   ** (EXTREMAMENTE CRÍTICO)**: O arquivo cresceu ainda mais, tornando a manutenção e a adição de novas funcionalidades extremamente arriscadas. A refatoração é a principal dívida técnica do projeto.
+-   ** (CRÍTICO)**: Continua sendo um componente monolítico e complexo.
+-   ** e **: São componentes novos e grandes que já se beneficiariam de serem divididos em subcomponentes para melhor manutenibilidade.
 
 **key api endpoints**
-*   **NOVOS**:
-    *   : Envia um ZIP para ser processado em background pelo Celery.
-    *   : Lista o status de todos os jobs de background.
-    *   : Obtém o status de um job específico.
-*   **MODIFICADOS**:
-    *   : Otimizado com pré-leitura paralela e . Agora aceita o parâmetro .
-    *   : Agora aceita o parâmetro .
-    *   : Corrigido para calcular corretamente os totais do Simples Nacional.
-    *   : Modificado para incluir dados históricos do PGDAS.
+-   **MODIFICADOS**:
+    -   : Lógica completamente refeita para incluir classificação condicional (IA), progresso em tempo real e retorno de estatísticas detalhadas.
+-   **NOVOS (Progresso e Wizard)**:
+    -   : Lista importações em andamento.
+    -   : Faz polling do progresso de uma importação.
+    -   : Inicia ou obtém o estado de um wizard.
+    -   : Executa uma etapa do wizard.
+    -   : Reinicia um wizard.
+    -   : Obtém um resumo do status do wizard.
 
 **Critical Info for New Agent**
-*   A prioridade máxima é corrigir a funcionalidade de **importação em background (Celery)**, que está quebrada. O usuário está importando grandes volumes e depende dessa funcionalidade para evitar timeouts.
-*   O usuário está muito focado em **performance**. Todas as mudanças futuras devem considerar o impacto no desempenho de uploads em massa.
-*   Existem agora múltiplos fluxos de upload: streaming síncrono (padrão) e background assíncrono (Celery, para 500+ arquivos), ambos com a opção de pular a classificação por IA. Entender esses fluxos é crucial para a depuração.
-*   O próximo recurso solicitado é a **visualização agrupada por dia** na página de documentos.
+-   A prioridade máxima é investigar e resolver o **problema de deploy**. Sem isso, o usuário não consegue validar nenhuma das novas funcionalidades em seu ambiente.
+-   A segunda prioridade é **finalizar e validar o Wizard de Fechamento**. Execute um teste completo do fluxo, processando cada etapa e garantindo que a UI e os dados sejam atualizados corretamente.
+-   O bug recorrente da **competência de data** () é uma falha de integridade de dados que precisa ser resolvida.
+-   A **refatoração do ** é uma necessidade técnica urgente para a saúde do projeto a longo prazo.
 
 **documents and test reports created in this job**
-*   /app/memory/PRD.md (atualizado)
-*   /app/backend/celery_config.py
-*   /app/backend/celery_tasks.py
-*   /app/backend/start_celery.sh
+-   /app/test_reports/iteration_50.json
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **Usuário**: Reporta que a importação de ZIP em background não está iniciando. (PENDENTE - BUG CRÍTICO)
-9.  **Usuário**: Pergunta o que perde ao importar sem IA. (CONCLUÍDO - Agente explicou as consequências)
-8.  **Usuário**: Reporta que o ambiente oficial trava durante a importação de grandes volumes. (CONCLUÍDO - Agente implementou opção de importação rápida sem IA como solução)
-7.  **Usuário**: Pergunta como importar pelo Celery. (CONCLUÍDO - Agente explicou o gatilho automático e se ofereceu para adicionar controle manual)
-6.  **Usuário**: Reporta que o contador no dashboard está travado em 10.000. (CONCLUÍDO - Agente aumentou o limite para 100.000)
-5.  **Usuário**: Sugere uma nova funcionalidade: agrupar documentos por dia na visualização. (PENDENTE - Próxima tarefa)
-4.  **Usuário**: Pergunta como saber se a importação em background está rodando. (CONCLUÍDO - Agente criou o componente )
-3.  **Usuário**: Aceita a proposta de implementação da otimização com Celery/Redis. (CONCLUÍDO - Agente implementou)
-2.  **Usuário**: Pede otimização de tempo para importações. (CONCLUÍDO - Agente implementou bulk insert e processamento paralelo)
-1.  **Usuário**: Reporta bugs nos dashboards do Simples Nacional (principal e específico) relacionados à alíquota de ISS retido. (CONCLUÍDO - Agente corrigiu)
+1.  **PENDING**: mas onde eu clico para iniciar o processamento de cada etapa? - Pedido para que os cards na Central de Fechamento iniciem a etapa correspondente no wizard. (Implementado, aguardando validação do usuário).
+2.  **PENDING**: fazendo isso, vai ficar exatamente igual a importacao IA? ou esqueci de algo - Pergunta sobre a paridade da lógica. (O agente investigou, encontrou e corrigiu inconsistências. Aguardando validação do usuário).
+3.  **PENDING**: importante, que no processamento de cada etapa tenha barra de progresso... - Pedido de barras de progresso no wizard, opção de importação rápida em todos os uploads e histórico de reprocessamento. (Implementado, aguardando validação do usuário).
+4.  **PENDING**: ESTAVA PENSANDO AQUI... - Sugestão inicial da ideia do Wizard de Fechamento. (Implementado).
+5.  **PENDING**: SERIA LEGAL TER A MESMA BARRA QUE TEMOS NOS UPLOADS... - Pedido para adicionar barra de progresso e relatório à importação em lote. (Implementado).
+6.  **RESOLVED**: NAO APARECE - Reportou que os documentos importados em lote não apareciam na lista. (Corrigido).
+7.  **RESOLVED**: ERRO AO PROCESSAR - Reportou erro na importação em lote, que o agente diagnosticou como duplicados de uma importação anterior bem-sucedida.
+8.  **RESOLVED**: ESTA DANDO ERRO IMPORTACAO EM LOTE - Segundo reporte do erro de importação.
+9.  **RESOLVED**: ESTA DANDO ERRO NA IMPORTACAO EM LOTE - Primeiro reporte do erro de importação ().
+10. **RESOLVED**: 1 - Aprovação para o plano inicial do agente.
 
 **Project Health Check:**
-*   **Broken**:
-    *   A funcionalidade principal de importação em background via Celery está quebrada. A tarefa não é iniciada após o upload.
-    *   A lógica de atribuição de competência fiscal (bug NF de fevereiro em janeiro) continua sem solução.
-*   **Mocked**:
-    *   Nenhum.
-
-**3rd Party Integrations**
-*   **PyMuPDF**: Extração de texto de PDFs (PGDAS).
-*   **Celery**: Processamento de tarefas assíncronas em background.
-*   **Redis**: Message broker e backend de resultados para o Celery.
-*   **JSZip**: Manipulação (extração) de arquivos ZIP no frontend.
-
-**Testing status**
--   **Testing agent used after significant changes**: NO
--   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: []
--   **Known regressions**: O cálculo de competência dos documentos é uma regressão conhecida de forks anteriores e permanece sem solução.
+-   **Broken**:
+    -   O processo de deploy para o ambiente de produção do usuário está quebrado.
+    -   A lógica de atribuição de competência fiscal por data continua com um bug conhecido.
 
 **Credentials to test flow:**
-*   **Super Admin**:  / 
+-   **Super Admin**:  / 
 
 **What agent forgot to execute**
-*   O agente não resolveu os problemas pendentes do handoff anterior (competência de NF, discrepância com SPED, botão de login travado), pois o foco foi totalmente direcionado para as novas demandas de performance e funcionalidades do usuário.</analysis>
+-   O agente não abordou as seguintes tarefas e bugs de alta prioridade de handoffs anteriores:
+    -   O problema crítico de deploy.
+    -   O bug recorrente de atribuição de competência por data.
+    -   A discrepância de valores entre Dashboard e SPED.
+-   A funcionalidade de visualização agrupada por dia na tela de documentos, solicitada pelo usuário, não foi implementada.
+-   A implementação de relatórios por email para a importação em lote não foi concluída.</analysis>
