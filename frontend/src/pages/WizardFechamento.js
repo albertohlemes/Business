@@ -72,25 +72,69 @@ const WizardFechamento = ({ user, onLogout }) => {
     }
   };
 
-  // Completar etapa
+  // Completar etapa com progresso
   const completeStep = async (stepData = {}) => {
     if (!wizard) return;
     
     setProcessing(true);
+    setStepProgress({ phase: 'Iniciando...', percent: 0, detail: '' });
+    
     try {
       const token = localStorage.getItem('token');
+      
+      // Simular progresso baseado na etapa
+      let progressInterval;
+      const step = wizard.current_step;
+      
+      if (step === 3 || step === 4 || step === 5) {
+        // Etapas que processam muitos itens - simular progresso
+        let percent = 0;
+        const phases = {
+          3: ['Carregando produtos...', 'Classificando com IA...', 'Aplicando memorizações...', 'Salvando...'],
+          4: ['Analisando entradas...', 'Calculando CSTs...', 'Corrigindo divergências...', 'Salvando...'],
+          5: ['Analisando saídas...', 'Calculando CSTs...', 'Aplicando correções...', 'Salvando...']
+        };
+        
+        const stepPhases = phases[step] || ['Processando...'];
+        let phaseIdx = 0;
+        
+        progressInterval = setInterval(() => {
+          percent += Math.random() * 8;
+          if (percent >= 25 && phaseIdx === 0) phaseIdx = 1;
+          if (percent >= 50 && phaseIdx === 1) phaseIdx = 2;
+          if (percent >= 75 && phaseIdx === 2) phaseIdx = 3;
+          
+          setStepProgress({
+            phase: stepPhases[Math.min(phaseIdx, stepPhases.length - 1)],
+            percent: Math.min(percent, 95),
+            detail: ''
+          });
+        }, 300);
+      } else {
+        // Etapas simples
+        setStepProgress({ phase: 'Processando...', percent: 50, detail: '' });
+      }
+      
       const response = await axios.post(
         `${API}/api/wizard-fechamento/step/${selectedCompany.id}/${wizard.current_step}/complete?competencia=${encodeURIComponent(selectedCompetencia)}`,
         stepData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
+      if (progressInterval) clearInterval(progressInterval);
+      setStepProgress({ phase: 'Concluído!', percent: 100, detail: '' });
+      
+      // Aguardar um pouco antes de recarregar
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Recarregar wizard
       await loadWizardStatus();
     } catch (err) {
       console.error('Erro ao completar etapa:', err);
+      setStepProgress({ phase: 'Erro!', percent: 0, detail: err.message });
     } finally {
       setProcessing(false);
+      setTimeout(() => setStepProgress(null), 1500);
     }
   };
 
