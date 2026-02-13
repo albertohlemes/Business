@@ -173,6 +173,9 @@ const Documents = ({ user, onLogout }) => {
   const [zipFileName, setZipFileName] = useState('');
   const [skipAiClassification, setSkipAiClassification] = useState(false);  // Modo rápido sem IA
   const [forceBackgroundUpload, setForceBackgroundUpload] = useState(false);  // Forçar uso do Celery
+  const [showUploadTypeModal, setShowUploadTypeModal] = useState(false);  // Modal de seleção de tipo
+  const [pendingUploadFiles, setPendingUploadFiles] = useState([]);  // Arquivos aguardando confirmação
+  const [pendingUploadConfig, setPendingUploadConfig] = useState(null);  // Config do upload pendente
 
   // Carregar documentos quando selecionar tipo ou mudar filtro
   useEffect(() => {
