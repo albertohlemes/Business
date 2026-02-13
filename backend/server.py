@@ -9777,9 +9777,14 @@ async def get_dashboard_stats(
             # CSTs de entrada que NÃO geram crédito mesmo no Lucro Real hipotético
             # 70 = Operação de Aquisição sem Direito a Crédito
             # 73 = Operação de Aquisição a Alíquota Zero
-            # 98 = Outras Operações de Entrada
+            # 98 = Outras Operações de Entrada (sem incidência)
             CST_ENTRADA_SEM_CREDITO = ['70', '73', '98']
-            if cst_pis in CST_ENTRADA_SEM_CREDITO or cst_cofins in CST_ENTRADA_SEM_CREDITO:
+            
+            # Usar CST calculado se disponível, senão usar do XML
+            cst_pis_calculado = str(prod.get('cst_pis_calculado', '')).strip()
+            cst_usado_entrada = cst_pis_calculado if cst_pis_calculado else cst_pis
+            
+            if cst_usado_entrada in CST_ENTRADA_SEM_CREDITO or cst_pis in CST_ENTRADA_SEM_CREDITO:
                 gera_credito_pis_cofins = False
             
             # Monofásicos e Alíquota Zero - NÃO geram crédito
