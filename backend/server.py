@@ -30270,7 +30270,7 @@ async def get_wizard_step_data(
     elif step_id == 2:  # Devoluções de Fornecedores
         # Usar lista global de CFOPs de devolução
         # Buscar notas de devolução de terceiros
-        devolucoes = await db.xml_documents.find({
+        devolucoes_raw = await db.xml_documents.find({
             "company_id": company_id,
             "competencia": competencia,
             "tipo": "entrada",
@@ -30280,11 +30280,41 @@ async def get_wizard_step_data(
             ]
         }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
             "valor_total": 1, "data_emissao": 1, "desconsiderada_devolucao": 1,
-            "motivo_desconsideracao": 1, "produtos.cfop": 1}).to_list(length=500)
+            "motivo_desconsideracao": 1, "produtos.cfop": 1, "nfe_referenciada": 1}).to_list(length=500)
+        
+        # Para cada devolução, buscar a nota original referenciada
+        devolucoes_com_original = []
+        for dev in devolucoes_raw:
+            dev_info = {
+                **dev,
+                "nota_original": None,
+                "nota_original_encontrada": False
+            }
+            
+            # Se tem NFe referenciada, buscar a nota original
+            nfe_ref = dev.get("nfe_referenciada", "")
+            if nfe_ref and len(nfe_ref) >= 10:
+                # Buscar por chave completa ou parcial
+                nota_original = await db.xml_documents.find_one({
+                    "company_id": company_id,
+                    "$or": [
+                        {"chave_nfe": nfe_ref},
+                        {"chave_nfe": {"$regex": nfe_ref}},
+                        {"numero_nfe": nfe_ref.split("-")[-1] if "-" in nfe_ref else nfe_ref}
+                    ]
+                }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
+                    "valor_total": 1, "data_emissao": 1, "desconsiderada_devolucao": 1})
+                
+                if nota_original:
+                    dev_info["nota_original"] = nota_original
+                    dev_info["nota_original_encontrada"] = True
+            
+            devolucoes_com_original.append(dev_info)
         
         result["data"] = {
-            "notas_devolucao": devolucoes,
-            "total": len(devolucoes),
+            "notas_devolucao": devolucoes_com_original,
+            "total": len(devolucoes_com_original),
+            "total_com_original": sum(1 for d in devolucoes_com_original if d["nota_original_encontrada"]),
             "cfops_devolucao": CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL
         }
     
