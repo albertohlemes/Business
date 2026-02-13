@@ -4083,10 +4083,27 @@ const Documents = ({ user, onLogout }) => {
                     </p>
                   </div>
                 </label>
+                
+                {/* Opção de Forçar Background */}
+                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-white/5 transition-colors mt-2">
+                  <input
+                    type="checkbox"
+                    checked={forceBackgroundUpload}
+                    onChange={(e) => setForceBackgroundUpload(e.target.checked)}
+                    className="w-4 h-4 rounded border-[#3A3A3A] bg-[#0C0C0C] text-purple-500 focus:ring-purple-500"
+                  />
+                  <div>
+                    <span className="text-white font-medium">Processar em Background</span>
+                    <span className="text-purple-400 text-xs ml-2">(Celery)</span>
+                    <p className="text-xs text-[#666] mt-0.5">
+                      Processa os arquivos no servidor. Você pode fechar a página e acompanhar pelo indicador de Jobs.
+                    </p>
+                  </div>
+                </label>
               </div>
 
               {/* Aviso sobre modo background */}
-              {zipSelectedFiles.length >= 500 && (
+              {(zipSelectedFiles.length >= 100 || forceBackgroundUpload) && (
                 <div className="px-4 pb-4">
                   <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
                     <p className="text-sm text-purple-300">
