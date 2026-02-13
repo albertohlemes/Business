@@ -29998,6 +29998,529 @@ async def download_batch_script():
 
 
 # ============================================================
+# WIZARD DE FECHAMENTO FISCAL
+# ============================================================
+
+WIZARD_STEPS = [
+    {"id": 1, "name": "notas_canceladas", "title": "Notas Canceladas", "description": "Confirmar e processar notas fiscais canceladas"},
+    {"id": 2, "name": "devolucoes", "title": "Devoluções de Fornecedores", "description": "Identificar devoluções e excluir notas referenciadas"},
+    {"id": 3, "name": "classificacao_cfop", "title": "Classificação de CFOPs", "description": "Converter e classificar CFOPs dos produtos"},
+    {"id": 4, "name": "pis_cofins_entrada", "title": "PIS/COFINS Entradas", "description": "Corrigir CST de PIS e COFINS nas entradas"},
+    {"id": 5, "name": "pis_cofins_saida", "title": "PIS/COFINS Saídas", "description": "Corrigir CST de PIS e COFINS nas saídas"},
+    {"id": 6, "name": "reforma_tributaria", "title": "Reforma Tributária", "description": "Calcular IVA Dual (CBS + IBS)"},
+    {"id": 7, "name": "concluido", "title": "Concluído", "description": "Fechamento fiscal finalizado"}
+]
+
+
+@api_router.get("/wizard-fechamento/status/{company_id}")
+async def get_wizard_status(
+    company_id: str,
+    competencia: str = Query(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Retorna o status atual do wizard para uma empresa/competência"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar status existente
+    wizard = await db.wizard_fechamento.find_one(
+        {"company_id": company_id, "competencia": competencia},
+        {"_id": 0}
+    )
+    
+    if not wizard:
+        # Criar novo registro
+        wizard = {
+            "id": str(uuid.uuid4()),
+            "company_id": company_id,
+            "competencia": competencia,
+            "current_step": 1,
+            "steps_completed": [],
+            "steps_data": {},
+            "status": "in_progress",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.wizard_fechamento.insert_one(wizard)
+    
+    return {
+        "wizard": wizard,
+        "steps": WIZARD_STEPS,
+        "empresa": {
+            "id": company["id"],
+            "razao_social": company.get("razao_social", ""),
+            "cnpj": company.get("cnpj", "")
+        }
+    }
+
+
+@api_router.post("/wizard-fechamento/reset/{company_id}")
+async def reset_wizard(
+    company_id: str,
+    competencia: str = Query(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Reinicia o wizard do zero"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Deletar wizard existente
+    await db.wizard_fechamento.delete_one(
+        {"company_id": company_id, "competencia": competencia}
+    )
+    
+    # Criar novo
+    wizard = {
+        "id": str(uuid.uuid4()),
+        "company_id": company_id,
+        "competencia": competencia,
+        "current_step": 1,
+        "steps_completed": [],
+        "steps_data": {},
+        "status": "in_progress",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.wizard_fechamento.insert_one(wizard)
+    
+    return {"message": "Wizard reiniciado", "wizard": wizard}
+
+
+@api_router.get("/wizard-fechamento/step/{company_id}/{step_id}")
+async def get_wizard_step_data(
+    company_id: str,
+    step_id: int,
+    competencia: str = Query(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Retorna os dados necessários para uma etapa específica do wizard"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Filtro base para documentos
+    base_filter = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filter_docs_nao_canceladas_ou_desconsideradas()
+    }
+    
+    result = {"step_id": step_id, "data": {}}
+    
+    if step_id == 1:  # Notas Canceladas
+        # Buscar notas potencialmente canceladas (situação != 100)
+        canceladas = await db.xml_documents.find({
+            "company_id": company_id,
+            "competencia": competencia,
+            "$or": [
+                {"cancelada": True},
+                {"situacao": {"$ne": "100"}},
+                {"situacao_nfe": {"$regex": "cancel", "$options": "i"}}
+            ]
+        }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1, 
+            "valor_total": 1, "data_emissao": 1, "cancelada": 1, "tipo": 1, "modelo": 1}).to_list(length=500)
+        
+        result["data"] = {
+            "notas_canceladas": canceladas,
+            "total": len(canceladas)
+        }
+    
+    elif step_id == 2:  # Devoluções de Fornecedores
+        # CFOPs de devolução
+        CFOPS_DEVOLUCAO = ['1201', '1202', '1203', '1204', '1410', '1411', '1503', '1504',
+                          '1915', '1916', '1918', '1919', '1949', '2201', '2202', '2203', 
+                          '2204', '2410', '2411', '2503', '2504', '2915', '2916', '2918', 
+                          '2919', '2949']
+        
+        # Buscar notas de devolução de terceiros
+        devolucoes = await db.xml_documents.find({
+            "company_id": company_id,
+            "competencia": competencia,
+            "tipo": "entrada",
+            "$or": [
+                {"desconsiderada_devolucao": True},
+                {"produtos.cfop": {"$in": CFOPS_DEVOLUCAO}}
+            ]
+        }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
+            "valor_total": 1, "data_emissao": 1, "desconsiderada_devolucao": 1,
+            "motivo_desconsideracao": 1, "produtos.cfop": 1}).to_list(length=500)
+        
+        result["data"] = {
+            "notas_devolucao": devolucoes,
+            "total": len(devolucoes),
+            "cfops_devolucao": CFOPS_DEVOLUCAO
+        }
+    
+    elif step_id == 3:  # Classificação de CFOPs
+        # Buscar produtos sem classificação ou pendentes
+        docs_entrada = await db.xml_documents.find({
+            **base_filter,
+            "tipo": "entrada",
+            "modelo": "nfe"
+        }, {"_id": 0, "id": 1, "numero_nfe": 1, "emitente_nome": 1, "produtos": 1}).to_list(length=200)
+        
+        produtos_pendentes = []
+        produtos_classificados = []
+        
+        for doc in docs_entrada:
+            for p in doc.get("produtos", []):
+                produto_info = {
+                    "doc_id": doc["id"],
+                    "nfe": doc.get("numero_nfe", ""),
+                    "emitente": doc.get("emitente_nome", ""),
+                    "descricao": p.get("descricao", ""),
+                    "codigo": p.get("codigo", ""),
+                    "ncm": p.get("ncm", ""),
+                    "cfop": p.get("cfop", ""),
+                    "cfop_original": p.get("cfop_original", p.get("cfop_original_emissor", "")),
+                    "categoria": p.get("categoria_classificada", ""),
+                    "valor": p.get("valor_total", 0)
+                }
+                
+                if not p.get("categoria_classificada"):
+                    produtos_pendentes.append(produto_info)
+                else:
+                    produtos_classificados.append(produto_info)
+        
+        result["data"] = {
+            "produtos_pendentes": produtos_pendentes[:100],
+            "produtos_classificados": len(produtos_classificados),
+            "total_pendentes": len(produtos_pendentes),
+            "total_classificados": len(produtos_classificados)
+        }
+    
+    elif step_id == 4:  # PIS/COFINS Entradas
+        # Buscar entradas com divergências de CST
+        docs_entrada = await db.xml_documents.find({
+            **base_filter,
+            "tipo": "entrada"
+        }, {"_id": 0, "id": 1, "numero_nfe": 1, "emitente_nome": 1, "valor_total": 1,
+            "produtos": 1}).to_list(length=200)
+        
+        total_docs = len(docs_entrada)
+        docs_com_divergencia = []
+        
+        for doc in docs_entrada:
+            divergencias = []
+            for p in doc.get("produtos", []):
+                if p.get("cst_divergente"):
+                    divergencias.append({
+                        "produto": p.get("descricao", "")[:50],
+                        "cst_xml": p.get("cst_pis_xml", ""),
+                        "cst_calculado": p.get("cst_pis_calculado", ""),
+                        "motivo": p.get("cst_motivo", "")
+                    })
+            
+            if divergencias:
+                docs_com_divergencia.append({
+                    "id": doc["id"],
+                    "nfe": doc.get("numero_nfe", ""),
+                    "emitente": doc.get("emitente_nome", ""),
+                    "divergencias": divergencias[:5]
+                })
+        
+        result["data"] = {
+            "total_documentos": total_docs,
+            "docs_com_divergencia": docs_com_divergencia[:50],
+            "total_divergencias": len(docs_com_divergencia)
+        }
+    
+    elif step_id == 5:  # PIS/COFINS Saídas
+        # Similar ao passo 4, mas para saídas
+        docs_saida = await db.xml_documents.find({
+            **base_filter,
+            "tipo": "saida"
+        }, {"_id": 0, "id": 1, "numero_nfe": 1, "destinatario_nome": 1, "valor_total": 1,
+            "produtos": 1}).to_list(length=200)
+        
+        total_docs = len(docs_saida)
+        
+        result["data"] = {
+            "total_documentos": total_docs,
+            "resumo": {
+                "nfe_saida": sum(1 for d in docs_saida if d.get("modelo") == "nfe"),
+                "nfce": sum(1 for d in docs_saida if d.get("modelo") == "nfce")
+            }
+        }
+    
+    elif step_id == 6:  # Reforma Tributária
+        # Buscar dados para cálculo da Reforma Tributária
+        # Usar o serviço existente
+        try:
+            config = ConfiguracaoReformaTributaria()
+            apuracao = await calcular_apuracao(company_id, competencia, config, db)
+            result["data"] = {
+                "apuracao": apuracao,
+                "config": {
+                    "aliquota_cbs": config.aliquota_cbs,
+                    "aliquota_ibs": config.aliquota_ibs,
+                    "aliquota_total": config.aliquota_total
+                }
+            }
+        except Exception as e:
+            result["data"] = {"error": str(e)}
+    
+    elif step_id == 7:  # Concluído
+        # Resumo final
+        wizard = await db.wizard_fechamento.find_one(
+            {"company_id": company_id, "competencia": competencia},
+            {"_id": 0}
+        )
+        
+        result["data"] = {
+            "wizard": wizard,
+            "steps_completed": wizard.get("steps_completed", []) if wizard else [],
+            "all_complete": len(wizard.get("steps_completed", [])) >= 6 if wizard else False
+        }
+    
+    return result
+
+
+@api_router.post("/wizard-fechamento/step/{company_id}/{step_id}/complete")
+async def complete_wizard_step(
+    company_id: str,
+    step_id: int,
+    competencia: str = Query(...),
+    step_data: Dict[str, Any] = Body(default={}),
+    current_user: User = Depends(get_current_user)
+):
+    """Marca uma etapa como completa e salva os dados"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Processar ações específicas de cada etapa
+    actions_taken = []
+    
+    if step_id == 1:  # Notas Canceladas
+        # Confirmar notas canceladas
+        notas_ids = step_data.get("notas_confirmar", [])
+        if notas_ids:
+            result = await db.xml_documents.update_many(
+                {"id": {"$in": notas_ids}},
+                {"$set": {"cancelada": True, "confirmada_wizard": True}}
+            )
+            actions_taken.append(f"{result.modified_count} notas marcadas como canceladas")
+    
+    elif step_id == 2:  # Devoluções
+        # Marcar notas de devolução como desconsideradas
+        notas_ids = step_data.get("notas_desconsiderar", [])
+        if notas_ids:
+            result = await db.xml_documents.update_many(
+                {"id": {"$in": notas_ids}},
+                {"$set": {
+                    "desconsiderada_devolucao": True,
+                    "motivo_desconsideracao": "Confirmado via Wizard de Fechamento"
+                }}
+            )
+            actions_taken.append(f"{result.modified_count} notas desconsideradas")
+    
+    elif step_id == 3:  # Classificação de CFOPs
+        # Classificar produtos com IA se necessário
+        classificar = step_data.get("classificar_produtos", False)
+        if classificar:
+            # Buscar documentos de entrada sem classificação
+            docs = await db.xml_documents.find({
+                "company_id": company_id,
+                "competencia": competencia,
+                "tipo": "entrada",
+                "modelo": "nfe"
+            }).to_list(length=500)
+            
+            total_classificados = 0
+            for doc in docs:
+                produtos_para_classificar = []
+                for p in doc.get("produtos", []):
+                    if not p.get("categoria_classificada"):
+                        produtos_para_classificar.append(p)
+                
+                if produtos_para_classificar:
+                    try:
+                        emitente_uf = doc.get("emitente_uf", "")
+                        classifications, stats = await classify_products_with_cache(
+                            produtos_para_classificar,
+                            company_id,
+                            company,
+                            emitente_uf,
+                            {}
+                        )
+                        
+                        # Aplicar classificações
+                        for idx, product in enumerate(produtos_para_classificar):
+                            p_id = str(idx)
+                            if p_id in classifications:
+                                result_class = classifications[p_id]
+                                product['cfop'] = result_class['cfop']
+                                product['categoria_classificada'] = result_class['categoria']
+                                product['justificativa_ia'] = result_class['justificativa']
+                                total_classificados += 1
+                        
+                        # Salvar documento atualizado
+                        await db.xml_documents.update_one(
+                            {"id": doc["id"]},
+                            {"$set": {"produtos": doc["produtos"]}}
+                        )
+                    except Exception as e:
+                        logger.warning(f"Erro ao classificar: {e}")
+            
+            actions_taken.append(f"{total_classificados} produtos classificados")
+    
+    elif step_id == 4:  # PIS/COFINS Entradas
+        # Recalcular CST de entradas
+        recalcular = step_data.get("recalcular_cst", False)
+        if recalcular:
+            regime = company.get("regime_tributario", "simples_nacional")
+            docs = await db.xml_documents.find({
+                "company_id": company_id,
+                "competencia": competencia,
+                "tipo": "entrada"
+            }).to_list(length=500)
+            
+            total_corrigidos = 0
+            for doc in docs:
+                updated = False
+                for p in doc.get("produtos", []):
+                    cst_info = calcular_cst_pis_cofins(
+                        ncm=p.get("ncm", ""),
+                        cfop=p.get("cfop", ""),
+                        tipo_operacao="entrada",
+                        cst_xml=p.get("cst_pis_xml", ""),
+                        regime=regime
+                    )
+                    
+                    if p.get("cst_pis") != cst_info['cst_calculado']:
+                        p['cst_pis'] = cst_info['cst_calculado']
+                        p['cst_cofins'] = cst_info['cst_calculado']
+                        p['cst_corrigido_wizard'] = True
+                        updated = True
+                        total_corrigidos += 1
+                
+                if updated:
+                    await db.xml_documents.update_one(
+                        {"id": doc["id"]},
+                        {"$set": {"produtos": doc["produtos"]}}
+                    )
+            
+            actions_taken.append(f"{total_corrigidos} CSTs corrigidos nas entradas")
+    
+    elif step_id == 5:  # PIS/COFINS Saídas
+        # Similar ao passo 4, mas para saídas
+        recalcular = step_data.get("recalcular_cst", False)
+        if recalcular:
+            regime = company.get("regime_tributario", "simples_nacional")
+            docs = await db.xml_documents.find({
+                "company_id": company_id,
+                "competencia": competencia,
+                "tipo": "saida"
+            }).to_list(length=500)
+            
+            total_corrigidos = 0
+            for doc in docs:
+                updated = False
+                for p in doc.get("produtos", []):
+                    cst_info = calcular_cst_pis_cofins(
+                        ncm=p.get("ncm", ""),
+                        cfop=p.get("cfop", ""),
+                        tipo_operacao="saida",
+                        cst_xml=p.get("cst_pis_xml", ""),
+                        regime=regime
+                    )
+                    
+                    if p.get("cst_pis") != cst_info['cst_calculado']:
+                        p['cst_pis'] = cst_info['cst_calculado']
+                        p['cst_cofins'] = cst_info['cst_calculado']
+                        p['cst_corrigido_wizard'] = True
+                        updated = True
+                        total_corrigidos += 1
+                
+                if updated:
+                    await db.xml_documents.update_one(
+                        {"id": doc["id"]},
+                        {"$set": {"produtos": doc["produtos"]}}
+                    )
+            
+            actions_taken.append(f"{total_corrigidos} CSTs corrigidos nas saídas")
+    
+    elif step_id == 6:  # Reforma Tributária
+        # Apenas salvar que o cálculo foi revisado
+        actions_taken.append("Cálculo da Reforma Tributária revisado")
+    
+    # Atualizar wizard
+    step_name = WIZARD_STEPS[step_id - 1]["name"] if step_id <= len(WIZARD_STEPS) else "unknown"
+    next_step = min(step_id + 1, len(WIZARD_STEPS))
+    
+    update_data = {
+        "current_step": next_step,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        f"steps_data.{step_name}": {
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "completed_by": current_user.id,
+            "actions": actions_taken,
+            "input_data": step_data
+        }
+    }
+    
+    # Adicionar step aos completados
+    await db.wizard_fechamento.update_one(
+        {"company_id": company_id, "competencia": competencia},
+        {
+            "$set": update_data,
+            "$addToSet": {"steps_completed": step_id}
+        },
+        upsert=True
+    )
+    
+    # Se último passo, marcar como concluído
+    if step_id >= 6:
+        await db.wizard_fechamento.update_one(
+            {"company_id": company_id, "competencia": competencia},
+            {"$set": {"status": "completed"}}
+        )
+    
+    return {
+        "success": True,
+        "step_completed": step_id,
+        "next_step": next_step,
+        "actions_taken": actions_taken
+    }
+
+
+@api_router.post("/wizard-fechamento/step/{company_id}/{step_id}/go")
+async def go_to_wizard_step(
+    company_id: str,
+    step_id: int,
+    competencia: str = Query(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Navega para uma etapa específica do wizard"""
+    await db.wizard_fechamento.update_one(
+        {"company_id": company_id, "competencia": competencia},
+        {
+            "$set": {
+                "current_step": step_id,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    return {"success": True, "current_step": step_id}
+
+
+# ============================================================
 # REFORMA TRIBUTÁRIA - IVA DUAL (CBS + IBS)
 # ============================================================
 
