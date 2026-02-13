@@ -1,171 +1,589 @@
 <analysis>**original_problem_statement:**
-O escopo inicial de correção de bugs foi expandido para incluir a criação de novas funcionalidades, como a importação de XMLs via ZIP e um módulo de análise da Reforma Tributária. As solicitações mais recentes do usuário focaram em resolver um erro na funcionalidade de Importação em Lote e, em seguida, em uma nova feature significativa: um Wizard de Fechamento.
-
-As requisições do usuário para esta sessão foram:
-1.  **Correção da Importação em Lote**: Resolver um erro que impedia a importação de milhares de arquivos () e outro bug que classificava incorretamente as NFC-e como 'entrada'.
-2.  **Melhoria na Importação em Lote**: Adicionar uma barra de progresso persistente (geral e por empresa) e um relatório de erros detalhado, similar à funcionalidade de upload de documentos existente.
-3.  **Unificação da Lógica de Importação**: Garantir que a importação em lote (com a opção Importação Rápida desmarcada) execute exatamente os mesmos passos da importação normal, incluindo classificação com IA, memorização de regras e filtros de CFOP.
-4.  **Criação do Wizard de Fechamento**: Implementar um fluxo guiado passo a passo para as tarefas de fechamento fiscal (canceladas, devoluções, classificação, PIS/COFINS, etc.). O wizard deve salvar o progresso de cada etapa e permitir que o usuário saia e volte de onde parou.
-5.  **Melhorias de UI/UX para o Wizard**:
-    *   Renomear a página Central de Alertas para Central de Fechamento.
-    *   Mover o acesso ao Wizard de um item de menu para um card dentro da Central de Fechamento.
-    *   O card na Central de Fechamento deve mostrar o status individual de cada etapa do wizard (ex: Processado, Não processado).
-    *   Adicionar um botão Processar em cada etapa na Central de Fechamento para levar o usuário diretamente àquele passo no wizard.
-    *   O wizard deve ter botões claros de Próxima Etapa e Etapa Anterior.
-6.  **Opção de Importação Rápida Universal**: Adicionar uma caixa de diálogo em todos os botões de upload de documentos para perguntar se o usuário deseja uma Importação Rápida (sem IA) ou Importação Normal.
+O escopo inicial de correção de bugs expandiu-se para uma série de novas funcionalidades e correções complexas. As solicitações mais recentes do usuário foram:
+1.  **Correção da Lógica de Importação**: Garantir que todas as portas de upload (normal, streaming, lote) tratem CFOPs de devolução/remessa (como 1915) de forma consistente, desconsiderando-os quando emitidos por terceiros.
+2.  **Correção do Modal de Empresa**: Permitir que o modal de seleção de empresa seja fechado mesmo que nenhuma empresa esteja selecionada.
+3.  **Resolução de Múltiplos Bugs Críticos**:
+    *   Importação em lote via ZIP estava com problemas.
+    *   Permitir que todos os usuários (não apenas admins) usem a importação em lote.
+    *   O Wizard mostrava apenas 200 itens nas etapas de PIS/COFINS, causando totalizações incorretas.
+    *   Havia uma discrepância na contagem de itens a classificar entre a Central de Inteligência e o Wizard.
+    *   A barra de progresso no Wizard travava em 95%.
+    *   O upload em background para NFC-e não funcionava (nenhum job aparecia).
+    *   A barra de progresso de upload travava e não gerava relatório para a empresa Sungroup.
+4.  **Novas Features para o Wizard**:
+    *   Adicionar uma etapa para tratar CFOPs Distintos antes da classificação por IA.
+    *   Na etapa de devoluções, correlacionar a nota de devolução com a nota de venda original e permitir a exclusão de ambas.
+5.  **Melhoria na Reforma Tributária**: Criar dois demonstrativos comparativos separados: um para o cenário de 2027 (CBS vs. PIS/COFINS) e outro para a reforma completa (CBS+IBS vs. PIS/COFINS+ICMS).
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-A aplicação é um sistema de fechamento fiscal com frontend em React, backend em FastAPI e banco de dados MongoDB.
-- O bug de rolagem nas páginas de importação foi corrigido e testado.
-- Os bugs críticos na funcionalidade de Importação em Lote foram resolvidos. O sistema agora processa NFC-e corretamente e classifica o tipo de operação (entrada/saída) adequadamente.
-- A página de Importação em Lote foi aprimorada com barras de progresso persistentes e em tempo real (via polling), além de um relatório de resultados e erros detalhado.
-- A lógica de negócio foi unificada para garantir que a importação em lote e a importação de documentos padrão sigam as mesmas regras de classificação e filtros, utilizando constantes globais para listas de CFOPs.
-- Foi criada a estrutura completa para o novo Wizard de Fechamento, incluindo endpoints no backend para gerenciar o estado e executar cada etapa, e uma nova página no frontend ().
-- A UI foi ajustada conforme as solicitações do usuário: a Central de Alertas foi renomeada para Central de Fechamento e agora contém um card para iniciar/continuar o Wizard, com status individual para cada etapa e botões para pular diretamente para um passo específico.
-- A página de  agora exibe um modal para escolher entre Importação Rápida e Normal antes de fazer o upload de arquivos.
+A aplicação é um sistema de fechamento fiscal com frontend em React e backend em FastAPI.
+- A maior parte das funcionalidades e correções solicitadas pelo usuário nesta sessão foi implementada e validada.
+- O Wizard de Fechamento foi finalizado e agora inclui uma nova etapa para CFOPs Distintos, totalizando 7 etapas. A lógica para tratar devoluções correlacionadas foi adicionada.
+- Os bugs críticos reportados (permissão de importação em lote, limite de 200 itens, discrepância de contagem e barra de progresso do wizard) foram corrigidos.
+- A lógica de desconsideração de CFOPs foi unificada em todas as três portas de upload (, , ).
+- O problema de upload em background foi diagnosticado (serviços Redis/Celery não estavam rodando), e o agente instalou e iniciou os serviços, confirmando que o endpoint agora funciona.
+- A página de Reforma Tributária foi atualizada com os dois demonstrativos comparativos solicitados.
+- O fallback para upload de arquivos foi tornado mais robusto no frontend para lidar com falhas no SSE ou no processamento em background.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava finalizando as melhorias de usabilidade do Wizard de Fechamento e da Central de Fechamento. A última ação foi implementar a funcionalidade que permite ao usuário clicar em um card de etapa (ex: 3/6 Classificação CFOPs) na Central de Fechamento para ser levado diretamente àquela etapa dentro do Wizard.
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: Y (Testes visuais via screenshot foram feitos para as mudanças de UI).
--   **Which testing method agent to use?**: Frontend testing agent. O agente deve realizar um teste de ponta a ponta do novo fluxo:
-    1.  Verificar se a página  agora é a Central de Fechamento e exibe o card do Wizard.
-    2.  Clicar no botão Processar de uma etapa e confirmar que a navegação para  funciona.
-    3.  Dentro do wizard, verificar se os botões Próxima Etapa, Etapa Anterior e o link para voltar à Central funcionam.
-    4.  Simular o processamento de uma etapa e verificar se a barra de progresso aparece.
-    5.  Voltar à Central de Fechamento e confirmar se o status da etapa processada foi atualizado.
+-   **Last item agent was working**: O agente finalizou a implementação dos dois comparativos na página de Reforma Tributária: um para o cenário de 2027 (CBS vs PIS/COFINS) e outro para a reforma completa (CBS+IBS vs PIS/COFINS+ICMS).
+-   **Status**: COMPLETED (User has not yet verified this specific change, but it's the implementation of a direct request).
+-   **Agent Testing Done**: Y (Verificação visual via screenshot confirmou que a nova UI foi renderizada corretamente, embora com dados zerados).
+-   **Which testing method agent to use?**: Frontend testing agent. Verificar se os dois novos painéis (CENÁRIO 2027 e REFORMA COMPLETA) aparecem na página  e se a estrutura de dados está correta.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Deploy não reflete as atualizações (P1)**
--   **Issue 2: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
--   **Issue 3: Discrepância de valores entre Dashboard e SPED (P2)**
--   **Issue 4: Botão de Login fica travado em Processando... (P2)**
+-   **Issue 1: Barra de progresso de upload trava para a empresa Sungroup (P0)**
+-   **Issue 2: Deploy não reflete as atualizações (P1)**
+-   **Issue 3: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
+-   **Issue 4: Discrepância de valores entre Dashboard e SPED (P2)**
+-   **Issue 5: Botão de Login fica travado em Processando... (P2)**
 
 **Issues Detail**:
--   **Issue 1: Deploy não reflete as atualizações (P1)**
-    -   **Attempted fixes**: Nenhum nesta sessão. É um problema recorrente e crítico.
+-   **Issue 1: Barra de progresso de upload trava para a empresa Sungroup (P0)**
+    -   **Attempted fixes**: O agente melhorou o mecanismo de feedback de upload no frontend. Foi implementado um fallback mais robusto para polling () caso o SSE (Server-Sent Events) falhe, e foram adicionados mais logs para depuração. No entanto, o agente não conseguiu reproduzir o problema por falta de dados de teste para a Sungroup.
     -   **Next debug checklist**:
-        1.  Investigar o processo de build e deploy (CI/CD).
-        2.  Verificar problemas de cache (CDN, servidor web).
-        3.  Adicionar um número de versão visível no frontend para identificar o build em produção.
-    -   **Why fix this issue and what will be achieved with the fix?**: É um bloqueador que impede o usuário de usar qualquer nova funcionalidade em produção.
+        1.  Realizar um upload real de um arquivo ZIP para a empresa Sungroup para reproduzir o problema.
+        2.  Monitorar o console do navegador em busca dos novos logs de SSE (, , ) para entender onde o fluxo para.
+        3.  Inspecionar a aba Network do navegador para verificar se a conexão SSE () é fechada prematuramente ou se o polling () retorna erros.
+        4.  Verificar os logs do backend (==> /var/log/supervisor/backend.err.log <==
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [3962]
+INFO:     Started server process [4086]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [4086]
+INFO:     Started server process [4189]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [4189]
+INFO:     Started server process [4212]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [4212]
+INFO:     Started server process [4269]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:server:BACKGROUND-UPLOAD: Job c3823b9c-3edf-463e-a695-233d1bd68010 criado com 1 arquivos
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [4269]
+INFO:     Started server process [5891]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:server:DASHBOARD: Query = {'company_id': '48a04e0a-edaf-4f9e-8734-068a78df692e', 'competencia': '02/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Documentos encontrados = 0
+INFO:server:DASHBOARD: NFe Entrada = 0 docs
+INFO:server:DASHBOARD: NFe Saída = 0 docs
+INFO:server:DASHBOARD: NFe Entrada=0, NFe Saída=0, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=0, Devoluções Compra=0, Compras Líquidas=0
+INFO:server:DASHBOARD: Vendas Brutas=0, Devoluções Venda=0, Vendas Líquidas=0
+INFO:server:DASHBOARD: Markup=0.00%
+INFO:server:DASHBOARD: Entradas(NFe=0, CTe=0, Serv.Tomados=0) = 0
+INFO:server:DASHBOARD: Saídas(NFe=0, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 0
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 0
+INFO:server:DASHBOARD: Query = {'company_id': '48a04e0a-edaf-4f9e-8734-068a78df692e', 'competencia': '02/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Documentos encontrados = 0
+INFO:server:DASHBOARD: NFe Entrada = 0 docs
+INFO:server:DASHBOARD: NFe Saída = 0 docs
+INFO:server:DASHBOARD: NFe Entrada=0, NFe Saída=0, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=0, Devoluções Compra=0, Compras Líquidas=0
+INFO:server:DASHBOARD: Vendas Brutas=0, Devoluções Venda=0, Vendas Líquidas=0
+INFO:server:DASHBOARD: Markup=0.00%
+INFO:server:DASHBOARD: Entradas(NFe=0, CTe=0, Serv.Tomados=0) = 0
+INFO:server:DASHBOARD: Saídas(NFe=0, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 0
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 0
+INFO:server:DASHBOARD: Query = {'company_id': '48a04e0a-edaf-4f9e-8734-068a78df692e', 'competencia': '01/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Documentos encontrados = 2121
+INFO:server:DASHBOARD: NFe Entrada = 1172 docs
+INFO:server:DASHBOARD: NFe Saída = 949 docs
+INFO:server:DASHBOARD: NFe Entrada=1172, NFe Saída=949, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=317406.3399999997, Devoluções Compra=0, Compras Líquidas=317406.3399999997
+INFO:server:DASHBOARD: Vendas Brutas=714710.4800000006, Devoluções Venda=0, Vendas Líquidas=714710.4800000006
+INFO:server:DASHBOARD: Markup=125.17%
+INFO:server:DASHBOARD: Entradas(NFe=852907.5300000004, CTe=0, Serv.Tomados=0) = 852907.5300000004
+INFO:server:DASHBOARD: Saídas(NFe=600847.7600000001, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 600847.7600000001
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 840398.8900000007
+INFO:server:DASHBOARD: Query = {'company_id': '48a04e0a-edaf-4f9e-8734-068a78df692e', 'competencia': '01/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Documentos encontrados = 2121
+INFO:server:DASHBOARD: NFe Entrada = 1172 docs
+INFO:server:DASHBOARD: NFe Saída = 949 docs
+INFO:server:DASHBOARD: NFe Entrada=1172, NFe Saída=949, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=317406.3399999997, Devoluções Compra=0, Compras Líquidas=317406.3399999997
+INFO:server:DASHBOARD: Vendas Brutas=714710.4800000006, Devoluções Venda=0, Vendas Líquidas=714710.4800000006
+INFO:server:DASHBOARD: Markup=125.17%
+INFO:server:DASHBOARD: Entradas(NFe=852907.5300000004, CTe=0, Serv.Tomados=0) = 852907.5300000004
+INFO:server:DASHBOARD: Saídas(NFe=600847.7600000001, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 600847.7600000001
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 840398.8900000007
+INFO:server:DASHBOARD: Query = {'company_id': '48a04e0a-edaf-4f9e-8734-068a78df692e', 'competencia': '01/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Documentos encontrados = 2121
+INFO:server:DASHBOARD: NFe Entrada = 1172 docs
+INFO:server:DASHBOARD: NFe Saída = 949 docs
+INFO:server:DASHBOARD: NFe Entrada=1172, NFe Saída=949, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=317406.3399999997, Devoluções Compra=0, Compras Líquidas=317406.3399999997
+INFO:server:DASHBOARD: Vendas Brutas=714710.4800000006, Devoluções Venda=0, Vendas Líquidas=714710.4800000006
+INFO:server:DASHBOARD: Markup=125.17%
+INFO:server:DASHBOARD: Entradas(NFe=852907.5300000004, CTe=0, Serv.Tomados=0) = 852907.5300000004
+INFO:server:DASHBOARD: Saídas(NFe=600847.7600000001, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 600847.7600000001
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 840398.8900000007
+INFO:server:DASHBOARD: Query = {'company_id': '48a04e0a-edaf-4f9e-8734-068a78df692e', 'competencia': '01/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Documentos encontrados = 2121
+INFO:server:DASHBOARD: NFe Entrada = 1172 docs
+INFO:server:DASHBOARD: NFe Saída = 949 docs
+INFO:server:DASHBOARD: NFe Entrada=1172, NFe Saída=949, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=317406.3399999997, Devoluções Compra=0, Compras Líquidas=317406.3399999997
+INFO:server:DASHBOARD: Vendas Brutas=714710.4800000006, Devoluções Venda=0, Vendas Líquidas=714710.4800000006
+INFO:server:DASHBOARD: Markup=125.17%
+INFO:server:DASHBOARD: Entradas(NFe=852907.5300000004, CTe=0, Serv.Tomados=0) = 852907.5300000004
+INFO:server:DASHBOARD: Saídas(NFe=600847.7600000001, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 600847.7600000001
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 840398.8900000007
+INFO:server:DASHBOARD: Query = {'company_id': '48a04e0a-edaf-4f9e-8734-068a78df692e', 'competencia': '01/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Documentos encontrados = 1619
+INFO:server:DASHBOARD: NFe Entrada = 670 docs
+INFO:server:DASHBOARD: NFe Saída = 949 docs
+INFO:server:DASHBOARD: NFe Entrada=670, NFe Saída=949, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=0, Devoluções Compra=0, Compras Líquidas=0
+INFO:server:DASHBOARD: Vendas Brutas=714710.4800000006, Devoluções Venda=0, Vendas Líquidas=714710.4800000006
+INFO:server:DASHBOARD: Markup=0.00%
+INFO:server:DASHBOARD: Entradas(NFe=530139.1300000006, CTe=0, Serv.Tomados=0) = 530139.1300000006
+INFO:server:DASHBOARD: Saídas(NFe=600847.7600000001, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 600847.7600000001
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 523976.95000000036
+INFO:server:DASHBOARD: Query = {'company_id': '48a04e0a-edaf-4f9e-8734-068a78df692e', 'competencia': '01/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Documentos encontrados = 1619
+INFO:server:DASHBOARD: NFe Entrada = 670 docs
+INFO:server:DASHBOARD: NFe Saída = 949 docs
+INFO:server:DASHBOARD: NFe Entrada=670, NFe Saída=949, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=0, Devoluções Compra=0, Compras Líquidas=0
+INFO:server:DASHBOARD: Vendas Brutas=714710.4800000006, Devoluções Venda=0, Vendas Líquidas=714710.4800000006
+INFO:server:DASHBOARD: Markup=0.00%
+INFO:server:DASHBOARD: Entradas(NFe=530139.1300000006, CTe=0, Serv.Tomados=0) = 530139.1300000006
+INFO:server:DASHBOARD: Saídas(NFe=600847.7600000001, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 600847.7600000001
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 523976.95000000036
+INFO:server:DASHBOARD: Query = {'company_id': '48a04e0a-edaf-4f9e-8734-068a78df692e', 'competencia': '01/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Documentos encontrados = 1619
+INFO:server:DASHBOARD: NFe Entrada = 670 docs
+INFO:server:DASHBOARD: NFe Saída = 949 docs
+INFO:server:DASHBOARD: NFe Entrada=670, NFe Saída=949, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=0, Devoluções Compra=0, Compras Líquidas=0
+INFO:server:DASHBOARD: Vendas Brutas=714710.4800000006, Devoluções Venda=0, Vendas Líquidas=714710.4800000006
+INFO:server:DASHBOARD: Markup=0.00%
+INFO:server:DASHBOARD: Entradas(NFe=530139.1300000006, CTe=0, Serv.Tomados=0) = 530139.1300000006
+INFO:server:DASHBOARD: Saídas(NFe=600847.7600000001, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 600847.7600000001
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 523976.95000000036
+INFO:server:DASHBOARD: Query = {'company_id': '48a04e0a-edaf-4f9e-8734-068a78df692e', 'competencia': '01/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Documentos encontrados = 1619
+INFO:server:DASHBOARD: NFe Entrada = 670 docs
+INFO:server:DASHBOARD: NFe Saída = 949 docs
+INFO:server:DASHBOARD: NFe Entrada=670, NFe Saída=949, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=0, Devoluções Compra=0, Compras Líquidas=0
+INFO:server:DASHBOARD: Vendas Brutas=714710.4800000006, Devoluções Venda=0, Vendas Líquidas=714710.4800000006
+INFO:server:DASHBOARD: Markup=0.00%
+INFO:server:DASHBOARD: Entradas(NFe=530139.1300000006, CTe=0, Serv.Tomados=0) = 530139.1300000006
+INFO:server:DASHBOARD: Saídas(NFe=600847.7600000001, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 600847.7600000001
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 523976.95000000036
+INFO:server:DASHBOARD: Query = {'company_id': '48a04e0a-edaf-4f9e-8734-068a78df692e', 'competencia': '01/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Documentos encontrados = 1619
+INFO:server:DASHBOARD: NFe Entrada = 670 docs
+INFO:server:DASHBOARD: NFe Saída = 949 docs
+INFO:server:DASHBOARD: NFe Entrada=670, NFe Saída=949, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=0, Devoluções Compra=0, Compras Líquidas=0
+INFO:server:DASHBOARD: Vendas Brutas=714710.4800000006, Devoluções Venda=0, Vendas Líquidas=714710.4800000006
+INFO:server:DASHBOARD: Markup=0.00%
+INFO:server:DASHBOARD: Entradas(NFe=530139.1300000006, CTe=0, Serv.Tomados=0) = 530139.1300000006
+INFO:server:DASHBOARD: Saídas(NFe=600847.7600000001, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 600847.7600000001
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 523976.95000000036
+INFO:server:DASHBOARD: Query = {'company_id': '48a04e0a-edaf-4f9e-8734-068a78df692e', 'competencia': '01/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Documentos encontrados = 1619
+INFO:server:DASHBOARD: NFe Entrada = 670 docs
+INFO:server:DASHBOARD: NFe Saída = 949 docs
+INFO:server:DASHBOARD: NFe Entrada=670, NFe Saída=949, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=0, Devoluções Compra=0, Compras Líquidas=0
+INFO:server:DASHBOARD: Vendas Brutas=714710.4800000006, Devoluções Venda=0, Vendas Líquidas=714710.4800000006
+INFO:server:DASHBOARD: Markup=0.00%
+INFO:server:DASHBOARD: Entradas(NFe=530139.1300000006, CTe=0, Serv.Tomados=0) = 530139.1300000006
+INFO:server:DASHBOARD: Saídas(NFe=600847.7600000001, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 600847.7600000001
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 523976.95000000036
+INFO:server:DASHBOARD: Query = {'company_id': '48a04e0a-edaf-4f9e-8734-068a78df692e', 'competencia': '02/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Documentos encontrados = 0
+INFO:server:DASHBOARD: NFe Entrada = 0 docs
+INFO:server:DASHBOARD: NFe Saída = 0 docs
+INFO:server:DASHBOARD: NFe Entrada=0, NFe Saída=0, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=0, Devoluções Compra=0, Compras Líquidas=0
+INFO:server:DASHBOARD: Vendas Brutas=0, Devoluções Venda=0, Vendas Líquidas=0
+INFO:server:DASHBOARD: Markup=0.00%
+INFO:server:DASHBOARD: Entradas(NFe=0, CTe=0, Serv.Tomados=0) = 0
+INFO:server:DASHBOARD: Saídas(NFe=0, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 0
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 0
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [46] using WatchFiles
+
+==> /var/log/supervisor/backend.out.log <==
+INFO:     10.208.161.194:48612 - "GET /api/wizard-fechamento/summary/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48608 - "GET /api/inconsistencias/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48608 - "GET /api/wizard-fechamento/summary/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48608 - "GET /api/inconsistencias/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48608 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48608 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48612 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/1/go?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48612 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/1/go?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48612 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/1?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48612 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/1?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48612 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48612 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/1?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48612 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/1/complete?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48612 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48612 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/2?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:35668 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/2/complete?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:35668 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:35668 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/3?competencia=01%2F2026 HTTP/1.1" 200 OK
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+INFO:     10.208.169.194:60358 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.161.194:46050 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:60358 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:46050 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/1/go?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:46050 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/1?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:46050 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:60358 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/1?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:46050 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/1/complete?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:46050 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:60358 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/2?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:46050 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/2/complete?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:46050 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:46050 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/3?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:46050 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/3/complete?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:46050 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:46050 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/4?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:38328 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/3/go?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:38328 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/3?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:38328 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/4/go?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:38328 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/4?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:59312 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/4/complete?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:50476 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:50476 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/5?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:50476 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/5/complete?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:59312 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:50476 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/6?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:50476 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/6/complete?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:59312 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:50476 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/7?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:58874 - "GET /api/alertas-cfop/48a04e0a-edaf-4f9e-8734-068a78df692e/agrupado?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:58874 - "GET /api/classification/suggestions/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:58874 - "GET /api/alertas-cfop/48a04e0a-edaf-4f9e-8734-068a78df692e/agrupado?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:58874 - "GET /api/classification/suggestions/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:47422 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:43018 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+INFO:     10.208.169.194:56798 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:56798 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:56798 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:56798 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:56798 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.161.194:33222 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:56798 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/3/go?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:33222 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/3?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:56798 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:33222 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/3?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:35452 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:35452 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:58132 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:58132 - "GET /api/wizard-fechamento/step/d7f30ea1-9df3-4124-a561-12984ffff64b/4?competencia=01/2025 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:36718 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:36718 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:60236 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:60236 - "GET /api/wizard-fechamento/step/d7f30ea1-9df3-4124-a561-12984ffff64b/3?competencia=01/2025 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:52946 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:51258 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.161.194:52946 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:52946 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:51258 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:42942 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:42942 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:42942 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:57976 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.161.194:57976 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.161.194:57976 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 500 Internal Server Error
+INFO:     10.208.161.194:59626 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:33096 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.161.194:59626 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:59626 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.161.194:59626 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:33096 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 500 Internal Server Error
+INFO:     10.208.169.194:53520 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.161.194:36706 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.161.194:36706 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:44828 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.161.194:36706 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.161.194:36706 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 500 Internal Server Error
+INFO:     10.208.169.194:44828 - "GET /api/xml/documents?company_id=48a04e0a-edaf-4f9e-8734-068a78df692e&competencia=02%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
+INFO:     10.208.161.194:51126 - "POST /api/xml/upload-background HTTP/1.1" 403 Forbidden
+INFO:     10.208.169.194:53632 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:53632 - "POST /api/xml/upload-background HTTP/1.1" 404 Not Found
+INFO:     10.208.169.194:53542 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.161.194:59348 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:36446 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:36446 - "POST /api/xml/upload-background HTTP/1.1" 503 Service Unavailable
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+INFO:     10.208.169.194:60796 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:60796 - "POST /api/xml/upload-background HTTP/1.1" 503 Service Unavailable
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+INFO:     10.208.169.194:35494 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:35494 - "POST /api/xml/upload-background HTTP/1.1" 503 Service Unavailable
+INFO:     127.0.0.1:49392 - "POST /api/xml/upload-background HTTP/1.1" 401 Unauthorized
+INFO:     10.208.161.194:35140 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:36300 - "POST /api/xml/upload-background HTTP/1.1" 422 Unprocessable Entity
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+INFO:     10.208.169.194:59048 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:59048 - "POST /api/xml/upload-background HTTP/1.1" 200 OK
+INFO:     10.208.169.194:52056 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:52056 - "GET /api/xml/job-status/c3823b9c-3edf-463e-a695-233d1bd68010 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:47098 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.169.194:57836 - "POST /api/xml/upload-init HTTP/1.1" 200 OK
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+INFO:     10.208.169.194:55490 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.161.194:47518 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:55490 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:47518 - "GET /api/reforma-tributaria/tabelas HTTP/1.1" 200 OK
+INFO:     10.208.169.194:55490 - "GET /api/reforma-tributaria/config/48a04e0a-edaf-4f9e-8734-068a78df692e HTTP/1.1" 200 OK
+INFO:     10.208.161.194:47518 - "GET /api/reforma-tributaria/apuracao/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:55490 - "GET /api/reforma-tributaria/config/48a04e0a-edaf-4f9e-8734-068a78df692e HTTP/1.1" 200 OK
+INFO:     10.208.161.194:47520 - "GET /api/reforma-tributaria/tabelas HTTP/1.1" 200 OK
+INFO:     10.208.169.194:55490 - "GET /api/reforma-tributaria/apuracao/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:41784 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.161.194:41784 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:48926 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:48926 - "GET /api/reforma-tributaria/config/48a04e0a-edaf-4f9e-8734-068a78df692e HTTP/1.1" 200 OK
+INFO:     10.208.161.194:41784 - "GET /api/reforma-tributaria/tabelas HTTP/1.1" 200 OK
+INFO:     10.208.169.194:41052 - "GET /api/reforma-tributaria/apuracao/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:41784 - "GET /api/reforma-tributaria/tabelas HTTP/1.1" 200 OK
+INFO:     10.208.169.194:41052 - "GET /api/reforma-tributaria/config/48a04e0a-edaf-4f9e-8734-068a78df692e HTTP/1.1" 200 OK
+INFO:     10.208.169.194:48926 - "GET /api/reforma-tributaria/apuracao/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:42464 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:42464 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:42464 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:47666 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.161.194:40352 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:47666 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:47666 - "GET /api/reforma-tributaria/config/48a04e0a-edaf-4f9e-8734-068a78df692e HTTP/1.1" 200 OK
+INFO:     10.208.161.194:40352 - "GET /api/reforma-tributaria/tabelas HTTP/1.1" 200 OK
+INFO:     10.208.161.194:40352 - "GET /api/reforma-tributaria/apuracao/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:47666 - "GET /api/reforma-tributaria/tabelas HTTP/1.1" 200 OK
+INFO:     10.208.161.194:40362 - "GET /api/reforma-tributaria/config/48a04e0a-edaf-4f9e-8734-068a78df692e HTTP/1.1" 200 OK
+INFO:     10.208.161.194:40352 - "GET /api/reforma-tributaria/apuracao/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:56914 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:49726 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:49726 - "GET /api/xml/documents?company_id=48a04e0a-edaf-4f9e-8734-068a78df692e&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
+INFO:     10.208.161.194:56914 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
+INFO:     10.208.161.194:56914 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
+INFO:     10.208.161.194:56914 - "GET /api/xml/documents/cfops/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026&tipo_operacao=entrada HTTP/1.1" 200 OK
+INFO:     10.208.169.194:49726 - "POST /api/xml/documents/preview-delete HTTP/1.1" 200 OK
+INFO:     10.208.161.194:56914 - "POST /api/xml/documents/delete-bulk HTTP/1.1" 200 OK
+INFO:     10.208.169.194:49726 - "GET /api/xml/documents?company_id=48a04e0a-edaf-4f9e-8734-068a78df692e&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
+INFO:     10.208.161.194:36002 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:36002 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.208.169.194:49726 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
+INFO:     10.208.169.194:49726 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
+INFO:     10.208.161.194:36002 - "POST /api/xml/documents/preview-delete HTTP/1.1" 200 OK
+INFO:     10.208.169.194:45416 - "GET /api/xml/documents?company_id=48a04e0a-edaf-4f9e-8734-068a78df692e&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
+INFO:     10.208.161.194:54684 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.169.194:52326 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.161.194:54684 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
+INFO:     10.208.161.194:54684 - "GET /api/xml/documents?company_id=48a04e0a-edaf-4f9e-8734-068a78df692e&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
+INFO:     10.208.161.194:54684 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:54684 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:48352 - "GET /api/xml/documents?company_id=48a04e0a-edaf-4f9e-8734-068a78df692e&competencia=01%2F2026&skip=0&limit=100&tipo_operacao=entrada&modelo=55&status=ativa HTTP/1.1" 200 OK
+INFO:     10.208.161.194:54684 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
+INFO:     10.208.169.194:50456 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
+INFO:     10.208.161.194:54684 - "GET /api/xml/documents/cfops/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026&tipo_operacao=entrada HTTP/1.1" 200 OK
+INFO:     10.208.169.194:50456 - "POST /api/xml/documents/preview-delete HTTP/1.1" 200 OK
+INFO:     10.208.161.194:59532 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:59532 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:59532 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
+INFO:     10.208.169.194:37098 - "GET /api/sieg/count/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
+INFO:     10.208.161.194:35928 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.161.194:35928 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.208.161.194:35928 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:35928 - "GET /api/reforma-tributaria/config/48a04e0a-edaf-4f9e-8734-068a78df692e HTTP/1.1" 200 OK
+INFO:     10.208.161.194:35928 - "GET /api/reforma-tributaria/tabelas HTTP/1.1" 200 OK
+INFO:     10.208.161.194:50910 - "GET /api/reforma-tributaria/apuracao/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.208.161.194:50910 - "GET /api/reforma-tributaria/config/48a04e0a-edaf-4f9e-8734-068a78df692e HTTP/1.1" 200 OK
+INFO:     10.208.161.194:35928 - "GET /api/reforma-tributaria/tabelas HTTP/1.1" 200 OK
+INFO:     10.208.161.194:35928 - "GET /api/reforma-tributaria/apuracao/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK) durante o upload para identificar possíveis erros silenciosos ao salvar ou atualizar a sessão de upload no MongoDB.
+    -   **Why fix this issue and what will be achieved with the fix?**: A falta de feedback confiável sobre o progresso e o resultado dos uploads torna a funcionalidade inutilizável e frustrante para o usuário.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on other issue**: Não
+
+-   **Issue 2: Deploy não reflete as atualizações (P1)**
+    -   **Attempted fixes**: Nenhum nesta sessão.
+    -   **Next debug checklist**: Investigar pipeline de CI/CD, caches de CDN/servidor e adicionar uma versão de build visível na UI para diagnóstico.
+    -   **Why fix this issue and what will be achieved with the fix?**: Bloqueador crítico que impede o usuário de acessar qualquer nova funcionalidade.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: both
 
--   **Issue 2: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
+-   **Issue 3: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
     -   **Attempted fixes**: Nenhum nesta sessão.
-    -   **Next debug checklist**: Revisar a lógica nos endpoints de upload (, ) para garantir que o campo  é extraído da data de emissão/saída do XML (/), e não da data do upload.
-    -   **Why fix this issue and what will be achieved with the fix?**: Garante a precisão da apuração fiscal.
+    -   **Next debug checklist**: Revisar a extração do campo  nos endpoints de upload em  para garantir que use a data de emissão/saída do XML.
+    -   **Why fix this issue and what will be achieved with the fix?**: Garante a integridade e precisão dos dados fiscais.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: backend
 
 **In progress Task List**:
--   **Task 1: Finalizar e Validar o Wizard de Fechamento (P0)**
-    -   **Where to resume**: A estrutura e os fluxos de UI estão implementados. O próximo passo é realizar um teste funcional completo do wizard, executando cada etapa, verificando se a lógica do backend processa os dados corretamente e se a UI reflete o progresso e o status final de cada etapa na Central de Fechamento.
-    -   **What will be achieved with this?**: Entregar a nova funcionalidade principal solicitada pelo usuário, proporcionando um fluxo de trabalho guiado e robusto para o fechamento fiscal.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on something**: Não
+-   Nenhum.
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
-    *   **(P1) Implementar visualização agrupada por dia**: Na página de documentos, adicionar a funcionalidade para agrupar documentos por dia com subtotais.
-    *   **(P1) Implementar relatórios por email para a importação em lote**: Adicionar o envio de um relatório por email ao final da importação em lote.
-*   **Future Tasks:**
-    *   **(P1) Refatoração CRÍTICA do **: O arquivo agora excede 30.000 linhas e sua refatoração é urgente.
-    *   **(P1) Refatoração CRÍTICA do **: Com mais de 4.000 linhas, precisa ser dividido em componentes menores.
-    *   **(P1) Integração de CT-e**: Desenvolver o fluxo para Conhecimentos de Transporte.
-    *   **(P2) Testes Automatizados**: Implementar testes com Cypress ou Playwright.
+    *   **(P1)** Implementar visualização agrupada por dia na página de documentos.
+    *   **(P1)** Implementar relatórios por email para a importação em lote.
+*   **Future Tasks (Refatoração Crítica):**
+    *   **(P0)** Refatoração do  (urgente, agora com >31k linhas).
+    *   **(P1)** Refatoração do  (componente monolítico com >4k linhas).
+*   **Future Tasks (Novas Funcionalidades):**
+    *   **(P1)** Integração de CT-e (Conhecimento de Transporte Eletrônico).
+    *   **(P2)** Implementação de testes automatizados (e.g., Playwright).
 
 **Completed work in this session**
--   **Bug de Rolagem Corrigido**: Resolvido o problema de falta de rolagem nas páginas  e .
--   **Bugs Críticos da Importação em Lote Resolvidos**: Corrigido o erro  que impedia o processamento e o bug que classificava NFC-e como 'entrada'.
--   **Feature: Melhorias na Importação em Lote**: Implementada barra de progresso em tempo real e relatório de erros detalhado, com persistência no banco de dados.
--   **Feature: Wizard de Fechamento Fiscal**: Criada toda a estrutura (backend e frontend) para um novo fluxo guiado de fechamento, incluindo persistência de estado.
--   **UX/UI Aprimorados**:
-    -   A Central de Alertas foi reestruturada como Central de Fechamento, tornando-se o ponto de entrada para o novo Wizard.
-    -   O Wizard ganhou navegação entre etapas e status individual por passo.
-    -   Adicionado um modal de confirmação (Importação Rápida vs Normal) em todos os fluxos de upload de documentos.
--   **Refatoração da Lógica de Negócio**: A lógica de filtros (especialmente CFOPs de devolução) foi unificada em uma constante global no  para garantir consistência entre todas as formas de importação.
+-   **Feature: Wizard de Fechamento Finalizado e Aprimorado**:
+    -   Implementada uma nova 7ª etapa: CFOPs Distintos para revisão manual (, ).
+    -   A etapa de Devoluções foi atualizada para correlacionar a nota de devolução com a original e permitir a exclusão de ambas ().
+-   **Bugfix: Unificação da Lógica de Importação**:
+    -   A lógica para desconsiderar CFOPs de terceiros (como 1915, 1949) foi padronizada usando  em todas as rotas de upload ().
+-   **Bugfix: Múltiplos Bugs Críticos Resolvidos**:
+    -   **Autorização de Importação em Lote**: Permissão expandida para todos os usuários ().
+    -   **Limite de 200 Itens no Wizard**: Limites removidos das consultas ao banco de dados nas etapas 3, 4 e 5 ().
+    -   **Discrepância Wizard vs Central**: Unificada a lógica de consulta de itens pendentes ().
+    -   **Barra de Progresso (Wizard)**: Animação de progresso simulado ajustada para ser mais realista ().
+    -   **Modal de Seleção de Empresa**: Corrigido para permitir o fechamento sem uma empresa selecionada ().
+-   **Bugfix: Reativação do Processamento em Background**:
+    -   Diagnosticado que Redis e Celery não estavam rodando.
+    -   Serviços Redis e Celery foram instalados e iniciados no ambiente.
+    -   Endpoint  foi validado e está funcional.
+    -   Frontend () foi aprimorado com um fallback mais robusto para upload via streaming caso o background falhe.
+-   **Feature: Comparativo na Reforma Tributária**:
+    -   Implementados dois painéis de comparação distintos na página de Reforma Tributária, conforme solicitado ().
+
+**Earlier issues found/mentioned but not fixed**
+-   Discrepância de valores entre Dashboard e SPED.
+-   Botão de Login fica travado em Processando....
 
 **Known issue recurrence from previous fork**
 -   **Cálculo de Competência**: A alocação de notas fiscais para o mês correto () continua sendo um bug recorrente.
 -   **Problema de Deploy**: O usuário reportou repetidamente que as atualizações não aparecem na versão de produção.
+-   **Status**: NOT STARTED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
 -   **Backend**: FastAPI, Pydantic, MongoDB, Celery, Redis.
--   **Frontend**: React, React Hooks, Context API, Axios, TailwindCSS.
--   **Arquitetura**: Implementação de Wizard com estado persistente no backend e UI com polling para atualizações de progresso em tempo real.
+-   **Frontend**: React, React Hooks, Context API, Axios, TailwindCSS, Server-Sent Events (SSE).
+-   **Arquitetura**: A sessão focou em corrigir e expandir a arquitetura do Wizard, unificar lógicas de negócio espalhadas e diagnosticar/resolver problemas de infraestrutura de ambiente (Redis/Celery).
 
 **key DB schema**
--   Foram adicionados novos modelos/coleções no MongoDB para gerenciar o estado e o progresso da  e do .
+-   **upload_sessions**: Coleção usada para rastrear o progresso de uploads via streaming e polling.
+-   **import_jobs**: Coleção usada para rastrear o estado de jobs de importação em background (via Celery).
 
 **All files of reference**
 -   /app/backend/server.py
 -   /app/frontend/src/pages/WizardFechamento.js
--   /app/frontend/src/pages/AlertasPage.js
--   /app/frontend/src/pages/BatchImport.js
 -   /app/frontend/src/pages/Documents.js
--   /app/frontend/src/components/Layout.js
--   /app/frontend/src/App.js
+-   /app/frontend/src/pages/ReformaTributaria.js
+-   /app/frontend/src/context/UploadContext.js
+-   /app/frontend/src/context/AppContext.js
 
 **Areas that need refactoring**:
--   ** (EXTREMAMENTE CRÍTICO)**: O arquivo cresceu ainda mais, tornando a manutenção e a adição de novas funcionalidades extremamente arriscadas. A refatoração é a principal dívida técnica do projeto.
--   ** (CRÍTICO)**: Continua sendo um componente monolítico e complexo.
--   ** e **: São componentes novos e grandes que já se beneficiariam de serem divididos em subcomponentes para melhor manutenibilidade.
+-   ** (URGENTE)**: O arquivo cresceu ainda mais, tornando cada modificação arriscada e difícil. A refatoração em múltiplos arquivos (rotas, serviços, helpers) é a principal prioridade técnica.
+-   ** (CRÍTICO)**: A lógica de upload (direto, streaming, background, zip) está contida em um único arquivo gigante, tornando a depuração complexa. Deve ser dividida em hooks e componentes menores.
 
 **key api endpoints**
 -   **MODIFICADOS**:
-    -   : Lógica completamente refeita para incluir classificação condicional (IA), progresso em tempo real e retorno de estatísticas detalhadas.
--   **NOVOS (Progresso e Wizard)**:
-    -   : Lista importações em andamento.
-    -   : Faz polling do progresso de uma importação.
-    -   : Inicia ou obtém o estado de um wizard.
-    -   : Executa uma etapa do wizard.
-    -   : Reinicia um wizard.
-    -   : Obtém um resumo do status do wizard.
+    -   , : Adaptados para a nova estrutura de 7 etapas do wizard.
+    -   , , : Lógica de validação de CFOP unificada.
+-   **REATIVADOS/CORRIGIDOS**:
+    -   : Agora funcional após a inicialização do Redis e Celery.
 
 **Critical Info for New Agent**
--   A prioridade máxima é investigar e resolver o **problema de deploy**. Sem isso, o usuário não consegue validar nenhuma das novas funcionalidades em seu ambiente.
--   A segunda prioridade é **finalizar e validar o Wizard de Fechamento**. Execute um teste completo do fluxo, processando cada etapa e garantindo que a UI e os dados sejam atualizados corretamente.
--   O bug recorrente da **competência de data** () é uma falha de integridade de dados que precisa ser resolvida.
--   A **refatoração do ** é uma necessidade técnica urgente para a saúde do projeto a longo prazo.
+-   **Prioridade Máxima (P0)**: Investigar o bug da barra de progresso travada para a empresa Sungroup. A falta de dados de teste foi um bloqueador; o próximo agente deve focar em reproduzir o cenário exato do usuário.
+-   **Serviços de Ambiente**: Redis e Celery foram iniciados manualmente. Verifique o status deles ( e ) no início da sessão. Se não estiverem rodando, inicie-os ( e ).
+-   **Questões Crônicas**: Os problemas de deploy e de atribuição de competência por data são antigos, críticos e ainda não foram abordados. Mantenha-os no radar como P1.
+-   **Refatoração**: O arquivo  está em um estado crítico. Proponha ao usuário um plano para refatorá-lo assim que as questões P0/P1 forem resolvidas, explicando que isso é necessário para a estabilidade futura do projeto.
 
 **documents and test reports created in this job**
--   /app/test_reports/iteration_50.json
+-   /app/test_reports/iteration_51.json
+-   /app/memory/PRD.md (Atualizado com as últimas implementações)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **PENDING**: mas onde eu clico para iniciar o processamento de cada etapa? - Pedido para que os cards na Central de Fechamento iniciem a etapa correspondente no wizard. (Implementado, aguardando validação do usuário).
-2.  **PENDING**: fazendo isso, vai ficar exatamente igual a importacao IA? ou esqueci de algo - Pergunta sobre a paridade da lógica. (O agente investigou, encontrou e corrigiu inconsistências. Aguardando validação do usuário).
-3.  **PENDING**: importante, que no processamento de cada etapa tenha barra de progresso... - Pedido de barras de progresso no wizard, opção de importação rápida em todos os uploads e histórico de reprocessamento. (Implementado, aguardando validação do usuário).
-4.  **PENDING**: ESTAVA PENSANDO AQUI... - Sugestão inicial da ideia do Wizard de Fechamento. (Implementado).
-5.  **PENDING**: SERIA LEGAL TER A MESMA BARRA QUE TEMOS NOS UPLOADS... - Pedido para adicionar barra de progresso e relatório à importação em lote. (Implementado).
-6.  **RESOLVED**: NAO APARECE - Reportou que os documentos importados em lote não apareciam na lista. (Corrigido).
-7.  **RESOLVED**: ERRO AO PROCESSAR - Reportou erro na importação em lote, que o agente diagnosticou como duplicados de uma importação anterior bem-sucedida.
-8.  **RESOLVED**: ESTA DANDO ERRO IMPORTACAO EM LOTE - Segundo reporte do erro de importação.
-9.  **RESOLVED**: ESTA DANDO ERRO NA IMPORTACAO EM LOTE - Primeiro reporte do erro de importação ().
-10. **RESOLVED**: 1 - Aprovação para o plano inicial do agente.
+1.  **PENDING**: sao dois comparativos, um referente a 2027... e outro para a reforma tributaria toda - Solicitação para criar dois comparativos. (Implementado).
+2.  **RESOLVED**: de 2027, so comparar cbs com pis e cofins - Clarificação sobre o primeiro comparativo. (Implementado).
+3.  **RESOLVED**: ...traz um comparsativo com o atual regime... - Solicitação inicial para a melhoria na Reforma Tributária.
+4.  **PENDING**: quando importo sungroup, a barra de progresso... fica travada - Reporte do bug da barra de progresso. (Ainda pendente de resolução final).
+5.  **RESOLVED**: uma ultima melhoria... - Finalização da sessão anterior e pedido para a melhoria na Reforma Tributária.
+6.  **RESOLVED**: ...a importacao de zip nos uploado do menu documentos? esta funcionando corretamente? - Reporte do bug de upload de ZIP. (Investigado e correções aplicadas).
+7.  **RESOLVED**: Confirmação do plano para corrigir os 4 bugs e implementar a nova etapa do wizard.
+8.  **RESOLVED**: Sumário das correções e pedido de confirmação do usuário sobre o próximo passo.
+9.  **RESOLVED**: Reporte de uma longa lista de bugs e solicitações de features. (Maioria foi resolvida).
+10. **RESOLVED**: Reporte do bug do modal de seleção de empresa. (Resolvido).
 
 **Project Health Check:**
 -   **Broken**:
-    -   O processo de deploy para o ambiente de produção do usuário está quebrado.
-    -   A lógica de atribuição de competência fiscal por data continua com um bug conhecido.
+    -   Processo de deploy para produção.
+    -   Lógica de atribuição de competência fiscal (bug recorrente de data).
+    -   Feedback de progresso de upload para certos cenários/empresas (Sungroup).
+-   **Mocked**:
+    -   Nenhum. Os serviços de background (Redis/Celery) foram ativados.
 
 **Credentials to test flow:**
 -   **Super Admin**:  / 
 
 **What agent forgot to execute**
--   O agente não abordou as seguintes tarefas e bugs de alta prioridade de handoffs anteriores:
-    -   O problema crítico de deploy.
-    -   O bug recorrente de atribuição de competência por data.
-    -   A discrepância de valores entre Dashboard e SPED.
--   A funcionalidade de visualização agrupada por dia na tela de documentos, solicitada pelo usuário, não foi implementada.
--   A implementação de relatórios por email para a importação em lote não foi concluída.</analysis>
+-   Os problemas de longa data mencionados no handoff anterior não foram abordados, pois o agente priorizou as solicitações imediatas e urgentes do usuário nesta sessão. As tarefas não abordadas incluem:
+    -   O problema crítico de deploy em produção.
+    -   O bug recorrente de atribuição de competência fiscal por data.
+    -   A discrepância de valores entre o Dashboard e o SPED.
+    -   A funcionalidade de visualização agrupada por dia.
+    -   A implementação de relatórios por email para a importação em lote.</analysis>
