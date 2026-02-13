@@ -559,7 +559,7 @@ const Documents = ({ user, onLogout }) => {
   };
 
   // Upload em background (Celery) para grandes volumes
-  const handleBackgroundUpload = async (files, tipoConfig, token) => {
+  const handleBackgroundUpload = async (files, tipoConfig, token, skipAi = false) => {
     try {
       toast.loading(`Enviando ${files.length} XMLs para processamento em background...`, { id: 'bg-upload' });
       
@@ -567,6 +567,7 @@ const Documents = ({ user, onLogout }) => {
       formData.append('company_id', ctxCompany.id);
       formData.append('competencia', selectedCompetencia);
       formData.append('tipo', operacao);
+      formData.append('skip_ai', skipAi);  // Flag de importação rápida
       
       // Adicionar arquivos
       files.forEach(file => {
