@@ -29603,19 +29603,24 @@ async def batch_import_upload_estrutura(
                             empresa_result["duplicados"] += 1
                             continue
                         
-                        # Determinar tipo (entrada/saída) baseado no CNPJ
-                        company_doc = await db.companies.find_one({"id": company["id"]})
-                        company_cnpj = company_doc.get("cnpj", "").replace(".", "").replace("/", "").replace("-", "") if company_doc else ""
-                        emit_cnpj = parsed.get("cnpj_emitente", "").replace(".", "").replace("/", "").replace("-", "")
-                        dest_cnpj = parsed.get("cnpj_destinatario", "").replace(".", "").replace("/", "").replace("-", "")
-                        
-                        # Se a empresa é o emitente, é saída; se é destinatário, é entrada
-                        if emit_cnpj == company_cnpj:
+                        # Determinar tipo (entrada/saída)
+                        # NFC-e é SEMPRE saída (venda ao consumidor final)
+                        if modelo == "nfce":
                             tipo = "saida"
-                        elif dest_cnpj == company_cnpj:
-                            tipo = "entrada"
                         else:
-                            tipo = "entrada"  # Default para entrada se não identificar
+                            # Para NF-e e CT-e, verificar baseado no CNPJ
+                            company_doc = await db.companies.find_one({"id": company["id"]})
+                            company_cnpj = company_doc.get("cnpj", "").replace(".", "").replace("/", "").replace("-", "") if company_doc else ""
+                            emit_cnpj = parsed.get("cnpj_emitente", "").replace(".", "").replace("/", "").replace("-", "")
+                            dest_cnpj = parsed.get("cnpj_destinatario", "").replace(".", "").replace("/", "").replace("-", "")
+                            
+                            # Se a empresa é o emitente, é saída; se é destinatário, é entrada
+                            if emit_cnpj == company_cnpj:
+                                tipo = "saida"
+                            elif dest_cnpj == company_cnpj:
+                                tipo = "entrada"
+                            else:
+                                tipo = "entrada"  # Default para entrada se não identificar
                         
                         # Criar documento
                         xml_doc = {
