@@ -301,17 +301,17 @@ async def _process_xmls_async(task, job_id: str, xml_contents: List[Dict],
         'job_id': job_id,
         'company_id': company_id,
         'competencia': competencia,
-        'tipo': tipo,
+        'tipo': tipo,  # tipo original solicitado (mantido para referência)
         'user_id': user_id,
         'status': 'completed',
         'total_files': total_files,
         'importados': len(results),
+        'entradas': entradas_count,
+        'saidas': saidas_count,
         'duplicados': len(duplicadas),
-        'rejeitados_cnpj': len(rejeitadas_cnpj),
         'erros': len(errors),
         'results': results[:100],  # Limitar para não estourar memória
         'duplicadas': duplicadas[:50],
-        'rejeitadas_cnpj': rejeitadas_cnpj[:50],
         'errors': errors[:50],
         'completed_at': datetime.now(timezone.utc).isoformat()
     }
