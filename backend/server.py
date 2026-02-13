@@ -5804,27 +5804,15 @@ async def upload_xml_batch(
             
             # ==== TRATAMENTO ESPECIAL PARA NFC-e (MODELO 65) ====
             # NFC-e é sempre venda para consumidor final, então:
-            # - Emitente deve ser a empresa
-            # - Tipo deve ser SAÍDA (NFC-e não tem entrada)
+            # - Emitente deve ser a empresa (pela classificação automática, já seria saída)
+            # - Se a classificação automática resultou em 'entrada', significa que o emitente NÃO é a empresa, então rejeitamos
             if modelo in ['nfce', 'NFCE', 'NFC-e', '65']:
                 if tipo == 'entrada':
-                    # NFC-e não pode ser importada como entrada
+                    # NFC-e não pode ser entrada (emitente não é a empresa)
                     rejeitadas_cnpj.append({
                         "filename": file.filename,
                         "numero_nfe": parsed_data.get('numero_nfe', ''),
-                        "motivo": f"NFC-e (cupom fiscal) só pode ser importada como SAÍDA. Selecione o tipo 'Saída' para importar.",
-                        "emitente": parsed_data.get('emitente_razao_social', parsed_data.get('emitente_nome', '')),
-                        "destinatario": "Consumidor Final"
-                    })
-                    continue
-                
-                # Para saída, validar se o emitente é a empresa
-                cnpj_valido = cnpj_emitente == cnpj_empresa
-                if not cnpj_valido:
-                    rejeitadas_cnpj.append({
-                        "filename": file.filename,
-                        "numero_nfe": parsed_data.get('numero_nfe', ''),
-                        "motivo": f"CNPJ do emitente da NFC-e ({cnpj_emitente}) não corresponde à empresa selecionada ({cnpj_empresa})",
+                        "motivo": f"NFC-e (cupom fiscal) só pode ser importada se a empresa for o emitente. CNPJ do emitente ({cnpj_emitente}) difere da empresa ({cnpj_empresa})",
                         "emitente": parsed_data.get('emitente_razao_social', parsed_data.get('emitente_nome', '')),
                         "destinatario": "Consumidor Final"
                     })
