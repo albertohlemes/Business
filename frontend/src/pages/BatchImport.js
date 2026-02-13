@@ -641,8 +641,9 @@ python batch_import.py \\
             </div>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 
