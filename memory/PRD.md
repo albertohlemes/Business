@@ -99,6 +99,12 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
    - `apuracao/relacao-notas` - Relação de notas fiscais
    - `apuracao/composicao-valor` - Composição de valor das notas
    - **A regra correta é**: CNPJ emitente == CNPJ empresa → SAÍDA; diferente → ENTRADA
+9. ✅ **Etapa 2 - Devoluções (Critério Terceiro)**: Corrigido filtro para mostrar APENAS notas onde o terceiro emitiu ENTRADA (CFOP original 1xxx, 2xxx, 3xxx). Notas onde terceiro emitiu SAÍDA (5xxx, 6xxx) não aparecem mais.
+10. ✅ **NOVA FUNCIONALIDADE - Relatório do Wizard**: Implementado sistema de geração de relatório consolidado ao final do wizard:
+    - PDF com todas as alterações realizadas em cada etapa
+    - Excel com abas separadas por etapa para análise detalhada
+    - Inclui: data/hora, usuário responsável, estado anterior, ação aplicada, estado final
+    - Finalidade: auditoria, histórico e segurança do usuário
 
 ### Sessões Anteriores
 - ✅ Upload em Background (Redis/Celery)
