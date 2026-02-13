@@ -11,87 +11,63 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 
 ## Funcionalidades Implementadas
 
-### Sistema de Upload de XMLs
-- Upload streaming para grandes volumes
-- Upload de arquivos ZIP com extração no cliente (JSZip)
-- Processamento em background via Celery para 500+ arquivos
-- Opção de "Importação Rápida" (sem classificação por IA)
-- Bulk insert otimizado no MongoDB
+### Wizard de Fechamento Fiscal (8 Etapas)
+1. **Notas Canceladas** - Confirmar e processar notas fiscais canceladas
+2. **Devoluções de Fornecedores** - Identificar devoluções e excluir notas referenciadas
+3. **CFOPs Distintos** (NOVO) - Revisar CFOPs de operações distintas (remessa, conserto, etc.)
+4. **Classificação de CFOPs** - Converter e classificar CFOPs dos produtos
+5. **PIS/COFINS Entradas** - Corrigir CST de PIS e COFINS nas entradas
+6. **PIS/COFINS Saídas** - Corrigir CST de PIS e COFINS nas saídas
+7. **Reforma Tributária** - Calcular IVA Dual (CBS + IBS)
+8. **Concluído** - Fechamento fiscal finalizado
 
-### Importação em Lote
-- **3 formas de importação**:
-  1. Upload via Interface Web (ZIP com estrutura de pastas)
-  2. Script Python para servidor local (com cron)
-  3. API para integração
-- Mapeamento de empresas por código
-- Relatórios de importação (histórico, estatísticas)
-- **Arquivos**: `/app/backend/batch_import.py`, `/app/frontend/src/pages/BatchImport.js`
+### Devoluções com Correlação de Nota Original
+- Detecta automaticamente notas de terceiros com CFOP de entrada
+- Busca e correlaciona a nota original referenciada
+- Permite excluir ambas as notas (devolução + original) da apuração
+- CFOPs considerados: CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL
 
-### Módulo Reforma Tributária - IVA Dual
-- **Simulação CBS + IBS** para cenário 2027
-- Classificação automática por CFOP e NCM
-- **CST de Entradas** (Créditos): 50, 51, 52, 70
-- **CST de Saídas** (Débitos): 00, 01, 02, 03, 04, 05
-- Motor de exceções:
-  - Cesta Básica Nacional (alíquota zero)
-  - Imposto Seletivo (sobretaxa)
-  - Redução 60% (medicamentos, equipamentos médicos)
-  - Redução 30% (informática)
-- Dashboard com:
-  - Créditos x Débitos
-  - Saldo a Pagar ou Crédito Acumulado
-  - Comparativo com regime atual
-  - Estatísticas por CST
-- **Arquivos**: `/app/backend/services/reforma_tributaria.py`, `/app/frontend/src/pages/ReformaTributaria.js`
+### CFOPs Distintos (Nova Etapa)
+- Lista todos os CFOPs de operações não-comerciais
+- Opções para cada CFOP: Ignorar, Desconsiderar, Converter
+- Suporta: remessa, conserto, comodato, consignação, demonstração, etc.
 
-### Wizard de Fechamento Fiscal (NOVO - 13/02/2026)
-- **6 Etapas de Processamento**:
-  1. Notas Canceladas - Confirmar e processar notas fiscais canceladas
-  2. Devoluções de Fornecedores - Identificar devoluções e excluir notas referenciadas
-  3. Classificação de CFOPs - Converter e classificar CFOPs dos produtos
-  4. PIS/COFINS Entradas - Corrigir CST de PIS e COFINS nas entradas
-  5. PIS/COFINS Saídas - Corrigir CST de PIS e COFINS nas saídas
-  6. Reforma Tributária - Calcular IVA Dual (CBS + IBS)
-- **Funcionalidades**:
-  - Botões "Processar" em cada etapa na Central de Fechamento
-  - Navegação direta para etapa específica via URL (?step=X)
-  - Barra de progresso durante processamento
-  - Status individual de cada etapa (processado/não processado)
-  - Botões "Etapa Anterior" e "Próxima Etapa"
-  - Link "Voltar para Central"
-  - Persistência de estado no MongoDB
-- **Arquivos**: 
-  - `/app/frontend/src/pages/WizardFechamento.js`
-  - `/app/frontend/src/pages/AlertasPage.js` (Central de Fechamento)
+### Importação Rápida (sem IA)
+- Flag `skip_ai` em todas as portas de upload
+- Quando ativo: pula classificação IA, mantém CFOPs originais
+- Ainda aplica CST de PIS/COFINS
 
-### Módulo Simples Nacional
-- Dashboard específico com cálculo de alíquota efetiva
-- Suporte a ISS retido (aliquota_sem_iss)
-- Importação de PGDAS (PDF)
+### Upload em Background (Celery + Redis)
+- Redis instalado e rodando
+- Celery worker ativo
+- Fallback automático para streaming se Redis cair
 
-## Endpoints do Wizard de Fechamento
+## Endpoints Principais
 
-- `GET /api/wizard-fechamento/status/{company_id}` - Status atual do wizard
-- `GET /api/wizard-fechamento/summary/{company_id}` - Resumo para a Central
-- `GET /api/wizard-fechamento/step/{company_id}/{step_id}` - Dados de uma etapa
+### Wizard de Fechamento
+- `GET /api/wizard-fechamento/status/{company_id}` - Status atual
+- `GET /api/wizard-fechamento/step/{company_id}/{step_id}` - Dados de etapa
 - `POST /api/wizard-fechamento/step/{company_id}/{step_id}/complete` - Completar etapa
 - `POST /api/wizard-fechamento/step/{company_id}/{step_id}/go` - Navegar para etapa
-- `POST /api/wizard-fechamento/reset/{company_id}` - Reiniciar wizard
 
-## Endpoints da Reforma Tributária
+### Upload de XMLs
+- `POST /api/upload-documents` - Upload direto
+- `POST /api/upload-documents-streaming` - Upload streaming
+- `POST /api/xml/upload-background` - Upload em background (Celery)
+- `GET /api/xml/job-status/{job_id}` - Status do job
 
-- `GET /api/reforma-tributaria/config/{company_id}` - Configuração de alíquotas
-- `POST /api/reforma-tributaria/config/{company_id}` - Salvar configuração
-- `GET /api/reforma-tributaria/apuracao/{company_id}?competencia=MM/YYYY` - Apuração
-- `GET /api/reforma-tributaria/tabelas` - Tabelas de domínio (NCM, CST)
-
-## Endpoints de Importação em Lote
-
+### Importação em Lote
 - `POST /api/batch-import/upload-estrutura` - Upload de ZIP
-- `GET /api/batch-import/historico` - Histórico de importações
-- `GET /api/batch-import/empresas-mapeamento` - Mapeamento de códigos
-- `POST /api/batch-import/atualizar-codigo/{company_id}` - Atualizar código empresa
-- `GET /api/batch-import/download-script` - Baixar script Python
+
+## Bugs Corrigidos (13/02/2026)
+
+1. ✅ **Upload em Background** - Redis/Celery configurados e funcionando
+2. ✅ **Limite de 200 documentos** - Removido limite, contagem total correta
+3. ✅ **Discrepância Central vs Wizard** - Lógica unificada
+4. ✅ **Barra de Progresso 95%** - Proporcionalização melhorada
+5. ✅ **Modal de Seleção** - Pode fechar sem selecionar empresa
+6. ✅ **Importação em Lote** - Liberada para todos os usuários
+7. ✅ **Detecção de Cancelamento** - XMLs de cancelamento detectados
 
 ## Bugs Pendentes
 
@@ -106,48 +82,22 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 ### P2 - Discrepância Dashboard vs SPED
 - Valores totais não batem entre dashboard e registro E110
 
-### P2 - Botão de Login travado em "Processando..."
-- Estado `isLoading` não sendo desativado no bloco `finally()`
-
-## Tarefas Próximas
-
-### P0 - Visualização agrupada por dia
-- Agrupar documentos de saída por dia na página Documents.js
-- Incluir subtotais por dia
-
-### P1 - Refatoração do server.py
-- Mover endpoints para estrutura de routers/
-- Separar lógica de negócio em services/
-
-### P1 - Relatórios por email
-- Enviar relatório por email ao final da importação em lote
-
-## Backlog
-
-- Integração de CT-e (Conhecimentos de Transporte)
-- Testes automatizados de frontend (Cypress/Playwright)
-- Refatoração do WizardEmpresa.js
-- Refatoração do Documents.js (+4000 linhas)
-
 ## Credenciais de Teste
 - **Super Admin**: alberto.lemes@businessconta.com.br / Business@2026
 
-## Alíquotas Reforma Tributária (Padrão 2027)
-- CBS: 8,80%
-- IBS: 17,70%
-- Total: 26,50%
-
 ## Changelog
 
-### 13/02/2026
-- ✅ Implementado Wizard de Fechamento Fiscal com 6 etapas
-- ✅ Corrigido bug na navegação direta para etapa via URL
-- ✅ Corrigido bug no cálculo da Reforma Tributária (step 6)
-- ✅ Adicionada função auxiliar `get_filter_docs_nao_canceladas_ou_desconsideradas()`
-- ✅ Central de Alertas renomeada para Central de Fechamento
-- ✅ Adicionados botões "Processar" e "Reprocessar" por etapa
+### 13/02/2026 (Sessão Atual)
+- ✅ Adicionada nova etapa no Wizard: "CFOPs Distintos"
+- ✅ Devoluções agora correlacionam e excluem nota original
+- ✅ Validada importação rápida sem IA
+- ✅ Redis e Celery configurados e funcionando
+- ✅ Fallback automático para streaming quando background falha
+- ✅ Limite de 200 removido nos steps do Wizard
+- ✅ Atualizado WIZARD_STEPS para 8 etapas
 
-### 12/02/2026
-- ✅ Corrigido bug de rolagem nas páginas
-- ✅ Corrigidos bugs da importação em lote
-- ✅ Implementada barra de progresso na importação em lote
+### 13/02/2026 (Sessão Anterior)
+- ✅ Wizard de Fechamento Fiscal implementado
+- ✅ Central de Fechamento com cards de etapas
+- ✅ Botões de processamento por etapa
+- ✅ Barra de progresso durante processamento
