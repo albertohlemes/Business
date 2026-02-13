@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   CheckCircle, XCircle, AlertTriangle, Loader2, ArrowRight, ArrowLeft,
   FileX, RotateCcw, Package, Receipt, Calculator, Flag, RefreshCw,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, AlertOctagon
 } from 'lucide-react';
 import axios from 'axios';
 import Layout from '../components/Layout';
@@ -11,15 +11,16 @@ import { useAppContext } from '../context/AppContext';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-// Ícones para cada etapa
+// Ícones para cada etapa (8 etapas agora)
 const STEP_ICONS = {
-  1: FileX,
-  2: RotateCcw,
-  3: Package,
-  4: Receipt,
-  5: Receipt,
-  6: Calculator,
-  7: Flag
+  1: FileX,           // Notas Canceladas
+  2: RotateCcw,       // Devoluções
+  3: AlertOctagon,    // CFOPs Distintos (NOVA)
+  4: Package,         // Classificação CFOPs
+  5: Receipt,         // PIS/COFINS Entradas
+  6: Receipt,         // PIS/COFINS Saídas
+  7: Calculator,      // Reforma Tributária
+  8: Flag             // Concluído
 };
 
 const WizardFechamento = ({ user, onLogout }) => {
