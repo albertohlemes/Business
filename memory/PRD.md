@@ -90,6 +90,7 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 3. ✅ **Etapa 3 - Alertas CFOP**: Aplica ação padrão "manter" para CFOPs sem ação definida
 4. ✅ **Sincronização Final**: Garante que todos produtos pendentes sejam resolvidos
 5. ✅ **Filtro de Canceladas/Desconsideradas**: Aplicado consistentemente em ambas as telas
+6. ✅ **CORREÇÃO CRÍTICA - Classificação Entrada/Saída**: Adicionado `.strip()` na comparação de CNPJs para remover espaços/caracteres de controle que podem vir do XML, causando classificação incorreta
 
 ### Sessões Anteriores
 - ✅ Upload em Background (Redis/Celery)
