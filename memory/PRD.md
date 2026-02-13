@@ -91,6 +91,13 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 4. ✅ **Sincronização Final**: Garante que todos produtos pendentes sejam resolvidos
 5. ✅ **Filtro de Canceladas/Desconsideradas**: Aplicado consistentemente em ambas as telas
 6. ✅ **CORREÇÃO CRÍTICA - Classificação Entrada/Saída**: Adicionado `.strip()` na comparação de CNPJs para remover espaços/caracteres de controle que podem vir do XML, causando classificação incorreta
+7. ✅ **Wizard Cancelamento (Etapa 1)**: Corrigido filtro para buscar APENAS notas com `cancelada: True` (cStat 101/151), removendo filtros amplos que incluíam notas incorretas
+8. ✅ **CORREÇÃO CRÍTICA - Classificação por CNPJ vs CFOP**: Corrigido múltiplos endpoints que usavam CFOP para classificar entrada/saída ao invés do campo `tipo` (baseado em CNPJ do emitente):
+   - `preview-delete` - Preview de exclusão de documentos
+   - `pis-cofins/apuracao` - Apuração de PIS/COFINS  
+   - `apuracao/relacao-notas` - Relação de notas fiscais
+   - `apuracao/composicao-valor` - Composição de valor das notas
+   - **A regra correta é**: CNPJ emitente == CNPJ empresa → SAÍDA; diferente → ENTRADA
 
 ### Sessões Anteriores
 - ✅ Upload em Background (Redis/Celery)
