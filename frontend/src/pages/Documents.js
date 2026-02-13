@@ -3956,6 +3956,74 @@ const Documents = ({ user, onLogout }) => {
           </div>
         )}
 
+        {/* Modal de Seleção de Tipo de Importação */}
+        {showUploadTypeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-lg p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-purple-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Tipo de Importação</h2>
+                  <p className="text-sm text-[#A1A1AA]">{pendingUploadFiles.length} arquivo(s) selecionado(s)</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Opção: Importação Normal */}
+                <button
+                  onClick={() => processUploadWithType(false)}
+                  className="w-full p-4 bg-[#0C0C0C] hover:bg-[#1A1A1A] border border-[#2A2A2A] hover:border-purple-500/50 rounded-xl text-left transition-all group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-medium group-hover:text-purple-300">Importação com Classificação</h3>
+                      <p className="text-sm text-[#666] mt-1">
+                        Classifica produtos automaticamente usando IA e memorização.
+                        <span className="text-purple-400 block mt-1">Recomendado para empresas de pequeno/médio volume.</span>
+                      </p>
+                    </div>
+                  </div>
+                </button>
+                
+                {/* Opção: Importação Rápida */}
+                <button
+                  onClick={() => processUploadWithType(true)}
+                  className="w-full p-4 bg-[#0C0C0C] hover:bg-[#1A1A1A] border border-[#2A2A2A] hover:border-amber-500/50 rounded-xl text-left transition-all group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                      <Zap className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-medium group-hover:text-amber-300">Importação Rápida</h3>
+                      <p className="text-sm text-[#666] mt-1">
+                        Importa sem classificação de produtos. Use o Wizard de Fechamento depois.
+                        <span className="text-amber-400 block mt-1">Recomendado para empresas de grande volume.</span>
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+              
+              <button
+                onClick={() => {
+                  setShowUploadTypeModal(false);
+                  setPendingUploadFiles([]);
+                  setPendingUploadConfig(null);
+                }}
+                className="w-full mt-4 py-2 text-[#666] hover:text-white text-sm"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Modal de Preview do ZIP */}
         {zipPreviewOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
