@@ -7129,7 +7129,8 @@ async def upload_xml_with_progress(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+    # IMPORTANTE: Usar strip() para garantir consistência na comparação de CNPJs
+    cnpj_empresa = company.get('cnpj', '').strip().replace('.', '').replace('/', '').replace('-', '').strip()
     uf_empresa = company.get('uf', 'SP')
     regime_tributario = company.get('regime_tributario', 'lucro_presumido')
     
