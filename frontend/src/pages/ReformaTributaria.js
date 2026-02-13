@@ -333,7 +333,7 @@ const ReformaTributaria = ({ user, onLogout }) => {
                 </div>
               </div>
 
-              {/* Comparativo 2027 - Novo Cenário Tributário */}
+              {/* Comparativo 2027 - CBS vs PIS/COFINS */}
               <div className="bg-gradient-to-br from-[#141414] via-[#1a1a1a] to-[#141414] border border-purple-500/30 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-bold flex items-center gap-3">
@@ -343,7 +343,7 @@ const ReformaTributaria = ({ user, onLogout }) => {
                     <div>
                       <span className="text-white">Demonstrativo Comparativo</span>
                       <p className="text-xs text-[#A1A1AA] font-normal mt-1">
-                        Regime Atual vs Cenário 2027 (IVA Dual)
+                        PIS/COFINS (atual) vs CBS (2027)
                       </p>
                     </div>
                   </h3>
@@ -352,178 +352,176 @@ const ReformaTributaria = ({ user, onLogout }) => {
                   </div>
                 </div>
                 
-                {/* Cards Comparativos */}
+                {/* Cards Comparativos - Apenas PIS/COFINS vs CBS */}
                 <div className="grid grid-cols-2 gap-6">
-                  {/* Regime Atual */}
+                  {/* Regime Atual - PIS/COFINS */}
                   <div className="bg-[#0C0C0C] rounded-xl p-5 border border-[#333]">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-3 h-3 rounded-full bg-amber-500"></div>
                       <span className="text-amber-400 font-semibold">REGIME ATUAL</span>
                     </div>
-                    <p className="text-sm text-[#666] mb-3">PIS/COFINS + ICMS (sistema cumulativo)</p>
+                    <p className="text-sm text-[#666] mb-4">PIS + COFINS (será extinto em 2027)</p>
                     
                     <div className="space-y-3">
                       <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
-                        <span className="text-[#A1A1AA]">PIS/COFINS</span>
+                        <span className="text-[#A1A1AA]">PIS (0,65% ou 1,65%)</span>
                         <span className="text-white font-medium">
-                          {formatCurrency(apuracao.comparativo_regime_atual?.pis_cofins)}
+                          {formatCurrency((apuracao.comparativo_regime_atual?.pis_cofins || 0) * 0.35)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
-                        <span className="text-[#A1A1AA]">ICMS</span>
+                        <span className="text-[#A1A1AA]">COFINS (3% ou 7,6%)</span>
                         <span className="text-white font-medium">
-                          {formatCurrency(apuracao.comparativo_regime_atual?.icms)}
+                          {formatCurrency((apuracao.comparativo_regime_atual?.pis_cofins || 0) * 0.65)}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-amber-500/10 rounded-lg border border-amber-500/30">
-                        <span className="text-amber-400 font-semibold">TOTAL ATUAL</span>
-                        <span className="text-amber-400 font-bold text-xl">
-                          {formatCurrency(apuracao.comparativo_regime_atual?.total)}
+                      <div className="flex justify-between items-center p-4 bg-amber-500/10 rounded-lg border border-amber-500/30">
+                        <span className="text-amber-400 font-semibold">TOTAL PIS/COFINS</span>
+                        <span className="text-amber-400 font-bold text-2xl">
+                          {formatCurrency(apuracao.comparativo_regime_atual?.pis_cofins)}
                         </span>
                       </div>
                     </div>
                     
                     <p className="text-xs text-[#666] mt-4 italic">
-                      * Baseado no SPED EFD Contribuições
+                      * Valores do SPED EFD Contribuições
                     </p>
                   </div>
                   
-                  {/* Cenário 2027 */}
+                  {/* Cenário 2027 - CBS */}
                   <div className="bg-[#0C0C0C] rounded-xl p-5 border border-purple-500/30">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-3 h-3 rounded-full bg-purple-500"></div>
                       <span className="text-purple-400 font-semibold">CENÁRIO 2027</span>
                     </div>
-                    <p className="text-sm text-[#666] mb-3">CBS + IBS (IVA Dual não-cumulativo)</p>
+                    <p className="text-sm text-[#666] mb-4">CBS - Contribuição sobre Bens e Serviços</p>
                     
                     <div className="space-y-3">
                       <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
                         <div>
-                          <span className="text-[#A1A1AA]">CBS</span>
-                          <span className="text-xs text-[#666] ml-2">(substitui PIS/COFINS)</span>
+                          <span className="text-[#A1A1AA]">CBS Débitos</span>
+                          <span className="text-xs text-[#666] ml-2">(saídas)</span>
                         </div>
-                        <span className="text-white font-medium">
-                          {formatCurrency(apuracao.apuracao?.saldo?.cbs)}
+                        <span className="text-red-400 font-medium">
+                          {formatCurrency(apuracao.apuracao?.debitos?.cbs)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
                         <div>
-                          <span className="text-[#A1A1AA]">IBS</span>
-                          <span className="text-xs text-[#666] ml-2">(substitui ICMS/ISS)</span>
+                          <span className="text-[#A1A1AA]">CBS Créditos</span>
+                          <span className="text-xs text-[#666] ml-2">(entradas)</span>
                         </div>
-                        <span className="text-white font-medium">
-                          {formatCurrency(apuracao.apuracao?.saldo?.ibs)}
+                        <span className="text-emerald-400 font-medium">
+                          - {formatCurrency(apuracao.apuracao?.creditos?.cbs)}
                         </span>
                       </div>
-                      {apuracao.apuracao?.saldo?.is > 0 && (
-                        <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
-                          <div>
-                            <span className="text-[#A1A1AA]">Imposto Seletivo</span>
-                            <span className="text-xs text-amber-400 ml-2">(sobretaxa)</span>
-                          </div>
-                          <span className="text-amber-400 font-medium">
-                            {formatCurrency(apuracao.apuracao?.saldo?.is)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex justify-between items-center p-3 bg-purple-500/10 rounded-lg border border-purple-500/30">
-                        <span className="text-purple-400 font-semibold">TOTAL 2027</span>
-                        <span className="text-purple-400 font-bold text-xl">
-                          {formatCurrency(Math.abs(apuracao.apuracao?.saldo?.total || 0))}
+                      <div className="flex justify-between items-center p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                        <span className="text-purple-400 font-semibold">SALDO CBS</span>
+                        <span className="text-purple-400 font-bold text-2xl">
+                          {formatCurrency(apuracao.apuracao?.saldo?.cbs)}
                         </span>
                       </div>
                     </div>
                     
                     <p className="text-xs text-[#666] mt-4 italic">
-                      * Alíquotas: CBS {config.aliquota_cbs}% + IBS {config.aliquota_ibs}%
+                      * Alíquota CBS: {config.aliquota_cbs}% (não-cumulativo)
                     </p>
                   </div>
                 </div>
                 
                 {/* Resultado do Comparativo - Vai pagar MAIS ou MENOS? */}
-                <div className={`mt-6 p-5 rounded-xl ${
-                  apuracao.diferenca?.valor > 0 
-                    ? 'bg-gradient-to-r from-red-500/10 via-red-500/5 to-transparent border border-red-500/30' 
-                    : 'bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/30'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-full ${
-                        apuracao.diferenca?.valor > 0 
-                          ? 'bg-red-500/20' 
-                          : 'bg-emerald-500/20'
-                      }`}>
-                        {apuracao.diferenca?.valor > 0 ? (
-                          <TrendingUp className="w-8 h-8 text-red-400" />
-                        ) : (
-                          <TrendingDown className="w-8 h-8 text-emerald-400" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-white mb-1">
-                          {apuracao.diferenca?.valor > 0 
-                            ? '⚠️ VOCÊ VAI PAGAR MAIS IMPOSTO' 
-                            : '✅ VOCÊ VAI PAGAR MENOS IMPOSTO'
-                          }
-                        </p>
-                        <p className="text-sm text-[#A1A1AA]">
-                          {apuracao.diferenca?.valor > 0 
-                            ? 'A reforma tributária vai aumentar sua carga tributária' 
-                            : 'A reforma tributária vai reduzir sua carga tributária'
-                          }
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="text-right">
-                      <p className={`text-3xl font-bold ${
-                        apuracao.diferenca?.valor > 0 ? 'text-red-400' : 'text-emerald-400'
-                      }`}>
-                        {apuracao.diferenca?.valor > 0 ? '+' : '-'} {formatCurrency(Math.abs(apuracao.diferenca?.valor || 0))}
-                      </p>
-                      <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-bold mt-2 ${
-                        apuracao.diferenca?.valor > 0 
-                          ? 'bg-red-500/20 text-red-400' 
-                          : 'bg-emerald-500/20 text-emerald-400'
-                      }`}>
-                        {apuracao.diferenca?.valor > 0 ? (
-                          <TrendingUp className="w-4 h-4" />
-                        ) : (
-                          <TrendingDown className="w-4 h-4" />
-                        )}
-                        {Math.abs(apuracao.diferenca?.percentual || 0).toFixed(1)}%
-                      </div>
-                    </div>
-                  </div>
+                {(() => {
+                  const pisCofinsAtual = apuracao.comparativo_regime_atual?.pis_cofins || 0;
+                  const cbsNovo = apuracao.apuracao?.saldo?.cbs || 0;
+                  const diferenca = cbsNovo - pisCofinsAtual;
+                  const percentual = pisCofinsAtual > 0 ? (diferenca / pisCofinsAtual * 100) : 0;
+                  const vaiPagarMais = diferenca > 0;
                   
-                  {/* Detalhes da diferença */}
-                  <div className="mt-4 pt-4 border-t border-[#333] grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <p className="text-xs text-[#666] uppercase">Regime Atual</p>
-                      <p className="text-sm font-medium text-amber-400">
-                        {formatCurrency(apuracao.comparativo_regime_atual?.total)}
-                      </p>
+                  return (
+                    <div className={`mt-6 p-5 rounded-xl ${
+                      vaiPagarMais 
+                        ? 'bg-gradient-to-r from-red-500/10 via-red-500/5 to-transparent border border-red-500/30' 
+                        : 'bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/30'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`p-3 rounded-full ${
+                            vaiPagarMais 
+                              ? 'bg-red-500/20' 
+                              : 'bg-emerald-500/20'
+                          }`}>
+                            {vaiPagarMais ? (
+                              <TrendingUp className="w-8 h-8 text-red-400" />
+                            ) : (
+                              <TrendingDown className="w-8 h-8 text-emerald-400" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-white mb-1">
+                              {vaiPagarMais 
+                                ? '⚠️ CBS MAIOR QUE PIS/COFINS' 
+                                : '✅ CBS MENOR QUE PIS/COFINS'
+                              }
+                            </p>
+                            <p className="text-sm text-[#A1A1AA]">
+                              {vaiPagarMais 
+                                ? 'Com a CBS, você pagaria mais que o PIS/COFINS atual' 
+                                : 'Com a CBS, você pagaria menos que o PIS/COFINS atual'
+                              }
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="text-right">
+                          <p className={`text-3xl font-bold ${
+                            vaiPagarMais ? 'text-red-400' : 'text-emerald-400'
+                          }`}>
+                            {vaiPagarMais ? '+' : '-'} {formatCurrency(Math.abs(diferenca))}
+                          </p>
+                          <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-bold mt-2 ${
+                            vaiPagarMais 
+                              ? 'bg-red-500/20 text-red-400' 
+                              : 'bg-emerald-500/20 text-emerald-400'
+                          }`}>
+                            {vaiPagarMais ? (
+                              <TrendingUp className="w-4 h-4" />
+                            ) : (
+                              <TrendingDown className="w-4 h-4" />
+                            )}
+                            {Math.abs(percentual).toFixed(1)}%
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Detalhes da diferença */}
+                      <div className="mt-4 pt-4 border-t border-[#333] grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <p className="text-xs text-[#666] uppercase">PIS/COFINS Atual</p>
+                          <p className="text-lg font-bold text-amber-400">
+                            {formatCurrency(pisCofinsAtual)}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-center">
+                          <ArrowRight className="w-6 h-6 text-[#666]" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-[#666] uppercase">CBS 2027</p>
+                          <p className="text-lg font-bold text-purple-400">
+                            {formatCurrency(cbsNovo)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs text-[#666] uppercase">→</p>
-                      <p className="text-sm font-medium text-[#666]">vs</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-[#666] uppercase">Cenário 2027</p>
-                      <p className="text-sm font-medium text-purple-400">
-                        {formatCurrency(Math.abs(apuracao.apuracao?.saldo?.total || 0))}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
                 
                 {/* Nota explicativa */}
                 <div className="mt-4 p-4 bg-[#0C0C0C] rounded-lg border border-[#333]">
                   <div className="flex items-start gap-3">
                     <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
                     <div className="text-xs text-[#A1A1AA]">
-                      <p className="font-medium text-white mb-1">Sobre o Cenário 2027</p>
-                      <p>A partir de 2027, o PIS e COFINS serão substituídos pela CBS (Contribuição sobre Bens e Serviços) e o ICMS/ISS pelo IBS (Imposto sobre Bens e Serviços). O novo sistema será totalmente não-cumulativo, permitindo créditos em todas as etapas da cadeia produtiva.</p>
+                      <p className="font-medium text-white mb-1">Sobre a CBS em 2027</p>
+                      <p>A partir de 2027, o PIS e COFINS serão extintos e substituídos pela CBS (Contribuição sobre Bens e Serviços). A CBS terá alíquota única de {config.aliquota_cbs}% e será totalmente não-cumulativa, permitindo créditos em todas as aquisições, o que pode resultar em menor carga tributária para empresas com muitas entradas.</p>
                     </div>
                   </div>
                 </div>
