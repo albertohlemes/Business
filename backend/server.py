@@ -8124,6 +8124,9 @@ async def upload_xml_with_progress(
     total_expected = progress.get("total_files", len(files))
     progress["progress_percent"] = min(100, int((processed_in_session / total_expected) * 100))
     
+    # Log detalhado para debug
+    logger.info(f"UPLOAD-STREAM: Progresso - processed={processed_in_session}/{total_expected} ({progress['progress_percent']}%)")
+    
     # Verificar se TODOS os arquivos foram processados
     if processed_in_session >= total_expected:
         # Montar resultado final consolidado
