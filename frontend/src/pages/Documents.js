@@ -698,6 +698,14 @@ const Documents = ({ user, onLogout }) => {
       return;
     }
     
+    // Para XMLs de entrada (NF-e entrada), mostrar modal de seleção de tipo de importação
+    if (isXmlUpload && operacao === 'entrada' && validFiles.length >= 1) {
+      setPendingUploadFiles(validFiles);
+      setPendingUploadConfig(tipoConfig);
+      setShowUploadTypeModal(true);
+      return;
+    }
+    
     // Para poucos arquivos XML ou arquivos não-XML, usar upload direto
     if (!isXmlUpload || validFiles.length <= 10) {
       await handleDirectUpload(validFiles, tipoConfig, token);
@@ -705,6 +713,23 @@ const Documents = ({ user, onLogout }) => {
       // Para muitos XMLs, usar upload com streaming e SSE
       await handleStreamingUpload(validFiles, tipoConfig, token);
     }
+  };
+
+  // Processar upload após seleção do tipo de importação
+  const processUploadWithType = async (skipAi) => {
+    setShowUploadTypeModal(false);
+    const token = localStorage.getItem('token');
+    
+    if (!pendingUploadFiles.length || !pendingUploadConfig) return;
+    
+    if (pendingUploadFiles.length <= 10) {
+      await handleDirectUpload(pendingUploadFiles, pendingUploadConfig, token, skipAi);
+    } else {
+      await handleStreamingUpload(pendingUploadFiles, pendingUploadConfig, token, skipAi);
+    }
+    
+    setPendingUploadFiles([]);
+    setPendingUploadConfig(null);
   };
 
   // Callback quando importação de NFS-e com cancelamentos é concluída
