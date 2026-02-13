@@ -76,8 +76,10 @@ export const UploadProvider = ({ children }) => {
         
         const data = await response.json();
         
+        console.log('Polling response:', data.status, data.progress_percent, data.completed);
+        
         if (data.completed === true && data.results) {
-          console.log('Polling: Upload concluído!');
+          console.log('Polling: Upload concluído com resultados!');
           setProgress({ 
             current: data.total_files || data.processed_files, 
             total: data.total_files, 
@@ -112,7 +114,7 @@ export const UploadProvider = ({ children }) => {
       } catch (err) {
         console.error('Erro no polling:', err);
       }
-    }, 2000); // Poll a cada 2 segundos
+    }, 1500); // Poll a cada 1.5 segundos (mais frequente)
   }, [API]);
 
   // Iniciar upload em segundo plano
