@@ -29675,10 +29675,20 @@ async def batch_import_upload_estrutura(
                             modelo = "cte"
                         else:
                             empresa_result["erros"] += 1
+                            import_record["erros"].append({
+                                "empresa": codigo,
+                                "arquivo": arq["filename"],
+                                "erro": "Formato de XML não reconhecido"
+                            })
                             continue
                         
                         if not parsed:
                             empresa_result["erros"] += 1
+                            import_record["erros"].append({
+                                "empresa": codigo,
+                                "arquivo": arq["filename"],
+                                "erro": "Erro ao parsear XML"
+                            })
                             continue
                         
                         chave_nfe = parsed.get('chave_nfe', '')
@@ -29693,36 +29703,156 @@ async def batch_import_upload_estrutura(
                             empresa_result["duplicados"] += 1
                             continue
                         
-                        # Determinar tipo (entrada/saída)
-                        # NFC-e é SEMPRE saída (venda ao consumidor final)
+                        # Determinar tipo (entrada/saída) e verificar regras
+                        emit_cnpj = parsed.get("cnpj_emitente", "").replace(".", "").replace("/", "").replace("-", "")
+                        dest_cnpj = parsed.get("cnpj_destinatario", "").replace(".", "").replace("/", "").replace("-", "")
+                        emitente_uf = parsed.get("emitente_uf", "")
+                        
+                        # Flags de controle
+                        is_emissao_propria = (emit_cnpj == company_cnpj)
+                        is_destinatario = (dest_cnpj == company_cnpj)
+                        desconsiderada_devolucao = False
+                        motivo_desconsideracao = ""
+                        
+                        # NFC-e é SEMPRE saída
                         if modelo == "nfce":
                             tipo = "saida"
                         else:
-                            # Para NF-e e CT-e, verificar baseado no CNPJ
-                            company_doc = await db.companies.find_one({"id": company["id"]})
-                            company_cnpj = company_doc.get("cnpj", "").replace(".", "").replace("/", "").replace("-", "") if company_doc else ""
-                            emit_cnpj = parsed.get("cnpj_emitente", "").replace(".", "").replace("/", "").replace("-", "")
-                            dest_cnpj = parsed.get("cnpj_destinatario", "").replace(".", "").replace("/", "").replace("-", "")
-                            
-                            # Se a empresa é o emitente, é saída; se é destinatário, é entrada
-                            if emit_cnpj == company_cnpj:
+                            # Determinar tipo baseado em CNPJ
+                            if is_emissao_propria:
                                 tipo = "saida"
-                            elif dest_cnpj == company_cnpj:
+                            elif is_destinatario:
                                 tipo = "entrada"
                             else:
-                                tipo = "entrada"  # Default para entrada se não identificar
+                                tipo = "entrada"
+                        
+                        # ==== REGRAS DE DESCONSIDERAÇÃO (igual upload normal) ====
+                        if tipo == "entrada" and modelo == "nfe":
+                            cfops_produtos = [p.get('cfop', '') for p in parsed.get('produtos', [])]
+                            
+                            # CFOPs de devolução/bonificação de terceiros para desconsiderar
+                            CFOPS_DEVOLUCAO_TERCEIROS = [
+                                '1201', '1202', '1203', '1204', '1208', '1209', '1410', '1411', '1503', '1504',
+                                '1553', '1660', '1661', '1662', '1915', '1916', '1918', '1919', '1920', '1921',
+                                '1949', '2201', '2202', '2203', '2204', '2208', '2209', '2410', '2411', '2503',
+                                '2504', '2553', '2660', '2661', '2662', '2915', '2916', '2918', '2919', '2920',
+                                '2921', '2949'
+                            ]
+                            
+                            # Verificar se deve desconsiderar
+                            cfops_devolucao = [c for c in cfops_produtos if c in CFOPS_DEVOLUCAO_TERCEIROS]
+                            if cfops_devolucao and not is_emissao_propria:
+                                desconsiderada_devolucao = True
+                                motivo_desconsideracao = f"NF de terceiro com CFOP de devolução/bonificação ({', '.join(cfops_devolucao[:3])})"
+                        
+                        # ==== CLASSIFICAÇÃO DE PRODUTOS (igual upload normal) ====
+                        produtos = parsed.get('produtos', [])
+                        
+                        if tipo == "entrada" and not skip_ai and not desconsiderada_devolucao and modelo == "nfe":
+                            # Aplicar CST e classificar produtos
+                            produtos_para_classificar = []
+                            
+                            for product in produtos:
+                                cfop_original = product.get('cfop', '')
+                                ncm = product.get('ncm', '')
+                                
+                                # Calcular CST de PIS/COFINS
+                                cst_info = calcular_cst_pis_cofins(
+                                    ncm=ncm,
+                                    cfop=cfop_original,
+                                    tipo_operacao=tipo,
+                                    cst_xml=product.get('cst_pis_xml', product.get('cst_pis', '')),
+                                    regime=regime_tributario
+                                )
+                                
+                                product.update({
+                                    'cst_pis_calculado': cst_info['cst_calculado'],
+                                    'cst_cofins_calculado': cst_info['cst_calculado'],
+                                    'cst_pis': cst_info['cst_calculado'],
+                                    'cst_cofins': cst_info['cst_calculado'],
+                                })
+                                
+                                # Verificar se é CFOP de devolução (classificar automaticamente)
+                                categoria_cfop = obter_categoria_por_cfop(cfop_original)
+                                if categoria_cfop == 'devolucao':
+                                    product['cfop_original'] = cfop_original
+                                    product['categoria_classificada'] = 'devolucao'
+                                    product['justificativa_ia'] = f'CFOP {cfop_original} é devolução - classificação automática'
+                                    classification_stats["from_rules"] += 1
+                                elif not is_emissao_propria:
+                                    product['cfop_original_emissor'] = cfop_original
+                                    produtos_para_classificar.append(product)
+                            
+                            # Classificar produtos com cache/IA
+                            if produtos_para_classificar:
+                                try:
+                                    classifications, stats = await classify_products_with_cache(
+                                        produtos_para_classificar,
+                                        company["id"],
+                                        company_doc,
+                                        emitente_uf,
+                                        sales_cache
+                                    )
+                                    
+                                    classification_stats["from_cache"] += stats.get("from_cache", 0)
+                                    classification_stats["from_rules"] += stats.get("from_rules", 0)
+                                    classification_stats["from_ai"] += stats.get("from_ai", 0)
+                                    classification_stats["from_sales_inference"] += stats.get("from_sales_inference", 0)
+                                    
+                                    # Aplicar classificações
+                                    for idx, product in enumerate(produtos_para_classificar):
+                                        p_id = str(idx)
+                                        if p_id in classifications:
+                                            result_class = classifications[p_id]
+                                            cfop_original = product.get('cfop', '')
+                                            cfop_novo = result_class['cfop']
+                                            
+                                            product['cfop_original'] = cfop_original
+                                            product['cfop'] = cfop_novo
+                                            product['cfop_sugerido'] = cfop_novo
+                                            product['categoria_classificada'] = result_class['categoria']
+                                            product['justificativa_ia'] = result_class['justificativa']
+                                        else:
+                                            # Fallback: classificar como revenda
+                                            cfop_original = product.get('cfop', '')
+                                            cfop_prefix = '2' if (emitente_uf and emitente_uf != uf_empresa) else '1'
+                                            cfop_novo = cfop_prefix + '102'
+                                            product['cfop_original'] = cfop_original
+                                            product['cfop'] = cfop_novo
+                                            product['categoria_classificada'] = 'revenda'
+                                            product['justificativa_ia'] = 'Classificação padrão: REVENDA'
+                                except Exception as e:
+                                    logger.warning(f"Erro na classificação: {e}")
+                        
+                        # Calcular competência correta
+                        data_emissao = parsed.get('data_emissao', '')
+                        data_saida_entrada = parsed.get('data_saida_entrada', '')
+                        
+                        if tipo == 'saida' or is_emissao_propria:
+                            data_ref = data_emissao
+                        elif tipo == 'entrada' and data_saida_entrada:
+                            data_ref = data_saida_entrada
+                        else:
+                            data_ref = data_emissao
+                        
+                        if data_ref and len(data_ref) >= 7:
+                            competencia_doc = f"{data_ref[5:7]}/{data_ref[:4]}"
+                        else:
+                            competencia_doc = comp
                         
                         # Criar documento
                         xml_doc = {
                             "id": str(uuid.uuid4()),
                             "company_id": company["id"],
-                            "competencia": comp,
+                            "competencia": competencia_doc,
                             "tipo": tipo,
                             "modelo": modelo,
                             "xml_content": xml_content,
                             "uploaded_by": current_user.id,
                             "uploaded_at": datetime.now(timezone.utc).isoformat(),
                             "origem_importacao": "batch_upload",
+                            "desconsiderada_devolucao": desconsiderada_devolucao,
+                            "motivo_desconsideracao": motivo_desconsideracao,
                             **{k: v for k, v in parsed.items() if k != 'modelo'}
                         }
                         
