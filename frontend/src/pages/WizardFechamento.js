@@ -320,7 +320,81 @@ const WizardFechamento = ({ user, onLogout }) => {
           </div>
         );
       
-      case 3: // Classificação de CFOPs
+      case 3: // CFOPs Distintos - NOVA ETAPA
+        return (
+          <div className="space-y-4">
+            <p className="text-[#A1A1AA]">
+              Revise os CFOPs de operações distintas (remessa, conserto, consignação, etc.) e decida o que fazer com cada um.
+            </p>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
+                <p className="text-3xl font-bold text-amber-400">{data.total_cfops || 0}</p>
+                <p className="text-sm text-[#666]">CFOPs Distintos</p>
+              </div>
+              <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
+                <p className="text-3xl font-bold text-white">{data.total_produtos || 0}</p>
+                <p className="text-sm text-[#666]">Produtos Afetados</p>
+              </div>
+            </div>
+            
+            {data.cfops_distintos?.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm text-white font-medium">CFOPs encontrados:</p>
+                <div className="max-h-64 overflow-y-auto space-y-2">
+                  {data.cfops_distintos.map((cfop, idx) => (
+                    <div key={idx} className="bg-[#0C0C0C] rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <span className="text-purple-400 font-mono font-bold">{cfop.cfop}</span>
+                          <span className="text-white ml-2">{cfop.descricao}</span>
+                        </div>
+                        <span className="text-xs text-[#666]">{cfop.produtos?.length || 0} produtos</span>
+                      </div>
+                      <p className="text-xs text-emerald-400">
+                        Total: R$ {(cfop.total_valor || 0).toFixed(2)}
+                      </p>
+                      <div className="mt-2 flex gap-2">
+                        <select
+                          className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-sm text-white"
+                          defaultValue="ignorar"
+                          onChange={(e) => {
+                            const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
+                            acoes[cfop.cfop] = e.target.value;
+                            localStorage.setItem('wizard_acoes_cfops', JSON.stringify(acoes));
+                          }}
+                        >
+                          <option value="ignorar">Ignorar (manter original)</option>
+                          <option value="desconsiderar">Desconsiderar da apuração</option>
+                          <option value="converter">Converter para compra (1102/2102)</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+                <p className="text-emerald-400">✓ Nenhum CFOP de operação distinta encontrado</p>
+              </div>
+            )}
+            
+            <button
+              onClick={() => {
+                const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
+                completeStep({ acoes_cfops: acoes });
+                localStorage.removeItem('wizard_acoes_cfops');
+              }}
+              disabled={processing}
+              className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-[#2A2A2A] text-white py-3 rounded-lg flex items-center justify-center gap-2"
+            >
+              {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+              Confirmar e Continuar
+            </button>
+          </div>
+        );
+      
+      case 4: // Classificação de CFOPs (antigo case 3)
         return (
           <div className="space-y-4">
             <p className="text-[#A1A1AA]">
