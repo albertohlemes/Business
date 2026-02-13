@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import Layout from '../components/Layout';
+import { useAppContext } from '../context/AppContext';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
