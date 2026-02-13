@@ -29645,6 +29645,54 @@ async def batch_import_upload_estrutura(
                         with open(arq["path"], 'r', encoding='utf-8') as f:
                             xml_content = f.read()
                         
+                        # ==== VERIFICAR SE É XML DE CANCELAMENTO ====
+                        cancelamento_data = parse_xml_evento_cancelamento(xml_content)
+                        if cancelamento_data:
+                            # É um evento de cancelamento - marcar a nota original como cancelada
+                            chave_cancelada = cancelamento_data.get('chave_nfe', '')
+                            if chave_cancelada:
+                                # Buscar e atualizar a nota original
+                                update_result = await db.xml_documents.update_one(
+                                    {"chave_nfe": chave_cancelada, "company_id": company["id"]},
+                                    {
+                                        "$set": {
+                                            "cancelada": True,
+                                            "data_cancelamento": cancelamento_data.get('data_cancelamento', ''),
+                                            "justificativa_cancelamento": cancelamento_data.get('justificativa', ''),
+                                            "protocolo_cancelamento": cancelamento_data.get('protocolo', '')
+                                        }
+                                    }
+                                )
+                                
+                                if update_result.modified_count > 0:
+                                    empresa_result["importados"] += 1
+                                    import_record["total_importados"] += 1
+                                else:
+                                    # Salvar o evento para processar depois
+                                    await db.eventos_cancelamento.update_one(
+                                        {"chave_nfe": chave_cancelada},
+                                        {
+                                            "$set": {
+                                                "chave_nfe": chave_cancelada,
+                                                "company_id": company["id"],
+                                                "data_cancelamento": cancelamento_data.get('data_cancelamento', ''),
+                                                "justificativa": cancelamento_data.get('justificativa', ''),
+                                                "protocolo": cancelamento_data.get('protocolo', ''),
+                                                "xml_filename": arq["filename"],
+                                                "processado": False,
+                                                "created_at": datetime.now(timezone.utc).isoformat()
+                                            }
+                                        },
+                                        upsert=True
+                                    )
+                                    empresa_result["importados"] += 1
+                                    import_record["total_importados"] += 1
+                            
+                            # Pular para o próximo arquivo
+                            arquivos_empresa_processados += 1
+                            arquivos_processados += 1
+                            continue
+                        
                         # Detectar tipo de documento e parsear
                         parsed = None
                         modelo = None
