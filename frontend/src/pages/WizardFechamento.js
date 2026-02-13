@@ -376,113 +376,151 @@ const WizardFechamento = ({ user, onLogout }) => {
           </div>
         );
       
-      case 3: // CFOPs Distintos - Cards expandíveis
+      case 3: // Alertas de CFOP - Mesmo visual da Classificação Inteligente
         return (
           <div className="space-y-4">
             <p className="text-[#A1A1AA]">
-              Revise os CFOPs de operações distintas (remessa, conserto, consignação, etc.) e decida o que fazer com cada um.
+              Revise os CFOPs de operações distintas pendentes de classificação. Apenas notas de entrada são exibidas.
             </p>
             
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-amber-400">{data.total_cfops || 0}</p>
-                <p className="text-xs text-[#666]">CFOPs</p>
+                <p className="text-xs text-[#666]">CFOPs Distintos</p>
               </div>
               <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-white">{data.total_produtos || 0}</p>
-                <p className="text-xs text-[#666]">Produtos</p>
-              </div>
-              <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-blue-400">{data.total_entradas || 0}</p>
-                <p className="text-xs text-[#666]">Entradas</p>
-              </div>
-              <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-emerald-400">{data.total_saidas || 0}</p>
-                <p className="text-xs text-[#666]">Saídas</p>
+                <p className="text-2xl font-bold text-white">{data.total_pendentes || data.total_produtos || 0}</p>
+                <p className="text-xs text-[#666]">Produtos Pendentes</p>
               </div>
             </div>
             
-            {data.cfops_distintos?.length > 0 ? (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {data.cfops_distintos.map((cfopItem, idx) => (
-                  <div key={idx} className="bg-[#0C0C0C] rounded-lg overflow-hidden">
-                    {/* Header do CFOP - Clicável para expandir */}
-                    <div 
-                      className="p-4 cursor-pointer hover:bg-[#1a1a1a] transition-colors"
-                      onClick={(e) => {
-                        const target = e.currentTarget.nextElementSibling;
-                        if (target) target.classList.toggle('hidden');
-                        e.currentTarget.querySelector('.expand-icon')?.classList.toggle('rotate-180');
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className={`text-xs px-2 py-1 rounded ${cfopItem.tipo_operacao === 'entrada' ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                            {cfopItem.tipo_operacao === 'entrada' ? '↓ ENTRADA' : '↑ SAÍDA'}
-                          </span>
-                          <span className="text-purple-400 font-mono font-bold text-lg">{cfopItem.cfop}</span>
-                          <span className="text-white">{cfopItem.descricao}</span>
-                        </div>
+            {(data.alertas_cfop?.length > 0 || data.cfops_distintos?.length > 0) ? (
+              <div className="space-y-4 max-h-[450px] overflow-y-auto">
+                {(data.alertas_cfop || data.cfops_distintos || []).map((cfopItem, idx) => (
+                  <div key={idx} className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl overflow-hidden">
+                    {/* Header do grupo CFOP */}
+                    <div className="p-4 bg-gradient-to-r from-[#1A1A1A] to-[#141414]">
+                      <div className="flex items-center justify-between flex-wrap gap-3">
                         <div className="flex items-center gap-4">
-                          <span className="text-xs text-[#666]">{cfopItem.total_produtos || 0} produtos</span>
-                          <span className="text-emerald-400 font-medium">
-                            R$ {(cfopItem.total_valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                          </span>
-                          <ChevronDown className="w-5 h-5 text-[#666] expand-icon transition-transform" />
+                          <div className="px-4 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg">
+                            <span className="text-2xl font-bold font-mono text-amber-400">{cfopItem.cfop}</span>
+                          </div>
+                          <div>
+                            <p className="text-white font-semibold">{cfopItem.descricao}</p>
+                            <p className="text-sm text-[#A1A1AA]">
+                              {cfopItem.cfop_original && cfopItem.cfop_original !== cfopItem.cfop && (
+                                <span className="text-purple-400 mr-2">Original: {cfopItem.cfop_original} →</span>
+                              )}
+                              <span className="text-amber-400 font-medium">{cfopItem.total_produtos}</span> produto(s) • 
+                              <span className="text-[#C8A951] ml-1">R$ {(cfopItem.total_valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      
-                      {/* Seletor de ação */}
-                      <div className="mt-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
-                        <select
-                          id={`select-${cfopItem.cfop}`}
-                          className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm text-white"
-                          defaultValue="converter_entrada_mesma_natureza"
-                          onChange={(e) => {
-                            const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
-                            const inputEl = document.getElementById(`input-cfop-${cfopItem.cfop}`);
-                            if (e.target.value === 'converter_manual') {
-                              if (inputEl) inputEl.style.display = 'block';
-                            } else {
-                              if (inputEl) inputEl.style.display = 'none';
-                              acoes[cfopItem.cfop] = { acao: e.target.value };
+                        
+                        {/* Botões de ação em lote */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Botão Manter */}
+                          <button
+                            onClick={() => {
+                              const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
+                              acoes[cfopItem.cfop] = { acao: 'manter', cfop_destino: cfopItem.cfop };
                               localStorage.setItem('wizard_acoes_cfops', JSON.stringify(acoes));
-                            }
-                          }}
-                        >
-                          <option value="converter_entrada_mesma_natureza">Converter para entrada (mesma natureza)</option>
-                          <option value="desconsiderar">Desconsiderar da apuração</option>
-                          <option value="converter_compra">Converter para compra (1102/2102)</option>
-                          <option value="converter_manual">Digitar CFOP manualmente...</option>
-                        </select>
+                              // Visual feedback
+                              document.getElementById(`btn-group-${cfopItem.cfop}`)?.classList.add('ring-2', 'ring-blue-500');
+                            }}
+                            className="px-3 py-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-500/30 text-sm font-medium flex items-center gap-2 transition-colors"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Manter {cfopItem.cfop}
+                          </button>
+                          
+                          {/* Botão Converter para Compra */}
+                          <button
+                            onClick={() => {
+                              const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
+                              acoes[cfopItem.cfop] = { acao: 'converter_compra', cfop_destino: cfopItem.sugestao_compra?.cfop || '1102' };
+                              localStorage.setItem('wizard_acoes_cfops', JSON.stringify(acoes));
+                            }}
+                            className="px-3 py-2 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg hover:bg-green-500/30 text-sm font-medium flex items-center gap-2 transition-colors"
+                          >
+                            <ArrowRight className="w-4 h-4" />
+                            Converter → {cfopItem.sugestao_compra?.cfop || '1102'}
+                            {cfopItem.sugestao_compra?.categoria_nome && (
+                              <span className="px-2 py-0.5 bg-green-500/30 rounded text-xs">
+                                {cfopItem.sugestao_compra.categoria_nome}
+                              </span>
+                            )}
+                          </button>
+                          
+                          {/* Botão Outro CFOP */}
+                          <button
+                            onClick={() => {
+                              const inputEl = document.getElementById(`input-cfop-wizard-${cfopItem.cfop}`);
+                              if (inputEl) inputEl.classList.toggle('hidden');
+                            }}
+                            className="px-3 py-2 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded-lg hover:bg-[#333] hover:text-white text-sm font-medium flex items-center gap-2 transition-colors"
+                          >
+                            Outro CFOP
+                          </button>
+                          
+                          {/* Botão Expandir/Recolher */}
+                          <button
+                            onClick={(e) => {
+                              const target = document.getElementById(`content-${cfopItem.cfop}`);
+                              if (target) target.classList.toggle('hidden');
+                              e.currentTarget.querySelector('svg')?.classList.toggle('rotate-180');
+                            }}
+                            className="p-2 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded-lg hover:bg-[#333] hover:text-white transition-colors"
+                          >
+                            <ChevronDown className="w-5 h-5 transition-transform" />
+                          </button>
+                        </div>
                       </div>
                       
                       {/* Input para CFOP manual */}
-                      <div 
-                        id={`input-cfop-${cfopItem.cfop}`} 
-                        className="mt-2 hidden"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <input
-                          type="text"
-                          placeholder="Digite o CFOP (ex: 5949)"
-                          maxLength={4}
-                          className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm text-white"
-                          onChange={(e) => {
-                            const cfopDigitado = e.target.value.replace(/\D/g, '');
-                            if (cfopDigitado.length === 4) {
-                              const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
-                              acoes[cfopItem.cfop] = { acao: 'converter_manual', cfop_destino: cfopDigitado };
-                              localStorage.setItem('wizard_acoes_cfops', JSON.stringify(acoes));
-                            }
-                          }}
-                        />
+                      <div id={`input-cfop-wizard-${cfopItem.cfop}`} className="mt-3 hidden">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Digite o CFOP (ex: 1949)"
+                            maxLength={4}
+                            className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm text-white"
+                            onChange={(e) => {
+                              const cfopDigitado = e.target.value.replace(/\D/g, '');
+                              if (cfopDigitado.length === 4) {
+                                const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
+                                acoes[cfopItem.cfop] = { acao: 'converter_manual', cfop_destino: cfopDigitado };
+                                localStorage.setItem('wizard_acoes_cfops', JSON.stringify(acoes));
+                              }
+                            }}
+                          />
+                        </div>
                         <p className="text-xs text-[#666] mt-1">Digite 4 dígitos do CFOP de destino</p>
                       </div>
+                      
+                      {/* Info de categoria que será atribuída */}
+                      {cfopItem.sugestao_manter && (
+                        <div className="mt-2 flex items-center gap-2 text-xs text-[#666]">
+                          <span>
+                            Ao resolver: 
+                            <span className="text-[#C8A951] ml-1">
+                              {cfopItem.sugestao_manter.categoria_nome || 'Pendente'} (manter)
+                            </span>
+                            {cfopItem.sugestao_compra && (
+                              <>
+                                {' ou '}
+                                <span className="text-green-400">
+                                  {cfopItem.sugestao_compra.categoria_nome || 'Compra para Revenda'} (converter)
+                                </span>
+                              </>
+                            )}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Conteúdo expandível - Notas e Produtos */}
-                    <div className="hidden border-t border-[#333] bg-[#0a0a0a] max-h-64 overflow-y-auto">
+                    <div id={`content-${cfopItem.cfop}`} className="hidden border-t border-[#333] bg-[#0a0a0a] max-h-64 overflow-y-auto">
                       {cfopItem.notas?.map((nota, nIdx) => (
                         <div key={nIdx} className="p-3 border-b border-[#222] last:border-0">
                           <div className="flex items-center justify-between mb-2">
@@ -491,8 +529,7 @@ const WizardFechamento = ({ user, onLogout }) => {
                               <span className="text-xs text-[#666]">{nota.data_emissao?.slice(0, 10)}</span>
                             </div>
                             <div className="text-right">
-                              <span className="text-xs text-[#888]">{nota.emitente}</span>
-                              <p className="text-emerald-400 text-sm">R$ {(nota.valor_total_nfe || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                              <span className="text-xs text-[#888]">{nota.emitente?.slice(0, 30)}</span>
                             </div>
                           </div>
                           
@@ -502,7 +539,12 @@ const WizardFechamento = ({ user, onLogout }) => {
                               <div key={pIdx} className="flex items-center justify-between text-xs bg-[#111] rounded p-2">
                                 <div className="flex-1">
                                   <p className="text-white truncate">{prod.descricao}</p>
-                                  <p className="text-[#666]">NCM: {prod.ncm || 'N/A'} | Qtd: {prod.quantidade}</p>
+                                  <p className="text-[#666]">
+                                    NCM: {prod.ncm || 'N/A'} 
+                                    {prod.cfop_original_emissor && (
+                                      <span className="ml-2 text-purple-400">CFOP Original: {prod.cfop_original_emissor}</span>
+                                    )}
+                                  </p>
                                 </div>
                                 <span className="text-white ml-2">
                                   R$ {(prod.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
@@ -518,7 +560,7 @@ const WizardFechamento = ({ user, onLogout }) => {
               </div>
             ) : (
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
-                <p className="text-emerald-400">✓ Nenhum CFOP de operação distinta encontrado</p>
+                <p className="text-emerald-400">✓ Nenhum alerta de CFOP pendente de revisão</p>
               </div>
             )}
             
