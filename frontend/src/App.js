@@ -35,6 +35,7 @@ import ViloesOportunidades from './pages/ViloesOportunidades';
 import NotasAusentes from './pages/NotasAusentes';
 import ExportSPED from './pages/ExportSPED';
 import FechamentoMensal from './pages/FechamentoMensal';
+import WizardFechamento from './pages/WizardFechamento';
 import AuditLog from './pages/AuditLog';
 import GruposEmpresariais from './pages/GruposEmpresariais';
 import ImportacaoPage from './pages/ImportacaoPage';
