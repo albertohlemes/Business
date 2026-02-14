@@ -6651,6 +6651,10 @@ async def upload_xml_batch(
         except Exception as e:
             errors.append({"filename": dev.get('filename', 'devolucao'), "error": f"Erro ao processar devolução: {str(e)}"})
     
+    # INVALIDAR CACHE DE AGREGAÇÕES - dados foram alterados
+    if len(results) > 0:
+        invalidate_company_cache(company_id, competencia)
+    
     return {
         "success": results,
         "errors": errors,
@@ -6680,12 +6684,6 @@ async def upload_xml_batch(
         },
         "alertas_viloes_ncm": await identificar_ncms_viloes_importacao(company_id, results)
     }
-    
-    # INVALIDAR CACHE DE AGREGAÇÕES - dados foram alterados
-    if len(results) > 0:
-        invalidate_company_cache(company_id, competencia)
-    
-    return response_data
 
 
 # ============== IDENTIFICADOR DE NCMs VILÕES NA IMPORTAÇÃO ==============
