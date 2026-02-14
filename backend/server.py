@@ -32539,20 +32539,37 @@ async def get_apuracao_reforma_tributaria(
         "competencia": competencia
     }, {"_id": 0, "resumo": 1})
     
+    # Primeiro, calcular ICMS dos XMLs (sempre fazer isso para ter um fallback)
+    regime_empresa = company.get('regime_tributario', 'lucro_real')
+    total_icms_saida = 0
+    total_icms_entrada = 0
+    
+    for doc in docs_saida:
+        for prod in doc.get('produtos', []):
+            total_icms_saida += float(prod.get('valor_icms', 0) or 0)
+    
+    for doc in docs_entrada:
+        for prod in doc.get('produtos', []):
+            total_icms_entrada += float(prod.get('valor_icms', 0) or 0)
+    
+    icms_calculado_xml = max(0, total_icms_saida - total_icms_entrada)
+    
     if sped and sped.get('resumo'):
         resumo = sped['resumo']
         regime_atual['pis'] = resumo.get('pis_a_recolher', 0) or 0
         regime_atual['cofins'] = resumo.get('cofins_a_recolher', 0) or 0
         regime_atual['pis_cofins'] = regime_atual['pis'] + regime_atual['cofins']
         
-        # ICMS: tentar vários campos possíveis
-        icms_valor = (
+        # ICMS: tentar vários campos possíveis do SPED
+        icms_sped = (
             resumo.get('icms_a_recolher') or 
             resumo.get('saldo_icms') or 
             resumo.get('icms_a_pagar') or
             max(0, (resumo.get('debito_icms', 0) or 0) - (resumo.get('credito_icms', 0) or 0))
         )
-        regime_atual['icms'] = float(icms_valor) if icms_valor else 0
+        
+        # Se SPED não tem ICMS, usar o calculado dos XMLs
+        regime_atual['icms'] = float(icms_sped) if icms_sped else icms_calculado_xml
         regime_atual['total'] = regime_atual['pis_cofins'] + regime_atual['icms']
     else:
         # Calcular PIS/COFINS e ICMS baseado nos XMLs
