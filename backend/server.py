@@ -8884,6 +8884,50 @@ async def reprocess_document(
         return {"success": False, "error": f"Erro ao re-processar: {str(e)}"}
 
 
+@api_router.post("/xml/document/{document_id}/restore")
+async def restore_document(
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Restaura uma nota que foi desconsiderada por devolução.
+    Remove os flags de desconsideração para que a nota volte a ser contabilizada.
+    """
+    document = await db.xml_documents.find_one({"id": document_id}, {"_id": 0, "id": 1, "company_id": 1, "numero_nfe": 1, "desconsiderada_devolucao": 1})
+    if not document:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
+    # Verificar acesso à empresa
+    if not await check_company_access(document.get('company_id', ''), current_user):
+        raise HTTPException(status_code=403, detail="Sem acesso a esta empresa")
+    
+    # Remover flags de desconsideração
+    result = await db.xml_documents.update_one(
+        {"id": document_id},
+        {
+            "$unset": {
+                "desconsiderada_devolucao": "",
+                "motivo_desconsideracao": "",
+                "nfe_vinculada_devolucao": "",
+                "status_validacao": ""
+            }
+        }
+    )
+    
+    if result.modified_count > 0:
+        logger.info(f"Nota NF {document.get('numero_nfe', '')} restaurada pelo usuário {current_user.email}")
+        return {
+            "success": True,
+            "message": f"Nota NF {document.get('numero_nfe', '')} restaurada com sucesso",
+            "document_id": document_id
+        }
+    else:
+        return {
+            "success": False,
+            "message": "Nota não estava desconsiderada ou não foi possível restaurar"
+        }
+
+
 @api_router.post("/xml/reprocess-batch")
 async def reprocess_batch(
     company_id: str,
