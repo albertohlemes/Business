@@ -1254,6 +1254,39 @@ def get_filtro_notas_ativas():
     }
 
 
+
+def obter_categoria_padrao_por_atividade(tipo_atividade: str) -> tuple:
+    """
+    Retorna a categoria padrão e CFOP baseado no tipo de atividade da empresa.
+    
+    Regras de negócio:
+    - Indústria → INSUMO (matéria-prima para produção)
+    - Comércio → REVENDA (mercadoria para comercialização)
+    - Serviços → DESPESA (material de consumo)
+    
+    Args:
+        tipo_atividade: 'industria', 'comercio', 'servicos' ou variantes
+    
+    Returns:
+        tuple: (categoria, cfop_sufixo_normal, cfop_sufixo_st)
+        - categoria: 'insumo', 'revenda' ou 'despesa'
+        - cfop_sufixo_normal: sufixo do CFOP sem ST (ex: '101', '102', '556')
+        - cfop_sufixo_st: sufixo do CFOP com ST (ex: '401', '403', '407')
+    """
+    tipo = str(tipo_atividade).lower().strip() if tipo_atividade else 'comercio'
+    
+    if tipo in ['industria', 'industrial', 'indústria']:
+        # Indústria: compra de matéria-prima/insumos
+        return ('insumo', '101', '401')
+    elif tipo in ['servicos', 'serviços', 'servico', 'serviço', 'prestador_servicos']:
+        # Serviços: compra de materiais de consumo/despesa
+        return ('despesa', '556', '407')
+    else:
+        # Comércio (padrão): compra para revenda
+        return ('revenda', '102', '403')
+
+
+
 def produto_sem_credito_icms_beneficio(ncm: str, descricao: str, company: dict) -> bool:
     """
     Verifica se um produto deve ter crédito de ICMS desconsiderado devido a benefício fiscal.
