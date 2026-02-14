@@ -3129,25 +3129,32 @@ def generate_sped_fiscal(
             cst_icms_num = cst_icms[-2:] if len(cst_icms) >= 2 else cst_icms
             tem_icms = cst_icms_num in ['00', '10', '20', '70', '90']
             
-            # CFOPs de DESPESAS (uso/consumo, ativo imobilizado) - NÃO inclui ST de revenda
+            # CFOPs de DESPESAS (uso/consumo, ativo imobilizado) - NÃO dão direito a crédito de ICMS
             CFOPS_DESPESAS = [
                 # Uso e Consumo
                 '1556', '2556', '1557', '2557',
                 # Ativo Imobilizado
-                '1551', '2551', '1552', '2552', '1553', '2553',
-                '1406', '2406', '1407', '2407',
+                '1551', '2551', '1552', '2552', '1553', '2553', '1554', '2554',
+                '1406', '2406', '1407', '2407', '1408', '2408',
+                '1128', '2128',  # Compra para ativo imobilizado 
                 # Serviços e outras despesas
                 '1932', '2932', '1933', '2933', '1949', '2949',
+                '1126', '2126',  # Compra para utilização na prestação de serviço
+                '1653', '2653',  # Compra de energia elétrica para consumo
             ]
             
-            # CFOPs de Substituição Tributária (ST)
+            # CFOPs de Substituição Tributária (ST) - NÃO dão direito a crédito de ICMS
             CFOPS_ST = [
                 '1401', '2401', '3401',  # Compra para industrialização com ST
                 '1403', '2403', '3403',  # Compra para comercialização com ST
+                '1405', '2405',  # Compra de bens sujeitos a ST
+                '1407', '2407',  # Compra para uso/consumo com ST (também é despesa)
                 '1408', '2408',  # Transferência para industrialização com ST
                 '1409', '2409', '3409',  # Transferência para comercialização com ST
                 '1410', '2410',  # Devolução de venda com ST
                 '1411', '2411',  # Devolução com ST
+                '1414', '2414',  # Retorno de produto industrializado com ST
+                '1415', '2415',  # Retorno de mercadoria com ST
             ]
             
             # ============================================================
