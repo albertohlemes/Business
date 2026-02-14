@@ -31844,115 +31844,156 @@ async def get_wizard_report(
     
     # Etapa 1 - Notas Canceladas
     notas_canceladas = wizard.get('steps_data', {}).get('notas_canceladas', {})
-    if notas_canceladas:
-        notas_ids = notas_canceladas.get('input_data', {}).get('notas_confirmar', [])
-        if notas_ids:
-            notas = await db.xml_documents.find(
-                {"id": {"$in": notas_ids}},
-                {"_id": 0, "numero_nfe": 1, "emitente_nome": 1, "valor_total": 1, "data_emissao": 1}
-            ).to_list(length=None)
-            report_data['etapa_1'] = {"total": len(notas), "notas": notas}
+    notas_ids = notas_canceladas.get('input_data', {}).get('notas_confirmar', []) if notas_canceladas else []
+    if notas_ids:
+        notas = await db.xml_documents.find(
+            {"id": {"$in": notas_ids}},
+            {"_id": 0, "numero_nfe": 1, "emitente_nome": 1, "valor_total": 1, "data_emissao": 1}
+        ).to_list(length=None)
+        report_data['etapa_1'] = {"total": len(notas), "notas": notas, "concluida": True}
+    else:
+        # IMPORTANTE: Mesmo sem notas, incluir a etapa se foi concluída
+        if notas_canceladas and notas_canceladas.get('completed_at'):
+            report_data['etapa_1'] = {"total": 0, "notas": [], "concluida": True, "mensagem": "Nenhuma nota cancelada encontrada"}
     
     # Etapa 2 - Devoluções
     devolucoes = wizard.get('steps_data', {}).get('devolucoes', {})
-    if devolucoes:
-        notas_desc = devolucoes.get('input_data', {}).get('notas_desconsiderar', [])
-        notas_sem_orig = devolucoes.get('input_data', {}).get('desconsiderar_sem_original', [])
-        all_ids = []
-        for item in notas_desc:
-            if isinstance(item, dict):
-                if item.get('devolucao_id'):
-                    all_ids.append(item['devolucao_id'])
-            elif isinstance(item, str):
-                all_ids.append(item)
-        all_ids.extend(notas_sem_orig)
-        
-        if all_ids:
-            notas = await db.xml_documents.find(
-                {"id": {"$in": all_ids}},
-                {"_id": 0, "numero_nfe": 1, "emitente_nome": 1, "valor_total": 1, "nfe_referenciada": 1}
-            ).to_list(length=None)
-            for nota in notas:
-                nota['nf_original'] = nota.get('nfe_referenciada', '-')[:20] if nota.get('nfe_referenciada') else '-'
-            report_data['etapa_2'] = {"total": len(notas), "notas": notas}
+    notas_desc = devolucoes.get('input_data', {}).get('notas_desconsiderar', []) if devolucoes else []
+    notas_sem_orig = devolucoes.get('input_data', {}).get('desconsiderar_sem_original', []) if devolucoes else []
+    all_ids = []
+    for item in notas_desc:
+        if isinstance(item, dict):
+            if item.get('devolucao_id'):
+                all_ids.append(item['devolucao_id'])
+        elif isinstance(item, str):
+            all_ids.append(item)
+    all_ids.extend(notas_sem_orig)
+    
+    if all_ids:
+        notas = await db.xml_documents.find(
+            {"id": {"$in": all_ids}},
+            {"_id": 0, "numero_nfe": 1, "emitente_nome": 1, "valor_total": 1, "nfe_referenciada": 1}
+        ).to_list(length=None)
+        for nota in notas:
+            nota['nf_original'] = nota.get('nfe_referenciada', '-')[:20] if nota.get('nfe_referenciada') else '-'
+        report_data['etapa_2'] = {"total": len(notas), "notas": notas, "concluida": True}
+    else:
+        # IMPORTANTE: Mesmo sem devoluções, incluir a etapa se foi concluída
+        if devolucoes and devolucoes.get('completed_at'):
+            report_data['etapa_2'] = {"total": 0, "notas": [], "concluida": True, "mensagem": "Nenhuma devolução encontrada"}
     
     # Etapa 3 - Alertas CFOP
     alertas = wizard.get('steps_data', {}).get('alertas_cfop', {})
-    if alertas:
-        acoes = alertas.get('input_data', {}).get('acoes_cfops', {})
-        alteracoes = []
-        for cfop, acao_data in acoes.items():
-            acao = acao_data.get('acao', 'manter')
-            cfop_novo = cfop
-            acao_texto = 'Mantido'
-            
+    acoes = alertas.get('input_data', {}).get('acoes_cfops', {}) if alertas else {}
+    alteracoes = []
+    for cfop, acao_data in acoes.items():
+        acao = acao_data.get('acao', 'manter') if isinstance(acao_data, dict) else 'manter'
+        cfop_novo = cfop
+        acao_texto = 'Mantido'
+        
+        if isinstance(acao_data, dict):
             if acao == 'converter_compra':
                 cfop_novo = acao_data.get('cfop_destino', cfop)
                 acao_texto = 'Convertido para compra'
             elif acao == 'converter_manual':
-                cfop_novo = acao_data.get('cfop_destino_manual', cfop)
+                cfop_novo = acao_data.get('cfop_destino', acao_data.get('cfop_destino_manual', cfop))
                 acao_texto = 'Convertido manual'
-            
-            alteracoes.append({
-                "cfop_original": cfop,
-                "cfop_novo": cfop_novo,
-                "qtd_produtos": acao_data.get('qtd', 0),
-                "acao": acao_texto
-            })
         
-        report_data['etapa_3'] = {"total": len(alteracoes), "alteracoes": alteracoes}
+        alteracoes.append({
+            "cfop_original": cfop,
+            "cfop_novo": cfop_novo,
+            "qtd_produtos": acao_data.get('qtd', 0) if isinstance(acao_data, dict) else 0,
+            "acao": acao_texto
+        })
     
-    # Etapa 4 - Classificação
-    classificacao = wizard.get('steps_data', {}).get('classificacao', {})
-    if classificacao:
-        # Buscar resumo de categorias da competência
-        pipeline = [
-            {"$match": {"company_id": company_id, "competencia": competencia, "tipo": "entrada"}},
-            {"$unwind": "$produtos"},
-            {"$group": {
-                "_id": "$produtos.categoria_classificada",
-                "qtd": {"$sum": 1},
-                "valor": {"$sum": "$produtos.valor_total"}
-            }}
-        ]
-        categorias = await db.xml_documents.aggregate(pipeline).to_list(length=100)
-        resumo = {}
-        total = 0
-        for cat in categorias:
-            if cat['_id']:
-                resumo[cat['_id']] = {"qtd": cat['qtd'], "valor": cat['valor']}
-                total += cat['qtd']
-        report_data['etapa_4'] = {"total": total, "resumo_categorias": resumo}
+    if alteracoes:
+        report_data['etapa_3'] = {"total": len(alteracoes), "alteracoes": alteracoes, "concluida": True}
+    else:
+        if alertas and alertas.get('completed_at'):
+            report_data['etapa_3'] = {"total": 0, "alteracoes": [], "concluida": True, "mensagem": "Nenhum alerta de CFOP encontrado"}
     
-    # Etapa 5/6 - PIS/COFINS (simplificado)
+    # Etapa 4 - Classificação (CORRIGIDO: era 'classificacao', mas o step_name é 'classificacao_cfop')
+    classificacao = wizard.get('steps_data', {}).get('classificacao_cfop', {})
+    # Buscar resumo de categorias da competência (sempre, pois é informação útil)
+    pipeline = [
+        {"$match": {"company_id": company_id, "competencia": competencia, "tipo": "entrada"}},
+        {"$unwind": "$produtos"},
+        {"$group": {
+            "_id": "$produtos.categoria_classificada",
+            "qtd": {"$sum": 1},
+            "valor": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}}
+        }}
+    ]
+    categorias = await db.xml_documents.aggregate(pipeline).to_list(length=100)
+    resumo = {}
+    total = 0
+    for cat in categorias:
+        if cat['_id']:
+            resumo[cat['_id']] = {"qtd": cat['qtd'], "valor": round(cat['valor'], 2)}
+            total += cat['qtd']
+    
+    if classificacao and classificacao.get('completed_at'):
+        report_data['etapa_4'] = {
+            "total": total, 
+            "resumo_categorias": resumo, 
+            "concluida": True,
+            "classificou_ia": classificacao.get('input_data', {}).get('classificar_produtos', False)
+        }
+    elif total > 0:
+        # Mesmo sem etapa concluída, mostrar dados existentes se houver classificações
+        report_data['etapa_4'] = {
+            "total": total, 
+            "resumo_categorias": resumo, 
+            "concluida": False,
+            "mensagem": "Classificações existentes (etapa não concluída)"
+        }
+    
+    # Etapa 5/6 - PIS/COFINS (melhorado)
     pis_entrada = wizard.get('steps_data', {}).get('pis_cofins_entrada', {})
     pis_saida = wizard.get('steps_data', {}).get('pis_cofins_saida', {})
     
+    # Processar etapa 5 - PIS/COFINS Entradas
     if pis_entrada:
         actions = pis_entrada.get('actions', [])
-        total = 0
+        total_cst = 0
         for a in actions:
-            if 'corrigidos' in a:
+            if isinstance(a, str) and 'corrigido' in a.lower():
                 try:
-                    total = int(a.split()[0])
+                    total_cst = int(a.split()[0])
                 except:
                     pass
-        report_data['etapa_5'] = {"total": total, "correcoes": []}
+        report_data['etapa_5'] = {
+            "total": total_cst, 
+            "correcoes": [],
+            "concluida": True,
+            "recalculou": pis_entrada.get('input_data', {}).get('recalcular_cst', False)
+        }
     
+    # Processar etapa 6 - PIS/COFINS Saídas
     if pis_saida:
         actions = pis_saida.get('actions', [])
-        total = 0
+        total_cst = 0
         for a in actions:
-            if 'corrigidos' in a:
+            if isinstance(a, str) and 'corrigido' in a.lower():
                 try:
-                    total = int(a.split()[0])
+                    total_cst = int(a.split()[0])
                 except:
                     pass
-        report_data['etapa_6'] = {"total": total, "correcoes": []}
+        report_data['etapa_6'] = {
+            "total": total_cst, 
+            "correcoes": [],
+            "concluida": True,
+            "recalculou": pis_saida.get('input_data', {}).get('recalcular_cst', False)
+        }
     
-    # Etapa 7
-    if wizard.get('steps_data', {}).get('reforma_tributaria'):
-        report_data['etapa_7'] = {"revisado": True}
+    # Etapa 7 - Reforma Tributária
+    reforma = wizard.get('steps_data', {}).get('reforma_tributaria', {})
+    if reforma:
+        report_data['etapa_7'] = {
+            "revisado": True, 
+            "concluida": True,
+            "data_conclusao": reforma.get('completed_at', '')
+        }
     
     # Gerar arquivo
     company_name = company.get('razao_social', company.get('nome', 'Empresa'))[:30].replace(' ', '_')
