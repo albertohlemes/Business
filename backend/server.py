@@ -30210,6 +30210,7 @@ CFOPS_OPERACOES_DISTINTAS = {
     '6923': 'Remessa de mercadoria por conta e ordem de terceiros',
     '6924': 'Remessa para industrialização por conta e ordem do adquirente',
     '6925': 'Retorno de mercadoria recebida para industrialização por conta e ordem',
+    '6929': 'Lançamento efetuado em decorrência de emissão de documento fiscal relativo a operação ou prestação também registrada em ECF',
     '6949': 'Outra saída de mercadoria ou prestação de serviço não especificada',
 }
 
