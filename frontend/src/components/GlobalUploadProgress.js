@@ -384,11 +384,11 @@ const GlobalUploadProgress = () => {
                   </p>
                   <p className="text-[10px] text-gray-300">Canceladas</p>
                 </div>
-                <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-2">
-                  <p className="text-lg font-bold text-purple-400">
+                <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-2">
+                  <p className="text-lg font-bold text-cyan-400">
                     {uploadResults.resumo?.desconsideradas_devolucao || uploadResults.notas_desconsideradas_devolucao?.length || 0}
                   </p>
-                  <p className="text-[10px] text-purple-300">Devoluções</p>
+                  <p className="text-[10px] text-cyan-300">Devoluções</p>
                 </div>
               </div>
             )}
@@ -513,9 +513,9 @@ const GlobalUploadProgress = () => {
                 <p className="text-xl font-bold text-gray-400">{uploadResults.resumo?.notas_canceladas || uploadResults.notas_canceladas?.length || 0}</p>
                 <p className="text-[10px] text-gray-300">Canceladas</p>
               </div>
-              <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-2 text-center">
-                <p className="text-xl font-bold text-purple-400">{uploadResults.resumo?.desconsideradas_devolucao || uploadResults.notas_desconsideradas_devolucao?.length || 0}</p>
-                <p className="text-[10px] text-purple-300">Devoluções</p>
+              <div className="bg-teal-500/10 border border-teal-500/30 rounded-lg p-2 text-center">
+                <p className="text-xl font-bold text-teal-400">{uploadResults.resumo?.desconsideradas_devolucao || uploadResults.notas_desconsideradas_devolucao?.length || 0}</p>
+                <p className="text-[10px] text-teal-300">Devoluções</p>
               </div>
               <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-2 text-center">
                 <p className="text-xl font-bold text-cyan-400">{uploadResults.resumo?.alertas_cfop || 0}</p>
@@ -650,37 +650,37 @@ const GlobalUploadProgress = () => {
             {/* Devoluções do Fornecedor */}
             {uploadResults.notas_desconsideradas_devolucao && uploadResults.notas_desconsideradas_devolucao.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-bold text-purple-400 mb-3 flex items-center gap-2">
+                <h3 className="font-bold text-teal-400 mb-3 flex items-center gap-2">
                   <FileText className="w-5 h-5" />
                   Devoluções do Fornecedor ({uploadResults.notas_desconsideradas_devolucao.length})
                 </h3>
-                <p className="text-xs text-purple-300/70 mb-3">
+                <p className="text-xs text-teal-300/70 mb-3">
                   Notas de devolução emitidas pelo fornecedor foram desconsideradas da apuração
                 </p>
                 <div className="space-y-3 max-h-80 overflow-y-auto">
                   {uploadResults.notas_desconsideradas_devolucao.slice(0, 20).map((dev, idx) => (
-                    <div key={idx} className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+                    <div key={idx} className="bg-teal-500/10 border border-teal-500/30 rounded-lg p-3">
                       <div className="grid grid-cols-2 gap-4">
                         {/* Coluna Esquerda - NF de Devolução */}
-                        <div className="border-r border-purple-500/30 pr-4">
-                          <div className="text-[10px] text-purple-400 uppercase tracking-wider mb-1">NF Devolução (Desconsiderada)</div>
+                        <div className="border-r border-teal-500/30 pr-4">
+                          <div className="text-[10px] text-teal-400 uppercase tracking-wider mb-1">NF Devolução (Desconsiderada)</div>
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="bg-purple-600/40 text-purple-200 px-2 py-0.5 rounded font-bold text-sm">
+                            <span className="bg-teal-600/40 text-teal-200 px-2 py-0.5 rounded font-bold text-sm">
                               NF {dev.numero_nfe || '-'}
                             </span>
                             {dev.cfop && (
-                              <span className="text-purple-300 text-xs">CFOP {dev.cfop}</span>
+                              <span className="text-teal-300 text-xs">CFOP {dev.cfop}</span>
                             )}
                           </div>
-                          <div className="text-xs text-purple-200 space-y-1">
+                          <div className="text-xs text-teal-200 space-y-1">
                             <div className="truncate" title={dev.emitente}>
-                              <span className="text-purple-400">Emitente:</span> {dev.emitente || '-'}
+                              <span className="text-teal-400">Emitente:</span> {dev.emitente || '-'}
                             </div>
                             <div>
-                              <span className="text-purple-400">Data:</span> {dev.data_emissao ? new Date(dev.data_emissao).toLocaleDateString('pt-BR') : '-'}
+                              <span className="text-teal-400">Data:</span> {dev.data_emissao ? new Date(dev.data_emissao).toLocaleDateString('pt-BR') : '-'}
                             </div>
-                            <div className="font-medium text-purple-100">
-                              <span className="text-purple-400">Valor:</span> R$ {(dev.valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                            <div className="font-medium text-teal-100">
+                              <span className="text-teal-400">Valor:</span> R$ {(dev.valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
                             </div>
                           </div>
                         </div>
@@ -714,7 +714,7 @@ const GlobalUploadProgress = () => {
                   ))}
                 </div>
                 {uploadResults.notas_desconsideradas_devolucao.length > 20 && (
-                  <div className="text-center text-purple-300 py-2 border-t border-purple-500/30 mt-3">
+                  <div className="text-center text-teal-300 py-2 border-t border-teal-500/30 mt-3">
                     ... e mais {uploadResults.notas_desconsideradas_devolucao.length - 20} devoluções
                   </div>
                 )}
