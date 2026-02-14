@@ -148,7 +148,7 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 - Verificar campo de data usado (`dhEmi` vs `dhSaiEnt`)
 
 ### P1 - Barra de progresso de upload trava para empresa Sungroup
-- Precisa investigar caso específico
+- ~~Precisa investigar caso específico~~ **CORRIGIDO em 14/02/2026** - Melhorado polling de fallback com detecção de erros e stale progress
 
 ### P2 - Discrepância Dashboard vs SPED
 - Valores totais não batem entre dashboard e registro E110
