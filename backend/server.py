@@ -6562,18 +6562,18 @@ async def identificar_ncms_viloes_importacao(company_id: str, notas_importadas: 
 upload_progress_store: Dict[str, Dict] = {}
 
 async def get_upload_session(upload_id: str) -> Optional[Dict]:
-    """Busca sessão de upload primeiro em memória, depois no MongoDB"""
-    # Tentar memória primeiro (mais rápido)
-    if upload_id in upload_progress_store:
-        return upload_progress_store[upload_id]
-    
-    # Fallback para MongoDB (persistente)
+    """Busca sessão de upload SEMPRE do MongoDB para garantir consistência em ambientes multi-instância"""
+    # SEMPRE buscar do MongoDB para garantir dados atualizados em produção (múltiplas instâncias)
+    # O cache em memória é apenas para otimização de escrita local
     session = await db.upload_sessions.find_one({"upload_id": upload_id}, {"_id": 0})
     if session:
-        # Restaurar para memória para operações subsequentes
-        # IMPORTANTE: Armazenar o objeto para que modificações sejam refletidas
+        # Atualizar cache local também
         upload_progress_store[upload_id] = session
-        return upload_progress_store[upload_id]  # Retornar referência do store
+        return session
+    
+    # Fallback para memória apenas se MongoDB não tiver (race condition no init)
+    if upload_id in upload_progress_store:
+        return upload_progress_store[upload_id]
     
     return None
 
