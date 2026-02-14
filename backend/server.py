@@ -22994,7 +22994,13 @@ async def _get_pis_cofins_aggregated(company: dict, company_id: str, competencia
     """
     Versão otimizada da apuração PIS/COFINS usando agregação do MongoDB.
     Usada quando há mais de 10000 documentos para evitar timeout.
+    Usa cache inteligente para evitar recálculos desnecessários.
     """
+    # Verificar cache primeiro
+    cached = aggregation_cache.get("pis_cofins", company_id, competencia)
+    if cached:
+        return cached
+    
     logger.info(f"PIS/COFINS AGREGADO: Iniciando para {total_docs} documentos")
     
     regime_tributario = company.get('regime_tributario', 'lucro_presumido')
