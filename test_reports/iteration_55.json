@@ -1,0 +1,92 @@
+{
+  "summary": "SPED Fiscal export with excluir_creditos_despesa_st flag - BUG FIX VERIFIED",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sped_excluir_creditos.py",
+    "/app/test_reports/pytest/pytest_sped_excluir_creditos.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_sped_excluir_creditos.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "N/A (backend only test)"
+  },
+  "test_credentials": "alberto.lemes@businessconta.com.br / Business@2026",
+  "seed_data_creation": "None - used existing company COMERCIAL RS LTDA with 01/2026 competência (25217 items, 333 despesa/ST items)",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The bug fix for SPED export with excluir_creditos_despesa_st flag has been verified. When the flag is TRUE, all 333 despesa/ST CFOPs (1556, 2556, 1403, 2403, 1407, 2407, etc.) correctly have ICMS=0 in the generated SPED C170 records. Frontend files ExportSPED.js and ExportMenu.js correctly send excluir_creditos_despesa_st and aplicar_beneficio_fiscal parameters.",
+  "bug_fix_verification": {
+    "issue": "SPED Fiscal being generated with ICMS values for despesa and ST entries even with checkbox marked to exclude",
+    "root_cause": "Frontend was sending incorrect parameter names (zerarIcmsSt instead of excluir_creditos_despesa_st)",
+    "fix_applied": "Frontend parameter names corrected to match backend API: excluir_creditos_despesa_st and aplicar_beneficio_fiscal",
+    "verification_result": {
+      "status": "FIXED",
+      "test_data": {
+        "company": "COMERCIAL RS LTDA",
+        "competencia": "01/2026",
+        "total_items_c170": 25217,
+        "despesa_st_items": 333,
+        "despesa_st_with_icms_zero": 333,
+        "despesa_st_with_icms_error": 0
+      },
+      "cfops_verified": {
+        "despesa": ["1556", "2556", "1551", "2551", "1653", "2653", "1407", "2407", "1406", "2406", "1949", "2949"],
+        "st": ["1403", "2403"]
+      }
+    }
+  },
+  "tests_executed": [
+    {
+      "name": "test_login_successful",
+      "result": "PASSED",
+      "description": "Verified login with test credentials"
+    },
+    {
+      "name": "test_companies_endpoint",
+      "result": "PASSED",
+      "description": "Verified companies API returns data"
+    },
+    {
+      "name": "test_sped_export_endpoint_exists",
+      "result": "PASSED",
+      "description": "Verified POST /api/sped/exportar-e-validar/{company_id} accepts excluir_creditos_despesa_st parameter"
+    },
+    {
+      "name": "test_sped_export_with_flag_true",
+      "result": "PASSED",
+      "description": "MAIN TEST: Verified all 333 despesa/ST items have ICMS=0 when flag is TRUE"
+    },
+    {
+      "name": "test_sped_export_with_flag_false",
+      "result": "PASSED",
+      "description": "Verified ICMS values from XML are preserved when flag is FALSE"
+    },
+    {
+      "name": "test_sped_validar_endpoint",
+      "result": "PASSED",
+      "description": "Verified GET /api/sped/validar/{company_id} accepts the parameter"
+    },
+    {
+      "name": "test_frontend_export_sped_uses_correct_param_names",
+      "result": "PASSED",
+      "description": "Verified ExportSPED.js uses excluir_creditos_despesa_st (not zerarIcmsSt)"
+    },
+    {
+      "name": "test_frontend_export_menu_uses_correct_param_names",
+      "result": "PASSED",
+      "description": "Verified ExportMenu.js uses correct parameter names"
+    }
+  ]
+}
