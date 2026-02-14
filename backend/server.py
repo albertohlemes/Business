@@ -22390,19 +22390,24 @@ async def apurar_iss(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    # Buscar documentos de serviço (NFSe)
-    documentos = await db.xml_documents.find({
+    # Buscar documentos de serviço (NFSe) - COM OTIMIZAÇÃO
+    query_nfse = {
         "company_id": company_id,
         "competencia": competencia,
         "modelo": {"$in": ["NFSe", "nfse", "NFSE", None]}
-    }, {"_id": 0, "xml_content": 0}).to_list(100000)
+    }
+    total_nfse = await db.xml_documents.count_documents(query_nfse)
+    logger.info(f"ISS: Total NFSe = {total_nfse}")
+    
+    documentos = await db.xml_documents.find(query_nfse, {"_id": 0, "xml_content": 0}).to_list(10000)
     
     # Também buscar documentos de saída que possam conter serviços
-    docs_saida = await db.xml_documents.find({
+    query_saida = {
         "company_id": company_id,
         "competencia": competencia,
         "tipo_operacao": {"$in": ["saida", "saída"]}
-    }, {"_id": 0, "xml_content": 0}).to_list(100000)
+    }
+    docs_saida = await db.xml_documents.find(query_saida, {"_id": 0, "xml_content": 0}).to_list(10000)
     
     # Estruturas para acumular dados
     servicos_por_codigo = {}
@@ -22580,7 +22585,15 @@ async def apurar_ipi(
     }
     query.update(get_filtro_notas_ativas())
     
-    documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
+    # ============== OTIMIZAÇÃO PARA GRANDES VOLUMES ==============
+    total_docs = await db.xml_documents.count_documents(query)
+    logger.info(f"IPI: Total documentos = {total_docs}")
+    
+    if total_docs > 10000:
+        logger.info(f"IPI: Usando agregação otimizada para {total_docs} documentos")
+        return await _get_ipi_aggregated(company, company_id, competencia, query, total_docs)
+    
+    documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     # Estruturas para acumular dados
     entradas_por_cfop = {}
