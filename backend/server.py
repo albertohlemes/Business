@@ -33300,21 +33300,32 @@ async def get_apuracao_reforma_tributaria(
         aliquota_ibs=Decimal(str(config_doc.get('aliquota_ibs', 17.70))) if config_doc else Decimal('17.70')
     )
     
-    # Buscar documentos de entrada
-    docs_entrada = await db.xml_documents.find({
+    # ============== OTIMIZAÇÃO PARA GRANDES VOLUMES ==============
+    base_query = {
         "company_id": company_id,
         "competencia": competencia,
-        "tipo": "entrada",
         "desconsiderada_devolucao": {"$ne": True}
-    }).to_list(length=100000)
+    }
+    
+    total_docs = await db.xml_documents.count_documents(base_query)
+    logger.info(f"REFORMA TRIBUTÁRIA: Total documentos = {total_docs}")
+    
+    # Se tiver mais de 10000 docs, usar agregação simplificada
+    if total_docs > 10000:
+        logger.info(f"REFORMA TRIBUTÁRIA: Usando agregação otimizada para {total_docs} documentos")
+        return await _get_reforma_tributaria_aggregated(company, company_id, competencia, config, total_docs)
+    
+    # Buscar documentos de entrada - LIMITAR para evitar sobrecarga
+    docs_entrada = await db.xml_documents.find({
+        **base_query,
+        "tipo": "entrada"
+    }, {"_id": 0, "xml_content": 0}).to_list(length=15000)
     
     # Buscar documentos de saída
     docs_saida = await db.xml_documents.find({
-        "company_id": company_id,
-        "competencia": competencia,
-        "tipo": "saida",
-        "desconsiderada_devolucao": {"$ne": True}
-    }).to_list(length=100000)
+        **base_query,
+        "tipo": "saida"
+    }, {"_id": 0, "xml_content": 0}).to_list(length=15000)
     
     # Classificar entradas
     creditos = []
