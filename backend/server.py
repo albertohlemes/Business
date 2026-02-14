@@ -22722,7 +22722,13 @@ async def apurar_iss(
 async def _get_ipi_aggregated(company: dict, company_id: str, competencia: str, query: dict, total_docs: int):
     """
     Versão otimizada da apuração de IPI usando agregação do MongoDB.
+    Usa cache inteligente para evitar recálculos desnecessários.
     """
+    # Verificar cache primeiro
+    cached = aggregation_cache.get("ipi", company_id, competencia)
+    if cached:
+        return cached
+    
     logger.info(f"IPI AGREGADO: Iniciando para {total_docs} documentos")
     
     pipeline = [
