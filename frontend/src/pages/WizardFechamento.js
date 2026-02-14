@@ -544,11 +544,11 @@ const WizardFechamento = ({ user, onLogout }) => {
           </div>
         );
       
-      case 3: // Alertas de CFOP - Mesmo visual da Classificação Inteligente
+      case 3: // Alertas de CFOP - Com seleção visual para cada CFOP
         return (
           <div className="space-y-4">
             <p className="text-[#A1A1AA]">
-              Revise os CFOPs de operações distintas pendentes de classificação. Apenas notas de entrada são exibidas.
+              Revise os CFOPs de operações distintas. <span className="text-amber-400 font-medium">Selecione uma ação para cada CFOP</span> e clique em "Confirmar e Continuar" para aplicar todas as alterações.
             </p>
             
             <div className="grid grid-cols-2 gap-3">
@@ -564,53 +564,87 @@ const WizardFechamento = ({ user, onLogout }) => {
             
             {(data.alertas_cfop?.length > 0 || data.cfops_distintos?.length > 0) ? (
               <div className="space-y-4 max-h-[450px] overflow-y-auto">
-                {(data.alertas_cfop || data.cfops_distintos || []).map((cfopItem, idx) => (
-                  <div key={idx} className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl overflow-hidden">
-                    {/* Header do grupo CFOP */}
-                    <div className="p-4 bg-gradient-to-r from-[#1A1A1A] to-[#141414]">
-                      <div className="flex items-center justify-between flex-wrap gap-3">
-                        <div className="flex items-center gap-4">
-                          <div className="px-4 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg">
-                            <span className="text-2xl font-bold font-mono text-amber-400">{cfopItem.cfop}</span>
+                {(data.alertas_cfop || data.cfops_distintos || []).map((cfopItem, idx) => {
+                  const selectedAction = cfopSelections[cfopItem.cfop] || { acao: null };
+                  const isManterSelected = selectedAction.acao === 'manter';
+                  const isConverterSelected = selectedAction.acao === 'converter_compra';
+                  const isManualSelected = selectedAction.acao === 'converter_manual';
+                  const hasSelection = selectedAction.acao !== null;
+                  
+                  return (
+                    <div key={idx} className={`bg-[#0C0C0C] border rounded-xl overflow-hidden transition-all ${hasSelection ? 'border-emerald-500/50' : 'border-[#2A2A2A]'}`}>
+                      {/* Header do grupo CFOP */}
+                      <div className="p-4 bg-gradient-to-r from-[#1A1A1A] to-[#141414]">
+                        <div className="flex items-center justify-between flex-wrap gap-3">
+                          <div className="flex items-center gap-4">
+                            <div className="px-4 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg">
+                              <span className="text-2xl font-bold font-mono text-amber-400">{cfopItem.cfop}</span>
+                            </div>
+                            <div>
+                              <p className="text-white font-semibold">{cfopItem.descricao}</p>
+                              <p className="text-sm text-[#A1A1AA]">
+                                {cfopItem.cfop_original && cfopItem.cfop_original !== cfopItem.cfop && (
+                                  <span className="text-purple-400 mr-2">Original: {cfopItem.cfop_original} →</span>
+                                )}
+                                <span className="text-amber-400 font-medium">{cfopItem.total_produtos}</span> produto(s) • 
+                                <span className="text-[#C8A951] ml-1">R$ {(cfopItem.total_valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-white font-semibold">{cfopItem.descricao}</p>
-                            <p className="text-sm text-[#A1A1AA]">
-                              {cfopItem.cfop_original && cfopItem.cfop_original !== cfopItem.cfop && (
-                                <span className="text-purple-400 mr-2">Original: {cfopItem.cfop_original} →</span>
-                              )}
-                              <span className="text-amber-400 font-medium">{cfopItem.total_produtos}</span> produto(s) • 
-                              <span className="text-[#C8A951] ml-1">R$ {(cfopItem.total_valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                            </p>
-                          </div>
+                          
+                          {/* Indicador de seleção */}
+                          {hasSelection && (
+                            <div className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-lg flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 text-emerald-400" />
+                              <span className="text-emerald-400 text-sm font-medium">
+                                {isManterSelected && `Manter ${cfopItem.cfop}`}
+                                {isConverterSelected && `Converter → ${selectedAction.cfop_destino}`}
+                                {isManualSelected && `Converter → ${selectedAction.cfop_destino}`}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         
-                        {/* Botões de ação em lote */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {/* Botão Manter */}
+                        {/* Botões de seleção - Estilo Radio */}
+                        <div className="flex items-center gap-3 mt-4 flex-wrap">
+                          {/* Opção Manter */}
                           <button
                             onClick={() => {
-                              const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
-                              acoes[cfopItem.cfop] = { acao: 'manter', cfop_destino: cfopItem.cfop };
-                              localStorage.setItem('wizard_acoes_cfops', JSON.stringify(acoes));
-                              // Visual feedback
-                              document.getElementById(`btn-group-${cfopItem.cfop}`)?.classList.add('ring-2', 'ring-blue-500');
+                              setCfopSelections(prev => ({
+                                ...prev,
+                                [cfopItem.cfop]: { acao: 'manter', cfop_destino: cfopItem.cfop }
+                              }));
                             }}
-                            className="px-3 py-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-500/30 text-sm font-medium flex items-center gap-2 transition-colors"
+                            className={`px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all border-2 ${
+                              isManterSelected 
+                                ? 'bg-blue-500/30 text-blue-300 border-blue-500 ring-2 ring-blue-500/50' 
+                                : 'bg-[#1A1A1A] text-[#A1A1AA] border-[#333] hover:border-blue-500/50 hover:text-blue-400'
+                            }`}
                           >
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isManterSelected ? 'border-blue-400' : 'border-[#666]'}`}>
+                              {isManterSelected && <div className="w-2 h-2 rounded-full bg-blue-400" />}
+                            </div>
                             <CheckCircle className="w-4 h-4" />
                             Manter {cfopItem.cfop}
                           </button>
                           
-                          {/* Botão Converter para Compra */}
+                          {/* Opção Converter para Compra */}
                           <button
                             onClick={() => {
-                              const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
-                              acoes[cfopItem.cfop] = { acao: 'converter_compra', cfop_destino: cfopItem.sugestao_compra?.cfop || '1102' };
-                              localStorage.setItem('wizard_acoes_cfops', JSON.stringify(acoes));
+                              setCfopSelections(prev => ({
+                                ...prev,
+                                [cfopItem.cfop]: { acao: 'converter_compra', cfop_destino: cfopItem.sugestao_compra?.cfop || '1102' }
+                              }));
                             }}
-                            className="px-3 py-2 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg hover:bg-green-500/30 text-sm font-medium flex items-center gap-2 transition-colors"
+                            className={`px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all border-2 ${
+                              isConverterSelected 
+                                ? 'bg-green-500/30 text-green-300 border-green-500 ring-2 ring-green-500/50' 
+                                : 'bg-[#1A1A1A] text-[#A1A1AA] border-[#333] hover:border-green-500/50 hover:text-green-400'
+                            }`}
                           >
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isConverterSelected ? 'border-green-400' : 'border-[#666]'}`}>
+                              {isConverterSelected && <div className="w-2 h-2 rounded-full bg-green-400" />}
+                            </div>
                             <ArrowRight className="w-4 h-4" />
                             Converter → {cfopItem.sugestao_compra?.cfop || '1102'}
                             {cfopItem.sugestao_compra?.categoria_nome && (
@@ -620,111 +654,139 @@ const WizardFechamento = ({ user, onLogout }) => {
                             )}
                           </button>
                           
-                          {/* Botão Outro CFOP */}
-                          <button
-                            onClick={() => {
-                              const inputEl = document.getElementById(`input-cfop-wizard-${cfopItem.cfop}`);
-                              if (inputEl) inputEl.classList.toggle('hidden');
-                            }}
-                            className="px-3 py-2 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded-lg hover:bg-[#333] hover:text-white text-sm font-medium flex items-center gap-2 transition-colors"
-                          >
-                            Outro CFOP
-                          </button>
+                          {/* Opção Outro CFOP */}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                const currentManual = manualCfopInputs[cfopItem.cfop] || '';
+                                if (currentManual.length === 4) {
+                                  setCfopSelections(prev => ({
+                                    ...prev,
+                                    [cfopItem.cfop]: { acao: 'converter_manual', cfop_destino: currentManual }
+                                  }));
+                                } else {
+                                  // Mostrar input
+                                  setCfopSelections(prev => ({
+                                    ...prev,
+                                    [cfopItem.cfop]: { acao: 'converter_manual', cfop_destino: '' }
+                                  }));
+                                }
+                              }}
+                              className={`px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all border-2 ${
+                                isManualSelected 
+                                  ? 'bg-purple-500/30 text-purple-300 border-purple-500 ring-2 ring-purple-500/50' 
+                                  : 'bg-[#1A1A1A] text-[#A1A1AA] border-[#333] hover:border-purple-500/50 hover:text-purple-400'
+                              }`}
+                            >
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isManualSelected ? 'border-purple-400' : 'border-[#666]'}`}>
+                                {isManualSelected && <div className="w-2 h-2 rounded-full bg-purple-400" />}
+                              </div>
+                              Outro CFOP
+                            </button>
+                            
+                            {/* Input para CFOP manual - sempre visível quando selecionado */}
+                            {isManualSelected && (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="CFOP"
+                                  maxLength={4}
+                                  value={manualCfopInputs[cfopItem.cfop] || ''}
+                                  onChange={(e) => {
+                                    const cfopDigitado = e.target.value.replace(/\D/g, '');
+                                    setManualCfopInputs(prev => ({ ...prev, [cfopItem.cfop]: cfopDigitado }));
+                                    if (cfopDigitado.length === 4) {
+                                      setCfopSelections(prev => ({
+                                        ...prev,
+                                        [cfopItem.cfop]: { acao: 'converter_manual', cfop_destino: cfopDigitado }
+                                      }));
+                                    }
+                                  }}
+                                  className="w-20 bg-[#1a1a1a] border border-purple-500/50 rounded px-3 py-2 text-sm text-white text-center font-mono"
+                                />
+                                {manualCfopInputs[cfopItem.cfop]?.length === 4 && (
+                                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                                )}
+                              </div>
+                            )}
+                          </div>
                           
                           {/* Botão Expandir/Recolher */}
                           <button
-                            onClick={(e) => {
-                              const target = document.getElementById(`content-${cfopItem.cfop}`);
-                              if (target) target.classList.toggle('hidden');
-                              e.currentTarget.querySelector('svg')?.classList.toggle('rotate-180');
+                            onClick={() => {
+                              setExpandedItems(prev => ({
+                                ...prev,
+                                [`cfop-${cfopItem.cfop}`]: !prev[`cfop-${cfopItem.cfop}`]
+                              }));
                             }}
-                            className="p-2 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded-lg hover:bg-[#333] hover:text-white transition-colors"
+                            className="p-2 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded-lg hover:bg-[#333] hover:text-white transition-colors ml-auto"
                           >
-                            <ChevronDown className="w-5 h-5 transition-transform" />
+                            <ChevronDown className={`w-5 h-5 transition-transform ${expandedItems[`cfop-${cfopItem.cfop}`] ? 'rotate-180' : ''}`} />
                           </button>
                         </div>
-                      </div>
-                      
-                      {/* Input para CFOP manual */}
-                      <div id={`input-cfop-wizard-${cfopItem.cfop}`} className="mt-3 hidden">
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="Digite o CFOP (ex: 1949)"
-                            maxLength={4}
-                            className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm text-white"
-                            onChange={(e) => {
-                              const cfopDigitado = e.target.value.replace(/\D/g, '');
-                              if (cfopDigitado.length === 4) {
-                                const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
-                                acoes[cfopItem.cfop] = { acao: 'converter_manual', cfop_destino: cfopDigitado };
-                                localStorage.setItem('wizard_acoes_cfops', JSON.stringify(acoes));
-                              }
-                            }}
-                          />
-                        </div>
-                        <p className="text-xs text-[#666] mt-1">Digite 4 dígitos do CFOP de destino</p>
-                      </div>
-                      
-                      {/* Info de categoria que será atribuída */}
-                      {cfopItem.sugestao_manter && (
-                        <div className="mt-2 flex items-center gap-2 text-xs text-[#666]">
-                          <span>
-                            Ao resolver: 
-                            <span className="text-[#C8A951] ml-1">
-                              {cfopItem.sugestao_manter.categoria_nome || 'Pendente'} (manter)
+                        
+                        {/* Info de categoria que será atribuída */}
+                        {cfopItem.sugestao_manter && (
+                          <div className="mt-3 flex items-center gap-2 text-xs text-[#666]">
+                            <span>
+                              Ao resolver: 
+                              <span className="text-[#C8A951] ml-1">
+                                {cfopItem.sugestao_manter.categoria_nome || 'Pendente'} (manter)
+                              </span>
+                              {cfopItem.sugestao_compra && (
+                                <>
+                                  {' ou '}
+                                  <span className="text-green-400">
+                                    {cfopItem.sugestao_compra.categoria_nome || 'Compra para Revenda'} (converter)
+                                  </span>
+                                </>
+                              )}
                             </span>
-                            {cfopItem.sugestao_compra && (
-                              <>
-                                {' ou '}
-                                <span className="text-green-400">
-                                  {cfopItem.sugestao_compra.categoria_nome || 'Compra para Revenda'} (converter)
-                                </span>
-                              </>
-                            )}
-                          </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Conteúdo expandível - Notas e Produtos */}
+                      {expandedItems[`cfop-${cfopItem.cfop}`] && (
+                        <div className="border-t border-[#333] bg-[#0a0a0a] max-h-64 overflow-y-auto">
+                          {cfopItem.notas?.map((nota, nIdx) => (
+                            <div key={nIdx} className="p-3 border-b border-[#222] last:border-0">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-white font-medium">NF {nota.numero_nfe}</span>
+                                  <span className="text-xs text-[#666]">{nota.data_emissao?.slice(0, 10)}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-xs text-[#888]">{nota.emitente?.slice(0, 30)}</span>
+                                </div>
+                              </div>
+                              
+                              {/* Produtos da nota */}
+                              <div className="space-y-1 mt-2">
+                                {nota.produtos?.map((prod, pIdx) => (
+                                  <div key={pIdx} className="flex items-center justify-between text-xs bg-[#111] rounded p-2">
+                                    <div className="flex-1">
+                                      <p className="text-white truncate">{prod.descricao}</p>
+                                      <p className="text-[#666]">
+                                        NCM: {prod.ncm || 'N/A'} 
+                                        {prod.cfop_original_emissor && (
+                                          <span className="ml-2 text-purple-400">CFOP Original: {prod.cfop_original_emissor}</span>
+                                        )}
+                                      </p>
+                                    </div>
+                                    <span className="text-white ml-2">
+                                      R$ {(prod.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
-                    
-                    {/* Conteúdo expandível - Notas e Produtos */}
-                    <div id={`content-${cfopItem.cfop}`} className="hidden border-t border-[#333] bg-[#0a0a0a] max-h-64 overflow-y-auto">
-                      {cfopItem.notas?.map((nota, nIdx) => (
-                        <div key={nIdx} className="p-3 border-b border-[#222] last:border-0">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-white font-medium">NF {nota.numero_nfe}</span>
-                              <span className="text-xs text-[#666]">{nota.data_emissao?.slice(0, 10)}</span>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-xs text-[#888]">{nota.emitente?.slice(0, 30)}</span>
-                            </div>
-                          </div>
-                          
-                          {/* Produtos da nota */}
-                          <div className="space-y-1 mt-2">
-                            {nota.produtos?.map((prod, pIdx) => (
-                              <div key={pIdx} className="flex items-center justify-between text-xs bg-[#111] rounded p-2">
-                                <div className="flex-1">
-                                  <p className="text-white truncate">{prod.descricao}</p>
-                                  <p className="text-[#666]">
-                                    NCM: {prod.ncm || 'N/A'} 
-                                    {prod.cfop_original_emissor && (
-                                      <span className="ml-2 text-purple-400">CFOP Original: {prod.cfop_original_emissor}</span>
-                                    )}
-                                  </p>
-                                </div>
-                                <span className="text-white ml-2">
-                                  R$ {(prod.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
@@ -732,11 +794,49 @@ const WizardFechamento = ({ user, onLogout }) => {
               </div>
             )}
             
+            {/* Resumo das seleções */}
+            {Object.keys(cfopSelections).length > 0 && (
+              <div className="bg-[#1A1A1A] border border-[#333] rounded-lg p-4">
+                <h4 className="text-white font-medium mb-2 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  Resumo das Alterações ({Object.keys(cfopSelections).length} CFOPs selecionados)
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(cfopSelections).map(([cfop, selection]) => (
+                    <span key={cfop} className={`px-3 py-1 rounded-lg text-sm ${
+                      selection.acao === 'manter' ? 'bg-blue-500/20 text-blue-400' :
+                      selection.acao === 'converter_compra' ? 'bg-green-500/20 text-green-400' :
+                      'bg-purple-500/20 text-purple-400'
+                    }`}>
+                      {cfop} → {selection.cfop_destino}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <button
               onClick={() => {
-                const acoes = JSON.parse(localStorage.getItem('wizard_acoes_cfops') || '{}');
-                completeStep({ acoes_cfops: acoes });
-                localStorage.removeItem('wizard_acoes_cfops');
+                // Preparar ações para enviar ao backend
+                const acoes_cfops = {};
+                Object.entries(cfopSelections).forEach(([cfop, selection]) => {
+                  if (selection.acao && selection.cfop_destino) {
+                    acoes_cfops[cfop] = selection;
+                  }
+                });
+                
+                // Se não selecionou nenhuma ação, aplicar "manter" como padrão para todos
+                const allCfops = data.alertas_cfop || data.cfops_distintos || [];
+                allCfops.forEach(cfopItem => {
+                  if (!acoes_cfops[cfopItem.cfop]) {
+                    acoes_cfops[cfopItem.cfop] = { acao: 'manter', cfop_destino: cfopItem.cfop };
+                  }
+                });
+                
+                completeStep({ acoes_cfops });
+                // Limpar seleções após confirmar
+                setCfopSelections({});
+                setManualCfopInputs({});
               }}
               disabled={processing}
               className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-[#2A2A2A] text-white py-3 rounded-lg flex items-center justify-center gap-2"
