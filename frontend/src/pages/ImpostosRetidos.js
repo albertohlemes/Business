@@ -594,17 +594,17 @@ const ImpostosRetidos = ({ user, onLogout }) => {
                             onToggle={() => toggleGroup('contrib')}
                           >
                             <div className="grid grid-cols-3 gap-4">
-                              <div className="bg-purple-500/10 rounded-lg p-3 text-center">
+                              <div className="bg-slate-500/10 rounded-lg p-3 text-center">
                                 <p className="text-xs text-[#A1A1AA]">CSLL</p>
-                                <p className="text-lg font-bold text-purple-400">{formatCurrency(totais.contribuicoes.csll)}</p>
+                                <p className="text-lg font-bold text-slate-400">{formatCurrency(totais.contribuicoes.csll)}</p>
                               </div>
-                              <div className="bg-purple-500/10 rounded-lg p-3 text-center">
+                              <div className="bg-slate-500/10 rounded-lg p-3 text-center">
                                 <p className="text-xs text-[#A1A1AA]">PIS</p>
-                                <p className="text-lg font-bold text-purple-400">{formatCurrency(totais.contribuicoes.pis)}</p>
+                                <p className="text-lg font-bold text-slate-400">{formatCurrency(totais.contribuicoes.pis)}</p>
                               </div>
-                              <div className="bg-purple-500/10 rounded-lg p-3 text-center">
+                              <div className="bg-slate-500/10 rounded-lg p-3 text-center">
                                 <p className="text-xs text-[#A1A1AA]">COFINS</p>
-                                <p className="text-lg font-bold text-purple-400">{formatCurrency(totais.contribuicoes.cofins)}</p>
+                                <p className="text-lg font-bold text-slate-400">{formatCurrency(totais.contribuicoes.cofins)}</p>
                               </div>
                             </div>
                           </GrupoImpostoCard>
@@ -717,17 +717,17 @@ const ImpostosRetidos = ({ user, onLogout }) => {
                             onToggle={() => toggleGroup('contribP')}
                           >
                             <div className="grid grid-cols-3 gap-4">
-                              <div className="bg-purple-500/10 rounded-lg p-3 text-center">
+                              <div className="bg-slate-500/10 rounded-lg p-3 text-center">
                                 <p className="text-xs text-[#A1A1AA]">CSLL</p>
-                                <p className="text-lg font-bold text-purple-400">{formatCurrency(totais.contribuicoes.csll)}</p>
+                                <p className="text-lg font-bold text-slate-400">{formatCurrency(totais.contribuicoes.csll)}</p>
                               </div>
-                              <div className="bg-purple-500/10 rounded-lg p-3 text-center">
+                              <div className="bg-slate-500/10 rounded-lg p-3 text-center">
                                 <p className="text-xs text-[#A1A1AA]">PIS</p>
-                                <p className="text-lg font-bold text-purple-400">{formatCurrency(totais.contribuicoes.pis)}</p>
+                                <p className="text-lg font-bold text-slate-400">{formatCurrency(totais.contribuicoes.pis)}</p>
                               </div>
-                              <div className="bg-purple-500/10 rounded-lg p-3 text-center">
+                              <div className="bg-slate-500/10 rounded-lg p-3 text-center">
                                 <p className="text-xs text-[#A1A1AA]">COFINS</p>
-                                <p className="text-lg font-bold text-purple-400">{formatCurrency(totais.contribuicoes.cofins)}</p>
+                                <p className="text-lg font-bold text-slate-400">{formatCurrency(totais.contribuicoes.cofins)}</p>
                               </div>
                             </div>
                           </GrupoImpostoCard>
@@ -794,9 +794,9 @@ const ImpostosRetidos = ({ user, onLogout }) => {
                               <p className="text-[10px] text-green-300 uppercase tracking-wider">DARF 1708 (IR)</p>
                               <p className="text-xl font-bold text-green-400">{formatCurrency(guias.resumo?.total_ir_1708)}</p>
                             </div>
-                            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 text-center">
-                              <p className="text-[10px] text-purple-300 uppercase tracking-wider">DARF 5952 (PCC)</p>
-                              <p className="text-xl font-bold text-purple-400">{formatCurrency(guias.resumo?.total_pcc_5952)}</p>
+                            <div className="bg-slate-500/10 border border-slate-500/30 rounded-lg p-3 text-center">
+                              <p className="text-[10px] text-slate-300 uppercase tracking-wider">DARF 5952 (PCC)</p>
+                              <p className="text-xl font-bold text-slate-400">{formatCurrency(guias.resumo?.total_pcc_5952)}</p>
                             </div>
                             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-center">
                               <p className="text-[10px] text-blue-300 uppercase tracking-wider">ISS ({guias.resumo?.qtd_municipios_iss || 0} mun.)</p>
@@ -819,7 +819,7 @@ const ImpostosRetidos = ({ user, onLogout }) => {
                             {guias.guias.map((guia, idx) => (
                               <div key={idx} className={`rounded-xl border overflow-hidden ${
                                 guia.codigo === '1708' ? 'bg-green-500/5 border-green-500/30' :
-                                guia.codigo === '5952' ? 'bg-purple-500/5 border-purple-500/30' :
+                                guia.codigo === '5952' ? 'bg-slate-500/5 border-slate-500/30' :
                                 guia.codigo === 'GPS' ? 'bg-red-500/5 border-red-500/30' :
                                 'bg-blue-500/5 border-blue-500/30'
                               }`}>
@@ -828,19 +828,19 @@ const ImpostosRetidos = ({ user, onLogout }) => {
                                   <div className="flex items-center gap-4">
                                     <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
                                       guia.codigo === '1708' ? 'bg-green-500/20' :
-                                      guia.codigo === '5952' ? 'bg-purple-500/20' :
+                                      guia.codigo === '5952' ? 'bg-slate-500/20' :
                                       guia.codigo === 'GPS' ? 'bg-red-500/20' :
                                       'bg-blue-500/20'
                                     }`}>
                                       {guia.codigo_municipio ? <MapPin className="w-7 h-7 text-blue-400" /> :
                                        guia.codigo === 'GPS' ? <Users className="w-7 h-7 text-red-400" /> :
-                                       <Receipt className={`w-7 h-7 ${guia.codigo === '1708' ? 'text-green-400' : 'text-purple-400'}`} />}
+                                       <Receipt className={`w-7 h-7 ${guia.codigo === '1708' ? 'text-green-400' : 'text-slate-400'}`} />}
                                     </div>
                                     <div>
                                       <div className="flex items-center gap-2">
                                         <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                                           guia.codigo === '1708' ? 'bg-green-500/30 text-green-300' :
-                                          guia.codigo === '5952' ? 'bg-purple-500/30 text-purple-300' :
+                                          guia.codigo === '5952' ? 'bg-slate-500/30 text-slate-300' :
                                           guia.codigo === 'GPS' ? 'bg-red-500/30 text-red-300' :
                                           'bg-blue-500/30 text-blue-300'
                                         }`}>
@@ -862,7 +862,7 @@ const ImpostosRetidos = ({ user, onLogout }) => {
                                   <div className="text-right">
                                     <p className={`text-3xl font-bold ${
                                       guia.codigo === '1708' ? 'text-green-400' :
-                                      guia.codigo === '5952' ? 'text-purple-400' :
+                                      guia.codigo === '5952' ? 'text-slate-400' :
                                       guia.codigo === 'GPS' ? 'text-red-400' :
                                       'text-blue-400'
                                     }`}>
@@ -902,7 +902,7 @@ const ImpostosRetidos = ({ user, onLogout }) => {
                                             <td className="py-2 px-3 text-right text-[#A1A1AA]">{formatCurrency(nota.valor_servicos)}</td>
                                             <td className={`py-2 px-3 text-right font-bold ${
                                               guia.codigo === '1708' ? 'text-green-400' :
-                                              guia.codigo === '5952' ? 'text-purple-400' :
+                                              guia.codigo === '5952' ? 'text-slate-400' :
                                               guia.codigo === 'GPS' ? 'text-red-400' :
                                               'text-blue-400'
                                             }`}>
