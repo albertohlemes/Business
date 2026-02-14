@@ -480,3 +480,19 @@ input:focus, textarea:focus, select:focus {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Pulse slow para destaque suave */
+@keyframes pulseSlow {
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.85; 
+    transform: scale(1.01);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 3s ease-in-out infinite;
+}
