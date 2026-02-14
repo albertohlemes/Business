@@ -150,6 +150,86 @@ const Dashboard = ({ user, onLogout }) => {
           </div>
         ) : stats ? (
           <>
+            {/* === ALERTAS DE VARIAÇÃO === */}
+            {stats.alertas_variacao && stats.alertas_variacao.length > 0 && 
+              !stats.alertas_variacao.every(a => a.tipo === 'SUCCESS' || a.tipo === 'INFO') && (
+              <div className="bg-[#141414] border border-amber-500/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-400" />
+                  <h3 className="text-white font-semibold">Alertas de Variação</h3>
+                  <span className="text-xs text-[#A1A1AA] ml-auto">
+                    Comparação com média dos últimos 12 meses
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {stats.alertas_variacao
+                    .filter(a => a.tipo !== 'SUCCESS' && a.tipo !== 'INFO')
+                    .map((alerta, idx) => (
+                      <div 
+                        key={idx}
+                        className={`p-3 rounded-lg border ${
+                          alerta.cor === 'red' ? 'bg-red-500/10 border-red-500/30' :
+                          alerta.cor === 'amber' ? 'bg-amber-500/10 border-amber-500/30' :
+                          alerta.cor === 'emerald' ? 'bg-emerald-500/10 border-emerald-500/30' :
+                          'bg-[#1A1A1A] border-[#2A2A2A]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          {alerta.direcao === 'alta' ? (
+                            <TrendingUp className={`w-4 h-4 ${
+                              alerta.cor === 'red' ? 'text-red-400' :
+                              alerta.cor === 'emerald' ? 'text-emerald-400' :
+                              'text-amber-400'
+                            }`} />
+                          ) : (
+                            <TrendingDown className={`w-4 h-4 ${
+                              alerta.cor === 'red' ? 'text-red-400' :
+                              alerta.cor === 'emerald' ? 'text-emerald-400' :
+                              'text-amber-400'
+                            }`} />
+                          )}
+                          <span className={`text-sm font-medium ${
+                            alerta.cor === 'red' ? 'text-red-400' :
+                            alerta.cor === 'emerald' ? 'text-emerald-400' :
+                            'text-amber-400'
+                          }`}>
+                            {alerta.titulo}
+                          </span>
+                        </div>
+                        <div className="text-lg font-bold text-white">
+                          {alerta.variacao_percentual > 0 ? '+' : ''}{alerta.variacao_percentual}%
+                        </div>
+                        <div className="text-xs text-[#A1A1AA] mt-1">
+                          Atual: {formatCurrency(alerta.valor_atual)}
+                        </div>
+                        <div className="text-xs text-[#666]">
+                          Média: {formatCurrency(alerta.valor_media)}
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+                <p className="text-xs text-[#666] mt-3 flex items-center gap-1">
+                  <Info className="w-3 h-3" />
+                  Limite configurado: {selectedCompany?.limite_alerta_variacao || 20}% de variação
+                </p>
+              </div>
+            )}
+
+            {/* Mensagem quando tudo está normal */}
+            {stats.alertas_variacao && 
+              stats.alertas_variacao.some(a => a.tipo === 'SUCCESS') && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <span className="text-emerald-400 font-medium">Valores dentro da média</span>
+                  <span className="text-[#A1A1AA] text-sm ml-2">
+                    Nenhuma variação significativa detectada em relação aos últimos 12 meses
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Quantidade de Documentos - Filtrado por Atividade */}
             <div>
               <h2 className="text-lg font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>Documentos por Tipo</h2>
