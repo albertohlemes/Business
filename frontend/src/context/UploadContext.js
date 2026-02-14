@@ -293,14 +293,31 @@ export const UploadProvider = ({ children }) => {
         }
       };
       
-      // FALLBACK: Iniciar polling após 2 segundos como backup do SSE
+      // FALLBACK: Iniciar polling após 3 segundos como backup do SSE
       // Isso garante que mesmo se o SSE falhar silenciosamente, teremos progresso
-      const sseTimeoutId = setTimeout(() => {
-        console.log('SSE timeout - ativando polling de fallback como backup');
-        if (!pollingIntervalRef.current && isUploading) {
+      setTimeout(() => {
+        // Verificar se já não completou e se polling ainda não está ativo
+        if (!pollingIntervalRef.current && isUploading && !uploadResults) {
+          console.log('SSE timeout - ativando polling de fallback como backup');
           startPollingFallback(upload_id, token);
         }
-      }, 2000);
+      }, 3000);
+      
+      // Timeout de segurança: Se o SSE não receber eventos por 15s, forçar polling
+      let sseWatchdog = setInterval(() => {
+        if (Date.now() - lastEventTime > 15000 && isUploading && !uploadResults) {
+          console.log('SSE sem eventos por 15s - forçando polling');
+          eventSource.close();
+          eventSourceRef.current = null;
+          clearInterval(sseWatchdog);
+          if (!pollingIntervalRef.current) {
+            startPollingFallback(upload_id, token);
+          }
+        } else if (!isUploading || uploadResults) {
+          // Limpar watchdog se concluiu
+          clearInterval(sseWatchdog);
+        }
+      }, 5000);
 
       // 3. Enviar arquivos em lotes (apenas se temos arquivos - não no caso de ZIP já processado)
       if (files && files.length > 0) {
