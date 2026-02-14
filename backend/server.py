@@ -11041,7 +11041,18 @@ async def apuracao_pis_cofins(
         "competencia": competencia
     }
     query.update(get_filtro_notas_ativas())
-    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(None)
+    
+    # ============== OTIMIZAÇÃO PARA GRANDES VOLUMES ==============
+    # Contar documentos primeiro para decidir estratégia
+    total_docs = await db.xml_documents.count_documents(query)
+    logger.info(f"APURACAO-PIS-COFINS: Total documentos = {total_docs}")
+    
+    # Se tiver mais de 5000 docs, usar agregação simplificada
+    if total_docs > 5000:
+        logger.info(f"APURACAO-PIS-COFINS: Usando agregação otimizada para {total_docs} documentos")
+        return await _get_apuracao_pis_cofins_aggregated(company, company_id, competencia, query, total_docs, regime)
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
     
     # CSTs de PIS/COFINS
     # Saída: 01 (tributado), 06 (alíquota zero)
