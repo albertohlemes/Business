@@ -23666,7 +23666,7 @@ async def _get_pis_cofins_aggregated(company: dict, company_id: str, competencia
         "alertas": [{"tipo": "INFO", "mensagem": f"Apuração simplificada: {total_docs} documentos processados via agregação"}],
         "detalhamento": {"entradas": [], "saidas": []},
         "por_cfop_cst": [],
-        "top_10": {"produtos_credito": [], "produtos_debito": [], "ncms_credito": [], "ncms_debito": []},
+        "top_10": {"produtos_credito": [], "produtos_debito": [], "ncms_credito": top_ncms_credito, "ncms_debito": top_ncms_debito},
         "resumo_divergencias": {"total_divergencias": 0, "recolhido_a_maior": 0, "recolhido_a_menor": 0, "saldo_reclassificacao": 0}
     }
     
