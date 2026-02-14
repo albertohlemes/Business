@@ -21694,8 +21694,8 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
         "top_10": {
             "produtos_credito": [],
             "produtos_debito": [],
-            "ncms_credito": [],
-            "ncms_debito": []
+            "ncms_credito": top_ncms_credito,
+            "ncms_debito": top_ncms_debito
         },
         "apuracao": {
             "credito_icms": round(credito_icms, 2),
