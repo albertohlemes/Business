@@ -7231,6 +7231,9 @@ async def upload_xml_with_progress(
     CFOPS_DEVOLUCAO_ENTRADA = CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL
     
     CFOPS_OPERACOES_DISTINTAS_UPLOAD = {
+        '5106': 'Venda de mercadoria que não transita pelo estabelecimento',
+        '5906': 'Retorno de mercadoria depositada em depósito fechado/armazém',
+        '5907': 'Retorno simbólico de mercadoria depositada',
         '5910': 'Remessa em bonificação', '5911': 'Remessa de amostra grátis',
         '5912': 'Remessa de mercadoria para demonstração', '5913': 'Retorno de mercadoria para demonstração',
         '5914': 'Remessa de mercadoria para exposição/feira', '5915': 'Remessa de mercadoria para consignação',
@@ -7244,6 +7247,9 @@ async def upload_xml_with_progress(
         '5202': 'Devolução de compra - comercialização', '5208': 'Devolução de mercadoria em transferência',
         '5209': 'Devolução de mercadoria para uso/consumo', '5210': 'Devolução de compra para industrialização',
         '5122': 'Venda com entrega futura', '5123': 'Venda de mercadoria em consignação mercantil',
+        '6106': 'Venda de mercadoria que não transita pelo estabelecimento (interestadual)',
+        '6906': 'Retorno de mercadoria depositada em depósito (interestadual)',
+        '6907': 'Retorno simbólico de mercadoria depositada (interestadual)',
         '6910': 'Remessa em bonificação (interestadual)', '6911': 'Remessa de amostra grátis (interestadual)',
         '6912': 'Remessa para demonstração (interestadual)', '6949': 'Outra saída não especificada (interestadual)',
         '6201': 'Devolução de compra - indústria (interestadual)', '6202': 'Devolução de compra - comercialização (interestadual)',
