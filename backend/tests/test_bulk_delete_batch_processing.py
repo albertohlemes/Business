@@ -82,7 +82,9 @@ class TestPreviewDeleteDocuments:
         
         payload = {
             "company_id": company_id,
-            "competencia": "01/2026"
+            "competencia": "01/2026",
+            "tipo_operacao": "saida",
+            "tipo_documento": "65"  # NFCe - the original bug was with ~14k NFCe documents
         }
         
         response = requests.post(
@@ -111,7 +113,8 @@ class TestPreviewDeleteDocuments:
             payload = {
                 "company_id": company_id,
                 "competencia": "01/2026",
-                "tipo_operacao": tipo
+                "tipo_operacao": tipo,
+                "tipo_documento": "55"  # NFe
             }
             
             response = requests.post(
@@ -131,6 +134,7 @@ class TestPreviewDeleteDocuments:
             payload = {
                 "company_id": company_id,
                 "competencia": "01/2026",
+                "tipo_operacao": "saida",
                 "tipo_documento": tipo_doc
             }
             
@@ -147,7 +151,9 @@ class TestPreviewDeleteDocuments:
         """Test preview-delete with non-existent company"""
         payload = {
             "company_id": "non-existent-company-id",
-            "competencia": "01/2026"
+            "competencia": "01/2026",
+            "tipo_operacao": "saida",
+            "tipo_documento": "65"
         }
         
         response = requests.post(
@@ -164,7 +170,9 @@ class TestPreviewDeleteDocuments:
         
         payload = {
             "company_id": company_id,
-            "competencia": "01/2026"
+            "competencia": "01/2026",
+            "tipo_operacao": "saida",
+            "tipo_documento": "65"  # NFCe - test case for the original bug scenario
         }
         
         response = requests.post(
@@ -195,7 +203,9 @@ class TestDeleteDocumentsBulk:
         # Use a future competencia that likely has no documents
         payload = {
             "company_id": company_id,
-            "competencia": "12/2030"
+            "competencia": "12/2030",
+            "tipo_operacao": "saida",
+            "tipo_documento": "65"  # NFCe
         }
         
         response = requests.post(
@@ -214,7 +224,9 @@ class TestDeleteDocumentsBulk:
         """Test delete-bulk with non-existent company"""
         payload = {
             "company_id": "non-existent-company-id",
-            "competencia": "01/2026"
+            "competencia": "01/2026",
+            "tipo_operacao": "saida",
+            "tipo_documento": "65"
         }
         
         response = requests.post(
@@ -231,7 +243,9 @@ class TestDeleteDocumentsBulk:
         
         payload = {
             "company_id": company_id,
-            "competencia": "12/2030"  # Non-existent competencia
+            "competencia": "12/2030",  # Non-existent competencia
+            "tipo_operacao": "saida",
+            "tipo_documento": "65"
         }
         
         response = requests.post(
@@ -256,6 +270,8 @@ class TestDeleteDocumentsBulk:
         payload = {
             "company_id": company_id,
             "competencia": "01/2026",
+            "tipo_operacao": "saida",
+            "tipo_documento": "65",
             "document_ids": ["non-existent-id-1", "non-existent-id-2"]
         }
         
@@ -338,7 +354,9 @@ class TestBulkDeletePerformance:
         
         payload = {
             "company_id": company_id,
-            "competencia": "01/2026"
+            "competencia": "01/2026",
+            "tipo_operacao": "saida",
+            "tipo_documento": "65"  # NFCe - the original bug scenario
         }
         
         start_time = time.time()
@@ -362,7 +380,9 @@ class TestBulkDeletePerformance:
         
         payload = {
             "company_id": company_id,
-            "competencia": "12/2030"  # Non-existent to avoid actual deletion
+            "competencia": "12/2030",  # Non-existent to avoid actual deletion
+            "tipo_operacao": "saida",
+            "tipo_documento": "65"
         }
         
         start_time = time.time()
@@ -399,7 +419,9 @@ class TestCreateAndDeleteBulkDocuments:
         # Step 1: Check initial count
         preview_payload = {
             "company_id": company_id,
-            "competencia": "01/2026"
+            "competencia": "01/2026",
+            "tipo_operacao": "saida",
+            "tipo_documento": "65"  # NFCe
         }
         
         response = requests.post(
@@ -412,7 +434,7 @@ class TestCreateAndDeleteBulkDocuments:
         initial_data = response.json()
         initial_count = initial_data["total_documentos"]
         
-        print(f"Initial document count for 01/2026: {initial_count}")
+        print(f"Initial document count for 01/2026 (NFCe, saida): {initial_count}")
         
         # Step 2: If there are documents, verify we can preview them
         if initial_count > 0:
@@ -440,7 +462,9 @@ class TestCacheInvalidation:
         # Do a delete operation (even if 0 docs)
         delete_payload = {
             "company_id": company_id,
-            "competencia": "12/2030"
+            "competencia": "12/2030",
+            "tipo_operacao": "saida",
+            "tipo_documento": "65"
         }
         
         response = requests.post(
