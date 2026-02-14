@@ -237,6 +237,14 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 
 ## Changelog
 
+### Fevereiro/2026 (Sessão 14/02 - Correções Críticas)
+- ✅ **CORREÇÃO CRÍTICA - Validação de CNPJ na Importação**:
+  - ANTES: Sistema aceitava XMLs de qualquer empresa, mesmo que o CNPJ não correspondesse
+  - AGORA: Valida se a empresa é emitente OU destinatário do documento
+  - Se o CNPJ da empresa não estiver no documento, **REJEITA** com mensagem clara
+  - Implementado nos endpoints: `/xml/upload` e `/xml/upload-stream`
+  - Arquivos: `server.py` (lines 5877-5907, 7655-7680)
+
 ### Fevereiro/2026 (Sessão 14/02 - Melhorias Wizard)
 - ✅ **CORREÇÃO - Step 3 (Alertas CFOP) - Exibir CFOP Original**:
   - Backend agora agrupa por `cfop_original_emissor` (5xxx, 6xxx) em vez do CFOP convertido
