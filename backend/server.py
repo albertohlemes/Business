@@ -14105,19 +14105,34 @@ async def get_viloes_oportunidades(
     
     regime = company.get('regime_tributario', 'lucro_presumido').lower().replace(' ', '_')
     
-    # Buscar documentos de entrada e saída
+    # ============== OTIMIZAÇÃO: Verificar volume de dados ==============
+    total_docs = await db.xml_documents.count_documents({
+        "company_id": company_id,
+        "competencia": competencia
+    })
+    
+    logger.info(f"VILOES: Total documentos = {total_docs}")
+    
+    # Se tiver mais de 5000 documentos, usar agregação otimizada
+    if total_docs > 5000:
+        logger.info(f"VILOES: Usando agregação otimizada para {total_docs} documentos")
+        return await _get_viloes_oportunidades_aggregated(company_id, competencia, regime)
+    
+    # Buscar documentos de entrada e saída (apenas campos necessários)
     # Suportar tanto 'tipo' quanto 'tipo_operacao' para compatibilidade
+    projection = {"_id": 0, "tipo": 1, "tipo_operacao": 1, "produtos": 1}
+    
     docs_entrada = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia,
         "$or": [{"tipo": "entrada"}, {"tipo_operacao": "entrada"}]
-    }, {"_id": 0}).to_list(15000)
+    }, projection).to_list(5000)
     
     docs_saida = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia,
         "$or": [{"tipo": "saida"}, {"tipo_operacao": "saida"}]
-    }, {"_id": 0}).to_list(15000)
+    }, projection).to_list(5000)
     
     # Agrupar por NCM
     produtos_por_ncm = {}
