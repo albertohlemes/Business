@@ -10996,7 +10996,19 @@ async def get_dashboard_stats(
         },
         "analise_comparativa": analise_comparativa,
         # === DADOS ESPECÍFICOS PARA SIMPLES NACIONAL ===
-        "simples": await _get_simples_nacional_stats(company, company_id, competencia, faturamento_total, documents) if regime_tributario == 'simples_nacional' else None
+        "simples": await _get_simples_nacional_stats(company, company_id, competencia, faturamento_total, documents) if regime_tributario == 'simples_nacional' else None,
+        # === ALERTAS DE VARIAÇÃO ===
+        "alertas_variacao": await calcular_alertas_variacao(
+            company_id, 
+            company, 
+            competencia,
+            {
+                "compras": total_entradas,
+                "vendas": faturamento_total,
+                "icms": icms_pagar,
+                "pis_cofins": pis_pagar + cofins_pagar
+            }
+        )
     }
 
 
