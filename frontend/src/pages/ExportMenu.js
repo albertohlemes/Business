@@ -73,7 +73,16 @@ const ExportMenu = ({ user, onLogout }) => {
       const response = await axios.get(`${API}/companies`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setCompanies(response.data);
+      
+      // Ordenar por código (id numérico) + nome
+      const sortedCompanies = response.data.sort((a, b) => {
+        const codeA = parseInt(a.codigo) || 0;
+        const codeB = parseInt(b.codigo) || 0;
+        if (codeA !== codeB) return codeA - codeB;
+        return (a.razao_social || '').localeCompare(b.razao_social || '');
+      });
+      
+      setCompanies(sortedCompanies);
       // Não forçar seleção aqui - deixar o useEffect decidir baseado no contexto
     } catch (err) {
       console.error('Erro ao carregar empresas:', err);
