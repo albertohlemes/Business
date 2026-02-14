@@ -23574,6 +23574,64 @@ async def _get_pis_cofins_aggregated(company: dict, company_id: str, competencia
     debito_pis_presumido = total_saidas * 0.0065
     debito_cofins_presumido = total_saidas * 0.03
     
+    # ============== CALCULAR TOP 10 NCMs (agregação separada) ==============
+    top_ncms_credito = []
+    top_ncms_debito = []
+    
+    try:
+        # Pipeline para Top NCMs por tipo
+        top_ncm_pipeline = [
+            {"$match": query},
+            {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": False}},
+            {
+                "$group": {
+                    "_id": {
+                        "tipo": {"$ifNull": ["$tipo", "$tipo_operacao"]},
+                        "ncm": {"$substr": [{"$toString": {"$ifNull": ["$produtos.ncm", "00000000"]}}, 0, 8]}
+                    },
+                    "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", {"$ifNull": ["$produtos.valor_pis", 0]}]}}},
+                    "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_cofins", {"$ifNull": ["$produtos.valor_cofins", 0]}]}}},
+                    "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                    "descricao": {"$first": "$produtos.descricao"},
+                    "qtd": {"$sum": 1}
+                }
+            },
+            {"$sort": {"valor_total": -1}},
+            {"$limit": 100}
+        ]
+        
+        top_cursor = db.xml_documents.aggregate(top_ncm_pipeline, allowDiskUse=True)
+        top_results = await top_cursor.to_list(length=100)
+        
+        ncms_entrada = []
+        ncms_saida = []
+        
+        for item in top_results:
+            tipo = item['_id'].get('tipo', '') or ''
+            total_pis_cofins = item.get('valor_pis', 0) + item.get('valor_cofins', 0)
+            ncm_data = {
+                "ncm": item['_id'].get('ncm', '00000000'),
+                "descricao": (item.get('descricao', '') or '')[:50],
+                "valor_total": round(total_pis_cofins, 2),
+                "valor_produtos": round(item.get('valor_total', 0), 2),
+                "quantidade": item.get('qtd', 0),
+                "produtos": []
+            }
+            
+            if tipo == 'entrada':
+                ncms_entrada.append(ncm_data)
+            else:
+                ncms_saida.append(ncm_data)
+        
+        # Ordenar e pegar top 10
+        top_ncms_credito = sorted(ncms_entrada, key=lambda x: x['valor_total'], reverse=True)[:10]
+        top_ncms_debito = sorted(ncms_saida, key=lambda x: x['valor_total'], reverse=True)[:10]
+        
+        logger.info(f"PIS/COFINS AGREGADO: Top NCMs calculados - Crédito: {len(top_ncms_credito)}, Débito: {len(top_ncms_debito)}")
+        
+    except Exception as e:
+        logger.warning(f"PIS/COFINS AGREGADO: Erro ao calcular Top NCMs: {e}")
+    
     resultado = {
         "empresa": {
             "id": company_id,
