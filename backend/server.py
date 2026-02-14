@@ -19130,7 +19130,6 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
                 "cfop": cfop_padrao,
                 "justificativa": f"Auto: {categoria_padrao.upper()} (tipo atividade: {tipo_atividade})"
             }
-                }
             stats["from_rules"] += 1
     
     # ===== SALVAR TODAS AS CLASSIFICAÇÕES EM BATCH (uma única operação no banco) =====
