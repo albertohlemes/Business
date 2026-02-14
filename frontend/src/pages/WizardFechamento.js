@@ -653,8 +653,33 @@ const WizardFechamento = ({ user, onLogout }) => {
                         
                         {/* Status de desconsideração */}
                         {nota.desconsiderada && (
-                          <div className="mt-2 bg-emerald-500/10 rounded p-2">
+                          <div className="mt-2 bg-emerald-500/10 rounded p-2 flex items-center justify-between">
                             <p className="text-emerald-400 text-xs">✓ Já desconsiderada: {nota.motivo_desconsideracao}</p>
+                            {temDiferenca && nota.nota_original_encontrada && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    // Reverter desconsideração
+                                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/xml/document/${nota.nota_original?.id}/restore`, {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                      }
+                                    });
+                                    if (response.ok) {
+                                      // Recarregar dados
+                                      window.location.reload();
+                                    }
+                                  } catch (err) {
+                                    console.error('Erro ao reverter:', err);
+                                  }
+                                }}
+                                className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded hover:bg-amber-500/30"
+                              >
+                                Reverter Decisão
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
