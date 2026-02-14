@@ -21242,7 +21242,16 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
     """
     Versão otimizada da apuração ICMS usando agregação do MongoDB.
     Usada quando há mais de 10000 documentos para evitar timeout.
+    Usa cache inteligente para evitar recálculos desnecessários.
     """
+    # Gerar chave extra baseada nas configurações
+    config_key = f"{desconsiderar_despesas}_{desconsiderar_st}_{beneficio_fiscal}"
+    
+    # Verificar cache primeiro
+    cached = aggregation_cache.get("icms", company_id, competencia, config_key)
+    if cached:
+        return cached
+    
     logger.info(f"ICMS AGREGADO: Iniciando para {total_docs} documentos")
     
     # Pipeline de agregação para calcular totais por tipo
