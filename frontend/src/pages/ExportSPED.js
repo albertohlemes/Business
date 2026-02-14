@@ -116,14 +116,11 @@ const ExportSPED = ({ user, onLogout }) => {
       // Converter competência MM/AAAA para formato do backend
       const periodoFormatado = competencia.replace('/', '');
       
-      // Construir query params com opções
+      // Construir query params com opções - NOMES CORRETOS para o backend
       const params = new URLSearchParams({
         competencia: competencia,
-        periodo: periodoFormatado,
-        zerar_icms_st: opcoes.zerarIcmsSt,
-        incluir_despesas: opcoes.incluirDespesas,
-        simples_nacional: opcoes.simplesNacional,
-        beneficio_fiscal: opcoes.beneficioFiscal,
+        excluir_creditos_despesa_st: opcoes.excluirCreditosDespesaSt,
+        aplicar_beneficio_fiscal: opcoes.beneficioFiscal,
       });
       
       const response = await axios.get(
