@@ -5,19 +5,14 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 
 ## Última Atualização: 16/12/2025
 
-### Bug Corrigido: Dados de ICMS, PIS, COFINS não aparecendo nos relatórios
+### Correções Aplicadas Nesta Sessão
+
+#### 1. Bug Corrigido: Dados de ICMS, PIS, COFINS não aparecendo nos relatórios
 
 **Problema Identificado:**
-Os pipelines de agregação do MongoDB estavam usando nomes de campos incorretos para buscar dados de impostos:
+Os pipelines de agregação do MongoDB estavam usando nomes de campos incorretos:
 - Usava `$produtos.valor_icms` (incorreto)
 - O campo correto é `$produtos.v_icms` (conforme salvo no parsing XML)
-
-O mesmo problema afetava:
-- Base de ICMS (`bc_icms` vs `v_bc_icms`)
-- Valor de PIS (`valor_pis` vs `v_pis`)
-- Valor de COFINS (`valor_cofins` vs `v_cofins`)
-- Valor de IPI (`valor_ipi` vs `v_ipi`)
-- ICMS ST (`valor_icms_st` vs `v_icms_st`)
 
 **Correção Aplicada:**
 Todos os pipelines de agregação foram atualizados para usar fallback entre os dois formatos:
@@ -25,50 +20,29 @@ Todos os pipelines de agregação foram atualizados para usar fallback entre os 
 "$ifNull": ["$produtos.v_icms", {"$ifNull": ["$produtos.valor_icms", 0]}]
 ```
 
-**Endpoints Corrigidos:**
-- Dashboard de stats histórico (linha ~9820)
-- Apuração PIS/COFINS agregada (linha ~11289)
-- Apuração Período simplificada (linha ~11879)
-- Apuração Movimento (linha ~20954)
-- Apuração ICMS agregada (linha ~21526)
-- Apuração IPI agregada (linha ~23001)
-- PIS/COFINS Apuração (linha ~23303)
+#### 2. Bug Corrigido: Top 10 NCMs zerados nas versões agregadas
 
-### Lógica de Classificação com IA (Hierarquia de 6 Regras)
-A classificação de produtos segue uma hierarquia estrita:
-1. **CFOP de Devolução** - Automático para CFOPs de devolução
-2. **Regras Aprendidas (learned_rules)** - Cache de classificações anteriores (manuais ou IA)
-3. **NCM de Vendas** - Match com produtos vendidos pelo mesmo NCM
-4. **Palavras-chave de Vendas** - Match com descrições de produtos vendidos
-5. **Palavras-chave da Empresa** - Cadastradas no perfil da empresa
-6. **IA Gemini** - Último recurso, usa LLM para classificar
+**Problema Identificado:**
+Quando há mais de 10.000 documentos, as funções agregadas (`_get_icms_aggregated`, `_get_pis_cofins_aggregated`, `_get_ipi_aggregated`) eram chamadas, mas retornavam arrays vazios para Top 10 NCMs.
 
-**IMPORTANTE**: Classificações manuais SEMPRE sobrepõem regras anteriores e são salvas em `learned_rules` para uso futuro.
+**Correção Aplicada:**
+Adicionado pipeline de agregação separado em cada função agregada para calcular Top 10 NCMs por crédito e débito:
+- `_get_icms_aggregated`: Agora calcula top_ncms_credito e top_ncms_debito
+- `_get_pis_cofins_aggregated`: Agora calcula top_ncms_credito e top_ncms_debito
+- `_get_ipi_aggregated`: Agora calcula top_10_credito e top_10_debito
 
-### Paleta de Cores
-- **Azul** - Entradas/Compras
-- **Verde/Emerald** - Saídas/Créditos
-- **Amber/Orange** - Alertas/Pendências
-- **Cyan/Teal** - Devoluções, Jobs em Background
-- **Slate** - Contribuições (CSLL, PIS, COFINS)
-- **Vermelho** - Valores a Pagar/Erros
+#### 3. Bug Corrigido: Vilões e Oportunidades derrubando o sistema
 
-## Diretriz Principal do Wizard de Fechamento
-O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação com IA**:
-- **Se importou SEM IA**: O Wizard faz o trabalho que a IA faria manualmente
-- **Se importou COM IA**: O Wizard serve como validador
+**Problema Identificado:**
+O endpoint `/api/viloes-oportunidades/{company_id}` fazia `.to_list(15000)` duas vezes (entradas e saídas), carregando até 30.000 documentos na memória, causando timeout/crash.
 
-| Etapa Wizard | O que a IA faz na Importação | O que o Wizard faz |
-|--------------|------------------------------|-------------------|
-| 1 - Canceladas | Detecta via cStat=101/151 | Confirma e marca canceladas |
-| 2 - Devoluções | Desconsiderada CFOP devolução | Desconsiderada notas de terceiros |
-| 3 - Alertas CFOP | Gera alertas pendentes | Resolve todos alertas CFOP |
-| 4 - Classificação | Classifica com IA | Classifica com IA |
-| 5 - PIS/COFINS Entrada | Calcula CST | Calcula/Corrige CST |
-| 6 - PIS/COFINS Saída | Calcula CST | Calcula/Corrige CST |
-| 7 - Reforma Tributária | Calcula IVA Dual | Visualiza cálculo |
+**Correção Aplicada:**
+- Adicionada verificação de volume: se houver mais de 5.000 documentos, usa agregação otimizada
+- Criada nova função `_get_viloes_oportunidades_aggregated` que usa pipeline de agregação do MongoDB
+- Reduzido limite de busca para 5.000 documentos na versão normal
+- Adicionada projection para carregar apenas campos necessários
 
-## Arquitetura
+### Arquitetura
 - **Frontend**: React + TailwindCSS + Shadcn/UI
 - **Backend**: FastAPI + MongoDB (Motor async)
 - **Cache**: cachetools (cache em memória com TTL de 5 minutos)
@@ -80,7 +54,7 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 - Cache em memória para resultados de agregações pesadas
 - TTL de 5 minutos
 - Invalidação automática em operações de CRUD de documentos
-- Endpoints de gerenciamento: `/api/cache/stats` e `/api/cache/clear`
+- Endpoints de gerenciamento: `/api/cache/stats` e `/api/cache/invalidate/{company_id}`
 
 ### Sistema de Alertas de Variação
 - Detecta variações bruscas (+/- 20% como padrão) em compras, vendas e impostos
@@ -99,30 +73,22 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 
 ## Endpoints Principais
 
-### Wizard de Fechamento
-- `GET /api/wizard-fechamento/status/{company_id}` - Status atual
-- `GET /api/wizard-fechamento/step/{company_id}/{step_id}` - Dados de etapa
-- `POST /api/wizard-fechamento/step/{company_id}/{step_id}/complete` - Completar etapa
-- `POST /api/wizard-fechamento/step/{company_id}/{step_id}/go` - Navegar para etapa
-- `GET /api/wizard-fechamento/relatorio/{company_id}` - Gerar relatório PDF/Excel
-
 ### Apurações
 - `GET /api/apuracao-icms/{company_id}` - Apuração de ICMS com Top 10 NCMs
-- `GET /api/apuracao-pis-cofins/{company_id}` - Apuração PIS/COFINS
-- `GET /api/apuracao-ipi/{company_id}` - Apuração de IPI
-- `GET /api/pis-cofins/divergencias/{company_id}` - Divergências de PIS/COFINS
-- `GET /api/relatorio-divergencias-saida/{company_id}` - Divergências nas saídas
-- `GET /api/relatorio-divergencias-entrada/{company_id}` - Divergências nas entradas
+- `GET /api/pis-cofins/apuracao/{company_id}` - Apuração PIS/COFINS com Top 10 NCMs
+- `GET /api/apuracao-ipi/{company_id}` - Apuração de IPI com Top 10 NCMs
+- `GET /api/viloes-oportunidades/{company_id}` - Vilões e Oportunidades Tributárias (OTIMIZADO)
 
 ### Cache
 - `GET /api/cache/stats` - Estatísticas do cache
-- `POST /api/cache/clear` - Limpar cache
+- `POST /api/cache/invalidate/{company_id}` - Invalidar cache de uma empresa
 
 ## Issues Pendentes
 
 ### P0 (Alta Prioridade)
-- [ ] Validação com usuário: Página de PIS/COFINS travando na base de produção (otimização feita, pendente validação)
-- [ ] Validação com usuário: ICMS, NCMs, divergências agora devem aparecer após correção dos pipelines
+- [x] Top 10 NCMs zerados na versão agregada - CORRIGIDO
+- [x] Vilões e oportunidades derrubando sistema - CORRIGIDO
+- [ ] Validação com usuário: Funcionalidades devem estar funcionando agora
 
 ### P1 (Média Prioridade)
 - [ ] NF de fevereiro aparecendo nas entradas de janeiro
