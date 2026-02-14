@@ -7,6 +7,27 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 
 ### Correções Aplicadas Nesta Sessão
 
+#### 0. Bug Corrigido: Exclusão em massa travando o sistema (~14.000 documentos)
+
+**Problema Identificado:**
+Ao excluir grandes volumes de documentos (ex: 14.000 NFCe), o sistema travava porque:
+- `delete_many` era executado com milhares de IDs de uma só vez, causando timeout
+- `preview_delete_documents` carregava todos os documentos em memória (até 15.000)
+- Não havia invalidação de cache após exclusão em massa
+
+**Correção Aplicada:**
+- **Processamento em Lotes (BATCH_SIZE=500)**: Todas as funções de exclusão em massa agora processam em lotes de 500 documentos
+- **Preview otimizado**: Usa agregação MongoDB com `allowDiskUse=True` ao invés de carregar tudo em memória
+- **Cache invalidado**: Após exclusões, o cache da empresa/competência é invalidado
+- **Tratamento de erros**: Se um lote falhar, continua com os próximos
+
+**Endpoints Refatorados:**
+- `POST /api/xml/documents/preview-delete` - Preview com agregação MongoDB
+- `POST /api/xml/documents/delete-bulk` - Exclusão em lotes de 500
+- `DELETE /api/documents/{company_id}/{competencia}` - Exclusão por competência em lotes
+
+**Status**: ✅ TESTADO E VALIDADO (17/17 testes passaram)
+
 #### 1. Bug Corrigido: Dados de ICMS, PIS, COFINS não aparecendo nos relatórios
 
 **Problema Identificado:**
