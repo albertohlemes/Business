@@ -21446,6 +21446,7 @@ async def preview_delete_documents(
     """
     Preview dos documentos que serão excluídos com base nos filtros.
     Retorna lista de documentos e contagem para confirmação.
+    Usa agregação do MongoDB para melhor performance com grandes volumes.
     """
     company = await db.companies.find_one({"id": filters.company_id}, {"_id": 0})
     if not company:
@@ -21454,23 +21455,17 @@ async def preview_delete_documents(
     if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    # Construir query base
-    query = {
+    # Construir query base no MongoDB (mais eficiente que filtrar em Python)
+    match_stage = {
         "company_id": filters.company_id,
         "competencia": filters.competencia
     }
     
-    # Buscar todos os documentos e filtrar pelo campo 'tipo' (entrada/saida)
-    # O campo 'tipo' é definido na importação baseado no CNPJ do emitente vs empresa:
-    # - Se CNPJ emitente == CNPJ empresa -> tipo='saida' (empresa emitiu)
-    # - Se CNPJ emitente != CNPJ empresa -> tipo='entrada' (empresa recebeu)
-    all_docs = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
+    # Filtrar pelo campo 'tipo' (entrada/saida) no MongoDB
+    if filters.tipo_operacao:
+        match_stage["tipo"] = filters.tipo_operacao
     
-    # Filtrar pelo campo 'tipo' que é a fonte de verdade para entrada/saída
-    # Mapeamento: filters.tipo_operacao = 'entrada' ou 'saida' -> campo 'tipo'
-    filtered_docs = [d for d in all_docs if d.get('tipo') == filters.tipo_operacao]
-    
-    # Filtrar por modelo (se não for 'all')
+    # Filtrar por modelo no MongoDB
     if filters.tipo_documento and filters.tipo_documento != 'all':
         modelo_map = {
             '55': ['55', 'nfe'],
@@ -21482,60 +21477,85 @@ async def preview_delete_documents(
             'outros': ['outros']
         }
         if filters.tipo_documento in modelo_map:
-            filtered_docs = [d for d in filtered_docs if d.get('modelo') in modelo_map[filters.tipo_documento]]
+            match_stage["modelo"] = {"$in": modelo_map[filters.tipo_documento]}
     
-    # Aplicar filtros adicionais
+    # Filtros adicionais no MongoDB
     if filters.document_ids:
-        filtered_docs = [d for d in filtered_docs if d.get('id') in filters.document_ids]
+        match_stage["id"] = {"$in": filters.document_ids}
     
     if filters.data_inicio:
-        filtered_docs = [d for d in filtered_docs if d.get('data_emissao', '') >= filters.data_inicio]
+        match_stage["data_emissao"] = {"$gte": filters.data_inicio}
     
     if filters.data_fim:
-        filtered_docs = [d for d in filtered_docs if d.get('data_emissao', '') <= filters.data_fim]
+        if "data_emissao" in match_stage:
+            match_stage["data_emissao"]["$lte"] = filters.data_fim
+        else:
+            match_stage["data_emissao"] = {"$lte": filters.data_fim}
     
     if filters.emitente_cnpj:
         cnpj_limpo = filters.emitente_cnpj.replace('.', '').replace('/', '').replace('-', '')
-        filtered_docs = [d for d in filtered_docs if cnpj_limpo in (d.get('emitente_cnpj', '') or '').replace('.', '').replace('/', '').replace('-', '')]
+        match_stage["emitente_cnpj"] = {"$regex": cnpj_limpo, "$options": "i"}
     
     if filters.emitente_nome:
-        nome_lower = filters.emitente_nome.lower()
-        filtered_docs = [d for d in filtered_docs if nome_lower in (d.get('emitente_nome', '') or '').lower()]
+        match_stage["emitente_nome"] = {"$regex": filters.emitente_nome, "$options": "i"}
     
-    if filters.numero_inicio is not None:
-        filtered_docs = [d for d in filtered_docs if int(d.get('numero_nfe', 0) or 0) >= filters.numero_inicio]
-    
-    if filters.numero_fim is not None:
-        filtered_docs = [d for d in filtered_docs if int(d.get('numero_nfe', 0) or 0) <= filters.numero_fim]
+    if filters.numero_inicio is not None or filters.numero_fim is not None:
+        numero_filter = {}
+        if filters.numero_inicio is not None:
+            numero_filter["$gte"] = str(filters.numero_inicio)
+        if filters.numero_fim is not None:
+            numero_filter["$lte"] = str(filters.numero_fim)
+        if numero_filter:
+            match_stage["numero_nfe"] = numero_filter
     
     if filters.cfops:
-        def doc_has_cfop(doc, cfops):
-            produtos = doc.get('produtos', [])
-            for prod in produtos:
-                if str(prod.get('cfop', '')) in cfops:
-                    return True
-            return False
-        filtered_docs = [d for d in filtered_docs if doc_has_cfop(d, filters.cfops)]
+        match_stage["produtos.cfop"] = {"$in": [str(c) for c in filters.cfops]}
     
-    # Calcular totais
-    total_valor = sum(float(d.get('valor_total', 0) or 0) for d in filtered_docs)
+    # Pipeline de agregação otimizado
+    pipeline = [
+        {"$match": match_stage},
+        {"$project": {
+            "_id": 0,
+            "id": 1,
+            "numero_nfe": 1,
+            "emitente_nome": 1,
+            "emitente_cnpj": 1,
+            "data_emissao": 1,
+            "valor_total": 1
+        }}
+    ]
     
-    # Retornar preview limitado a 100 documentos para visualização
-    preview_docs = [{
-        "id": d.get("id"),
-        "numero_nfe": d.get("numero_nfe"),
-        "emitente_nome": d.get("emitente_nome"),
-        "emitente_cnpj": d.get("emitente_cnpj"),
-        "data_emissao": d.get("data_emissao"),
-        "valor_total": d.get("valor_total")
-    } for d in filtered_docs[:100]]
+    # Executar agregação em lotes para evitar sobrecarga de memória
+    BATCH_SIZE = 5000
+    all_ids = []
+    total_valor = 0.0
+    preview_docs = []
+    
+    cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
+    count = 0
+    
+    async for doc in cursor:
+        all_ids.append(doc.get("id"))
+        total_valor += float(doc.get("valor_total", 0) or 0)
+        
+        # Guardar apenas os primeiros 100 para preview
+        if count < 100:
+            preview_docs.append({
+                "id": doc.get("id"),
+                "numero_nfe": doc.get("numero_nfe"),
+                "emitente_nome": doc.get("emitente_nome"),
+                "emitente_cnpj": doc.get("emitente_cnpj"),
+                "data_emissao": doc.get("data_emissao"),
+                "valor_total": doc.get("valor_total")
+            })
+        count += 1
     
     return {
-        "total_documentos": len(filtered_docs),
+        "total_documentos": count,
         "total_valor": total_valor,
         "preview": preview_docs,
-        "tem_mais": len(filtered_docs) > 100,
-        "ids_para_excluir": [d.get("id") for d in filtered_docs]
+        "tem_mais": count > 100,
+        "ids_para_excluir": all_ids
     }
 
 
