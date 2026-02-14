@@ -30,19 +30,15 @@ const ExportSPED = ({ user, onLogout }) => {
 
   // Auto-preencher com empresa/competência do contexto global
   useEffect(() => {
-    if (ctxCompany && !selectedCompany) {
+    if (ctxCompany && companies.length > 0) {
+      // Sempre usar a empresa do contexto global se disponível
       setSelectedCompany(ctxCompany.id);
       fetchDocumentsAndCompetencias(ctxCompany.id);
     }
-    if (ctxCompetencia && !competencia) {
+    if (ctxCompetencia) {
       setCompetencia(ctxCompetencia);
-    } else if (!competencia) {
-      const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const year = now.getFullYear();
-      setCompetencia(`${month}/${year}`);
     }
-  }, [ctxCompany, ctxCompetencia]);
+  }, [ctxCompany, ctxCompetencia, companies]);
 
   const fetchCompanies = async () => {
     try {
@@ -50,10 +46,29 @@ const ExportSPED = ({ user, onLogout }) => {
       const response = await axios.get(`${API}/companies`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setCompanies(response.data);
-      if (response.data.length > 0) {
-        setSelectedCompany(response.data[0].id);
-        fetchDocumentsAndCompetencias(response.data[0].id);
+      
+      // Ordenar por código (id numérico) + nome
+      const sortedCompanies = response.data.sort((a, b) => {
+        const codeA = parseInt(a.codigo) || 0;
+        const codeB = parseInt(b.codigo) || 0;
+        if (codeA !== codeB) return codeA - codeB;
+        return (a.razao_social || '').localeCompare(b.razao_social || '');
+      });
+      
+      setCompanies(sortedCompanies);
+      
+      // Só selecionar primeira empresa se não houver contexto global
+      if (sortedCompanies.length > 0 && !ctxCompany) {
+        setSelectedCompany(sortedCompanies[0].id);
+        fetchDocumentsAndCompetencias(sortedCompanies[0].id);
+        
+        // Definir competência padrão se não houver contexto
+        if (!ctxCompetencia) {
+          const now = new Date();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const year = now.getFullYear();
+          setCompetencia(`${month}/${year}`);
+        }
       }
     } catch (err) {
       console.error('Erro ao carregar empresas:', err);
