@@ -1,93 +1,96 @@
 <analysis>**original_problem_statement:**
 O usuário reportou uma série de bugs críticos e solicitou várias melhorias. Os principais problemas relatados foram:
-1.  **SPED com Destaque de ICMS Incorreto**: Ao gerar o SPED, as opções para não destacar ICMS em despesas e notas de ST não estão sendo respeitadas. (Último problema reportado, P0).
-2.  **Barra de Progresso Travada**: A barra de progresso de importação de XML trava e nunca completa em todas as importações no ambiente de produção.
-3.  **CFOPs Faltantes**: Vários CFOPs (5929, 5906, 5907, 5106) não estavam sendo tratados como operações distintas, causando problemas na classificação.
-4.  **ICMS Zerado**: Na tela de Reforma Tributária, o valor do ICMS a recolher aparecia zerado, mesmo existindo.
-5.  **Dados do Consumidor Genéricos**: Em notas de saída para pessoa física, os dados do cliente (nome, CPF) estavam sendo substituídos por um CONSUMIDOR genérico.
-6.  **Usabilidade da Exportação**: As telas de exportação não pré-selecionavam a empresa/competência e a lista de empresas não era ordenada de forma intuitiva.
-7.  **Cor do Layout**: O usuário questionou o uso da cor roxa no layout, que considerava inconsistente.
+1.  **SPED com Destaque de ICMS Incorreto (RESOLVIDO)**: Ao gerar o SPED, as opções para não destacar ICMS em despesas e notas de ST não estavam sendo respeitadas.
+2.  **Dashboard Travando (RESOLVIDO)**: Com um grande volume de dados (14.000+ cupons), o dashboard travava e caía.
+3.  **Histórico de Importação Inconsistente (PARCIALMENTE RESOLVIDO)**: Os relatórios no histórico de importação não batiam com o relatório exibido ao final do processo.
+4.  **Barra de Progresso Travada (PENDENTE DE VALIDAÇÃO)**: A barra de progresso de importação de XML trava em produção.
+5.  **CFOPs Faltantes (RESOLVIDO EM SESSÃO ANTERIOR)**: CFOPs como 5929, 5906, etc., não eram tratados corretamente.
+6.  **ICMS Zerado na Reforma Tributária (RESOLVIDO EM SESSÃO ANTERIOR)**.
+7.  **Dados do Consumidor Genéricos (RESOLVIDO EM SESSÃO ANTERIOR)**.
 
-**User's preferred language**: Português (pt-BR)
+**Novas Solicitações (Última Mensagem do Usuário):**
+1.  **CFOP Individual por Produto**: No wizard, permitir que o usuário indique o CFOP para cada produto individualmente.
+2.  **Alerta em Devoluções**: Se uma nota de devolução tiver valor diferente da nota referenciada, destacar a diferença e perguntar se o usuário quer manter ou excluir a nota original.
+3.  **Clareza em Notas Canceladas**: Na tela de notas canceladas, identificar claramente o que são Entradas e o que são Saídas.
+
+**User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-O agente anterior trabalhou em uma longa sessão para corrigir múltiplos bugs e implementar melhorias.
-- Respondeu às dúvidas do usuário sobre a lógica de reclassificação manual versus a memória da IA.
-- Alterou a paleta de cores da UI, substituindo a cor roxa por ciano, azul-petróleo e ardósia em vários componentes para melhorar a consistência visual.
-- Adicionou múltiplos CFOPs (5929, 6929, 5106, 6106, 5906, 6906, 5907, 6907) às listas de operações distintas no  para que sejam marcados para revisão manual durante a importação.
-- Corrigiu a lógica de cálculo do ICMS na página de Reforma Tributária para usar os dados dos XMLs como fallback caso os dados do SPED estejam ausentes ou com nomes de campos diferentes.
-- Melhorou as páginas de exportação (, ) para pré-selecionar a empresa e competência do contexto global e para ordenar e exibir a lista de empresas por .
-- Corrigiu o parser de XML e a geração do SPED para preservar corretamente os dados do destinatário (nome e CPF) em notas fiscais de venda para pessoa física.
-- Investigou o problema da barra de progresso travada, identificando a causa provável como uma condição de corrida em um ambiente de produção com múltiplas instâncias, devido à dependência de um cache em memória. O agente implementou uma correção para forçar a leitura e escrita do estado da sessão de upload diretamente no MongoDB, mas esta correção não foi validada pelo usuário.
+O agente anterior corrigiu com sucesso dois bugs críticos.
+1.  **Correção do SPED**: O agente identificou uma incompatibilidade de parâmetros entre o frontend () e o backend () na geração do SPED. Os nomes dos parâmetros foram alinhados e a lógica foi corrigida. A correção foi validada através do , que confirmou que o ICMS é zerado corretamente quando a flag correspondente está ativa.
+2.  **Otimização do Dashboard**: O agente diagnosticou um grave problema de performance no endpoint do dashboard, que travava ao processar um grande volume de documentos. A causa era a iteração em Python sobre todos os documentos e produtos. A solução foi refatorar a consulta para usar uma pipeline de agregação do MongoDB diretamente no banco de dados, o que reduziu drasticamente o tempo de carregamento (de crash para ~1 segundo para 14.700 documentos).
+3.  **Correção do Histórico de Importação**: O agente investigou inconsistências nos dados do histórico de importação e ajustou a forma como os resultados da importação são salvos no  para garantir que os dados para *futuras* importações sejam consistentes.
 
 **Last working item**:
--   **Last item agent was working**: Investigando um novo bug crítico reportado pelo usuário: a geração do SPED Fiscal está destacando ICMS em despesas e notas de ST, mesmo quando as opções para desabilitar isso estão marcadas.
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: backend testing agent. O agente precisa gerar um arquivo SPED com as flags específicas marcadas e validar o conteúdo dos registros C100, C170 e C190 para garantir que o crédito de ICMS não seja destacado indevidamente.
+-   **Last item agent was working**: O agente recebeu três novas solicitações de melhoria para a tela do Wizard de Fechamento (listadas no ). O agente apenas reconheceu as solicitações e estava prestes a iniciar a análise e implementação.
+-   **Status**: NOT STARTED
+-   **Agent Testing Done**: N/A
+-   **Which testing method agent to use?**: both. A implementação exigirá mudanças no frontend (provavelmente  e componentes relacionados) e no backend (). Após a implementação, o  deve ser usado para validar o fluxo completo do wizard.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Geração do SPED não respeita as flags para despesas e notas de ST (P0)
--   **Issue 2**: Barra de progresso de importação de XML trava (P0 - CORREÇÃO NÃO VALIDADA)
--   **Issue 3**: Deploy não reflete as atualizações (P0 - BLOQUEADOR DE PROCESSO)
--   **Issue 4**: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)
+-   **Issue 1**: Barra de progresso de importação de XML trava (P0 - CORREÇÃO NÃO VALIDADA)
+-   **Issue 2**: Deploy não reflete as atualizações (P0 - BLOQUEADOR DE PROCESSO)
+-   **Issue 3**: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)
+-   **Issue 4**: Dados do histórico de importação *antigo* podem continuar inconsistentes (P2)
 -   **Issue 5**: Discrepância de valores entre Dashboard e SPED (P2)
 -   **Issue 6**: Botão de Login fica travado em Processando... (P2)
 
 **Issues Detail**:
--   **Issue 1: Geração do SPED não respeita as flags para despesas e notas de ST (P0)**
-    -   **Attempted fixes**: Nenhum. O agente estava no início da investigação.
+-   **Issue 1: Barra de progresso de importação de XML trava (P0 - CORREÇÃO NÃO VALIDADA)**
+    -   **Attempted fixes**: Um agente anterior modificou o  para forçar a leitura/escrita do progresso diretamente no MongoDB, em vez de depender de um cache em memória, que era a causa provável do problema em um ambiente com múltiplas instâncias.
     -   **Next debug checklist**:
-        1.  Localizar a função de geração do SPED no .
-        2.  Analisar como os parâmetros do frontend (as checkboxes da imagem) são recebidos no backend.
-        3.  Verificar a lógica que processa os documentos fiscais (especialmente registros C100/C170) e como as flags  e  são aplicadas para zerar os campos de base de cálculo e valor do ICMS.
-        4.  Reproduzir o problema gerando um SPED para uma competência com despesas e ST e verificar o arquivo de texto resultante.
-    -   **Why fix this issue and what will be achieved with the fix?**: É um bug crítico que gera arquivos fiscais incorretos, podendo causar problemas fiscais para o cliente. A correção é essencial para a funcionalidade principal do sistema.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: backend
-    -   **Blocked on other issue**: Não.
-
--   **Issue 2: Barra de progresso de importação de XML trava (P0 - CORREÇÃO NÃO VALIDADA)**
-    -   **Attempted fixes**: O agente modificou  para reduzir a dependência do cache em memória () e forçar a leitura/escrita do progresso no MongoDB. Funções como  foram alteradas para sempre consultar o DB, e o salvamento durante o processamento de chunks foi tornado mais frequente.
-    -   **Next debug checklist**:
-        1.  O usuário precisa testar uma importação grande em produção para validar se a correção funcionou.
-        2.  Se o problema persistir, investigar o log adicionado pelo agente anterior para ver o estado final da sessão de upload.
-        3.  Considerar a possibilidade de o proxy/ingress estar fechando as conexões SSE, apesar do fallback de polling.
+        1.  Perguntar ao usuário se ele pode realizar uma nova importação grande em produção para confirmar se a correção funcionou.
+        2.  Se o problema persistir, analisar os logs para verificar o estado da sessão de upload e considerar outras causas, como timeouts de proxy.
     -   **Why fix this issue and what will be achieved with the fix?**: É um bug crítico que impede o usuário de ter feedback sobre as importações, gerando incerteza e retrabalho.
     -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: both
     -   **Blocked on other issue**: Não.
 
+-   **Issue 2: Deploy não reflete as atualizações (P0 - BLOQUEADOR DE PROCESSO)**
+    -   **Attempted fixes**: Nenhum. É um problema de infraestrutura ou processo.
+    -   **Next debug checklist**: Informar o usuário sobre o problema persistente e sugerir que ele verifique seu processo de deploy.
+    -   **Why fix this issue and what will be achieved with the fix?**: Impede a validação de qualquer correção ou funcionalidade nova.
+    -   **Status**: BLOCKED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: N/A
+    -   **Blocked on other issue**: Não.
+
+-   **Issue 4: Dados do histórico de importação *antigo* podem continuar inconsistentes (P2)**
+    -   **Attempted fixes**: O agente corrigiu o *salvamento* de novas importações. A correção não é retroativa.
+    -   **Next debug checklist**: Se o usuário insistir em corrigir os dados antigos, seria necessário criar um script de migração para percorrer os documentos  no MongoDB e reestruturar o campo .
+    -   **Why fix this issue and what will be achieved with the fix?**: Traria consistência a todos os dados históricos, mas com baixo impacto, já que o problema principal foi resolvido para o futuro.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: Não.
+
 **In progress Task List**:
 -   **Task 1: Refatoração Completa do Wizard (P1)**
-    -   **Where to resume**: O trabalho de alinhar todas as etapas do wizard com uma lógica consistente e estado gerenciado pelo React continua. As constantes correções de bugs em diferentes partes do fluxo reforçam a necessidade desta refatoração.
-    -   **What will be achieved with this?**: Consistência de dados e um fluxo de trabalho fiscal previsível e confiável.
+    -   **Where to resume**: As 3 novas solicitações do usuário (CFOP individual, alerta de devolução, clareza em notas canceladas) devem ser o ponto de partida. A implementação deve ser feita nos arquivos do wizard, como  e .
+    -   **What will be achieved with this?**: Um fluxo de trabalho fiscal mais flexível, informativo e confiável para o usuário.
     -   **Status**: IN PROGRESS
     -   **Should Test frontend/backend/both after fix?**: both
     -   **Blocked on something**: Não.
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
+    *   **(P0)** Implementar as 3 novas funcionalidades do Wizard de Fechamento.
     *   **(P1)** Implementar visualização agrupada por dia na página de documentos.
     *   **(P1)** Implementar relatórios por email para a importação em lote.
 *   **Future Tasks (Refatoração Crítica):**
-    *   **(P0)** Refatoração do  (urgente, >31k linhas). O número de bugs corrigidos nesta sessão que se originaram neste arquivo demonstra sua fragilidade.
+    *   **(P0)** Refatoração do  (urgente, >31k linhas). Continua sendo a principal fonte de bugs e problemas de performance.
     *   **(P1)** Refatoração do  (monolítico, >4k linhas).
-    *   **(P1)** Refatoração do  para dividir as etapas em componentes separados.
+    *   **(P1)** Refatoração do  em componentes menores.
 *   **Future Tasks (Novas Funcionalidades):**
     -   **(P1)** Integração de CT-e (Conhecimento de Transporte Eletrônico).
     -   **(P2)** Implementação de testes automatizados (e.g., Playwright).
 
 **Completed work in this session**
--   **UI: Cores do Layout**: Substituída a cor roxa por alternativas mais consistentes (ciano, ardósia) em toda a aplicação.
--   **Fix: Lógica de CFOPs**: Adicionados os CFOPs 5106, 5906, 5907, 5929 (e interestaduais) como operações distintas.
--   **Fix: Cálculo de ICMS**: Corrigido o cálculo de ICMS na página de Reforma Tributária para ser mais robusto.
--   **Feature: Usabilidade da Exportação**: Melhorada a experiência do usuário nas páginas de exportação com auto-preenchimento e ordenação da lista de empresas.
--   **Fix: Dados do Consumidor**: Corrigido o bug que substituía dados de pessoa física por um cliente genérico.
--   **Attempted Fix: Barra de Progresso**: Implementada uma correção para o bug da barra de progresso travada (pendente de validação).
+-   **Fix: Geração do SPED (P0)**: Corrigido o bug que ignorava as flags para zerar ICMS de despesas e ST. A correção foi feita no  e  e validada via .
+-   **Optimization: Performance do Dashboard (P0)**: Corrigido o crash do dashboard com alto volume de dados, otimizando a consulta com uma pipeline de agregação do MongoDB em .
+-   **Fix: Histórico de Importação (P1)**: Ajustada a lógica de salvamento em  para garantir que os dados de resumo das *próximas* importações sejam consistentes.
 
 **Earlier issues found/mentioned but not fixed**
 -   NF de fevereiro continua aparecendo nas entradas de janeiro (P1).
@@ -101,63 +104,58 @@ O agente anterior trabalhou em uma longa sessão para corrigir múltiplos bugs e
 
 
 **Key Technical Concepts**
--   **State Management for Background Tasks**: Migração da lógica de estado de um cache em memória para uma base de dados (MongoDB) para garantir consistência em ambientes com múltiplas instâncias.
--   **SPED Fiscal Generation**: Manipulação de regras de negócio complexas baseadas em flags de usuário para incluir ou omitir créditos de ICMS na geração do arquivo SPED (registros C100/C170).
--   **XML Parsing**: Extração e tratamento de dados de diferentes campos de arquivos XML de NF-e e NFC-e, lidando com variações como destinatários pessoa física vs. jurídica.
+-   **MongoDB Aggregation Pipeline**: Utilizada para otimizar drasticamente a performance de consultas complexas, movendo o processamento de dados da aplicação (Python) para o banco de dados.
+-   **State Management for Background Tasks**: Migração da lógica de estado de um cache em memória para o MongoDB para garantir consistência em ambientes com múltiplas instâncias.
+-   **SPED Fiscal Generation**: Manipulação de regras de negócio complexas baseadas em flags de usuário para incluir ou omitir créditos de ICMS.
 
 **key DB schema**
--   Nenhuma alteração no esquema do banco de dados nesta sessão. As correções focaram na lógica de aplicação que lê e escreve em coleções existentes como  e .
+-   Nenhuma alteração no esquema. As alterações foram na lógica de consulta e escrita nas coleções  e .
 
 **All files of reference**
 -   
 -   
 -   
 -   
+-    (relevante para as próximas tarefas)
 
 **Areas that need refactoring**:
--   ** (CRÍTICO)**: O arquivo é a fonte da maioria dos bugs recentes. Sua complexidade e tamanho (mais de 31.000 linhas) o tornam extremamente frágil e caro de manter. A refatoração em módulos menores (ex: , , ) é urgente para a saúde do projeto.
+-   ** (CRÍTICO)**: O arquivo monolítico continua sendo a fonte da maioria dos bugs e dívidas técnicas. Sua refatoração em módulos (ex: , , ) é a principal prioridade para a saúde do projeto a longo prazo.
 
 **key api endpoints**
--   : Endpoint central do bug atual (P0).
--   : Endpoint investigado para o bug da barra de progresso.
--   : Endpoint corrigido para o cálculo do ICMS.
--   A lógica de parsing de XML, que afeta a importação, foi modificada diretamente no .
+-   : Endpoint corrigido para respeitar as flags do usuário.
+-   : Endpoint otimizado com agregação do MongoDB.
+-   : Endpoint relacionado ao bug da barra de progresso (correção pendente de validação).
+-   : Endpoint modificado para salvar o histórico de importação corretamente.
 
 **Critical Info for New Agent**
--   **FOCO IMEDIATO**: O bug na geração do SPED (Issue 1) é a prioridade P0. O usuário está bloqueado e não pode gerar arquivos fiscais corretos.
--   **VALIDAÇÃO PENDENTE**: A correção para a barra de progresso (Issue 2) precisa ser validada com o usuário. Pergunte se ele pode tentar uma nova importação para confirmar se o problema foi resolvido.
--   **RISCO TÉCNICO**: Tenha extremo cuidado ao editar . Devido à sua natureza monolítica, uma pequena alteração pode ter efeitos colaterais inesperados. A cada correção, considere se é possível isolar a lógica em uma função mais pura.
+-   **PRIORIDADE IMEDIATA**: Iniciar a implementação das 3 novas funcionalidades para o Wizard de Fechamento, conforme solicitado pelo usuário na última mensagem.
+-   **VALIDAÇÃO PENDENTE**: Antes de mergulhar nas novas funcionalidades, pergunte proativamente ao usuário se ele teve a chance de testar a importação de um arquivo grande e se o problema da barra de progresso foi resolvido.
+-   **RISCO TÉCNICO**: O arquivo  é extremamente frágil. Qualquer alteração deve ser feita com o máximo de cuidado e, se possível, deve-se tentar isolar a nova lógica em funções puras e bem definidas para facilitar uma futura refatoração.
 
 **documents and test reports created in this job**
-Nenhum documento ou relatório de teste foi gerado nesta sessão.
+-    (Relatório do  que validou a correção do SPED)
+-    (Atualizado com o progresso)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **PENDING (P0 BUG)**:  - O usuário reporta o bug atual, que é a principal prioridade.
-2.  **PENDING (BUG)**:  - O bug dos dados do consumidor, que foi corrigido.
-3.  **PENDING (FEATURE)**:  - A solicitação de usabilidade nas telas de exportação, que foi implementada.
-4.  **PENDING (BUG)**:  - O bug do ICMS na Reforma Tributária, que foi corrigido.
-5.   - Solicitação para adicionar mais CFOPs, que foi atendida.
-6.   - Pergunta sobre o tratamento do CFOP 5929, que levou à sua adição.
-7.   - Reporte do bug crítico da barra de progresso.
-8.   - Resposta do usuário sobre a mudança de cor, dando liberdade ao agente.
+1.  **PENDING (P0 NEW FEATURES)**:  - O usuário solicita 3 novas funcionalidades para o Wizard: CFOP individual por produto, alerta para devoluções com valor divergente e identificação clara de entradas/saídas em notas canceladas. (Status: NOT STARTED)
+2.   - O usuário reporta o crash do dashboard e a inconsistência no histórico de importação. (Status: RESOLVED)
+3.   - Reporte do bug do SPED. (Status: RESOLVED)
 
 **Project Health Check:**
--   **Broken**: A geração do SPED Fiscal está incorreta, bloqueando o usuário. O processo de deploy continua sendo um ponto de falha.
+-   **Broken**: O problema da barra de progresso de importação tem uma correção implementada, mas ainda não foi validada pelo usuário em produção, então deve ser considerado potencialmente quebrado. O processo de deploy do usuário é relatado como não confiável.
 -   **Mocked**: N/A.
 
 **3rd Party Integrations**
--   **Gemini**: Usado para classificação de produtos como último recurso na hierarquia de regras.
+-   **Gemini**: Usado para classificação de produtos.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
--   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: Nenhuma.
--   **Known regressions**: Nenhuma identificada, mas o risco é alto devido às modificações extensas em  sem testes automatizados.
+-   **Testing agent used after significant changes**: YES (para o bug do SPED).
+-   **Troubleshoot agent used after agent stuck in loop**: NO.
+-   **Test files created**: []
+-   **Known regressions**: Nenhuma identificada.
 
 **Credentials to test flow:**
 -   **Super Admin**:  / 
 
 **What agent forgot to execute**
--   O agente não validou a correção da barra de progresso com o usuário antes de passar para o próximo item.
--   O agente não utilizou o  após fazer mudanças significativas e generalizadas (como a troca de cores em toda a UI e a correção de múltiplos bugs de backend), o que poderia ter prevenido regressões.
--   O fluxo de trabalho foi reativo, pulando de um pedido urgente do usuário para outro sem um plano estruturado de verificação e teste entre eles.</analysis>
+-   O agente não perguntou proativamente ao usuário sobre a validação da correção da barra de progresso. Ele priorizou o novo bug crítico reportado (crash do dashboard), o que foi uma decisão razoável, mas deixou o status do bug anterior em aberto.</analysis>
