@@ -60,11 +60,17 @@ export const UploadProvider = ({ children }) => {
     }
   }, [location.pathname, isUploading, uploadResults, uploadError]);
 
-  // Função de polling fallback
+  // Função de polling fallback - mais robusto
   const startPollingFallback = useCallback(async (uploadId, token) => {
     if (pollingIntervalRef.current) return; // Já está rodando
     
     console.log('Iniciando polling de fallback para upload:', uploadId);
+    
+    let consecutiveErrors = 0;
+    const MAX_ERRORS = 5;
+    let lastPercent = -1;
+    let staleCount = 0;
+    const MAX_STALE = 40; // ~60 segundos sem mudança
     
     pollingIntervalRef.current = setInterval(async () => {
       try {
@@ -72,14 +78,32 @@ export const UploadProvider = ({ children }) => {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
-        if (!response.ok) return;
+        if (!response.ok) {
+          consecutiveErrors++;
+          console.warn(`Polling error ${consecutiveErrors}/${MAX_ERRORS}`);
+          if (consecutiveErrors >= MAX_ERRORS) {
+            console.error('Polling: Muitos erros consecutivos, parando polling');
+            setUploadError('Conexão perdida com o servidor. Verifique o status da importação.');
+            setIsUploading(false);
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
+          }
+          return;
+        }
         
+        consecutiveErrors = 0; // Reset contador de erros
         const data = await response.json();
         
         console.log('Polling response:', data.status, data.progress_percent, data.completed);
         
-        if (data.completed === true && data.results) {
-          console.log('Polling: Upload concluído com resultados!');
+        // IMPORTANTE: Verificar se completou de múltiplas formas
+        const isCompleted = data.completed === true || data.status === 'completed';
+        const hasResults = data.results && (data.results.success || data.results.resumo);
+        
+        if (isCompleted && hasResults) {
+          console.log('Polling: Upload CONCLUÍDO com resultados!');
           setProgress({ 
             current: data.total_files || data.processed_files, 
             total: data.total_files, 
@@ -108,13 +132,39 @@ export const UploadProvider = ({ children }) => {
           const total = data.total_files || 1;
           const percent = data.progress_percent || Math.round((processed / total) * 100);
           
+          // Detectar progresso estagnado
+          if (percent === lastPercent) {
+            staleCount++;
+            if (staleCount >= MAX_STALE) {
+              console.warn('Polling: Progresso estagnado por muito tempo, verificando conclusão...');
+              // Tentar forçar verificação de conclusão
+              if (percent >= 95) {
+                setProgress({ current: total, total: total, percent: 100 });
+                setCurrentFile('Verificando conclusão...');
+              }
+              staleCount = 0;
+            }
+          } else {
+            staleCount = 0;
+            lastPercent = percent;
+          }
+          
           setProgress({ current: processed, total: total, percent: percent });
           setCurrentFile(data.current_file || data.current_step || `Processando ${processed}/${total}...`);
         }
       } catch (err) {
+        consecutiveErrors++;
         console.error('Erro no polling:', err);
+        if (consecutiveErrors >= MAX_ERRORS) {
+          setUploadError('Erro de conexão. Verifique o status da importação manualmente.');
+          setIsUploading(false);
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+        }
       }
-    }, 1500); // Poll a cada 1.5 segundos (mais frequente)
+    }, 1500); // Poll a cada 1.5 segundos
   }, [API]);
 
   // Iniciar upload em segundo plano
@@ -176,13 +226,19 @@ export const UploadProvider = ({ children }) => {
       const eventSource = new EventSource(`${API}/xml/upload-progress/${upload_id}`);
       eventSourceRef.current = eventSource;
 
+      let lastEventTime = Date.now();
+      
       eventSource.onmessage = (event) => {
         try {
+          lastEventTime = Date.now();
           const data = JSON.parse(event.data);
           console.log('SSE Event:', data); // Debug
           
-          // Verificar se realmente concluiu (completed=true E results presente)
-          if (data.completed === true && data.results) {
+          // IMPORTANTE: Verificar conclusão de múltiplas formas
+          const isCompleted = data.completed === true || data.status === 'completed';
+          const hasResults = data.results && (data.results.success || data.results.resumo);
+          
+          if (isCompleted && hasResults) {
             console.log('Upload REALMENTE concluído com resultados');
             setProgress({ 
               current: data.total_files || data.processed_files, 
@@ -194,6 +250,11 @@ export const UploadProvider = ({ children }) => {
             setIsUploading(false);
             eventSource.close();
             eventSourceRef.current = null;
+            // Limpar polling se estava rodando
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
           } else if (data.error) {
             // Erro explícito
             console.log('Erro no upload:', data.error);
