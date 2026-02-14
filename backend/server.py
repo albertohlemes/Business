@@ -10203,7 +10203,19 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         "analise_comparativa": None,
         "simples": None,
         "_modo_agregado": True,  # Flag para indicar que foi usado modo agregado
-        "_total_documentos_processados": total_docs
+        "_total_documentos_processados": total_docs,
+        # === ALERTAS DE VARIAÇÃO ===
+        "alertas_variacao": await calcular_alertas_variacao(
+            company_id, 
+            company, 
+            competencia,
+            {
+                "compras": total_entradas,
+                "vendas": faturamento_total,
+                "icms": icms_pagar,
+                "pis_cofins": 0  # Não calculado na versão agregada simplificada
+            }
+        )
     }
 
 
