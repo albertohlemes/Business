@@ -23106,6 +23106,9 @@ async def _get_pis_cofins_aggregated(company: dict, company_id: str, competencia
         "resumo_divergencias": {"total_divergencias": 0, "recolhido_a_maior": 0, "recolhido_a_menor": 0, "saldo_reclassificacao": 0}
     }
     
+    # Salvar no cache antes de retornar
+    aggregation_cache.set("pis_cofins", company_id, competencia, resultado)
+    
     return resultado
 
 @api_router.get("/pis-cofins/apuracao/{company_id}")
