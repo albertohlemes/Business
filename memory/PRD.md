@@ -186,7 +186,25 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 
 ## Changelog
 
-### Fevereiro/2026 (Sessão Atual - 13/02)
+### Fevereiro/2026 (Sessão Atual - 14/02)
+- ✅ **CORREÇÃO P0**: Bug da barra de progresso do upload que travava
+  - Melhorado `UploadContext.js` com polling mais robusto:
+    - Detecção de erros consecutivos (máx. 5 tentativas)
+    - Detecção de progresso estagnado (máx. 40 iterações = 60s)
+    - Watchdog de SSE com timeout de 15s para forçar polling
+  - Melhorado endpoint `/api/xml/upload-status/{upload_id}`:
+    - Retorna `status: "not_found"` quando upload não existe
+    - Correção automática de `completed` baseado em `results`
+- ✅ **UX WIZARD**: Wizard de Fechamento mais dinâmico (Etapa 8 - Concluído)
+  - Novo componente `WizardConcluidoStep` com:
+    - Destaque visual na seção de download de relatório
+    - Auto-redirect para Central de Fechamento após download (2.5s)
+    - Botão "Voltar para Central de Fechamento"
+    - Animações (`animate-bounce`, `animate-pulse-slow`)
+  - Corrigido bug do `case 7` duplicado → agora é `case 8`
+- ✅ Nova animação CSS `animate-pulse-slow` em `App.css`
+
+### Fevereiro/2026 (Sessão 13/02)
 - ✅ **CORREÇÃO CRÍTICA**: Dashboard e Apuração ICMS mostravam vendas/débitos incorretos
   - Corrigido endpoints `/api/apuracao-icms`, `/api/apuracao-ipi`, `/api/apuracao-pis-cofins`
   - Agora usam campo `tipo` do documento em vez de inferir por CFOP
