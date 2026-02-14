@@ -111,7 +111,7 @@ const BackgroundJobsIndicator = () => {
     switch (status) {
       case 'processing':
       case 'queued':
-        return <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />;
+        return <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />;
       case 'completed':
         return <CheckCircle className="w-4 h-4 text-emerald-400" />;
       case 'error':
@@ -127,15 +127,15 @@ const BackgroundJobsIndicator = () => {
       <div 
         className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-all ${
           hasActiveJobs 
-            ? 'bg-purple-500/20 border border-purple-500/50 hover:bg-purple-500/30' 
+            ? 'bg-cyan-500/20 border border-cyan-500/50 hover:bg-cyan-500/30' 
             : 'bg-[#141414]/80 border border-[#2A2A2A] hover:bg-[#1A1A1A]'
         }`}
         onClick={() => setExpanded(!expanded)}
       >
         {hasActiveJobs ? (
           <>
-            <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
-            <span className="text-purple-300 font-medium">
+            <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+            <span className="text-cyan-300 font-medium">
               {processingCount} importação{processingCount > 1 ? 'ões' : ''} em background
             </span>
           </>
@@ -175,7 +175,7 @@ const BackgroundJobsIndicator = () => {
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b border-[#2A2A2A] bg-[#0C0C0C]">
             <h3 className="text-white font-medium flex items-center gap-2">
-              <Cloud className="w-4 h-4 text-purple-400" />
+              <Cloud className="w-4 h-4 text-cyan-400" />
               Importações em Background
             </h3>
             <button 
@@ -197,7 +197,7 @@ const BackgroundJobsIndicator = () => {
                 <div 
                   key={job.job_id}
                   className={`p-3 border-b border-[#2A2A2A] last:border-b-0 ${
-                    job.status === 'processing' ? 'bg-purple-500/5' : ''
+                    job.status === 'processing' ? 'bg-cyan-500/5' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -221,14 +221,14 @@ const BackgroundJobsIndicator = () => {
                   {(job.status === 'processing' || job.status === 'queued') && job.progress && (
                     <div className="mt-2">
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-purple-300">{job.progress.status}</span>
-                        <span className="text-purple-400">
+                        <span className="text-cyan-300">{job.progress.status}</span>
+                        <span className="text-cyan-400">
                           {job.progress.current?.toLocaleString('pt-BR')}/{job.progress.total?.toLocaleString('pt-BR')}
                         </span>
                       </div>
                       <div className="w-full h-1.5 bg-[#2A2A2A] rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-purple-500 rounded-full transition-all duration-300"
+                          className="h-full bg-cyan-500 rounded-full transition-all duration-300"
                           style={{ width: `${(job.progress.current / job.progress.total) * 100}%` }}
                         />
                       </div>
