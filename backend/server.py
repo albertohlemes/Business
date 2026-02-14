@@ -121,6 +121,113 @@ class KeepAliveMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(KeepAliveMiddleware)
 
+
+# ============= SISTEMA DE CACHE PARA AGREGAÇÕES =============
+# Cache inteligente que invalida automaticamente quando há alterações nos documentos
+
+from functools import lru_cache
+import hashlib
+from time import time
+
+class AggregationCache:
+    """
+    Cache para resultados de agregações pesadas.
+    Invalida automaticamente por empresa/competência quando há alterações.
+    """
+    def __init__(self, ttl_seconds: int = 300):  # TTL padrão: 5 minutos
+        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._timestamps: Dict[str, float] = {}
+        self._invalidation_tokens: Dict[str, str] = {}  # Token por empresa/competência
+        self.ttl = ttl_seconds
+    
+    def _make_key(self, endpoint: str, company_id: str, competencia: str, extra: str = "") -> str:
+        """Gera chave única para o cache"""
+        return f"{endpoint}:{company_id}:{competencia}:{extra}"
+    
+    def _make_invalidation_key(self, company_id: str, competencia: str) -> str:
+        """Gera chave de invalidação por empresa/competência"""
+        return f"{company_id}:{competencia}"
+    
+    def get(self, endpoint: str, company_id: str, competencia: str, extra: str = "") -> Optional[Dict]:
+        """Busca resultado no cache se válido"""
+        key = self._make_key(endpoint, company_id, competencia, extra)
+        inv_key = self._make_invalidation_key(company_id, competencia)
+        
+        if key not in self._cache:
+            return None
+        
+        # Verificar TTL
+        if time() - self._timestamps.get(key, 0) > self.ttl:
+            self._cache.pop(key, None)
+            self._timestamps.pop(key, None)
+            return None
+        
+        # Verificar se foi invalidado
+        cached_token = self._cache[key].get("_inv_token")
+        current_token = self._invalidation_tokens.get(inv_key)
+        if cached_token and current_token and cached_token != current_token:
+            self._cache.pop(key, None)
+            self._timestamps.pop(key, None)
+            return None
+        
+        logger.info(f"CACHE HIT: {endpoint} para {company_id}/{competencia}")
+        return self._cache[key].get("data")
+    
+    def set(self, endpoint: str, company_id: str, competencia: str, data: Dict, extra: str = ""):
+        """Armazena resultado no cache"""
+        key = self._make_key(endpoint, company_id, competencia, extra)
+        inv_key = self._make_invalidation_key(company_id, competencia)
+        
+        current_token = self._invalidation_tokens.get(inv_key, str(time()))
+        
+        self._cache[key] = {
+            "data": data,
+            "_inv_token": current_token
+        }
+        self._timestamps[key] = time()
+        logger.info(f"CACHE SET: {endpoint} para {company_id}/{competencia}")
+    
+    def invalidate(self, company_id: str, competencia: str = None):
+        """
+        Invalida cache para uma empresa.
+        Se competencia for None, invalida todas as competências.
+        """
+        if competencia:
+            inv_key = self._make_invalidation_key(company_id, competencia)
+            self._invalidation_tokens[inv_key] = str(time())
+            logger.info(f"CACHE INVALIDADO: {company_id}/{competencia}")
+        else:
+            # Invalidar todas as competências da empresa
+            keys_to_invalidate = [k for k in self._invalidation_tokens.keys() if k.startswith(f"{company_id}:")]
+            for k in keys_to_invalidate:
+                self._invalidation_tokens[k] = str(time())
+            # Também gerar token genérico para a empresa
+            self._invalidation_tokens[f"{company_id}:*"] = str(time())
+            logger.info(f"CACHE INVALIDADO: {company_id} (todas competências)")
+    
+    def clear_all(self):
+        """Limpa todo o cache"""
+        self._cache.clear()
+        self._timestamps.clear()
+        self._invalidation_tokens.clear()
+        logger.info("CACHE LIMPO COMPLETAMENTE")
+    
+    def stats(self) -> Dict:
+        """Retorna estatísticas do cache"""
+        return {
+            "entries": len(self._cache),
+            "invalidation_tokens": len(self._invalidation_tokens),
+            "memory_estimate_kb": len(str(self._cache)) / 1024
+        }
+
+# Instância global do cache
+aggregation_cache = AggregationCache(ttl_seconds=300)  # 5 minutos de TTL
+
+def invalidate_company_cache(company_id: str, competencia: str = None):
+    """Helper para invalidar cache de uma empresa"""
+    aggregation_cache.invalidate(company_id, competencia)
+
+
 tasks_store = {}
 class UserRole:
     ADMIN = "admin"           # Super administrador (acesso total)
