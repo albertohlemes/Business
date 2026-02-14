@@ -22559,6 +22559,77 @@ async def apurar_iss(
     }
 
 
+
+async def _get_ipi_aggregated(company: dict, company_id: str, competencia: str, query: dict, total_docs: int):
+    """
+    Versão otimizada da apuração de IPI usando agregação do MongoDB.
+    """
+    logger.info(f"IPI AGREGADO: Iniciando para {total_docs} documentos")
+    
+    pipeline = [
+        {"$match": query},
+        {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
+        {
+            "$group": {
+                "_id": {
+                    "tipo": {"$ifNull": ["$tipo", {"$ifNull": ["$tipo_operacao", "entrada"]}]}
+                },
+                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                "bc_ipi": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.bc_ipi", 0]}}},
+                "valor_ipi": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_ipi", 0]}}},
+                "qtd_itens": {"$sum": 1}
+            }
+        }
+    ]
+    
+    cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
+    resultados = await cursor.to_list(length=10)
+    
+    totais_entradas = {"valor_total": 0, "bc_ipi": 0, "valor_ipi": 0, "qtd_itens": 0}
+    totais_saidas = {"valor_total": 0, "bc_ipi": 0, "valor_ipi": 0, "qtd_itens": 0}
+    
+    for item in resultados:
+        tipo = (item['_id'].get('tipo', '') or '').lower()
+        if tipo == 'entrada':
+            totais_entradas["valor_total"] = round(item['valor_total'], 2)
+            totais_entradas["bc_ipi"] = round(item['bc_ipi'], 2)
+            totais_entradas["valor_ipi"] = round(item['valor_ipi'], 2)
+            totais_entradas["qtd_itens"] = item['qtd_itens']
+        elif tipo == 'saida':
+            totais_saidas["valor_total"] = round(item['valor_total'], 2)
+            totais_saidas["bc_ipi"] = round(item['bc_ipi'], 2)
+            totais_saidas["valor_ipi"] = round(item['valor_ipi'], 2)
+            totais_saidas["qtd_itens"] = item['qtd_itens']
+    
+    credito_ipi = totais_entradas["valor_ipi"]
+    debito_ipi = totais_saidas["valor_ipi"]
+    saldo_ipi = debito_ipi - credito_ipi
+    
+    return {
+        "empresa": {"razao_social": company.get('razao_social', ''), "cnpj": company.get('cnpj', '')},
+        "competencia": competencia,
+        "totais": {
+            "entradas": totais_entradas,
+            "saidas": totais_saidas
+        },
+        "apuracao": {
+            "credito_ipi": round(credito_ipi, 2),
+            "debito_ipi": round(debito_ipi, 2),
+            "saldo_ipi": round(saldo_ipi, 2),
+            "ipi_a_pagar": round(max(0, saldo_ipi), 2),
+            "credito_acumulado": round(abs(min(0, saldo_ipi)), 2)
+        },
+        "por_cfop_entrada": [],
+        "por_cfop_saida": [],
+        "top_10_credito": [],
+        "top_10_debito": [],
+        "alertas": [{"tipo": "INFO", "mensagem": f"Apuração simplificada: {total_docs} documentos via agregação"}],
+        "total_documentos": total_docs,
+        "otimizado": True
+    }
+
+
+
 # ============================================================
 # APURAÇÃO DE IPI
 # ============================================================
