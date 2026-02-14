@@ -30896,46 +30896,55 @@ async def get_wizard_step_data(
         }, {"_id": 0, "id": 1, "numero_nfe": 1, "chave_nfe": 1, "emitente_nome": 1,
             "valor_total": 1, "data_emissao": 1, "produtos": 1, "tipo": 1}).to_list(length=None)
         
-        # Agrupar por CFOP atual - APENAS produtos com pendente_revisao_cfop
+        # CORREÇÃO: Agrupar por CFOP ORIGINAL do emissor - NÃO pelo CFOP convertido
+        # Isso preserva a natureza da operação original e deixa o usuário decidir
         cfops_agrupados = {}
         for doc in docs:
             for idx, p in enumerate(doc.get("produtos", [])):
                 # Critério: produto deve estar pendente de revisão
                 if not p.get("pendente_revisao_cfop"):
                     continue
-                    
-                cfop_atual = str(p.get("cfop", ""))
-                cfop_original = str(p.get("cfop_original_emissor", cfop_atual))
                 
-                if not cfop_atual:
+                # USAR CFOP ORIGINAL DO EMISSOR como chave de agrupamento
+                cfop_original = str(p.get("cfop_original_emissor", "") or p.get("cfop", ""))
+                cfop_atual = str(p.get("cfop", ""))
+                
+                if not cfop_original:
                     continue
                 
-                if cfop_atual not in cfops_agrupados:
-                    # Buscar descrição do CFOP
+                # Agrupar pelo CFOP ORIGINAL (não pelo convertido)
+                if cfop_original not in cfops_agrupados:
+                    # Buscar descrição do CFOP original
                     natureza = p.get('natureza_operacao_original', '')
                     cfop_info = CFOPS_OPERACOES_DISTINTAS.get(cfop_original, "")
-                    descricao_cfop = cfop_info if cfop_info else natureza or f'Operação {cfop_atual}'
+                    descricao_cfop = cfop_info if cfop_info else natureza or f'Operação {cfop_original}'
                     
-                    # Calcular CFOP de compra sugerido
-                    # Verificar se é operação com ST pelo CFOP original
+                    # Calcular CFOP de ENTRADA sugerido baseado no CFOP original de SAÍDA
+                    # Se o fornecedor emitiu 5xxx, vamos sugerir 1xxx equivalente para entrada
+                    # Se o fornecedor emitiu 6xxx, vamos sugerir 2xxx equivalente para entrada
                     cfops_st = ['5403', '5405', '5408', '5409', '5410', '5411', '5412', '5413', '5414', '5415',
                                '6403', '6404', '6405', '6408', '6409', '6410', '6411', '6412', '6413', '6414', '6415']
                     is_st = cfop_original in cfops_st
                     
-                    if cfop_atual.startswith('1'):
+                    # Mapear CFOP de saída do fornecedor para entrada do destinatário
+                    if cfop_original.startswith('5'):  # Operação interna
+                        cfop_entrada_base = '1' + cfop_original[1:]  # 5xxx -> 1xxx
                         cfop_compra = '1403' if is_st else '1102'
-                    elif cfop_atual.startswith('2'):
+                    elif cfop_original.startswith('6'):  # Operação interestadual
+                        cfop_entrada_base = '2' + cfop_original[1:]  # 6xxx -> 2xxx
                         cfop_compra = '2403' if is_st else '2102'
                     else:
-                        cfop_compra = cfop_atual[:2] + '02' if len(cfop_atual) >= 2 else cfop_atual
+                        cfop_entrada_base = cfop_original
+                        cfop_compra = cfop_original[:2] + '02' if len(cfop_original) >= 2 else cfop_original
                     
                     # Obter categorias
-                    categoria_manter = obter_categoria_por_cfop(cfop_atual)
+                    categoria_manter = obter_categoria_por_cfop(cfop_entrada_base)
                     categoria_compra = obter_categoria_por_cfop(cfop_compra)
                     
-                    cfops_agrupados[cfop_atual] = {
-                        "cfop": cfop_atual,
-                        "cfop_original": cfop_original,
+                    cfops_agrupados[cfop_original] = {
+                        "cfop": cfop_original,  # CFOP ORIGINAL do emissor (5xxx, 6xxx)
+                        "cfop_atual": cfop_atual,  # CFOP atual (já convertido, se houver)
+                        "cfop_entrada_sugerido": cfop_entrada_base,  # Sugestão de entrada equivalente
                         "descricao": descricao_cfop,
                         "tipo_operacao": "entrada",
                         "produtos": [],
@@ -30943,10 +30952,10 @@ async def get_wizard_step_data(
                         "total_valor": 0,
                         "total_produtos": 0,
                         "sugestao_manter": {
-                            "cfop": cfop_atual,
-                            "descricao": f"Manter {cfop_atual}",
+                            "cfop": cfop_entrada_base,  # Entrada equivalente ao original
+                            "descricao": f"Converter para {cfop_entrada_base}",
                             "categoria": categoria_manter,
-                            "categoria_nome": obter_nome_categoria(categoria_manter) if categoria_manter else "Pendente"
+                            "categoria_nome": obter_nome_categoria(categoria_manter) if categoria_manter else "Manter Operação"
                         },
                         "sugestao_compra": {
                             "cfop": cfop_compra,
