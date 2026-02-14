@@ -9819,9 +9819,9 @@ async def calcular_alertas_variacao(company_id: str, company: dict, competencia_
                         "tipo": {"$ifNull": ["$tipo", "$tipo_operacao"]}
                     },
                     "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
-                    "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_icms", 0]}}},
-                    "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_pis", 0]}}},
-                    "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_cofins", 0]}}}
+                    "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms", {"$ifNull": ["$produtos.valor_icms", 0]}]}}},
+                    "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", {"$ifNull": ["$produtos.valor_pis", 0]}]}}},
+                    "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_cofins", {"$ifNull": ["$produtos.valor_cofins", 0]}]}}}
                 }
             }
         ]
@@ -11876,11 +11876,11 @@ async def _get_apuracao_periodo_aggregated(company: dict, company_id: str, compe
                     "cfop": {"$ifNull": ["$produtos.cfop", "0000"]}
                 },
                 "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
-                "bc_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.bc_icms", 0]}}},
-                "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_icms", 0]}}},
-                "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_pis", 0]}}},
-                "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_cofins", 0]}}},
-                "valor_ipi": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_ipi", 0]}}},
+                "bc_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_bc_icms", {"$ifNull": ["$produtos.bc_icms", 0]}]}}},
+                "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms", {"$ifNull": ["$produtos.valor_icms", 0]}]}}},
+                "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", {"$ifNull": ["$produtos.valor_pis", 0]}]}}},
+                "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_cofins", {"$ifNull": ["$produtos.valor_cofins", 0]}]}}},
+                "valor_ipi": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_ipi", {"$ifNull": ["$produtos.valor_ipi", 0]}]}}},
                 "qtd_produtos": {"$sum": 1}
             }
         },
