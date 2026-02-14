@@ -31624,41 +31624,63 @@ def generate_wizard_report_pdf(data: Dict[str, Any]) -> io.BytesIO:
     
     # Etapa 5/6 - PIS/COFINS
     elements.append(Paragraph("ETAPAS 5/6 - CST PIS/COFINS", section_style))
+    
+    total_correcoes = (data.get('etapa_5', {}).get('total', 0) + data.get('etapa_6', {}).get('total', 0))
+    elements.append(Paragraph(f"Total de CSTs corrigidos: {total_correcoes}", normal_style))
+    
+    # Informações adicionais sobre recálculo
+    if data.get('etapa_5', {}).get('recalculou') or data.get('etapa_6', {}).get('recalculou'):
+        recalc_info = []
+        if data.get('etapa_5', {}).get('recalculou'):
+            recalc_info.append("Entradas recalculadas")
+        if data.get('etapa_6', {}).get('recalculou'):
+            recalc_info.append("Saídas recalculadas")
+        elements.append(Paragraph(f"Recálculo: {', '.join(recalc_info)}", small_style))
+    
+    if data.get('etapa_5', {}).get('correcoes') or data.get('etapa_6', {}).get('correcoes'):
+        table_data = [["Tipo", "CST Original", "CST Corrigido", "Qtd Produtos"]]
         
-        total_correcoes = (data.get('etapa_5', {}).get('total', 0) + data.get('etapa_6', {}).get('total', 0))
-        elements.append(Paragraph(f"Total de CSTs corrigidos: {total_correcoes}", normal_style))
+        for corr in data.get('etapa_5', {}).get('correcoes', [])[:15]:
+            table_data.append([
+                "Entrada",
+                str(corr.get('cst_original', '-')),
+                str(corr.get('cst_corrigido', '-')),
+                str(corr.get('qtd', 0))
+            ])
         
-        if data.get('etapa_5', {}).get('correcoes') or data.get('etapa_6', {}).get('correcoes'):
-            table_data = [["Tipo", "CST Original", "CST Corrigido", "Qtd Produtos"]]
-            
-            for corr in data.get('etapa_5', {}).get('correcoes', [])[:15]:
-                table_data.append([
-                    "Entrada",
-                    corr.get('cst_original', '-'),
-                    corr.get('cst_corrigido', '-'),
-                    str(corr.get('qtd', 0))
-                ])
-            
-            for corr in data.get('etapa_6', {}).get('correcoes', [])[:15]:
-                table_data.append([
-                    "Saída",
-                    corr.get('cst_original', '-'),
-                    corr.get('cst_corrigido', '-'),
-                    str(corr.get('qtd', 0))
-                ])
-            
-            if len(table_data) > 1:
-                t = Table(table_data, colWidths=[80, 120, 120, 100])
-                t.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 8),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ('ALIGN', (3, 1), (3, -1), 'CENTER'),
-                ]))
-                elements.append(t)
-        elements.append(Spacer(1, 3*mm))
+        for corr in data.get('etapa_6', {}).get('correcoes', [])[:15]:
+            table_data.append([
+                "Saída",
+                str(corr.get('cst_original', '-')),
+                str(corr.get('cst_corrigido', '-')),
+                str(corr.get('qtd', 0))
+            ])
+        
+        if len(table_data) > 1:
+            t = Table(table_data, colWidths=[80, 120, 120, 100])
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ALIGN', (3, 1), (3, -1), 'CENTER'),
+            ]))
+            elements.append(t)
+    elif total_correcoes == 0:
+        elements.append(Paragraph("Nenhuma correção de CST necessária.", small_style))
+    elements.append(Spacer(1, 3*mm))
+    
+    # Etapa 7 - Reforma Tributária
+    elements.append(Paragraph("ETAPA 7 - REFORMA TRIBUTÁRIA", section_style))
+    etapa7 = data.get('etapa_7', {})
+    if etapa7.get('revisado'):
+        elements.append(Paragraph("Cálculo do IVA Dual (CBS + IBS) revisado: Sim", normal_style))
+        if etapa7.get('data_conclusao'):
+            elements.append(Paragraph(f"Data de conclusão: {etapa7['data_conclusao'][:19]}", small_style))
+    else:
+        elements.append(Paragraph("Cálculo do IVA Dual (CBS + IBS): Não revisado", normal_style))
+    elements.append(Spacer(1, 3*mm))
     
     # Rodapé
     elements.append(Spacer(1, 10*mm))
