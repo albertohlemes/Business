@@ -852,7 +852,7 @@ const WizardFechamento = ({ user, onLogout }) => {
         return (
           <div className="space-y-4">
             <p className="text-[#A1A1AA]">
-              Classifique os produtos das notas de entrada. Produtos já memorizados serão classificados automaticamente.
+              Classifique os produtos das notas de entrada. A classificação segue uma hierarquia inteligente de 6 regras.
             </p>
             
             <div className="grid grid-cols-2 gap-4">
@@ -868,7 +868,7 @@ const WizardFechamento = ({ user, onLogout }) => {
             
             {data.produtos_pendentes?.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm text-white font-medium">Produtos pendentes (primeiros 100):</p>
+                <p className="text-sm text-white font-medium">Produtos pendentes (primeiros 20):</p>
                 <div className="max-h-48 overflow-y-auto space-y-2">
                   {data.produtos_pendentes.slice(0, 20).map((prod, idx) => (
                     <div key={idx} className="bg-[#0C0C0C] rounded-lg p-2 text-sm">
@@ -884,6 +884,22 @@ const WizardFechamento = ({ user, onLogout }) => {
               </div>
             )}
             
+            {/* Hierarquia de Classificação - Info Box */}
+            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+              <h4 className="text-purple-400 font-medium mb-2 flex items-center gap-2">
+                <Zap className="w-4 h-4" />
+                Hierarquia de Classificação (6 Regras)
+              </h4>
+              <ol className="text-sm text-[#A1A1AA] space-y-1 list-decimal list-inside">
+                <li>CFOP de Devolução (automático)</li>
+                <li>Cache de Regras Aprendidas</li>
+                <li>Aprendizado por NCM (match com vendas)</li>
+                <li>Aprendizado por Palavras-Chave (match com vendas)</li>
+                <li>Palavras-Chave Cadastradas pela Empresa</li>
+                <li>Classificação por IA (Gemini) como último recurso</li>
+              </ol>
+            </div>
+            
             <div className="space-y-2">
               {/* Botão para classificar em lote com padrão da empresa */}
               {(data.total_pendentes || 0) > 0 && (
@@ -891,17 +907,18 @@ const WizardFechamento = ({ user, onLogout }) => {
                   onClick={async () => {
                     setProcessing(true);
                     try {
+                      const token = localStorage.getItem('token');
                       const res = await axios.post(
-                        `${API}/wizard-fechamento/classificar-pendentes/${selectedCompany.id}?competencia=${competencia}`,
+                        `${API}/api/wizard-fechamento/classificar-pendentes/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
                         {},
                         { headers: { Authorization: `Bearer ${token}` } }
                       );
                       if (res.data.success) {
-                        toast.success(`${res.data.total_produtos_classificados} produtos classificados como ${res.data.categoria_aplicada.toUpperCase()}`);
-                        loadStepData(currentStep);
+                        alert(`${res.data.total_produtos_classificados} produtos classificados como ${res.data.categoria_aplicada?.toUpperCase() || 'REVENDA'}`);
+                        loadStepData(wizard.current_step);
                       }
                     } catch (err) {
-                      toast.error('Erro ao classificar produtos');
+                      alert('Erro ao classificar produtos');
                     } finally {
                       setProcessing(false);
                     }
@@ -914,8 +931,9 @@ const WizardFechamento = ({ user, onLogout }) => {
                 </button>
               )}
               
+              {/* Botão para classificar com IA - agora sempre pergunta */}
               <button
-                onClick={() => completeStep({ classificar_produtos: true })}
+                onClick={() => setShowConfirmModal(true)}
                 disabled={processing}
                 className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-[#2A2A2A] text-white py-3 rounded-lg flex items-center justify-center gap-2"
               >
@@ -931,6 +949,64 @@ const WizardFechamento = ({ user, onLogout }) => {
                 Pular (não classificar agora)
               </button>
             </div>
+            
+            {/* Modal de Confirmação para Reclassificação */}
+            {showConfirmModal && (
+              <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-6 max-w-lg w-full">
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <AlertTriangle className="w-6 h-6 text-amber-400" />
+                    Confirmar Reclassificação
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <p className="text-[#A1A1AA]">
+                      {(data.total_classificados || 0) > 0 
+                        ? `Existem ${data.total_classificados} produtos já classificados. Deseja reclassificar TODOS os produtos usando a hierarquia inteligente?`
+                        : `Deseja classificar ${data.total_pendentes || 0} produtos pendentes usando a hierarquia inteligente?`
+                      }
+                    </p>
+                    
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                      <p className="text-sm text-amber-400">
+                        <strong>Atenção:</strong> Produtos já classificados serão reclassificados seguindo a nova hierarquia de regras.
+                      </p>
+                    </div>
+                    
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+                      <p className="text-sm text-purple-400 font-medium mb-2">Ordem de prioridade:</p>
+                      <ol className="text-xs text-[#A1A1AA] space-y-0.5 list-decimal list-inside">
+                        <li>CFOP de Devolução</li>
+                        <li>Regras Aprendidas (learned_rules)</li>
+                        <li>NCM encontrado em vendas</li>
+                        <li>Palavras-chave encontradas em vendas</li>
+                        <li>Palavras-chave cadastradas pela empresa</li>
+                        <li>IA Gemini (último recurso)</li>
+                      </ol>
+                    </div>
+                    
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        onClick={() => {
+                          setShowConfirmModal(false);
+                          completeStep({ classificar_produtos: true, forcar_reclassificacao: true });
+                        }}
+                        disabled={processing}
+                        className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-[#2A2A2A] text-white py-3 rounded-lg font-medium"
+                      >
+                        {processing ? 'Processando...' : 'Sim, Reclassificar'}
+                      </button>
+                      <button
+                        onClick={() => setShowConfirmModal(false)}
+                        className="flex-1 bg-[#2A2A2A] hover:bg-[#3A3A3A] text-white py-3 rounded-lg"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
       
