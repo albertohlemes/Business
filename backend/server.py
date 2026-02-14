@@ -19099,15 +19099,9 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
                 is_st = product.get('_is_st_by_cfop', False) or str(product.get('cst', '')) in ['10', '30', '60', '70', '201', '202', '203', '500']
                 
                 # Determinar categoria padrão baseado no tipo de atividade
-                if tipo_atividade == 'servicos':
-                    categoria_padrao = 'aplicacao_servico'
-                    cfop_padrao = cfop_prefix + '128' if not is_st else cfop_prefix + '401'
-                    justificativa_padrao = "Classificado automaticamente como APLICAÇÃO EM SERVIÇOS (empresa de serviços)"
-                else:
-                    # Comercio, industria ou mista → padrão é revenda
-                    categoria_padrao = 'revenda'
-                    cfop_padrao = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
-                    justificativa_padrao = "Classificado automaticamente como COMPRA P/ REVENDA (padrão comercial)"
+                categoria_padrao, cfop_sufixo_normal, cfop_sufixo_st = obter_categoria_padrao_por_atividade(tipo_atividade)
+                cfop_padrao = cfop_prefix + (cfop_sufixo_st if is_st else cfop_sufixo_normal)
+                justificativa_padrao = f"Classificação padrão: {categoria_padrao.upper()} (tipo atividade: {tipo_atividade})"
                 
                 results[p_id] = {
                     "categoria": categoria_padrao,
