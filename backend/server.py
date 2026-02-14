@@ -8348,6 +8348,33 @@ async def upload_xml_with_progress(
     # ===== SALVAR NO HISTÓRICO DE IMPORTAÇÕES QUANDO CONCLUÍDO =====
     if progress.get("completed"):
         try:
+            # Obter os resultados finais
+            results_data = progress.get("results", {})
+            resumo_data = results_data.get("resumo", {})
+            
+            # Log para debug
+            logger.info(f"HISTORICO: Salvando histórico - resumo_data keys: {resumo_data.keys()}")
+            logger.info(f"HISTORICO: resumo_data = {resumo_data}")
+            
+            # Calcular totais a partir dos dados reais se o resumo estiver incompleto
+            total_arquivos_calc = resumo_data.get("total_arquivos", 0)
+            importados_calc = resumo_data.get("importados", 0)
+            erros_calc = resumo_data.get("erros", 0)
+            duplicados_calc = resumo_data.get("duplicados", 0)
+            
+            # Fallback: calcular a partir das listas se resumo estiver vazio
+            if total_arquivos_calc == 0 and importados_calc == 0:
+                success_list = results_data.get("success", [])
+                errors_list = results_data.get("errors", [])
+                duplicadas_list = results_data.get("duplicadas", [])
+                
+                importados_calc = len(success_list)
+                erros_calc = len(errors_list)
+                duplicados_calc = len(duplicadas_list)
+                total_arquivos_calc = importados_calc + erros_calc + duplicados_calc
+                
+                logger.info(f"HISTORICO: Usando fallback - success={importados_calc}, errors={erros_calc}, duplicadas={duplicados_calc}")
+            
             historico_entry = {
                 "id": str(uuid.uuid4()),
                 "upload_id": upload_id,
@@ -8355,22 +8382,28 @@ async def upload_xml_with_progress(
                 "company_name": company.get('razao_social', 'N/A'),
                 "competencia": competencia,
                 "tipo": tipo,  # 'entrada' ou 'saida'
+                "tipo_operacao": tipo,  # Adicionar também como tipo_operacao para compatibilidade
                 "modelo": progress.get("modelo", "xml"),  # 'xml', 'nfe', 'nfce', 'cte', etc.
                 "data_importacao": datetime.now(timezone.utc).isoformat(),
                 "usuario_id": current_user.id,
                 "usuario_nome": current_user.name,
-                "resumo": progress.get("results", {}).get("resumo", {}),
-                "performance": progress.get("results", {}).get("performance", {}),
-                "relatorio_completo": progress.get("results", {}),
-                "total_arquivos": progress.get("results", {}).get("resumo", {}).get("total_arquivos", 0),
-                "total_importados": progress.get("results", {}).get("resumo", {}).get("importados", 0),
-                "total_erros": progress.get("results", {}).get("resumo", {}).get("erros", 0),
-                "total_duplicados": progress.get("results", {}).get("resumo", {}).get("duplicados", 0),
+                "resumo": resumo_data,
+                "performance": results_data.get("performance", {}),
+                "relatorio_completo": results_data,
+                "total_arquivos": total_arquivos_calc,
+                "total_importados": importados_calc,
+                "total_erros": erros_calc,
+                "total_duplicados": duplicados_calc,
             }
+            
+            logger.info(f"HISTORICO: Salvando - total_arquivos={total_arquivos_calc}, importados={importados_calc}, erros={erros_calc}, duplicados={duplicados_calc}")
+            
             await db.historico_importacoes.insert_one(historico_entry)
-            logger.info(f"HISTORICO: Importação salva - {historico_entry['total_importados']} docs de {tipo}")
+            logger.info(f"HISTORICO: Importação salva com sucesso - {importados_calc} docs de {tipo}")
         except Exception as e:
             logger.error(f"HISTORICO: Erro ao salvar histórico: {e}")
+            import traceback
+            logger.error(f"HISTORICO: Traceback: {traceback.format_exc()}")
     
     return {"processed": len(files), "total_processed": processed_in_session, "total_expected": total_expected}
 
