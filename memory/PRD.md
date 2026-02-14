@@ -238,6 +238,19 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 ## Changelog
 
 ### Fevereiro/2026 (Sessão 14/02 - Melhorias Wizard)
+- ✅ **CORREÇÃO - Step 3 (Alertas CFOP) - Exibir CFOP Original**:
+  - Backend agora agrupa por `cfop_original_emissor` (5xxx, 6xxx) em vez do CFOP convertido
+  - Frontend mostra CFOP original no badge amarelo com label "CFOP Original do Emissor"
+  - Botões mostram "Converter → {cfop}" em vez de "Manter {cfop}"
+  - Campo `cfop_entrada_sugerido` calcula equivalente de entrada (5xxx→1xxx, 6xxx→2xxx)
+  - Arquivos: `server.py` (lines 30886-30997), `WizardFechamento.js` (lines 723-835)
+
+- ✅ **CORREÇÃO - Step 2 (Devoluções) - Excluir apenas com autorização**:
+  - Notas COM divergência de valor: só excluídas se usuário explicitamente escolher "Excluir Original"
+  - Notas SEM divergência (valores iguais): excluídas automaticamente
+  - Comportamento padrão para divergências: MANTER a nota original
+  - Arquivo: `WizardFechamento.js` (lines 670-703)
+
 - ✅ **NOVA FUNCIONALIDADE - CFOP Individual por Produto (Step 3)**:
   - Ao expandir a listagem de produtos no Alertas de CFOP, cada produto agora possui input para CFOP individual
   - Permite definir CFOP específico para cada produto, sobrepondo a ação em lote
