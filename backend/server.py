@@ -30965,10 +30965,10 @@ async def get_wizard_step_data(
                         }
                     }
                 
-                # Agrupar produtos por nota fiscal
+                # Agrupar produtos por nota fiscal (usar cfop_original como chave)
                 nfe_key = doc.get("numero_nfe", "")
-                if nfe_key not in cfops_agrupados[cfop_atual]["notas"]:
-                    cfops_agrupados[cfop_atual]["notas"][nfe_key] = {
+                if nfe_key not in cfops_agrupados[cfop_original]["notas"]:
+                    cfops_agrupados[cfop_original]["notas"][nfe_key] = {
                         "doc_id": doc["id"],
                         "numero_nfe": nfe_key,
                         "chave_nfe": doc.get("chave_nfe", ""),
@@ -30987,11 +30987,12 @@ async def get_wizard_step_data(
                     "quantidade": p.get("quantidade", 0),
                     "valor_unitario": p.get("valor_unitario", 0),
                     "valor_total": p.get("valor_total", 0),
-                    "cfop_original_emissor": cfop_original
+                    "cfop_original_emissor": cfop_original,
+                    "cfop_atual": cfop_atual
                 }
-                cfops_agrupados[cfop_atual]["notas"][nfe_key]["produtos"].append(produto_info)
-                cfops_agrupados[cfop_atual]["total_valor"] += p.get("valor_total", 0) or 0
-                cfops_agrupados[cfop_atual]["total_produtos"] += 1
+                cfops_agrupados[cfop_original]["notas"][nfe_key]["produtos"].append(produto_info)
+                cfops_agrupados[cfop_original]["total_valor"] += p.get("valor_total", 0) or 0
+                cfops_agrupados[cfop_original]["total_produtos"] += 1
         
         # Converter notas dict para lista e ordenar por quantidade (maior primeiro)
         for cfop_key in cfops_agrupados:
