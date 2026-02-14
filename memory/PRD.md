@@ -3,7 +3,36 @@
 ## Problema Original
 Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributários (Simples Nacional, Lucro Real, Lucro Presumido). Inclui importação de XMLs de NF-e, SPED, PGDAS e geração de relatórios fiscais.
 
-## Última Atualização: 14/02/2026
+## Última Atualização: 16/12/2025
+
+### Bug Corrigido: Dados de ICMS, PIS, COFINS não aparecendo nos relatórios
+
+**Problema Identificado:**
+Os pipelines de agregação do MongoDB estavam usando nomes de campos incorretos para buscar dados de impostos:
+- Usava `$produtos.valor_icms` (incorreto)
+- O campo correto é `$produtos.v_icms` (conforme salvo no parsing XML)
+
+O mesmo problema afetava:
+- Base de ICMS (`bc_icms` vs `v_bc_icms`)
+- Valor de PIS (`valor_pis` vs `v_pis`)
+- Valor de COFINS (`valor_cofins` vs `v_cofins`)
+- Valor de IPI (`valor_ipi` vs `v_ipi`)
+- ICMS ST (`valor_icms_st` vs `v_icms_st`)
+
+**Correção Aplicada:**
+Todos os pipelines de agregação foram atualizados para usar fallback entre os dois formatos:
+```javascript
+"$ifNull": ["$produtos.v_icms", {"$ifNull": ["$produtos.valor_icms", 0]}]
+```
+
+**Endpoints Corrigidos:**
+- Dashboard de stats histórico (linha ~9820)
+- Apuração PIS/COFINS agregada (linha ~11289)
+- Apuração Período simplificada (linha ~11879)
+- Apuração Movimento (linha ~20954)
+- Apuração ICMS agregada (linha ~21526)
+- Apuração IPI agregada (linha ~23001)
+- PIS/COFINS Apuração (linha ~23303)
 
 ### Lógica de Classificação com IA (Hierarquia de 6 Regras)
 A classificação de produtos segue uma hierarquia estrita:
@@ -42,10 +71,21 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 ## Arquitetura
 - **Frontend**: React + TailwindCSS + Shadcn/UI
 - **Backend**: FastAPI + MongoDB (Motor async)
-- **Processamento em Background**: Celery + Redis
+- **Cache**: cachetools (cache em memória com TTL de 5 minutos)
 - **Principais Bibliotecas**: JSZip (extração ZIP no cliente), PyMuPDF (extração PDF)
 
 ## Funcionalidades Implementadas
+
+### Sistema de Cache Inteligente
+- Cache em memória para resultados de agregações pesadas
+- TTL de 5 minutos
+- Invalidação automática em operações de CRUD de documentos
+- Endpoints de gerenciamento: `/api/cache/stats` e `/api/cache/clear`
+
+### Sistema de Alertas de Variação
+- Detecta variações bruscas (+/- 20% como padrão) em compras, vendas e impostos
+- Compara com média dos últimos 12 meses
+- Configurável por empresa via `limite_alerta_variacao`
 
 ### Wizard de Fechamento Fiscal (8 Etapas)
 1. **Notas Canceladas** - Confirmar e processar notas fiscais canceladas
@@ -57,29 +97,6 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 7. **Reforma Tributária** - Calcular IVA Dual (CBS + IBS)
 8. **Concluído** - Fechamento fiscal finalizado
 
-### Devoluções com Correlação de Nota Original
-- Detecta automaticamente notas de terceiros com CFOP de entrada
-- Busca e correlaciona a nota original referenciada
-- Permite excluir ambas as notas (devolução + original) da apuração
-- CFOPs considerados: CFOPS_DEVOLUCAO_TERCEIROS_GLOBAL
-
-### Alertas de CFOP (Etapa 3 - Sincronizada)
-- Lista todos os CFOPs de operações não-comerciais
-- Opções para cada CFOP: Manter, Converter para Compra, Digitar CFOP manual
-- **SINCRONIZADO** com Classificação Inteligente via `pendente_revisao_cfop`
-- Ao completar etapa: aplica ação padrão "manter" para CFOPs sem ação definida
-- Sincronização final garante que nenhum produto fique pendente
-
-### Importação Rápida (sem IA)
-- Flag `skip_ai` em todas as portas de upload
-- Quando ativo: pula classificação IA, mantém CFOPs originais
-- Ainda aplica CST de PIS/COFINS
-
-### Upload em Background (Celery + Redis)
-- Redis instalado e rodando
-- Celery worker ativo
-- Fallback automático para streaming se Redis cair
-
 ## Endpoints Principais
 
 ### Wizard de Fechamento
@@ -87,347 +104,61 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 - `GET /api/wizard-fechamento/step/{company_id}/{step_id}` - Dados de etapa
 - `POST /api/wizard-fechamento/step/{company_id}/{step_id}/complete` - Completar etapa
 - `POST /api/wizard-fechamento/step/{company_id}/{step_id}/go` - Navegar para etapa
-- `GET /api/wizard-fechamento/relatorio/{company_id}` - **NOVO** Gerar relatório PDF/Excel
+- `GET /api/wizard-fechamento/relatorio/{company_id}` - Gerar relatório PDF/Excel
 
-### Alertas CFOP (Classificação Inteligente)
-- `GET /api/alertas-cfop/{company_id}` - Listar alertas
-- `GET /api/alertas-cfop/{company_id}/agrupado` - Alertas agrupados por CFOP
-- `POST /api/alertas-cfop/resolver-grupo` - Resolver todos de um CFOP
-- `POST /api/alertas-cfop/resolver-individual` - Resolver individual
+### Apurações
+- `GET /api/apuracao-icms/{company_id}` - Apuração de ICMS com Top 10 NCMs
+- `GET /api/apuracao-pis-cofins/{company_id}` - Apuração PIS/COFINS
+- `GET /api/apuracao-ipi/{company_id}` - Apuração de IPI
+- `GET /api/pis-cofins/divergencias/{company_id}` - Divergências de PIS/COFINS
+- `GET /api/relatorio-divergencias-saida/{company_id}` - Divergências nas saídas
+- `GET /api/relatorio-divergencias-entrada/{company_id}` - Divergências nas entradas
 
-### Upload de XMLs
-- `POST /api/upload-documents` - Upload direto
-- `POST /api/upload-documents-streaming` - Upload streaming
-- `POST /api/xml/upload-background` - Upload em background (Celery)
-- `GET /api/xml/job-status/{job_id}` - Status do job
+### Cache
+- `GET /api/cache/stats` - Estatísticas do cache
+- `POST /api/cache/clear` - Limpar cache
 
-### Importação em Lote
-- `POST /api/batch-import/upload-estrutura` - Upload de ZIP
+## Issues Pendentes
 
-## Bugs Corrigidos
+### P0 (Alta Prioridade)
+- [ ] Validação com usuário: Página de PIS/COFINS travando na base de produção (otimização feita, pendente validação)
+- [ ] Validação com usuário: ICMS, NCMs, divergências agora devem aparecer após correção dos pipelines
 
-### Sessão Atual (Fevereiro/2026)
-15. ✅ **CORREÇÃO CRÍTICA - Dashboard travando com 14.000+ documentos**:
-    - **Problema**: Ao clicar no menu Dashboard, o sistema caía quando havia muitos documentos (ex: 14.000 cupons da Republic)
-    - **Causa Raiz**: O endpoint `/api/dashboard/stats` carregava todos os documentos e seus produtos na memória, iterando em Python por cada produto para calcular estatísticas
-    - **Correção**: 
-      - Implementada função `_get_dashboard_stats_aggregated` usando agregação do MongoDB
-      - Para volumes > 5.000 documentos, os cálculos são feitos diretamente no banco de dados
-      - Tempo de resposta: de timeout para ~1 segundo
-    - **Arquivos Modificados**: `/app/backend/server.py`
-    - **Verificação**: Testado com empresa Republic (14.700 docs) - resposta em 1 segundo
+### P1 (Média Prioridade)
+- [ ] NF de fevereiro aparecendo nas entradas de janeiro
+- [ ] Barra de progresso de importação XML travando
+- [ ] Implementar visualização agrupada por dia na página de documentos
+- [ ] Implementar relatórios por email para importação em lote
 
-16. ✅ **CORREÇÃO - Histórico de importações inconsistente**:
-    - **Problema**: Os dados do card de histórico de importação não batiam com o relatório exibido ao término de cada importação
-    - **Causa Raiz**: A estrutura de dados `progress["results"]` nem sempre continha os campos esperados no momento do salvamento
-    - **Correção**:
-      - Adicionada lógica de fallback para calcular totais a partir das listas (`success`, `errors`, `duplicadas`) quando o `resumo` estiver incompleto
-      - Adicionado campo `tipo_operacao` para compatibilidade com frontend
-      - Melhorados os logs de debug
-    - **Arquivos Modificados**: `/app/backend/server.py`
-    - **Observação**: Importações anteriores podem ter dados inconsistentes, mas novas importações serão salvas corretamente
+### P2 (Baixa Prioridade)
+- [ ] Discrepância de valores entre Dashboard e SPED
+- [ ] Botão de Login fica travado em "Processando..."
 
-14. ✅ **CORREÇÃO CRÍTICA - SPED com destaque de ICMS incorreto em Despesas e ST**:
-    - **Problema**: Ao gerar o SPED Fiscal, as despesas e notas de ST estavam sendo geradas com destaque de ICMS mesmo com as opções marcadas para excluí-los
-    - **Causa Raiz**: Frontend (`ExportSPED.js`) enviava parâmetros com nomes incorretos (`zerarIcmsSt`, `incluirDespesas`) que não correspondiam aos nomes esperados pelo backend (`excluir_creditos_despesa_st`, `aplicar_beneficio_fiscal`)
-    - **Correção**:
-      - Frontend: Corrigidos os nomes dos parâmetros em `ExportSPED.js` para `excluir_creditos_despesa_st` e `aplicar_beneficio_fiscal`
-      - Backend: Expandidas as listas de CFOPs de despesas e ST para incluir mais casos (1551, 2551, 1653, 2653, 1407, 2407, etc.)
-      - Backend: Sincronizadas as listas `CFOPS_DESPESAS`, `CFOPS_ST` e `CFOPS_SEM_CREDITO_SPED` em todas as partes do código
-    - **Arquivos Modificados**: `/app/frontend/src/pages/ExportSPED.js`, `/app/backend/server.py`
-    - **Verificação**: Testado com empresa COMERCIAL RS LTDA, competência 01/2026 - 333 itens de despesa/ST verificados, todos com ICMS=0 quando flag ativa
+## Tarefas Futuras
 
-11. ✅ **CORREÇÃO CRÍTICA - Dashboard e Apuração ICMS mostrando dados incorretos de vendas/débitos**:
-    - **Problema**: Dashboard e tela de Apuração ICMS mostravam valores de vendas/débitos mesmo quando a empresa não tinha notas de saída importadas
-    - **Causa Raiz**: Múltiplos endpoints usavam CFOP do produto para determinar se era entrada ou saída, ignorando o campo `tipo` do documento (que é a fonte da verdade, baseada no CNPJ do emitente)
-    - **Correção**: Modificados os seguintes endpoints no `server.py` para usar o campo `tipo` do documento:
-      - `/api/apuracao-icms/{company_id}` - Apuração de ICMS próprio
-      - `/api/apuracao-ipi/{company_id}` - Apuração de IPI
-      - `/api/apuracao-pis-cofins/{company_id}` - Apuração de PIS/COFINS
-    - **Regra Correta**: Usar `doc.get('tipo')` como fonte da verdade, nunca inferir pelo CFOP do produto
+### Refatoração Crítica (P0)
+- [ ] Refatoração do monolito `server.py` (>31k linhas) - Risco técnico enorme
 
-12. ✅ **Flags de ICMS não persistiam ao trocar de tela**:
-    - **Problema**: Os checkboxes (Desconsiderar ICMS Despesas, Desconsiderar ICMS ST, Benefício Fiscal) perdiam a seleção ao navegar para outra tela e voltar
-    - **Causa Raiz**: Os states eram inicializados com `useState(false)` e só carregavam os valores corretos após o useEffect executar, causando um flash de valores incorretos
-    - **Correção**: Implementada lazy initialization nos estados usando função callback no `useState()` que lê do localStorage imediatamente
-    - **Arquivo**: `/app/frontend/src/pages/ApuracaoICMS.js`
+### Novas Funcionalidades (P1)
+- [ ] Integração de CT-e (Conhecimento de Transporte Eletrônico)
+- [ ] Testes automatizados para garantir estabilidade
 
-13. ✅ **Menu ICMS ST página em branco**:
-    - **Problema**: A aba ICMS ST aparecia em branco quando não havia dados
-    - **Correção**: Adicionada mensagem informativa quando não há movimentação de ICMS ST, explicando que o ICMS ST é cobrado apenas em operações com mercadorias sujeitas à substituição tributária
-    - **Arquivo**: `/app/frontend/src/pages/ApuracaoICMS.js`
+## Schema do Banco de Dados
 
-### Sessão Anterior (Dezembro/2025)
-1. ✅ **Sincronização Wizard ↔ Classificação Inteligente** - Mesmos critérios de busca em ambos endpoints
-2. ✅ **Etapa 2 - Devoluções**: Backend aceita formato correto enviado pelo frontend
-3. ✅ **Etapa 3 - Alertas CFOP**: Aplica ação padrão "manter" para CFOPs sem ação definida
-4. ✅ **Sincronização Final**: Garante que todos produtos pendentes sejam resolvidos
-5. ✅ **Filtro de Canceladas/Desconsideradas**: Aplicado consistentemente em ambas as telas
-6. ✅ **CORREÇÃO CRÍTICA - Classificação Entrada/Saída**: Adicionado `.strip()` na comparação de CNPJs para remover espaços/caracteres de controle que podem vir do XML, causando classificação incorreta
-7. ✅ **Wizard Cancelamento (Etapa 1)**: Corrigido filtro para buscar APENAS notas com `cancelada: True` (cStat 101/151), removendo filtros amplos que incluíam notas incorretas
-8. ✅ **CORREÇÃO CRÍTICA - Classificação por CNPJ vs CFOP**: Corrigido múltiplos endpoints que usavam CFOP para classificar entrada/saída ao invés do campo `tipo` (baseado em CNPJ do emitente):
-   - `preview-delete` - Preview de exclusão de documentos
-   - `pis-cofins/apuracao` - Apuração de PIS/COFINS  
-   - `apuracao/relacao-notas` - Relação de notas fiscais
-   - `apuracao/composicao-valor` - Composição de valor das notas
-   - **A regra correta é**: CNPJ emitente == CNPJ empresa → SAÍDA; diferente → ENTRADA
-9. ✅ **Etapa 2 - Devoluções (Critério Terceiro)**: Corrigido filtro para mostrar APENAS notas onde o terceiro emitiu ENTRADA (CFOP original 1xxx, 2xxx, 3xxx). Notas onde terceiro emitiu SAÍDA (5xxx, 6xxx) não aparecem mais.
-10. ✅ **NOVA FUNCIONALIDADE - Relatório do Wizard**: Implementado sistema de geração de relatório consolidado ao final do wizard:
-    - PDF com todas as alterações realizadas em cada etapa
-    - Excel com abas separadas por etapa para análise detalhada
-    - Inclui: data/hora, usuário responsável, estado anterior, ação aplicada, estado final
-    - Finalidade: auditoria, histórico e segurança do usuário
+### collections.companies (campos relevantes)
+- `limite_alerta_variacao: float` - Limiar percentual para alertas de variação (default: 20%)
+- `desconsiderar_icms_despesas: bool` - Zerar ICMS de CFOPs de despesa
+- `desconsiderar_icms_st: bool` - Zerar ICMS de CFOPs de mercadorias ST
+- `beneficio_fiscal_icms: bool` - Empresa com benefício fiscal de ICMS
 
-### Sessões Anteriores
-- ✅ Upload em Background (Redis/Celery)
-- ✅ Limite de 200 documentos removido
-- ✅ Discrepância Central vs Wizard
-- ✅ Barra de Progresso 95%
-- ✅ Modal de Seleção
-- ✅ Importação em Lote
-- ✅ Detecção de Cancelamento
-
-## Bugs Pendentes
-
-### ~~P0 - Site caindo ao navegar para menus~~ ✅ CORRIGIDO
-- ~~Sistema travava ao acessar páginas de PIS/COFINS, ICMS, Indicadores com grandes volumes~~
-- **CORRIGIDO em 14/02/2026** - Implementada otimização global com agregação MongoDB
-
-### P1 - Problema de Deploy
-- Atualizações não aparecem em produção
-- Usuário testa em produção, correções estão no preview
-- **CRÍTICO**: Impede usuário de usar correções feitas
-
-### P1 - NF de fevereiro aparecendo em janeiro
-- Bug recorrente na alocação de competência fiscal
-- Verificar campo de data usado (`dhEmi` vs `dhSaiEnt`)
-
-### ~~P1 - Barra de progresso de upload trava para empresa Sungroup~~ ✅ CORRIGIDO
-- ~~Precisa investigar caso específico~~
-- **CORRIGIDO em 14/02/2026** - Melhorado polling de fallback com detecção de erros e stale progress
-
-### P2 - Discrepância Dashboard vs SPED
-- Valores totais não batem entre dashboard e registro E110
-
-### P2 - Botão de Login travado
-- Botão fica em "Processando..." indefinidamente
-- Comportamento intermitente
+### collections.xml_documents.produtos (campos de impostos)
+- `v_icms` - Valor do ICMS
+- `v_bc_icms` - Base de cálculo do ICMS
+- `p_icms` - Alíquota de ICMS
+- `v_icms_st` - Valor do ICMS ST
+- `v_pis` - Valor do PIS
+- `v_cofins` - Valor do COFINS
+- `v_ipi` - Valor do IPI
 
 ## Credenciais de Teste
-- **Super Admin**: alberto.lemes@businessconta.com.br / Business@2026
-
-## Arquivos de Referência
-- `/app/backend/server.py` - Lógica principal do backend (>31k linhas - precisa refatoração)
-- `/app/backend/celery_tasks.py` - Processamento em background
-- `/app/frontend/src/pages/WizardFechamento.js` - UI do Wizard
-- `/app/frontend/src/pages/ClassificacaoInteligente.js` - UI da Classificação
-
-## Próximas Tarefas (Backlog)
-
-### P0 - Urgente
-- Refatoração do `server.py` (muito grande, >31k linhas)
-- Resolver problema de deploy em produção
-
-### P1 - Importante
-- Implementar visualização agrupada por dia na página de documentos
-- Implementar relatórios por email para importação em lote
-- Integração de CT-e (Conhecimento de Transporte Eletrônico)
-- Refatoração do `Documents.js` (>4k linhas)
-
-### P2 - Futuro
-- Implementação de testes automatizados (Playwright)
-- Melhorias na UI de classificação
-
-## Changelog
-
-### Fevereiro/2026 (Sessão 14/02 - ALERTAS DE VARIAÇÃO)
-- ✅ **NOVA FUNCIONALIDADE - Alertas de Variação no Dashboard**:
-  - **Descrição**: Sistema de alertas que detecta variações significativas em compras, vendas e impostos comparando com a média dos últimos 12 meses
-  - **Métricas Monitoradas**:
-    - Compras (total de entradas)
-    - Vendas (faturamento)
-    - ICMS (débito - crédito)
-    - PIS/COFINS (débito - crédito)
-  - **Configurações**:
-    - Limite de variação configurável por empresa (padrão: 20%)
-    - Novo campo `limite_alerta_variacao` no cadastro da empresa
-  - **Exibição**:
-    - Cards coloridos no Dashboard com ícones de tendência (↑/↓)
-    - Vermelho: variação negativa preocupante
-    - Âmbar: variação positiva que pode indicar anomalia
-    - Verde: valores dentro da média
-    - Azul: histórico insuficiente para análise
-  - **Backend**: Função `calcular_alertas_variacao()` em `server.py`
-  - **Frontend**: Componente de alertas em `Dashboard.js`
-  - **Requisitos**: Mínimo de 3 meses de histórico para ativar análise
-
-### Fevereiro/2026 (Sessão 14/02 - CACHE INTELIGENTE DE AGREGAÇÕES)
-- ✅ **NOVA FUNCIONALIDADE - Cache de Agregações**:
-  - **Descrição**: Sistema de cache inteligente para resultados de agregações pesadas
-  - **Componentes**:
-    - Classe `AggregationCache` com TTL de 5 minutos
-    - Invalidação automática por empresa/competência quando há alterações
-    - Helper `invalidate_company_cache()` para invalidar dados
-  - **Funcionamento**:
-    - Cache é verificado antes de executar agregação
-    - Se houver hit, retorna dados do cache instantaneamente
-    - Se houver miss, executa agregação e salva no cache
-    - Invalidação automática após upload ou deleção de documentos
-  - **Endpoints que usam cache**:
-    - `_get_pis_cofins_aggregated()` 
-    - `_get_icms_aggregated()`
-    - `_get_ipi_aggregated()`
-  - **Novos endpoints de gestão**:
-    - `GET /api/cache/stats` - Estatísticas do cache
-    - `POST /api/cache/invalidate/{company_id}` - Invalidar cache manualmente
-    - `POST /api/cache/clear` - Limpar todo o cache (super admin)
-  - **Arquivo**: `/app/backend/server.py`
-
-### Fevereiro/2026 (Sessão 14/02 - OTIMIZAÇÃO DE PERFORMANCE GLOBAL)
-- ✅ **CORREÇÃO CRÍTICA - Performance em Grandes Volumes**:
-  - **Problema**: Sistema travava ao navegar para páginas de apuração (PIS/COFINS, ICMS, etc.) com empresas com muitos documentos (>15.000 XMLs)
-  - **Causa Raiz**: Consultas MongoDB carregavam todos os documentos na memória com `.to_list(100000)` ou `.to_list(None)`
-  - **Solução Implementada**:
-    1. Criadas funções de agregação otimizadas (`_get_pis_cofins_aggregated`, `_get_icms_aggregated`, etc.)
-    2. Adicionada lógica condicional: se >5000 docs, usa agregação MongoDB em vez de carregar tudo na memória
-    3. Reduzido limite padrão de 100000 para 15000 em todas as consultas
-    4. Removidos todos os `.to_list(None)` que carregavam documentos ilimitados
-  - **Endpoints Otimizados**:
-    - `/api/pis-cofins/apuracao/{company_id}` - Agregação para >10000 docs
-    - `/api/apuracao-pis-cofins/{company_id}` - Agregação para >5000 docs  
-    - `/api/apuracao-icms/{company_id}` - Agregação para >10000 docs
-    - `/api/apuracao-ipi/{company_id}` - Agregação para >10000 docs
-    - `/api/apuracao-iss/{company_id}` - Limite reduzido para 10000
-    - `/api/apuracao-periodo/{company_id}` - Agregação para >5000 docs
-    - `/api/apuracao-movimento/{company_id}` - Agregação para >5000 docs
-    - `/api/pis-cofins/divergencias/{company_id}` - Limite e verificação de volume
-    - `/api/analise-aliquotas-saida/{company_id}` - Limite e verificação de volume
-    - `/api/dashboard/stats/{company_id}` - Já estava otimizado (>5000 usa agregação)
-  - **Constantes Adicionadas** em `server.py`:
-    - `SAFE_DOCUMENT_LIMIT = 10000` - Limite seguro para consultas
-    - `AGGREGATION_THRESHOLD = 5000` - Threshold para usar agregação
-  - **Resultado**: Páginas que antes travavam agora carregam em <2 segundos
-  - **Arquivo Principal**: `/app/backend/server.py`
-
-### Fevereiro/2026 (Sessão 14/02 - Correções Críticas)
-- ✅ **CORREÇÃO CRÍTICA - Validação de CNPJ na Importação**:
-  - ANTES: Sistema aceitava XMLs de qualquer empresa, mesmo que o CNPJ não correspondesse
-  - AGORA: Valida se a empresa é emitente OU destinatário do documento
-  - Se o CNPJ da empresa não estiver no documento, **REJEITA** com mensagem clara
-  - Implementado nos endpoints: `/xml/upload` e `/xml/upload-stream`
-  - Arquivos: `server.py` (lines 5877-5907, 7655-7680)
-
-### Fevereiro/2026 (Sessão 14/02 - Melhorias Wizard)
-- ✅ **CORREÇÃO - Step 3 (Alertas CFOP) - Exibir CFOP Original**:
-  - Backend agora agrupa por `cfop_original_emissor` (5xxx, 6xxx) em vez do CFOP convertido
-  - Frontend mostra CFOP original no badge amarelo com label "CFOP Original do Emissor"
-  - Botões mostram "Converter → {cfop}" em vez de "Manter {cfop}"
-  - Campo `cfop_entrada_sugerido` calcula equivalente de entrada (5xxx→1xxx, 6xxx→2xxx)
-  - Arquivos: `server.py` (lines 30886-30997), `WizardFechamento.js` (lines 723-835)
-
-- ✅ **CORREÇÃO - Step 2 (Devoluções) - Excluir apenas com autorização**:
-  - Notas COM divergência de valor: só excluídas se usuário explicitamente escolher "Excluir Original"
-  - Notas SEM divergência (valores iguais): excluídas automaticamente
-  - Comportamento padrão para divergências: MANTER a nota original
-  - Arquivo: `WizardFechamento.js` (lines 670-703)
-
-- ✅ **NOVA FUNCIONALIDADE - CFOP Individual por Produto (Step 3)**:
-  - Ao expandir a listagem de produtos no Alertas de CFOP, cada produto agora possui input para CFOP individual
-  - Permite definir CFOP específico para cada produto, sobrepondo a ação em lote
-  - Estado gerenciado via `cfopsPorProduto` no componente
-  - Backend processa `cfops_individuais` no formato `cfop_docId_prodIdx`
-  - Arquivos: `WizardFechamento.js` (lines 907-1010), `server.py` (lines 31597-31652)
-
-- ✅ **NOVA FUNCIONALIDADE - Alerta de Divergência em Devoluções (Step 2)**:
-  - Quando uma nota de devolução tem valor diferente da nota original referenciada, exibe alerta visual
-  - Alerta mostra: Valor Devolução vs Valor Original vs Diferença
-  - Botões "Manter Original" e "Excluir Original" para decisão do usuário
-  - Estado gerenciado via `decisoesOriginais` no componente
-  - Arquivo: `WizardFechamento.js` (lines 497-690)
-
-- ✅ **NOVA FUNCIONALIDADE - Clareza em Notas Canceladas (Step 1)**:
-  - Notas canceladas agora são separadas visualmente em "ENTRADAS" e "SAÍDAS"
-  - Entradas: borda azul (`border-l-4 border-blue-500`) + badge azul
-  - Saídas: borda verde (`border-l-4 border-emerald-500`) + badge verde
-  - Contadores separados no topo da tela
-  - Arquivo: `WizardFechamento.js` (lines 397-495)
-
-- ✅ **VERIFICADO - Classificação IA com Hierarquia de 6 Regras**:
-  - Hierarquia confirmada funcionando: CFOP Devolução → Learned Rules → NCM Vendas → Palavras-Chave Vendas → Palavras-Chave Empresa → IA Gemini
-  - Código verificado em `server.py` (lines 31655-31750)
-
-### Fevereiro/2026 (Sessão 14/02 - P0 Bugs Fix)
-- ✅ **CORREÇÃO P0 - Relatório do Wizard**: Corrigida geração de dados para incluir TODAS as etapas (1-7)
-  - Corrigido step_name de 'classificacao' para 'classificacao_cfop' na busca de dados da Etapa 4
-  - Relatório agora mostra etapas mesmo quando não há dados (com mensagem informativa)
-  - Etapa 7 (Reforma Tributária) adicionada ao relatório
-  - PDF agora renderiza todas as etapas em sequência
-- ✅ **CORREÇÃO P0 - Menu ICMS ST**: Confirmado funcionando corretamente
-  - Aba ICMS ST exibe mensagem "Sem Movimentação de ICMS ST" quando não há dados
-  - Navegação entre abas ICMS Próprio e ICMS ST funcionando
-- ✅ **NOVO - Reclassificação com IA (Hierarquia de 6 Regras)**:
-  - **Modal de Confirmação**: Ao clicar em "Classificar Produtos com IA", modal pergunta se usuário deseja reclassificar
-  - **Hierarquia de 6 Regras** implementada no backend:
-    1. CFOP de Devolução (automático)
-    2. Cache de Regras Aprendidas (learned_rules)
-    3. Aprendizado por NCM (match com vendas)
-    4. Aprendizado por Palavras-Chave (match com vendas)
-    5. Palavras-Chave Cadastradas pela Empresa
-    6. Classificação por IA (Gemini) como último recurso
-  - Estatísticas detalhadas de classificação por fonte
-  - Parâmetro `forcar_reclassificacao` para reclassificar produtos já classificados
-- ✅ **NOVO - Função `calcular_cfop_por_categoria()`**: Calcula CFOP adequado baseado na categoria e UF
-
-### Fevereiro/2026 (Sessão Atual - 14/02)
-- ✅ **CORREÇÃO P0**: Bug da barra de progresso do upload que travava
-  - Melhorado `UploadContext.js` com polling mais robusto:
-    - Detecção de erros consecutivos (máx. 5 tentativas)
-    - Detecção de progresso estagnado (máx. 40 iterações = 60s)
-    - Watchdog de SSE com timeout de 15s para forçar polling
-  - Melhorado endpoint `/api/xml/upload-status/{upload_id}`:
-    - Retorna `status: "not_found"` quando upload não existe
-    - Correção automática de `completed` baseado em `results`
-- ✅ **UX WIZARD**: Wizard de Fechamento mais dinâmico (Etapa 8 - Concluído)
-  - Novo componente `WizardConcluidoStep` com:
-    - Destaque visual na seção de download de relatório
-    - Auto-redirect para Central de Fechamento após download (2.5s)
-    - Botão "Voltar para Central de Fechamento"
-    - Animações (`animate-bounce`, `animate-pulse-slow`)
-  - Corrigido bug do `case 7` duplicado → agora é `case 8`
-- ✅ Nova animação CSS `animate-pulse-slow` em `App.css`
-- ✅ **UX WIZARD ETAPA 3 (Alertas de CFOP)**: Refatorada para seleção visual
-  - Opções de CFOP agora são botões estilo **radio button** (Manter, Converter, Outro CFOP)
-  - Opção selecionada fica destacada com borda colorida e indicador visual
-  - Input de CFOP manual aparece apenas quando "Outro CFOP" está selecionado
-  - **Resumo das alterações** exibido antes do botão Confirmar
-  - Ao confirmar, todas as seleções são aplicadas em lote
-  - Estados React (`cfopSelections`, `manualCfopInputs`) em vez de localStorage
-
-### Fevereiro/2026 (Sessão 13/02)
-- ✅ **CORREÇÃO CRÍTICA**: Dashboard e Apuração ICMS mostravam vendas/débitos incorretos
-  - Corrigido endpoints `/api/apuracao-icms`, `/api/apuracao-ipi`, `/api/apuracao-pis-cofins`
-  - Agora usam campo `tipo` do documento em vez de inferir por CFOP
-- ✅ Flags de ICMS agora persistem ao trocar de tela (lazy initialization no useState)
-- ✅ Menu ICMS ST exibe mensagem informativa quando não há dados
-- ✅ **NOVA FUNCIONALIDADE**: Classificação em lote baseada no tipo de atividade da empresa
-  - Endpoint: `POST /api/wizard-fechamento/classificar-pendentes/{company_id}`
-  - Regras: Indústria→INSUMO, Comércio→REVENDA, Serviços→DESPESA
-  - Adicionado botão "Classificar Todos com Padrão da Empresa" no Wizard etapa 4
-- ✅ **CORREÇÃO**: Importação sem IA agora aplica classificação padrão (antes ficava sem categoria)
-- ✅ Função utilitária `obter_categoria_padrao_por_atividade()` criada para centralizar regras
-
-### Dezembro/2025 (Sessão Anterior)
-- ✅ Sincronização Wizard ↔ Classificação Inteligente
-- ✅ Correção do formato de dados da Etapa 2 (Devoluções)
-- ✅ Etapa 3 aplica ação padrão "manter" automaticamente
-- ✅ Filtro de canceladas/desconsideradas em todos endpoints de alertas
-- ✅ **CORREÇÃO CRÍTICA**: Adicionado `.strip()` na comparação de CNPJs para classificação entrada/saída - espaços ou caracteres extras no XML causavam classificação incorreta
-
-### 13/02/2026 (Sessão Anterior)
-- ✅ Adicionada nova etapa no Wizard: "Alertas de CFOP"
-- ✅ Devoluções agora correlacionam e excluem nota original
-- ✅ Validada importação rápida sem IA
-- ✅ Redis e Celery configurados e funcionando
-- ✅ Fallback automático para streaming quando background falha
-- ✅ Limite de 200 removido nos steps do Wizard
-- ✅ Atualizado WIZARD_STEPS para 8 etapas
+- **Super Admin**: `alberto.lemes@businessconta.com.br` / `Business@2026`
