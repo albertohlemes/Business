@@ -216,60 +216,36 @@ const ExportSPED = ({ user, onLogout }) => {
             <div className="bg-[#0C0C0C] rounded-lg p-5 border border-[#2A2A2A]">
               <div className="flex items-center gap-2 mb-4">
                 <Settings className="w-5 h-5 text-[#C8A951]" />
-                <h3 className="font-semibold text-white">Opções de Geração</h3>
+                <h3 className="font-semibold text-white">Opções de Apuração de ICMS</h3>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                {/* Zerar ICMS ST */}
-                <label className="flex items-center gap-3 cursor-pointer group">
+              <div className="space-y-4">
+                {/* Excluir Créditos de Despesas e ST */}
+                <label className="flex items-start gap-3 cursor-pointer group">
                   <div 
-                    onClick={() => setOpcoes(prev => ({...prev, zerarIcmsSt: !prev.zerarIcmsSt}))}
-                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                      opcoes.zerarIcmsSt 
+                    onClick={() => setOpcoes(prev => ({...prev, excluirCreditosDespesaSt: !prev.excluirCreditosDespesaSt}))}
+                    className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                      opcoes.excluirCreditosDespesaSt 
                         ? 'bg-[#C8A951] border-[#C8A951]' 
                         : 'border-[#666] group-hover:border-[#888]'
                     }`}
                   >
-                    {opcoes.zerarIcmsSt && <Check className="w-3 h-3 text-[#0C0C0C]" />}
+                    {opcoes.excluirCreditosDespesaSt && <Check className="w-3 h-3 text-[#0C0C0C]" />}
                   </div>
-                  <span className="text-sm text-[#E0E0E0]">Zerar ICMS ST</span>
-                </label>
-
-                {/* Incluir Despesas */}
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div 
-                    onClick={() => setOpcoes(prev => ({...prev, incluirDespesas: !prev.incluirDespesas}))}
-                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                      opcoes.incluirDespesas 
-                        ? 'bg-[#C8A951] border-[#C8A951]' 
-                        : 'border-[#666] group-hover:border-[#888]'
-                    }`}
-                  >
-                    {opcoes.incluirDespesas && <Check className="w-3 h-3 text-[#0C0C0C]" />}
+                  <div>
+                    <span className="text-sm text-[#E0E0E0] font-medium">Não destacar ICMS de Despesas e ST</span>
+                    <p className="text-xs text-[#A1A1AA] mt-1">
+                      Zera base de cálculo e valor de ICMS para CFOPs de uso/consumo (1556, 2556, etc.) e substituição tributária (1403, 2403, etc.). 
+                      Esses CFOPs não geram direito a crédito na apuração.
+                    </p>
                   </div>
-                  <span className="text-sm text-[#E0E0E0]">Incluir Despesas</span>
-                </label>
-
-                {/* Simples Nacional */}
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div 
-                    onClick={() => setOpcoes(prev => ({...prev, simplesNacional: !prev.simplesNacional}))}
-                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                      opcoes.simplesNacional 
-                        ? 'bg-[#C8A951] border-[#C8A951]' 
-                        : 'border-[#666] group-hover:border-[#888]'
-                    }`}
-                  >
-                    {opcoes.simplesNacional && <Check className="w-3 h-3 text-[#0C0C0C]" />}
-                  </div>
-                  <span className="text-sm text-[#E0E0E0]">Simples Nacional</span>
                 </label>
 
                 {/* Benefício Fiscal */}
-                <label className="flex items-center gap-3 cursor-pointer group">
+                <label className="flex items-start gap-3 cursor-pointer group">
                   <div 
                     onClick={() => setOpcoes(prev => ({...prev, beneficioFiscal: !prev.beneficioFiscal}))}
-                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                    className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
                       opcoes.beneficioFiscal 
                         ? 'bg-[#C8A951] border-[#C8A951]' 
                         : 'border-[#666] group-hover:border-[#888]'
@@ -277,7 +253,12 @@ const ExportSPED = ({ user, onLogout }) => {
                   >
                     {opcoes.beneficioFiscal && <Check className="w-3 h-3 text-[#0C0C0C]" />}
                   </div>
-                  <span className="text-sm text-[#E0E0E0]">Benefício Fiscal</span>
+                  <div>
+                    <span className="text-sm text-[#E0E0E0] font-medium">Aplicar Benefício Fiscal</span>
+                    <p className="text-xs text-[#A1A1AA] mt-1">
+                      Zera crédito de ICMS para produtos específicos definidos no cadastro da empresa (ex: carnes, bebidas, NCMs específicos).
+                    </p>
+                  </div>
                 </label>
               </div>
             </div>
