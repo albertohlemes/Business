@@ -20530,6 +20530,112 @@ def obter_natureza_cfop(cfop: str) -> str:
     return "N/D"
 
 
+
+async def _get_apuracao_movimento_aggregated(company: dict, company_id: str, competencia: str, query: dict, total_docs: int):
+    """
+    Versão otimizada da apuração de movimento usando agregação do MongoDB.
+    """
+    logger.info(f"APURACAO-MOVIMENTO AGREGADO: Iniciando para {total_docs} documentos")
+    
+    # Pipeline para agrupar por tipo e CFOP
+    pipeline = [
+        {"$match": query},
+        {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
+        {
+            "$group": {
+                "_id": {
+                    "tipo": {"$ifNull": ["$tipo_operacao", {"$ifNull": ["$tipo", "entrada"]}]},
+                    "cfop": {"$ifNull": ["$produtos.cfop", "0000"]}
+                },
+                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                "bc_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.bc_icms", 0]}}},
+                "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_icms", 0]}}},
+                "bc_pis_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_pis", 0]}}},
+                "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_cofins", 0]}}},
+                "valor_ipi": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_ipi", 0]}}},
+                "qtd_produtos": {"$sum": 1},
+                "qtd_docs": {"$addToSet": "$numero_nfe"}
+            }
+        },
+        {"$sort": {"_id.cfop": 1}}
+    ]
+    
+    cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
+    resultados = await cursor.to_list(length=500)
+    
+    entradas_por_cfop = {}
+    saidas_por_cfop = {}
+    totais_entradas = {"qtd_docs": 0, "qtd_produtos": 0, "valor_total": 0, "bc_icms": 0, "valor_icms": 0, "bc_pis_cofins": 0, "valor_pis": 0, "valor_cofins": 0, "valor_ipi": 0}
+    totais_saidas = {"qtd_docs": 0, "qtd_produtos": 0, "valor_total": 0, "bc_icms": 0, "valor_icms": 0, "bc_pis_cofins": 0, "valor_pis": 0, "valor_cofins": 0, "valor_ipi": 0}
+    
+    for item in resultados:
+        tipo = (item['_id'].get('tipo', '') or '').lower()
+        cfop = str(item['_id'].get('cfop', '0000'))
+        qtd_docs = len(item.get('qtd_docs', []))
+        
+        dados_cfop = {
+            "cfop": cfop,
+            "qtd_docs": qtd_docs,
+            "qtd_produtos": item['qtd_produtos'],
+            "valor_total": round(item['valor_total'], 2),
+            "bc_icms": round(item['bc_icms'], 2),
+            "valor_icms": round(item['valor_icms'], 2),
+            "bc_pis_cofins": round(item['bc_pis_cofins'], 2),
+            "valor_pis": round(item['valor_pis'], 2),
+            "valor_cofins": round(item['valor_cofins'], 2),
+            "valor_ipi": round(item['valor_ipi'], 2)
+        }
+        
+        if tipo == 'entrada':
+            entradas_por_cfop[cfop] = dados_cfop
+            totais_entradas["qtd_docs"] += qtd_docs
+            totais_entradas["qtd_produtos"] += item['qtd_produtos']
+            totais_entradas["valor_total"] += item['valor_total']
+            totais_entradas["bc_icms"] += item['bc_icms']
+            totais_entradas["valor_icms"] += item['valor_icms']
+            totais_entradas["bc_pis_cofins"] += item['bc_pis_cofins']
+            totais_entradas["valor_pis"] += item['valor_pis']
+            totais_entradas["valor_cofins"] += item['valor_cofins']
+            totais_entradas["valor_ipi"] += item['valor_ipi']
+        elif tipo == 'saida':
+            saidas_por_cfop[cfop] = dados_cfop
+            totais_saidas["qtd_docs"] += qtd_docs
+            totais_saidas["qtd_produtos"] += item['qtd_produtos']
+            totais_saidas["valor_total"] += item['valor_total']
+            totais_saidas["bc_icms"] += item['bc_icms']
+            totais_saidas["valor_icms"] += item['valor_icms']
+            totais_saidas["bc_pis_cofins"] += item['bc_pis_cofins']
+            totais_saidas["valor_pis"] += item['valor_pis']
+            totais_saidas["valor_cofins"] += item['valor_cofins']
+            totais_saidas["valor_ipi"] += item['valor_ipi']
+    
+    # Arredondar totais
+    for k in totais_entradas:
+        if isinstance(totais_entradas[k], float):
+            totais_entradas[k] = round(totais_entradas[k], 2)
+    for k in totais_saidas:
+        if isinstance(totais_saidas[k], float):
+            totais_saidas[k] = round(totais_saidas[k], 2)
+    
+    return {
+        "empresa": {"razao_social": company.get('razao_social', ''), "cnpj": company.get('cnpj', '')},
+        "competencia": competencia,
+        "entradas": {
+            "por_cfop": sorted(list(entradas_por_cfop.values()), key=lambda x: x['cfop'])[:50],
+            "totais": totais_entradas
+        },
+        "saidas": {
+            "por_cfop": sorted(list(saidas_por_cfop.values()), key=lambda x: x['cfop'])[:50],
+            "totais": totais_saidas
+        },
+        "alertas": [{"tipo": "INFO", "mensagem": f"Apuração simplificada: {total_docs} documentos via agregação"}],
+        "total_documentos": total_docs,
+        "otimizado": True
+    }
+
+
+
 @api_router.get("/apuracao-movimento/{company_id}")
 async def apuracao_movimento(
     company_id: str,
