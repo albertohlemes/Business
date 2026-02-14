@@ -18,10 +18,8 @@ const ExportSPED = ({ user, onLogout }) => {
   
   // Opções de configuração do SPED
   const [opcoes, setOpcoes] = useState({
-    zerarIcmsSt: false,
-    incluirDespesas: true,
-    simplesNacional: false,
-    beneficioFiscal: false,
+    excluirCreditosDespesaSt: false,  // Quando TRUE: Zera ICMS de despesas e ST (não gera crédito)
+    beneficioFiscal: false,           // Quando TRUE: Aplica benefício fiscal para produtos específicos
   });
 
   useEffect(() => {
