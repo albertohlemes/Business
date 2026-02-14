@@ -2702,6 +2702,7 @@ def generate_sped_fiscal(
     - PIS/COFINS entrada: CST 98
     - PIS/COFINS saída: CST 49
     """
+    logger.info(f"[generate_sped_fiscal] INÍCIO - excluir_creditos_despesa_st={excluir_creditos_despesa_st}, aplicar_beneficio_fiscal={aplicar_beneficio_fiscal}")
     lines = []
     
     # CFOPs de Substituição Tributária (não dão direito a crédito de ICMS)
