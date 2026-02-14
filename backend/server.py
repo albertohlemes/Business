@@ -22897,12 +22897,32 @@ async def detalhamento_pis_cofins(
     # Converter para formato esperado pela função calcular_pis_cofins_produto
     regime_para_calculo = 'LUCRO_REAL' if regime_tributario == 'lucro_real' else 'LUCRO_PRESUMIDO'
     
-    # Buscar documentos
-    documents = await db.xml_documents.find({
+    # Buscar documentos com limite para grandes volumes
+    query = {
         "company_id": company_id,
         "competencia": competencia,
         **get_filtro_notas_ativas()
-    }, {"_id": 0, "xml_content": 0}).to_list(100000)
+    }
+    
+    # Contar primeiro
+    total_docs = await db.xml_documents.count_documents(query)
+    logger.info(f"PIS/COFINS DETALHAMENTO: Total documentos = {total_docs}")
+    
+    # Para volumes muito grandes, retornar resposta simplificada
+    if total_docs > 15000:
+        return {
+            "empresa": company.get('razao_social', ''),
+            "competencia": competencia,
+            "entradas": [],
+            "saidas": [],
+            "subtotais": {
+                "entradas": {"quantidade": 0, "valor_base": 0, "pis": 0, "cofins": 0},
+                "saidas": {"quantidade": 0, "valor_base": 0, "pis": 0, "cofins": 0}
+            },
+            "_alerta": f"Volume muito grande ({total_docs} documentos). Use a tela de apuração resumida."
+        }
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     # Estrutura para agrupar
     entradas = {}  # chave: NCM_CFOP_CST
