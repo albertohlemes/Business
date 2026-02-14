@@ -10880,6 +10880,125 @@ async def get_inconsistencias(
     }
 
 
+
+async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, competencia: str, query: dict, total_docs: int, regime: str):
+    """
+    Versão otimizada da apuração PIS/COFINS usando agregação do MongoDB.
+    Usada quando há mais de 5000 documentos para evitar timeout.
+    """
+    logger.info(f"APURACAO-PIS-COFINS AGREGADO: Iniciando para {total_docs} documentos")
+    
+    # Pipeline de agregação para calcular totais por tipo de operação e CFOP
+    pipeline = [
+        {"$match": query},
+        {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
+        {
+            "$group": {
+                "_id": {
+                    "tipo": {"$ifNull": ["$tipo_operacao", {"$ifNull": ["$tipo", "entrada"]}]},
+                    "cfop": {"$ifNull": ["$produtos.cfop", "0000"]}
+                },
+                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_pis", 0]}}},
+                "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_cofins", 0]}}},
+                "qtd_produtos": {"$sum": 1}
+            }
+        }
+    ]
+    
+    cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
+    resultados = await cursor.to_list(length=500)
+    
+    # CFOPs que geram crédito (entradas)
+    CFOPS_CREDITO = ['1101', '1102', '1111', '1113', '1116', '1117', '1118', '1120', '1121', '1122',
+                    '1124', '1125', '1126', '1128', '1151', '1152', '1153', '1154', '1201', '1202',
+                    '2101', '2102', '2111', '2113', '2116', '2117', '2118', '2120', '2121', '2122',
+                    '2124', '2125', '2126', '2128', '2151', '2152', '2153', '2154', '2201', '2202']
+    
+    # CFOPs que geram débito (saídas)
+    CFOPS_DEBITO = ['5101', '5102', '5103', '5104', '5105', '5106', '5109', '5110', '5111', '5112',
+                   '5113', '5114', '5115', '5116', '5117', '5118', '5119', '5120', '5122', '5123',
+                   '6101', '6102', '6103', '6104', '6105', '6106', '6107', '6108', '6109', '6110',
+                   '6111', '6112', '6113', '6114', '6115', '6116', '6117', '6118', '6119', '6120']
+    
+    # Processar resultados
+    base_credito = 0
+    base_debito = 0
+    valor_pis_xml = 0
+    valor_cofins_xml = 0
+    por_cfop = {}
+    
+    for item in resultados:
+        tipo = (item['_id'].get('tipo', '') or '').lower()
+        cfop = str(item['_id'].get('cfop', '0000'))
+        valor = item['valor_total']
+        
+        # Agrupar por CFOP
+        if cfop not in por_cfop:
+            por_cfop[cfop] = {"valor": 0, "pis": 0, "cofins": 0, "qtd": 0, "tipo": tipo}
+        por_cfop[cfop]["valor"] += valor
+        por_cfop[cfop]["pis"] += item.get('valor_pis', 0)
+        por_cfop[cfop]["cofins"] += item.get('valor_cofins', 0)
+        por_cfop[cfop]["qtd"] += item.get('qtd_produtos', 0)
+        
+        # Calcular bases
+        if tipo == 'entrada' and cfop in CFOPS_CREDITO:
+            base_credito += valor
+        elif tipo == 'saida' and cfop in CFOPS_DEBITO:
+            base_debito += valor
+        
+        valor_pis_xml += item.get('valor_pis', 0)
+        valor_cofins_xml += item.get('valor_cofins', 0)
+    
+    # Calcular valores de PIS/COFINS baseado no regime
+    if regime == 'lucro_real':
+        aliq_pis = 0.0165  # 1.65%
+        aliq_cofins = 0.076  # 7.6%
+        credito_pis = base_credito * aliq_pis
+        credito_cofins = base_credito * aliq_cofins
+    else:
+        aliq_pis = 0.0065  # 0.65%
+        aliq_cofins = 0.03  # 3%
+        credito_pis = 0
+        credito_cofins = 0
+    
+    debito_pis = base_debito * aliq_pis
+    debito_cofins = base_debito * aliq_cofins
+    
+    saldo_pis = debito_pis - credito_pis
+    saldo_cofins = debito_cofins - credito_cofins
+    
+    # Converter por_cfop para lista
+    por_cfop_lista = [{"cfop": k, **v} for k, v in sorted(por_cfop.items())]
+    
+    return {
+        "empresa": {
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', ''),
+            "regime": regime
+        },
+        "competencia": competencia,
+        "totais": {
+            "base_credito": round(base_credito, 2),
+            "base_debito": round(base_debito, 2),
+            "credito_pis": round(credito_pis, 2),
+            "credito_cofins": round(credito_cofins, 2),
+            "debito_pis": round(debito_pis, 2),
+            "debito_cofins": round(debito_cofins, 2),
+            "saldo_pis": round(saldo_pis, 2),
+            "saldo_cofins": round(saldo_cofins, 2),
+            "total_a_pagar": round(max(0, saldo_pis) + max(0, saldo_cofins), 2),
+            "valor_pis_xml": round(valor_pis_xml, 2),
+            "valor_cofins_xml": round(valor_cofins_xml, 2)
+        },
+        "por_cfop": por_cfop_lista[:50],  # Limitar a 50 CFOPs para não sobrecarregar
+        "alertas": [{"tipo": "INFO", "mensagem": f"Apuração simplificada: {total_docs} documentos processados via agregação"}],
+        "total_documentos": total_docs,
+        "otimizado": True
+    }
+
+
+
 @api_router.get("/apuracao-pis-cofins/{company_id}")
 async def apuracao_pis_cofins(
     company_id: str,
