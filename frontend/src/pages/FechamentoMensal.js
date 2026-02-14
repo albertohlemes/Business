@@ -250,7 +250,7 @@ const FechamentoMensal = ({ user, onLogout }) => {
               <div className="bg-[#141414] rounded-xl p-5 border border-[#2A2A2A]">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <Calculator className="w-5 h-5 text-purple-400" />
+                    <Calculator className="w-5 h-5 text-slate-400" />
                     PIS
                   </h3>
                   {data.pis?.a_pagar > 0 ? (

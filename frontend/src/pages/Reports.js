@@ -640,7 +640,7 @@ const Reports = ({ user, onLogout }) => {
                         <div className={`px-3 py-1 rounded-lg font-mono font-bold ${
                           grupo.aliquota_pis === 0 ? 'bg-gray-600 text-gray-200' :
                           grupo.aliquota_pis === 1.65 ? 'bg-blue-600 text-white' :
-                          'bg-purple-600 text-white'
+                          'bg-slate-600 text-white'
                         }`}>
                           PIS {grupo.aliquota_pis}% | COFINS {grupo.aliquota_cofins}%
                         </div>
@@ -753,7 +753,7 @@ const Reports = ({ user, onLogout }) => {
                           <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(item.valor_total)}</td>
                           <td className="px-4 py-3 text-right text-green-400">{formatCurrency(item.credito_icms)}</td>
                           <td className="px-4 py-3 text-right text-blue-400">{formatCurrency(item.credito_pis)}</td>
-                          <td className="px-4 py-3 text-right text-purple-400">{formatCurrency(item.credito_cofins)}</td>
+                          <td className="px-4 py-3 text-right text-slate-400">{formatCurrency(item.credito_cofins)}</td>
                         </tr>
                       ))}
                     </tbody>

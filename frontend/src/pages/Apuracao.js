@@ -281,7 +281,7 @@ const Apuracao = ({ user, onLogout }) => {
                 </div>
                 <div className="bg-[#141414] rounded-lg p-3">
                   <p className="text-[#666] text-xs mb-1">PIS + COFINS</p>
-                  <p className="text-purple-400 font-bold text-lg">
+                  <p className="text-slate-400 font-bold text-lg">
                     {formatCurrency((totais.valor_pis || 0) + (totais.valor_cofins || 0))}
                   </p>
                 </div>
@@ -324,8 +324,8 @@ const Apuracao = ({ user, onLogout }) => {
                       <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(item.valor_total)}</td>
                       <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatCurrency(item.bc_icms)}</td>
                       <td className="px-4 py-3 text-right text-[#C8A951] font-medium">{formatCurrency(item.valor_icms)}</td>
-                      <td className="px-4 py-3 text-right text-purple-400">{formatCurrency(item.valor_pis)}</td>
-                      <td className="px-4 py-3 text-right text-purple-400">{formatCurrency(item.valor_cofins)}</td>
+                      <td className="px-4 py-3 text-right text-slate-400">{formatCurrency(item.valor_pis)}</td>
+                      <td className="px-4 py-3 text-right text-slate-400">{formatCurrency(item.valor_cofins)}</td>
                       <td className="px-4 py-3 text-right text-orange-400">{formatCurrency(item.valor_ipi)}</td>
                       <td className="px-4 py-3 text-right text-blue-400">{formatCurrency(item.icms_st)}</td>
                     </tr>
@@ -342,8 +342,8 @@ const Apuracao = ({ user, onLogout }) => {
                       <td className="px-4 py-3 text-right text-white font-bold">{formatCurrency(totais.valor_total)}</td>
                       <td className="px-4 py-3 text-right text-white font-bold">{formatCurrency(totais.bc_icms)}</td>
                       <td className="px-4 py-3 text-right text-[#C8A951] font-bold">{formatCurrency(totais.valor_icms)}</td>
-                      <td className="px-4 py-3 text-right text-purple-400 font-bold">{formatCurrency(totais.valor_pis)}</td>
-                      <td className="px-4 py-3 text-right text-purple-400 font-bold">{formatCurrency(totais.valor_cofins)}</td>
+                      <td className="px-4 py-3 text-right text-slate-400 font-bold">{formatCurrency(totais.valor_pis)}</td>
+                      <td className="px-4 py-3 text-right text-slate-400 font-bold">{formatCurrency(totais.valor_cofins)}</td>
                       <td className="px-4 py-3 text-right text-orange-400 font-bold">{formatCurrency(totais.valor_ipi)}</td>
                       <td className="px-4 py-3 text-right text-blue-400 font-bold">{formatCurrency(totais.icms_st)}</td>
                     </tr>

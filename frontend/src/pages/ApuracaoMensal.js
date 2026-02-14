@@ -929,7 +929,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                       cst === '50' || cst === '01' ? 'bg-green-100 text-green-800' :
                       cst === '73' || cst === '06' ? 'bg-yellow-100 text-yellow-800' :
                       cst === '98' || cst === '49' ? 'bg-orange-100 text-orange-800' :
-                      cst === '04' ? 'bg-purple-500/10 text-purple-400' :
+                      cst === '04' ? 'bg-slate-500/10 text-slate-400' :
                       'bg-[#1A1A1A] text-white'
                     }`}>
                       {cst}
@@ -1280,7 +1280,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                   credito={calculos.pis.credito}
                   debito={calculos.pis.debito}
                   aPagar={calculos.pis.aPagar}
-                  color="bg-purple-500"
+                  color="bg-slate-500"
                 />
                 <TaxCard
                   title="COFINS"
@@ -1413,7 +1413,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                         onClick={() => setPisCofinsViewMode('cfop')}
                         className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                           pisCofinsViewMode === 'cfop' 
-                            ? 'bg-[#141414] text-purple-700' 
+                            ? 'bg-[#141414] text-slate-600' 
                             : 'bg-[#141414]/20 text-white hover:bg-[#141414]/30'
                         }`}
                       >
@@ -1423,7 +1423,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                         onClick={() => setPisCofinsViewMode('ncm')}
                         className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                           pisCofinsViewMode === 'ncm' 
-                            ? 'bg-[#141414] text-purple-700' 
+                            ? 'bg-[#141414] text-slate-600' 
                             : 'bg-[#141414]/20 text-white hover:bg-[#141414]/30'
                         }`}
                       >
@@ -1433,7 +1433,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                         onClick={() => setPisCofinsViewMode('cst')}
                         className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                           pisCofinsViewMode === 'cst' 
-                            ? 'bg-[#141414] text-purple-700' 
+                            ? 'bg-[#141414] text-slate-600' 
                             : 'bg-[#141414]/20 text-white hover:bg-[#141414]/30'
                         }`}
                       >
@@ -1515,7 +1515,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
 
                 {/* Separador visual entre Entradas e Saídas */}
                 <div className="bg-[#C8A951]/10 px-5 py-2">
-                  <span className="text-sm font-semibold text-purple-700 flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-600 flex items-center gap-2">
                     <ArrowUpCircle className="w-4 h-4" />
                     SAÍDAS (DÉBITOS)
                   </span>
