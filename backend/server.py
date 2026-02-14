@@ -911,6 +911,8 @@ class CompanyUpdate(BaseModel):
     percentual_presuncao_servicos_csll: Optional[float] = None
     # Logo da empresa (base64 data URL)
     logo_url: Optional[str] = None
+    # Alertas de variação
+    limite_alerta_variacao: Optional[int] = None  # 20 = 20%
 
 
 # ============================================================
