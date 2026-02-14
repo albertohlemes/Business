@@ -2839,12 +2839,15 @@ def generate_sped_fiscal(
             }
     
     # |REG|COD_PART|NOME|COD_PAIS|CNPJ|CPF|IE|COD_MUN|SUFRAMA|END|NUM|COMPL|BAIRRO|
-    for cnpj, info in participantes.items():
-        lines.append("|0150|{}|{}|{}|{}||{}|{}||{}|{}|{}|{}|".format(
-            cnpj,                       # COD_PART
+    for cod_part, info in participantes.items():
+        cnpj_part = info.get('cnpj', '') or (cod_part if len(cod_part) == 14 else '')
+        cpf_part = info.get('cpf', '') or (cod_part if len(cod_part) == 11 else '')
+        lines.append("|0150|{}|{}|{}|{}|{}|{}|{}||{}|{}|{}|{}|".format(
+            cod_part,                   # COD_PART
             info['nome'],               # NOME
             info['cod_pais'] or '1058', # COD_PAIS
-            cnpj,                       # CNPJ
+            cnpj_part,                  # CNPJ (vazio se pessoa física)
+            cpf_part,                   # CPF (vazio se pessoa jurídica)
             info['ie'],                 # IE
             info['cod_mun'],            # COD_MUN
             info['endereco'],           # END
