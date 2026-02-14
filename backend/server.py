@@ -31530,14 +31530,14 @@ def generate_wizard_report_pdf(data: Dict[str, Any]) -> io.BytesIO:
     elements.append(Spacer(1, 3*mm))
     
     # Etapa 2 - Devoluções
-    if data.get('etapa_2'):
-        elements.append(Paragraph("ETAPA 2 - DEVOLUÇÕES DE TERCEIROS", section_style))
-        etapa2 = data['etapa_2']
-        elements.append(Paragraph(f"Total de notas desconsideradas: {etapa2.get('total', 0)}", normal_style))
-        
-        if etapa2.get('notas'):
-            table_data = [["NF Devolução", "Emitente", "Valor", "NF Original", "Motivo"]]
-            for nota in etapa2['notas'][:50]:
+    elements.append(Paragraph("ETAPA 2 - DEVOLUÇÕES DE TERCEIROS", section_style))
+    etapa2 = data.get('etapa_2', {})
+    total_devolucoes = etapa2.get('total', 0)
+    elements.append(Paragraph(f"Total de notas desconsideradas: {total_devolucoes}", normal_style))
+    
+    if etapa2.get('notas'):
+        table_data = [["NF Devolução", "Emitente", "Valor", "NF Original", "Motivo"]]
+        for nota in etapa2['notas'][:50]:
                 table_data.append([
                     nota.get('numero_nfe', '-'),
                     nota.get('emitente_nome', '-')[:30],
