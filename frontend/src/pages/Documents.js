@@ -3065,7 +3065,7 @@ const Documents = ({ user, onLogout }) => {
                                 </div>
                                 
                                 {/* Coluna NF Original */}
-                                <div className={`px-3 py-2 ${item.original ? 'bg-emerald-500/5' : item.naoEncontrada ? 'bg-red-500/5' : 'bg-[#0C0C0C]'}`}>
+                                <div className={`px-3 py-2 ${item.original ? 'bg-emerald-500/5' : item.divergente ? 'bg-amber-500/5' : item.naoEncontrada ? 'bg-red-500/5' : 'bg-[#0C0C0C]'}`}>
                                   {item.original ? (
                                     <>
                                       <p className="text-sm text-white font-medium flex items-center gap-1">
@@ -3076,6 +3076,21 @@ const Documents = ({ user, onLogout }) => {
                                       </p>
                                       <p className="text-xs text-emerald-400 mt-1">
                                         Desconsiderada automaticamente
+                                      </p>
+                                    </>
+                                  ) : item.divergente ? (
+                                    <>
+                                      <p className="text-sm text-amber-300 font-medium flex items-center gap-1">
+                                        <span>⚠️</span> NF {item.divergente.numero}
+                                      </p>
+                                      <p className="text-xs text-amber-400">
+                                        Devolução: {formatCurrency(item.divergente.valorDevolucao || 0)}
+                                      </p>
+                                      <p className="text-xs text-white">
+                                        Original: {formatCurrency(item.divergente.valorTotal || 0)}
+                                      </p>
+                                      <p className="text-xs text-red-400 font-medium mt-1">
+                                        Diferença de valor - Decidir no Wizard
                                       </p>
                                     </>
                                   ) : item.naoEncontrada ? (
