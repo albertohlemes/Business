@@ -31202,108 +31202,329 @@ async def complete_wizard_step(
     
     
     elif step_id == 4:  # Classificação de CFOPs (antigo step 3)
-        # Classificar produtos com IA se necessário
+        # NOVA LÓGICA: Reclassificação com hierarquia de 6 regras
+        # Sempre reclassifica TODOS os produtos, seguindo a ordem:
+        # 1. CFOP de Devolução (automático)
+        # 2. Cache de Regras Aprendidas (learned_rules)
+        # 3. Aprendizado por NCM (match com vendas)
+        # 4. Aprendizado por Palavras-Chave (match com vendas)
+        # 5. Palavras-Chave Cadastradas pela Empresa
+        # 6. Classificação por IA (Gemini) como último recurso
+        
         classificar = step_data.get("classificar_produtos", False)
+        forcar_reclassificacao = step_data.get("forcar_reclassificacao", False)
+        
         if classificar:
-            # Buscar documentos de entrada sem classificação
-            docs = await db.xml_documents.find({
+            logger.info(f"[WIZARD-CLASSIFICACAO] Iniciando classificação hierárquica para {company_id}/{competencia}")
+            
+            # Buscar documentos de entrada
+            query_filter = {
                 "company_id": company_id,
                 "competencia": competencia,
                 "tipo": "entrada",
                 "modelo": "nfe"
-            }).to_list(length=500)
+            }
+            
+            docs = await db.xml_documents.find(query_filter).to_list(length=1000)
+            
+            # Contadores por fonte de classificação
+            stats = {
+                "cfop_devolucao": 0,
+                "learned_rules": 0,
+                "ncm_vendas": 0,
+                "palavras_chave_vendas": 0,
+                "palavras_chave_empresa": 0,
+                "ia_gemini": 0,
+                "total": 0
+            }
+            
+            # 1. Carregar Regras Aprendidas (learned_rules)
+            learned_rules = await db.learned_rules.find({"company_id": company_id}).to_list(500)
+            rules_by_codigo = {}
+            rules_by_descricao = {}
+            for rule in learned_rules:
+                codigo = str(rule.get('codigo_produto', '')).strip().lower()
+                descricao = str(rule.get('descricao_produto', '')).strip().lower()
+                categoria = rule.get('categoria', '')
+                if codigo and categoria:
+                    rules_by_codigo[codigo] = categoria
+                if descricao and categoria and len(descricao) > 3:
+                    rules_by_descricao[descricao] = categoria
+            
+            logger.info(f"[WIZARD-CLASSIFICACAO] {len(rules_by_codigo)} regras por código, {len(rules_by_descricao)} regras por descrição")
+            
+            # 2. Carregar cache de vendas para aprendizado por NCM e palavras-chave
+            sales_by_ncm = {}
+            sales_by_keyword = {}
+            try:
+                pipeline = [
+                    {"$match": {"company_id": company_id, "tipo": "saida"}},
+                    {"$unwind": "$produtos"},
+                    {"$group": {
+                        "_id": {
+                            "ncm": "$produtos.ncm",
+                            "descricao": {"$toLower": "$produtos.descricao"}
+                        },
+                        "categoria": {"$first": "$produtos.categoria_classificada"},
+                        "cfop": {"$first": "$produtos.cfop"},
+                        "count": {"$sum": 1}
+                    }},
+                    {"$match": {"count": {"$gte": 1}}}
+                ]
+                sales_products = await db.xml_documents.aggregate(pipeline).to_list(length=10000)
+                for sp in sales_products:
+                    ncm = str(sp["_id"].get("ncm", "")).replace(".", "")[:8]
+                    descricao = sp["_id"].get("descricao", "")
+                    categoria = sp.get("categoria", "")
+                    
+                    if ncm and categoria and len(ncm) >= 4:
+                        if ncm not in sales_by_ncm:
+                            sales_by_ncm[ncm] = categoria
+                    
+                    if descricao and categoria:
+                        # Extrair palavras-chave da descrição (palavras com 4+ caracteres)
+                        palavras = [w.lower() for w in descricao.split() if len(w) >= 4]
+                        for palavra in palavras:
+                            if palavra not in sales_by_keyword:
+                                sales_by_keyword[palavra] = categoria
+            except Exception as e:
+                logger.warning(f"Erro ao carregar cache de vendas: {e}")
+            
+            logger.info(f"[WIZARD-CLASSIFICACAO] {len(sales_by_ncm)} NCMs vendidos, {len(sales_by_keyword)} palavras-chave de vendas")
+            
+            # 3. Carregar palavras-chave cadastradas pela empresa
+            palavras_revenda = [p.lower() for p in company.get('produtos_comercializados', [])]
+            palavras_servico = [p.lower() for p in company.get('produtos_aplicacao_servico', [])]
+            palavras_insumo = [p.lower() for p in company.get('insumos_producao', [])]
+            palavras_despesa = [p.lower() for p in company.get('produtos_despesa', [])]
+            
+            # CFOPs de devolução
+            cfops_devolucao = ['1201', '1202', '1203', '1204', '1410', '1411', '1503', '1504',
+                              '2201', '2202', '2203', '2204', '2410', '2411', '2503', '2504']
+            
+            # Regime tributário para CST
+            regime = company.get("regime_tributario", "simples_nacional")
+            
+            # Produtos para classificar com IA (último recurso)
+            produtos_para_ia = []
+            produtos_para_ia_refs = []  # (doc_id, idx_produto)
             
             total_classificados = 0
-            for doc in docs:
-                produtos_para_classificar = []
-                for p in doc.get("produtos", []):
-                    if not p.get("categoria_classificada"):
-                        produtos_para_classificar.append(p)
-                
-                if produtos_para_classificar:
-                    try:
-                        emitente_uf = doc.get("emitente_uf", "")
-                        
-                        # Carregar cache de vendas para aprendizado (igual importação normal)
-                        sales_cache = {}
-                        try:
-                            pipeline = [
-                                {"$match": {"company_id": company_id, "tipo": "saida"}},
-                                {"$unwind": "$produtos"},
-                                {"$group": {
-                                    "_id": {
-                                        "descricao": {"$toLower": "$produtos.descricao"},
-                                        "codigo": "$produtos.codigo"
-                                    },
-                                    "categoria": {"$first": "$produtos.categoria_classificada"},
-                                    "cfop": {"$first": "$produtos.cfop"},
-                                    "count": {"$sum": 1}
-                                }},
-                                {"$match": {"count": {"$gte": 1}}}
-                            ]
-                            sales_products = await db.xml_documents.aggregate(pipeline).to_list(length=10000)
-                            for sp in sales_products:
-                                key = (sp["_id"]["descricao"] or "", sp["_id"]["codigo"] or "")
-                                if sp.get("categoria"):
-                                    sales_cache[key] = {"categoria": sp["categoria"], "cfop": sp.get("cfop", "")}
-                        except Exception as e:
-                            logger.warning(f"Erro ao carregar cache de vendas: {e}")
-                        
-                        # Calcular CST ANTES de classificar (igual importação normal)
-                        regime = company.get("regime_tributario", "simples_nacional")
-                        for product in produtos_para_classificar:
-                            cfop = product.get('cfop', '')
-                            ncm = product.get('ncm', '')
-                            
-                            # Salvar CFOP original do emissor
-                            if not product.get('cfop_original') and not product.get('cfop_original_emissor'):
-                                product['cfop_original_emissor'] = cfop
-                            
-                            # Calcular CST de PIS/COFINS
-                            cst_info = calcular_cst_pis_cofins(
-                                ncm=ncm,
-                                cfop=cfop,
-                                tipo_operacao="entrada",
-                                cst_xml=product.get('cst_pis_xml', product.get('cst_pis', '')),
-                                regime=regime
-                            )
-                            
-                            product['cst_pis_calculado'] = cst_info['cst_calculado']
-                            product['cst_cofins_calculado'] = cst_info['cst_calculado']
-                            product['cst_pis'] = cst_info['cst_calculado']
-                            product['cst_cofins'] = cst_info['cst_calculado']
-                        
-                        # Classificar com cache e IA
-                        classifications, stats = await classify_products_with_cache(
-                            produtos_para_classificar,
-                            company_id,
-                            company,
-                            emitente_uf,
-                            sales_cache
-                        )
-                        
-                        # Aplicar classificações
-                        for idx, product in enumerate(produtos_para_classificar):
-                            p_id = str(idx)
-                            if p_id in classifications:
-                                result_class = classifications[p_id]
-                                cfop_original = product.get('cfop', '')
-                                product['cfop_original'] = cfop_original
-                                product['cfop'] = result_class['cfop']
-                                product['cfop_sugerido'] = result_class['cfop']
-                                product['categoria_classificada'] = result_class['categoria']
-                                product['justificativa_ia'] = result_class['justificativa']
-                                total_classificados += 1
-                        
-                        # Salvar documento atualizado
-                        await db.xml_documents.update_one(
-                            {"id": doc["id"]},
-                            {"$set": {"produtos": doc["produtos"]}}
-                        )
-                    except Exception as e:
-                        logger.warning(f"Erro ao classificar: {e}")
             
-            actions_taken.append(f"{total_classificados} produtos classificados")
+            for doc in docs:
+                produtos = doc.get("produtos", [])
+                doc_alterado = False
+                
+                for idx, prod in enumerate(produtos):
+                    # Pular produtos já classificados se não forçar reclassificação
+                    if not forcar_reclassificacao and prod.get("categoria_classificada"):
+                        continue
+                    
+                    cfop = str(prod.get('cfop', ''))
+                    ncm = str(prod.get('ncm', '')).replace('.', '')[:8]
+                    codigo = str(prod.get('codigo', '')).strip().lower()
+                    descricao = str(prod.get('descricao', '')).strip().lower()
+                    categoria_encontrada = None
+                    fonte_classificacao = None
+                    
+                    # ===== REGRA 1: CFOP de Devolução (Automático) =====
+                    if cfop in cfops_devolucao:
+                        categoria_encontrada = "devolucao"
+                        fonte_classificacao = "cfop_devolucao"
+                        stats["cfop_devolucao"] += 1
+                    
+                    # ===== REGRA 2: Cache de Regras Aprendidas (learned_rules) =====
+                    if not categoria_encontrada:
+                        # Primeiro por código
+                        if codigo and codigo in rules_by_codigo:
+                            categoria_encontrada = rules_by_codigo[codigo]
+                            fonte_classificacao = "learned_rules"
+                            stats["learned_rules"] += 1
+                        # Depois por descrição exata
+                        elif descricao and descricao in rules_by_descricao:
+                            categoria_encontrada = rules_by_descricao[descricao]
+                            fonte_classificacao = "learned_rules"
+                            stats["learned_rules"] += 1
+                    
+                    # ===== REGRA 3: Aprendizado por NCM (Match com Vendas) =====
+                    if not categoria_encontrada and ncm and len(ncm) >= 4:
+                        # Tentar match exato primeiro
+                        if ncm in sales_by_ncm:
+                            categoria_encontrada = sales_by_ncm[ncm]
+                            fonte_classificacao = "ncm_vendas"
+                            stats["ncm_vendas"] += 1
+                        else:
+                            # Tentar match parcial (primeiros 4 dígitos)
+                            ncm_prefix = ncm[:4]
+                            for ncm_venda, cat in sales_by_ncm.items():
+                                if ncm_venda.startswith(ncm_prefix):
+                                    categoria_encontrada = cat
+                                    fonte_classificacao = "ncm_vendas"
+                                    stats["ncm_vendas"] += 1
+                                    break
+                    
+                    # ===== REGRA 4: Aprendizado por Palavras-Chave (Match com Vendas) =====
+                    if not categoria_encontrada:
+                        palavras_desc = [w.lower() for w in descricao.split() if len(w) >= 4]
+                        for palavra in palavras_desc:
+                            if palavra in sales_by_keyword:
+                                categoria_encontrada = sales_by_keyword[palavra]
+                                fonte_classificacao = "palavras_chave_vendas"
+                                stats["palavras_chave_vendas"] += 1
+                                break
+                    
+                    # ===== REGRA 5: Palavras-Chave Cadastradas pela Empresa =====
+                    if not categoria_encontrada:
+                        # Verificar palavras-chave em ordem de prioridade
+                        for palavra in palavras_insumo:
+                            if palavra and palavra in descricao:
+                                categoria_encontrada = "insumo"
+                                fonte_classificacao = "palavras_chave_empresa"
+                                stats["palavras_chave_empresa"] += 1
+                                break
+                        
+                        if not categoria_encontrada:
+                            for palavra in palavras_despesa:
+                                if palavra and palavra in descricao:
+                                    categoria_encontrada = "despesa"
+                                    fonte_classificacao = "palavras_chave_empresa"
+                                    stats["palavras_chave_empresa"] += 1
+                                    break
+                        
+                        if not categoria_encontrada:
+                            for palavra in palavras_servico:
+                                if palavra and palavra in descricao:
+                                    categoria_encontrada = "servico_aplicacao"
+                                    fonte_classificacao = "palavras_chave_empresa"
+                                    stats["palavras_chave_empresa"] += 1
+                                    break
+                        
+                        if not categoria_encontrada:
+                            for palavra in palavras_revenda:
+                                if palavra and palavra in descricao:
+                                    categoria_encontrada = "revenda"
+                                    fonte_classificacao = "palavras_chave_empresa"
+                                    stats["palavras_chave_empresa"] += 1
+                                    break
+                    
+                    # ===== REGRA 6: Classificação por IA (último recurso) =====
+                    if not categoria_encontrada:
+                        # Adicionar à lista para classificação em batch com IA
+                        produtos_para_ia.append({
+                            "idx": idx,
+                            "descricao": prod.get('descricao', ''),
+                            "ncm": ncm,
+                            "cfop": cfop
+                        })
+                        produtos_para_ia_refs.append((doc["id"], idx))
+                        continue  # Processar depois em batch
+                    
+                    # Aplicar classificação encontrada
+                    if categoria_encontrada:
+                        # Salvar CFOP original se ainda não existir
+                        if not prod.get('cfop_original_emissor'):
+                            prod['cfop_original_emissor'] = cfop
+                        
+                        # Calcular novo CFOP baseado na categoria
+                        novo_cfop = calcular_cfop_por_categoria(categoria_encontrada, company.get('uf', ''), doc.get('emitente_uf', ''))
+                        
+                        prod['categoria_classificada'] = categoria_encontrada
+                        prod['cfop'] = novo_cfop
+                        prod['cfop_sugerido'] = novo_cfop
+                        prod['fonte_classificacao'] = fonte_classificacao
+                        prod['classificado_wizard'] = True
+                        prod['classificado_em'] = datetime.now(timezone.utc).isoformat()
+                        
+                        # Calcular CST de PIS/COFINS
+                        cst_info = calcular_cst_pis_cofins(
+                            ncm=ncm,
+                            cfop=novo_cfop,
+                            tipo_operacao="entrada",
+                            cst_xml=prod.get('cst_pis_xml', prod.get('cst_pis', '')),
+                            regime=regime
+                        )
+                        prod['cst_pis'] = cst_info['cst_calculado']
+                        prod['cst_cofins'] = cst_info['cst_calculado']
+                        
+                        doc_alterado = True
+                        total_classificados += 1
+                
+                # Salvar documento se houve alterações
+                if doc_alterado:
+                    await db.xml_documents.update_one(
+                        {"id": doc["id"]},
+                        {"$set": {"produtos": produtos}}
+                    )
+            
+            # Processar produtos pendentes com IA (batch)
+            if produtos_para_ia:
+                logger.info(f"[WIZARD-CLASSIFICACAO] Classificando {len(produtos_para_ia)} produtos com IA Gemini")
+                try:
+                    # Usar a função existente classify_products_with_cache
+                    emitente_uf = company.get('uf', '')
+                    
+                    classifications, ia_stats = await classify_products_with_cache(
+                        [{"descricao": p["descricao"], "ncm": p["ncm"], "cfop": p["cfop"]} for p in produtos_para_ia],
+                        company_id,
+                        company,
+                        emitente_uf,
+                        {}  # sales_cache vazio pois já tentamos acima
+                    )
+                    
+                    # Aplicar classificações da IA
+                    # Agrupar por documento para batch update
+                    updates_by_doc = {}
+                    for i, (doc_id, prod_idx) in enumerate(produtos_para_ia_refs):
+                        p_id = str(i)
+                        if p_id in classifications:
+                            if doc_id not in updates_by_doc:
+                                updates_by_doc[doc_id] = []
+                            updates_by_doc[doc_id].append({
+                                "idx": prod_idx,
+                                "classificacao": classifications[p_id]
+                            })
+                            stats["ia_gemini"] += 1
+                    
+                    # Aplicar atualizações
+                    for doc_id, updates in updates_by_doc.items():
+                        doc = await db.xml_documents.find_one({"id": doc_id})
+                        if doc:
+                            produtos = doc.get("produtos", [])
+                            for upd in updates:
+                                idx = upd["idx"]
+                                result = upd["classificacao"]
+                                if idx < len(produtos):
+                                    prod = produtos[idx]
+                                    if not prod.get('cfop_original_emissor'):
+                                        prod['cfop_original_emissor'] = prod.get('cfop', '')
+                                    prod['categoria_classificada'] = result['categoria']
+                                    prod['cfop'] = result['cfop']
+                                    prod['cfop_sugerido'] = result['cfop']
+                                    prod['justificativa_ia'] = result.get('justificativa', '')
+                                    prod['fonte_classificacao'] = 'ia_gemini'
+                                    prod['classificado_wizard'] = True
+                                    prod['classificado_em'] = datetime.now(timezone.utc).isoformat()
+                                    total_classificados += 1
+                            
+                            await db.xml_documents.update_one(
+                                {"id": doc_id},
+                                {"$set": {"produtos": produtos}}
+                            )
+                except Exception as e:
+                    logger.error(f"Erro ao classificar com IA: {e}")
+            
+            stats["total"] = total_classificados
+            
+            # Gerar resumo das ações
+            actions_taken.append(f"{total_classificados} produtos classificados:")
+            actions_taken.append(f"  - CFOP Devolução: {stats['cfop_devolucao']}")
+            actions_taken.append(f"  - Regras Aprendidas: {stats['learned_rules']}")
+            actions_taken.append(f"  - NCM Vendas: {stats['ncm_vendas']}")
+            actions_taken.append(f"  - Palavras-Chave Vendas: {stats['palavras_chave_vendas']}")
+            actions_taken.append(f"  - Palavras-Chave Empresa: {stats['palavras_chave_empresa']}")
+            actions_taken.append(f"  - IA Gemini: {stats['ia_gemini']}")
+            
+            logger.info(f"[WIZARD-CLASSIFICACAO] Concluído: {stats}")
     
     elif step_id == 5:  # PIS/COFINS Entradas
         # Recalcular CST de entradas
