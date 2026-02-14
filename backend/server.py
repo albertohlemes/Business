@@ -22792,6 +22792,11 @@ async def _get_ipi_aggregated(company: dict, company_id: str, competencia: str, 
         "total_documentos": total_docs,
         "otimizado": True
     }
+    
+    # Salvar no cache antes de retornar
+    aggregation_cache.set("ipi", company_id, competencia, resultado)
+    
+    return resultado
 
 
 
