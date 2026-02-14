@@ -240,6 +240,28 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 
 ## Changelog
 
+### Fevereiro/2026 (Sessão 14/02 - CACHE INTELIGENTE DE AGREGAÇÕES)
+- ✅ **NOVA FUNCIONALIDADE - Cache de Agregações**:
+  - **Descrição**: Sistema de cache inteligente para resultados de agregações pesadas
+  - **Componentes**:
+    - Classe `AggregationCache` com TTL de 5 minutos
+    - Invalidação automática por empresa/competência quando há alterações
+    - Helper `invalidate_company_cache()` para invalidar dados
+  - **Funcionamento**:
+    - Cache é verificado antes de executar agregação
+    - Se houver hit, retorna dados do cache instantaneamente
+    - Se houver miss, executa agregação e salva no cache
+    - Invalidação automática após upload ou deleção de documentos
+  - **Endpoints que usam cache**:
+    - `_get_pis_cofins_aggregated()` 
+    - `_get_icms_aggregated()`
+    - `_get_ipi_aggregated()`
+  - **Novos endpoints de gestão**:
+    - `GET /api/cache/stats` - Estatísticas do cache
+    - `POST /api/cache/invalidate/{company_id}` - Invalidar cache manualmente
+    - `POST /api/cache/clear` - Limpar todo o cache (super admin)
+  - **Arquivo**: `/app/backend/server.py`
+
 ### Fevereiro/2026 (Sessão 14/02 - OTIMIZAÇÃO DE PERFORMANCE GLOBAL)
 - ✅ **CORREÇÃO CRÍTICA - Performance em Grandes Volumes**:
   - **Problema**: Sistema travava ao navegar para páginas de apuração (PIS/COFINS, ICMS, etc.) com empresas com muitos documentos (>15.000 XMLs)
