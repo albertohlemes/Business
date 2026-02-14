@@ -32761,8 +32761,15 @@ async def get_relatorio_reforma_tributaria_pdf(
     
     if sped and sped.get('resumo'):
         resumo = sped['resumo']
-        regime_atual['pis_cofins'] = resumo.get('pis_a_recolher', 0) + resumo.get('cofins_a_recolher', 0)
-        regime_atual['icms'] = resumo.get('icms_a_recolher', 0)
+        regime_atual['pis_cofins'] = (resumo.get('pis_a_recolher', 0) or 0) + (resumo.get('cofins_a_recolher', 0) or 0)
+        # ICMS: tentar vários campos possíveis
+        icms_valor = (
+            resumo.get('icms_a_recolher') or 
+            resumo.get('saldo_icms') or 
+            resumo.get('icms_a_pagar') or
+            max(0, (resumo.get('debito_icms', 0) or 0) - (resumo.get('credito_icms', 0) or 0))
+        )
+        regime_atual['icms'] = float(icms_valor) if icms_valor else 0
         regime_atual['total'] = regime_atual['pis_cofins'] + regime_atual['icms']
     
     # Montar dados para o PDF
