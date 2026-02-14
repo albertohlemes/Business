@@ -8264,27 +8264,50 @@ async def upload_xml_with_progress(
                                 })
                 
                 if nota_original:
-                    # Marcar a nota original como desconsiderada
-                    await db.xml_documents.update_one(
-                        {"id": nota_original['id']},
-                        {"$set": {
-                            "desconsiderada_devolucao": True,
-                            "motivo_desconsideracao": f"Nota devolvida pelo fornecedor. Devolução: NF {dev.get('numero_nfe', '')}",
-                            "nfe_vinculada_devolucao": chave_nfe_dev,
-                            "status_validacao": "desconsiderada"
-                        }}
-                    )
+                    # VERIFICAR SE OS VALORES SÃO IGUAIS ANTES DE DESCONSIDERAR AUTOMATICAMENTE
+                    valor_devolucao = float(dev.get('valor_total', 0) or 0)
+                    valor_original = float(nota_original.get('valor_total', 0) or 0)
+                    tem_divergencia_valor = abs(valor_original - valor_devolucao) > 0.01
                     
-                    notas_desconsideradas_processadas.append({
-                        "tipo": "saida_original",
-                        "chave_nfe": nfe_ref,
-                        "numero_nfe": nota_original.get('numero_nfe', ''),
-                        "data_emissao": nota_original.get('data_emissao', ''),
-                        "valor_total": nota_original.get('valor_total', 0),
-                        "destinatario": nota_original.get('destinatario_nome', ''),
-                        "vinculada_a": dev.get('numero_nfe', ''),
-                        "motivo": f"Nota devolvida pelo fornecedor. Devolução: NF {dev.get('numero_nfe', '')}"
-                    })
+                    if tem_divergencia_valor:
+                        # VALORES DIFERENTES: NÃO desconsiderar automaticamente
+                        # Apenas registrar para análise no Wizard de Fechamento
+                        notas_desconsideradas_processadas.append({
+                            "tipo": "saida_original_divergente",
+                            "chave_nfe": nfe_ref,
+                            "numero_nfe": nota_original.get('numero_nfe', ''),
+                            "data_emissao": nota_original.get('data_emissao', ''),
+                            "valor_total": valor_original,
+                            "valor_devolucao": valor_devolucao,
+                            "diferenca": round(valor_original - valor_devolucao, 2),
+                            "destinatario": nota_original.get('destinatario_nome', ''),
+                            "vinculada_a": dev.get('numero_nfe', ''),
+                            "motivo": f"ATENÇÃO: Valor da devolução ({valor_devolucao:.2f}) difere do original ({valor_original:.2f}). Requer análise no Wizard.",
+                            "requer_decisao_usuario": True
+                        })
+                        logger.info(f"DEVOLUÇÃO COM DIVERGÊNCIA: NF {dev.get('numero_nfe', '')} valor {valor_devolucao:.2f} != Original {nota_original.get('numero_nfe', '')} valor {valor_original:.2f}")
+                    else:
+                        # VALORES IGUAIS: Marcar a nota original como desconsiderada automaticamente
+                        await db.xml_documents.update_one(
+                            {"id": nota_original['id']},
+                            {"$set": {
+                                "desconsiderada_devolucao": True,
+                                "motivo_desconsideracao": f"Nota devolvida pelo fornecedor. Devolução: NF {dev.get('numero_nfe', '')}",
+                                "nfe_vinculada_devolucao": chave_nfe_dev,
+                                "status_validacao": "desconsiderada"
+                            }}
+                        )
+                        
+                        notas_desconsideradas_processadas.append({
+                            "tipo": "saida_original",
+                            "chave_nfe": nfe_ref,
+                            "numero_nfe": nota_original.get('numero_nfe', ''),
+                            "data_emissao": nota_original.get('data_emissao', ''),
+                            "valor_total": nota_original.get('valor_total', 0),
+                            "destinatario": nota_original.get('destinatario_nome', ''),
+                            "vinculada_a": dev.get('numero_nfe', ''),
+                            "motivo": f"Nota devolvida pelo fornecedor. Devolução: NF {dev.get('numero_nfe', '')}"
+                        })
                 else:
                     # Nota original não encontrada - registrar para referência
                     notas_desconsideradas_processadas.append({
