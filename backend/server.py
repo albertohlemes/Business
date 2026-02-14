@@ -718,6 +718,10 @@ class Company(BaseModel):
     percentual_presuncao_servicos_irpj: float = 32.0
     percentual_presuncao_servicos_csll: float = 32.0
     
+    # === ALERTAS DE VARIAÇÃO ===
+    # Limite percentual para gerar alertas de variação em relação à média (padrão 20%)
+    limite_alerta_variacao: int = 20  # 20 = 20%
+    
     # Logo da empresa (base64 data URL)
     logo_url: Optional[str] = None
     
