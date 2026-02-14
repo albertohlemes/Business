@@ -21757,7 +21757,7 @@ async def get_beneficio_fiscal_detalhes(
     docs = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia
-    }, {"_id": 0, "xml_content": 0}).to_list(50000)
+    }, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     # Filtrar apenas documentos de entrada (mesma lógica da apuração ICMS)
     docs_entrada = []
@@ -22006,7 +22006,7 @@ async def get_desconsiderados_detalhes(
     docs = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia
-    }, {"_id": 0, "xml_content": 0}).to_list(50000)
+    }, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     # Filtrar apenas documentos de entrada
     docs_entrada = [doc for doc in docs if doc.get('tipo', doc.get('tipo_operacao', 'saida')) == 'entrada']
@@ -28591,7 +28591,7 @@ async def get_notas_ausentes(
         documents = await db.xml_documents.find(
             query, 
             {"_id": 0, "numero_nfe": 1, "serie": 1, "data_emissao": 1, "competencia": 1, "modelo": 1}
-        ).to_list(50000)
+        ).to_list(15000)
         
         if not documents:
             resultado_por_modelo.append({
