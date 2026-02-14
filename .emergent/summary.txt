@@ -1,78 +1,69 @@
 <analysis>**original_problem_statement:**
-O usuário reportou novos problemas críticos, além de continuar o desenvolvimento de funcionalidades solicitadas anteriormente. O agente corrigiu os 3 bugs P0 reportados, mas o usuário enviou duas novas perguntas no final da sessão.
+O usuário reportou uma série de bugs críticos e solicitou várias melhorias. Os principais problemas relatados foram:
+1.  **SPED com Destaque de ICMS Incorreto**: Ao gerar o SPED, as opções para não destacar ICMS em despesas e notas de ST não estão sendo respeitadas. (Último problema reportado, P0).
+2.  **Barra de Progresso Travada**: A barra de progresso de importação de XML trava e nunca completa em todas as importações no ambiente de produção.
+3.  **CFOPs Faltantes**: Vários CFOPs (5929, 5906, 5907, 5106) não estavam sendo tratados como operações distintas, causando problemas na classificação.
+4.  **ICMS Zerado**: Na tela de Reforma Tributária, o valor do ICMS a recolher aparecia zerado, mesmo existindo.
+5.  **Dados do Consumidor Genéricos**: Em notas de saída para pessoa física, os dados do cliente (nome, CPF) estavam sendo substituídos por um CONSUMIDOR genérico.
+6.  **Usabilidade da Exportação**: As telas de exportação não pré-selecionavam a empresa/competência e a lista de empresas não era ordenada de forma intuitiva.
+7.  **Cor do Layout**: O usuário questionou o uso da cor roxa no layout, que considerava inconsistente.
 
-**PRODUCT REQUIREMENTS (Reportados na sessão):**
-1.  **Relatório do Wizard Inconsistente:** O relatório gerado ao final do Wizard estava inconsistente e incompleto. **(RESOLVIDO)**
-2.  **Menu ICMS ST Quebrado:** A funcionalidade do menu/aba ICMS ST na tela de apuração parou de funcionar. **(INVESTIGADO E FUNCIONANDO CONFORME ESPERADO)**
-3.  **Lógica de Reclassificação com IA:** O botão Classificar Produtos com IA deve ter um novo comportamento:
-    *   Deve sempre perguntar ao usuário se ele tem certeza que quer reclassificar. **(RESOLVIDO)**
-    *   A reclassificação deve seguir uma nova hierarquia de 6 regras estritas. **(RESOLVIDO)**
-
-**Novas perguntas do usuário:**
-1.  Confirmar se as alterações manuais de reclassificação sobrepõem a regra inicial (memória da IA) e se a nova regra será usada na próxima importação.
-2.  Questionamento sobre o uso da cor roxa no layout, pois não combina.
-
-**User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
+**User's preferred language**: Português (pt-BR)
 
 **what currently exists?**
-O agente investigou e corrigiu com sucesso três problemas críticos (P0) que haviam sido relatados pelo usuário.
-1.  **Relatório do Wizard:** A lógica de geração do relatório em  foi corrigida para incluir todas as etapas (como Devoluções e Classificação), mesmo que vazias, garantindo um documento completo e consistente.
-2.  **Menu ICMS ST:** Foi verificado via  que o menu não está quebrado. Ele funciona como esperado, exibindo uma mensagem de Sem Movimentação quando não há dados de ICMS ST para a competência, o que é o comportamento correto.
-3.  **Lógica de Reclassificação com IA:** Foi implementada a nova lógica no backend () seguindo a hierarquia de 6 regras. No frontend (), foi adicionado um modal de confirmação que aparece ao clicar no botão Classificar Produtos com IA, explicando as regras e alertando que produtos já classificados serão reprocessados.
-
-As correções foram validadas pelo .
+O agente anterior trabalhou em uma longa sessão para corrigir múltiplos bugs e implementar melhorias.
+- Respondeu às dúvidas do usuário sobre a lógica de reclassificação manual versus a memória da IA.
+- Alterou a paleta de cores da UI, substituindo a cor roxa por ciano, azul-petróleo e ardósia em vários componentes para melhorar a consistência visual.
+- Adicionou múltiplos CFOPs (5929, 6929, 5106, 6106, 5906, 6906, 5907, 6907) às listas de operações distintas no  para que sejam marcados para revisão manual durante a importação.
+- Corrigiu a lógica de cálculo do ICMS na página de Reforma Tributária para usar os dados dos XMLs como fallback caso os dados do SPED estejam ausentes ou com nomes de campos diferentes.
+- Melhorou as páginas de exportação (, ) para pré-selecionar a empresa e competência do contexto global e para ordenar e exibir a lista de empresas por .
+- Corrigiu o parser de XML e a geração do SPED para preservar corretamente os dados do destinatário (nome e CPF) em notas fiscais de venda para pessoa física.
+- Investigou o problema da barra de progresso travada, identificando a causa provável como uma condição de corrida em um ambiente de produção com múltiplas instâncias, devido à dependência de um cache em memória. O agente implementou uma correção para forçar a leitura e escrita do estado da sessão de upload diretamente no MongoDB, mas esta correção não foi validada pelo usuário.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava prestes a investigar e responder a duas novas perguntas do usuário que surgiram após as correções serem implementadas:
-    1.  O funcionamento da memória da IA versus a reclassificação manual.
-    2.  A justificativa para o uso da cor roxa no layout.
--   **Status**: NOT STARTED
+-   **Last item agent was working**: Investigando um novo bug crítico reportado pelo usuário: a geração do SPED Fiscal está destacando ICMS em despesas e notas de ST, mesmo quando as opções para desabilitar isso estão marcadas.
+-   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: backend. O agente precisará analisar o código em  para responder à primeira pergunta. Para a segunda, deve revisar o CSS e os componentes React.
+-   **Which testing method agent to use?**: backend testing agent. O agente precisa gerar um arquivo SPED com as flags específicas marcadas e validar o conteúdo dos registros C100, C170 e C190 para garantir que o crédito de ICMS não seja destacado indevidamente.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Confirmação sobre a lógica de reclassificação manual vs. memória da IA (P0 - PERGUNTA DO USUÁRIO)**
--   **Issue 2: Justificativa/alteração da cor roxa no layout (P0 - PERGUNTA DO USUÁRIO)**
--   **Issue 3: Deploy não reflete as atualizações (P0 - BLOQUEADOR DE PROCESSO)**
--   **Issue 4: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
--   **Issue 5: Discrepância de valores entre Dashboard e SPED (P2)**
--   **Issue 6: Botão de Login fica travado em Processando... (P2)**
+-   **Issue 1**: Geração do SPED não respeita as flags para despesas e notas de ST (P0)
+-   **Issue 2**: Barra de progresso de importação de XML trava (P0 - CORREÇÃO NÃO VALIDADA)
+-   **Issue 3**: Deploy não reflete as atualizações (P0 - BLOQUEADOR DE PROCESSO)
+-   **Issue 4**: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)
+-   **Issue 5**: Discrepância de valores entre Dashboard e SPED (P2)
+-   **Issue 6**: Botão de Login fica travado em Processando... (P2)
 
 **Issues Detail**:
--   **Issue 1: Confirmação sobre a lógica de reclassificação manual vs. memória da IA (P0)**
-    -   **Attempted fixes**: Nenhum.
+-   **Issue 1: Geração do SPED não respeita as flags para despesas e notas de ST (P0)**
+    -   **Attempted fixes**: Nenhum. O agente estava no início da investigação.
     -   **Next debug checklist**:
-        1.  Analisar a função  e a nova função de classificação em .
-        2.  Verificar onde e como as learned_rules (regras aprendidas/memória) são salvas no banco de dados.
-        3.  Determinar se uma classificação manual feita pelo usuário na Etapa 4 (seja por categoria ou padrão da empresa) atualiza ou cria uma learned_rule.
-        4.  Formular uma resposta clara para o usuário explicando o fluxo.
-    -   **Why fix this issue and what will be achieved with the fix?**: Esclarecer uma dúvida fundamental do usuário sobre o comportamento do sistema, aumentando a confiança na ferramenta.
-    -   **Status**: NOT STARTED
+        1.  Localizar a função de geração do SPED no .
+        2.  Analisar como os parâmetros do frontend (as checkboxes da imagem) são recebidos no backend.
+        3.  Verificar a lógica que processa os documentos fiscais (especialmente registros C100/C170) e como as flags  e  são aplicadas para zerar os campos de base de cálculo e valor do ICMS.
+        4.  Reproduzir o problema gerando um SPED para uma competência com despesas e ST e verificar o arquivo de texto resultante.
+    -   **Why fix this issue and what will be achieved with the fix?**: É um bug crítico que gera arquivos fiscais incorretos, podendo causar problemas fiscais para o cliente. A correção é essencial para a funcionalidade principal do sistema.
+    -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: N/A (é uma investigação)
+    -   **Should Test frontend/backend/both after fix?**: backend
     -   **Blocked on other issue**: Não.
 
--   **Issue 2: Justificativa/alteração da cor roxa no layout (P0)**
-    -   **Attempted fixes**: Nenhum.
+-   **Issue 2: Barra de progresso de importação de XML trava (P0 - CORREÇÃO NÃO VALIDADA)**
+    -   **Attempted fixes**: O agente modificou  para reduzir a dependência do cache em memória () e forçar a leitura/escrita do progresso no MongoDB. Funções como  foram alteradas para sempre consultar o DB, e o salvamento durante o processamento de chunks foi tornado mais frequente.
     -   **Next debug checklist**:
-        1.  Identificar os arquivos CSS ou de componentes (provavelmente em  ou arquivos de estilo globais) onde a cor roxa está definida.
-        2.  Propor uma cor alternativa que se alinhe melhor com a identidade visual da aplicação (ex: usar cores primárias já existentes).
-        3.  Apresentar a alteração para o usuário e, se aprovado, implementar a mudança.
-    -   **Why fix this issue and what will be achieved with the fix?**: Atender a um feedback de UI/UX do usuário, melhorando a consistência visual da plataforma.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on other issue**: Não.
-
--   **Issue 3: Deploy não reflete as atualizações (P0)**
-    -   **Status**: NOT STARTED
+        1.  O usuário precisa testar uma importação grande em produção para validar se a correção funcionou.
+        2.  Se o problema persistir, investigar o log adicionado pelo agente anterior para ver o estado final da sessão de upload.
+        3.  Considerar a possibilidade de o proxy/ingress estar fechando as conexões SSE, apesar do fallback de polling.
+    -   **Why fix this issue and what will be achieved with the fix?**: É um bug crítico que impede o usuário de ter feedback sobre as importações, gerando incerteza e retrabalho.
+    -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: Y
-    -   **Note**: Este é um problema de infraestrutura que precisa ser escalado.
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on other issue**: Não.
 
 **In progress Task List**:
 -   **Task 1: Refatoração Completa do Wizard (P1)**
-    -   **Where to resume**: As etapas 3 e 4 foram significativamente alteradas. O trabalho de alinhar todas as etapas do wizard com uma lógica consistente e estado gerenciado pelo React continua.
+    -   **Where to resume**: O trabalho de alinhar todas as etapas do wizard com uma lógica consistente e estado gerenciado pelo React continua. As constantes correções de bugs em diferentes partes do fluxo reforçam a necessidade desta refatoração.
     -   **What will be achieved with this?**: Consistência de dados e um fluxo de trabalho fiscal previsível e confiável.
     -   **Status**: IN PROGRESS
     -   **Should Test frontend/backend/both after fix?**: both
@@ -83,7 +74,7 @@ As correções foram validadas pelo .
     *   **(P1)** Implementar visualização agrupada por dia na página de documentos.
     *   **(P1)** Implementar relatórios por email para a importação em lote.
 *   **Future Tasks (Refatoração Crítica):**
-    *   **(P0)** Refatoração do  (urgente, >31k linhas).
+    *   **(P0)** Refatoração do  (urgente, >31k linhas). O número de bugs corrigidos nesta sessão que se originaram neste arquivo demonstra sua fragilidade.
     *   **(P1)** Refatoração do  (monolítico, >4k linhas).
     *   **(P1)** Refatoração do  para dividir as etapas em componentes separados.
 *   **Future Tasks (Novas Funcionalidades):**
@@ -91,79 +82,82 @@ As correções foram validadas pelo .
     -   **(P2)** Implementação de testes automatizados (e.g., Playwright).
 
 **Completed work in this session**
--   **Fix: Relatório do Wizard Inconsistente (P0)**: Corrigida a lógica de geração de relatório em  para incluir todas as etapas, mesmo que vazias, e usar as chaves corretas (). (File: ).
--   **Investigation: Menu ICMS ST (P0)**: Confirmado que a funcionalidade está operando como esperado, exibindo uma mensagem informativa quando não há dados de ICMS ST. (File: ).
--   **Feature: Nova Lógica de Reclassificação com IA (P0)**: Implementada a nova hierarquia de 6 regras no backend e um modal de confirmação no frontend para a Etapa 4 do Wizard. (Files: , ).
+-   **UI: Cores do Layout**: Substituída a cor roxa por alternativas mais consistentes (ciano, ardósia) em toda a aplicação.
+-   **Fix: Lógica de CFOPs**: Adicionados os CFOPs 5106, 5906, 5907, 5929 (e interestaduais) como operações distintas.
+-   **Fix: Cálculo de ICMS**: Corrigido o cálculo de ICMS na página de Reforma Tributária para ser mais robusto.
+-   **Feature: Usabilidade da Exportação**: Melhorada a experiência do usuário nas páginas de exportação com auto-preenchimento e ordenação da lista de empresas.
+-   **Fix: Dados do Consumidor**: Corrigido o bug que substituía dados de pessoa física por um cliente genérico.
+-   **Attempted Fix: Barra de Progresso**: Implementada uma correção para o bug da barra de progresso travada (pendente de validação).
 
 **Earlier issues found/mentioned but not fixed**
--   NF de fevereiro continua aparecendo nas entradas de janeiro.
--   Discrepância de valores entre Dashboard e SPED.
--   Botão de Login fica travado em Processando....
+-   NF de fevereiro continua aparecendo nas entradas de janeiro (P1).
+-   Discrepância de valores entre Dashboard e SPED (P2).
+-   Botão de Login fica travado em Processando... (P2).
 
 **Known issue recurrence from previous fork**
--   **Deploy não reflete as atualizações**: Continua sendo um problema de processo crítico, que pode impedir a validação das correções pelo usuário.
+-   **Deploy não reflete as atualizações**: Problema de infraestrutura/processo que persiste e pode impedir o usuário de validar as correções.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Hierarchical Rule-Based Classification**: Implementação de um sistema de classificação que segue uma ordem estrita de regras de negócio antes de recorrer a um modelo de IA como último recurso.
--   **User Confirmation Modals**: Uso de modais para ações destrutivas ou complexas (como reclassificação em massa) para garantir a intenção do usuário e fornecer contexto sobre a ação.
--   **Conditional UI Rendering**: O menu ICMS ST exibe uma interface diferente (uma mensagem informativa) quando o conjunto de dados correspondente está vazio, em vez de mostrar um erro ou uma tabela vazia.
+-   **State Management for Background Tasks**: Migração da lógica de estado de um cache em memória para uma base de dados (MongoDB) para garantir consistência em ambientes com múltiplas instâncias.
+-   **SPED Fiscal Generation**: Manipulação de regras de negócio complexas baseadas em flags de usuário para incluir ou omitir créditos de ICMS na geração do arquivo SPED (registros C100/C170).
+-   **XML Parsing**: Extração e tratamento de dados de diferentes campos de arquivos XML de NF-e e NFC-e, lidando com variações como destinatários pessoa física vs. jurídica.
 
 **key DB schema**
--   Nenhuma alteração no esquema do banco de dados nesta sessão. Os campos relevantes continuam sendo  e a coleção .
+-   Nenhuma alteração no esquema do banco de dados nesta sessão. As correções focaram na lógica de aplicação que lê e escreve em coleções existentes como  e .
 
 **All files of reference**
 -   
 -   
 -   
 -   
--   
--   
 
 **Areas that need refactoring**:
--   ** (URGENTE)**: Apesar das correções, o arquivo continua monolítico e de difícil manutenção. A refatoração é crítica.
--   ****: O arquivo continua a crescer em complexidade. A extração das etapas para componentes individuais é cada vez mais necessária.
+-   ** (CRÍTICO)**: O arquivo é a fonte da maioria dos bugs recentes. Sua complexidade e tamanho (mais de 31.000 linhas) o tornam extremamente frágil e caro de manter. A refatoração em módulos menores (ex: , , ) é urgente para a saúde do projeto.
 
 **key api endpoints**
--   : A lógica para a  foi completamente refeita para implementar a nova hierarquia de classificação.
--   : A lógica de geração de dados para este endpoint foi corrigida.
--   : Investigado para confirmar o funcionamento da aba ICMS ST.
+-   : Endpoint central do bug atual (P0).
+-   : Endpoint investigado para o bug da barra de progresso.
+-   : Endpoint corrigido para o cálculo do ICMS.
+-   A lógica de parsing de XML, que afeta a importação, foi modificada diretamente no .
 
 **Critical Info for New Agent**
--   **FOCO IMEDIATO**: A prioridade máxima é responder às duas novas perguntas do usuário:
-    1.  Como a reclassificação manual interage com a memória do sistema ().
-    2.  Justificar ou alterar a cor roxa usada no modal de confirmação.
--   **CONFIANÇA DO USUÁRIO**: A primeira pergunta é crucial para a confiança do usuário na automação. A resposta deve ser clara e precisa.
--   **UX FEEDBACK**: A segunda pergunta é um feedback direto de UX. Trate-o com seriedade, investigue e proponha uma solução.
+-   **FOCO IMEDIATO**: O bug na geração do SPED (Issue 1) é a prioridade P0. O usuário está bloqueado e não pode gerar arquivos fiscais corretos.
+-   **VALIDAÇÃO PENDENTE**: A correção para a barra de progresso (Issue 2) precisa ser validada com o usuário. Pergunte se ele pode tentar uma nova importação para confirmar se o problema foi resolvido.
+-   **RISCO TÉCNICO**: Tenha extremo cuidado ao editar . Devido à sua natureza monolítica, uma pequena alteração pode ter efeitos colaterais inesperados. A cada correção, considere se é possível isolar a lógica em uma função mais pura.
 
 **documents and test reports created in this job**
--   
--   
--   
+Nenhum documento ou relatório de teste foi gerado nesta sessão.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **PENDING (CRÍTICO)**: ME CONFIRMA SE AS ALTERACOES MANUAIS... E PQ ESTSAMOS USANDO ROXO.... O usuário fez duas perguntas diretas após ver as correções, uma sobre a lógica de negócio e outra sobre a UI. Ambas são a prioridade P0 agora.
-2.  (Várias mensagens do agente)
-3.  RELATORIO WIZARD INCONSISTENTE.... A mensagem inicial do usuário nesta sessão, relatando os 3 bugs P0 que agora foram corrigidos.
+1.  **PENDING (P0 BUG)**:  - O usuário reporta o bug atual, que é a principal prioridade.
+2.  **PENDING (BUG)**:  - O bug dos dados do consumidor, que foi corrigido.
+3.  **PENDING (FEATURE)**:  - A solicitação de usabilidade nas telas de exportação, que foi implementada.
+4.  **PENDING (BUG)**:  - O bug do ICMS na Reforma Tributária, que foi corrigido.
+5.   - Solicitação para adicionar mais CFOPs, que foi atendida.
+6.   - Pergunta sobre o tratamento do CFOP 5929, que levou à sua adição.
+7.   - Reporte do bug crítico da barra de progresso.
+8.   - Resposta do usuário sobre a mudança de cor, dando liberdade ao agente.
 
 **Project Health Check:**
--   **Fixed**: Os 3 problemas críticos (Relatório, ICMS ST, Lógica de IA) foram abordados.
--   **Broken**: O processo de deploy dessincronizado continua sendo um bloqueador de processo fundamental que pode causar confusão.
--   **Pending User Questions**: Duas perguntas importantes do usuário estão pendentes e são a prioridade máxima.
+-   **Broken**: A geração do SPED Fiscal está incorreta, bloqueando o usuário. O processo de deploy continua sendo um ponto de falha.
+-   **Mocked**: N/A.
 
 **3rd Party Integrations**
--   **Gemini**: Continua sendo usado para classificação de produtos, mas agora como o último passo em uma hierarquia de 6 regras. A chamada para a IA é condicional e menos frequente.
+-   **Gemini**: Usado para classificação de produtos como último recurso na hierarquia de regras.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. O agente de testes foi chamado e validou com sucesso as 3 correções implementadas.
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: Nenhuma.
--   **Known regressions**: Nenhuma nova regressão identificada. O problema do ICMS ST foi confirmado como não sendo um bug.
+-   **Known regressions**: Nenhuma identificada, mas o risco é alto devido às modificações extensas em  sem testes automatizados.
 
 **Credentials to test flow:**
 -   **Super Admin**:  / 
 
 **What agent forgot to execute**
--   O agente implementou e testou com sucesso todas as correções planejadas. No entanto, foi interrompido por uma nova mensagem do usuário antes de poder usar a . A próxima ação deveria ter sido responder às novas perguntas do usuário.</analysis>
+-   O agente não validou a correção da barra de progresso com o usuário antes de passar para o próximo item.
+-   O agente não utilizou o  após fazer mudanças significativas e generalizadas (como a troca de cores em toda a UI e a correção de múltiplos bugs de backend), o que poderia ter prevenido regressões.
+-   O fluxo de trabalho foi reativo, pulando de um pedido urgente do usuário para outro sem um plano estruturado de verificação e teste entre eles.</analysis>
