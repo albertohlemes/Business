@@ -3199,8 +3199,9 @@ def generate_sped_fiscal(
                         bc_icms = 0
                         aliq_icms = 0
                         cst_icms = '090'  # CST 090 para despesas
-                    elif cfop in CFOPS_ST:
+                    elif is_st:
                         # ST: zerar ICMS e alterar CST para 060
+                        logger.info(f"[C170] CFOP {cfop} - ST - Zerando ICMS (era BC={v_bc_icms_xml}, ICMS={v_icms_xml})")
                         v_icms = 0
                         bc_icms = 0
                         aliq_icms = 0
