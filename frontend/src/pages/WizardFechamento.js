@@ -542,7 +542,8 @@ const WizardFechamento = ({ user, onLogout }) => {
                     const valorOrig = nota.nota_original?.valor_total || 0;
                     const diferenca = nota.nota_original_encontrada ? valorOrig - valorDev : 0;
                     const temDiferenca = Math.abs(diferenca) > 0.01;
-                    const decisao = decisoesOriginais[nota.id] || 'excluir'; // default: excluir original
+                    // Se tem divergência de valor, default é MANTER. Se não tem, default é excluir.
+                    const decisao = decisoesOriginais[nota.id] || (temDiferenca ? 'manter' : 'excluir');
                     
                     return (
                       <div key={idx} className={`bg-[#0C0C0C] rounded-lg p-3 ${nota.desconsiderada ? 'opacity-60' : ''} ${temDiferenca ? 'border border-red-500/50' : ''}`}>
