@@ -167,6 +167,8 @@ const WizardFechamento = ({ user, onLogout }) => {
   const [cfopSelections, setCfopSelections] = useState({});  // { cfop: { acao: 'manter'|'converter'|'manual', cfop_destino: '...' } }
   const [manualCfopInputs, setManualCfopInputs] = useState({});  // { cfop: '1234' } - valores dos inputs manuais
   const [showConfirmModal, setShowConfirmModal] = useState(false);  // Modal de confirmação para reclassificação IA
+  const [decisoesOriginais, setDecisoesOriginais] = useState({});  // { nota_id: 'manter'|'excluir' } - decisões para devoluções com divergência
+  const [cfopsPorProduto, setCfopsPorProduto] = useState({});  // { `${cfop}_${docId}_${prodIdx}`: 'cfop_destino' } - CFOP individual por produto
 
   // Função para baixar relatório do wizard
   const downloadReport = async (formato) => {
