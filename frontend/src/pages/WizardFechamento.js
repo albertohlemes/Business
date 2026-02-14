@@ -723,15 +723,20 @@ const WizardFechamento = ({ user, onLogout }) => {
             {(data.alertas_cfop?.length > 0 || data.cfops_distintos?.length > 0) ? (
               <div className="space-y-4 max-h-[450px] overflow-y-auto">
                 {(data.alertas_cfop || data.cfops_distintos || []).map((cfopItem, idx) => {
+                  // cfopItem.cfop agora é o CFOP ORIGINAL do emissor (5xxx, 6xxx)
                   const selectedAction = cfopSelections[cfopItem.cfop] || { acao: null };
                   const isManterSelected = selectedAction.acao === 'manter';
                   const isConverterSelected = selectedAction.acao === 'converter_compra';
                   const isManualSelected = selectedAction.acao === 'converter_manual';
                   const hasSelection = selectedAction.acao !== null;
                   
+                  // CFOP de entrada equivalente sugerido pelo backend
+                  const cfopEntradaSugerido = cfopItem.cfop_entrada_sugerido || cfopItem.sugestao_manter?.cfop;
+                  const cfopCompra = cfopItem.sugestao_compra?.cfop || '1102';
+                  
                   return (
                     <div key={idx} className={`bg-[#0C0C0C] border rounded-xl overflow-hidden transition-all ${hasSelection ? 'border-emerald-500/50' : 'border-[#2A2A2A]'}`}>
-                      {/* Header do grupo CFOP */}
+                      {/* Header do grupo CFOP - Mostrando CFOP ORIGINAL */}
                       <div className="p-4 bg-gradient-to-r from-[#1A1A1A] to-[#141414]">
                         <div className="flex items-center justify-between flex-wrap gap-3">
                           <div className="flex items-center gap-4">
@@ -741,9 +746,7 @@ const WizardFechamento = ({ user, onLogout }) => {
                             <div>
                               <p className="text-white font-semibold">{cfopItem.descricao}</p>
                               <p className="text-sm text-[#A1A1AA]">
-                                {cfopItem.cfop_original && cfopItem.cfop_original !== cfopItem.cfop && (
-                                  <span className="text-purple-400 mr-2">Original: {cfopItem.cfop_original} →</span>
-                                )}
+                                <span className="text-purple-400 mr-2">CFOP Original do Emissor</span>
                                 <span className="text-amber-400 font-medium">{cfopItem.total_produtos}</span> produto(s) • 
                                 <span className="text-[#C8A951] ml-1">R$ {(cfopItem.total_valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                               </p>
@@ -755,7 +758,7 @@ const WizardFechamento = ({ user, onLogout }) => {
                             <div className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-lg flex items-center gap-2">
                               <CheckCircle className="w-4 h-4 text-emerald-400" />
                               <span className="text-emerald-400 text-sm font-medium">
-                                {isManterSelected && `Manter ${cfopItem.cfop}`}
+                                {isManterSelected && `Converter → ${selectedAction.cfop_destino}`}
                                 {isConverterSelected && `Converter → ${selectedAction.cfop_destino}`}
                                 {isManualSelected && `Converter → ${selectedAction.cfop_destino}`}
                               </span>
@@ -765,12 +768,12 @@ const WizardFechamento = ({ user, onLogout }) => {
                         
                         {/* Botões de seleção - Estilo Radio */}
                         <div className="flex items-center gap-3 mt-4 flex-wrap">
-                          {/* Opção Manter */}
+                          {/* Opção Entrada Equivalente (baseado no CFOP original) */}
                           <button
                             onClick={() => {
                               setCfopSelections(prev => ({
                                 ...prev,
-                                [cfopItem.cfop]: { acao: 'manter', cfop_destino: cfopItem.cfop }
+                                [cfopItem.cfop]: { acao: 'manter', cfop_destino: cfopEntradaSugerido }
                               }));
                             }}
                             className={`px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all border-2 ${
@@ -778,20 +781,26 @@ const WizardFechamento = ({ user, onLogout }) => {
                                 ? 'bg-blue-500/30 text-blue-300 border-blue-500 ring-2 ring-blue-500/50' 
                                 : 'bg-[#1A1A1A] text-[#A1A1AA] border-[#333] hover:border-blue-500/50 hover:text-blue-400'
                             }`}
+                            data-testid={`cfop-manter-${cfopItem.cfop}`}
                           >
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isManterSelected ? 'border-blue-400' : 'border-[#666]'}`}>
                               {isManterSelected && <div className="w-2 h-2 rounded-full bg-blue-400" />}
                             </div>
-                            <CheckCircle className="w-4 h-4" />
-                            Manter {cfopItem.cfop}
+                            <ArrowRight className="w-4 h-4" />
+                            Converter → {cfopEntradaSugerido}
+                            {cfopItem.sugestao_manter?.categoria_nome && (
+                              <span className="px-2 py-0.5 bg-blue-500/30 rounded text-xs">
+                                {cfopItem.sugestao_manter.categoria_nome}
+                              </span>
+                            )}
                           </button>
                           
-                          {/* Opção Converter para Compra */}
+                          {/* Opção Converter para Compra (1102/2102) */}
                           <button
                             onClick={() => {
                               setCfopSelections(prev => ({
                                 ...prev,
-                                [cfopItem.cfop]: { acao: 'converter_compra', cfop_destino: cfopItem.sugestao_compra?.cfop || '1102' }
+                                [cfopItem.cfop]: { acao: 'converter_compra', cfop_destino: cfopCompra }
                               }));
                             }}
                             className={`px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all border-2 ${
@@ -799,12 +808,13 @@ const WizardFechamento = ({ user, onLogout }) => {
                                 ? 'bg-green-500/30 text-green-300 border-green-500 ring-2 ring-green-500/50' 
                                 : 'bg-[#1A1A1A] text-[#A1A1AA] border-[#333] hover:border-green-500/50 hover:text-green-400'
                             }`}
+                            data-testid={`cfop-converter-${cfopItem.cfop}`}
                           >
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isConverterSelected ? 'border-green-400' : 'border-[#666]'}`}>
                               {isConverterSelected && <div className="w-2 h-2 rounded-full bg-green-400" />}
                             </div>
                             <ArrowRight className="w-4 h-4" />
-                            Converter → {cfopItem.sugestao_compra?.cfop || '1102'}
+                            Converter → {cfopCompra}
                             {cfopItem.sugestao_compra?.categoria_nome && (
                               <span className="px-2 py-0.5 bg-green-500/30 rounded text-xs">
                                 {cfopItem.sugestao_compra.categoria_nome}
