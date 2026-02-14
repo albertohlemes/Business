@@ -230,6 +230,20 @@ const Dashboard = ({ user, onLogout }) => {
               </div>
             )}
 
+            {/* Mensagem quando histórico é insuficiente */}
+            {stats.alertas_variacao && 
+              stats.alertas_variacao.some(a => a.tipo === 'INFO' && a.categoria === 'historico') && (
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-center gap-3">
+                <Info className="w-5 h-5 text-blue-400" />
+                <div>
+                  <span className="text-blue-400 font-medium">Análise de variação indisponível</span>
+                  <span className="text-[#A1A1AA] text-sm ml-2">
+                    {stats.alertas_variacao.find(a => a.tipo === 'INFO')?.mensagem || 'Histórico insuficiente para comparação'}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Quantidade de Documentos - Filtrado por Atividade */}
             <div>
               <h2 className="text-lg font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>Documentos por Tipo</h2>
