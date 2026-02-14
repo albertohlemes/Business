@@ -22176,7 +22176,18 @@ async def apurar_pis_cofins(
     }
     query.update(get_filtro_notas_ativas())
     
-    documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
+    # ============== OTIMIZAÇÃO PARA GRANDES VOLUMES ==============
+    # Contar documentos primeiro para decidir estratégia
+    total_docs = await db.xml_documents.count_documents(query)
+    logger.info(f"PIS/COFINS: Total documentos = {total_docs}")
+    
+    # Limitar busca para evitar timeout em grandes volumes
+    # Se tiver mais de 10000 docs, usar agregação simplificada
+    if total_docs > 10000:
+        logger.info(f"PIS/COFINS: Usando agregação otimizada para {total_docs} documentos")
+        return await _get_pis_cofins_aggregated(company, company_id, competencia, query, total_docs)
+    
+    documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     # Usar o campo 'tipo' que é a fonte de verdade para entrada/saída (baseado em CNPJ)
     # O campo tipo_operacao é preenchido apenas para exibição se não existir
