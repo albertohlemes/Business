@@ -13813,6 +13813,7 @@ CFOPS_OPERACOES_DISTINTAS_GLOBAL = {
     '6910': {'descricao': 'Remessa em bonificação', 'sugestao_entrada': '2910'},
     '6911': {'descricao': 'Remessa de amostra grátis', 'sugestao_entrada': '2911'},
     '6912': {'descricao': 'Remessa de mercadoria para demonstração', 'sugestao_entrada': '2912'},
+    '6929': {'descricao': 'Lançamento relativo a operação registrada em ECF', 'sugestao_entrada': '2929'},
     '6949': {'descricao': 'Outra saída não especificada', 'sugestao_entrada': '2949'},
     '6201': {'descricao': 'Devolução de compra - indústria', 'sugestao_entrada': '2201'},
     '6202': {'descricao': 'Devolução de compra - comercialização', 'sugestao_entrada': '2202'},
