@@ -175,7 +175,7 @@ export const StatCard = ({
     blue: 'bg-blue-900/30 text-blue-400',
     green: 'bg-green-900/30 text-green-400',
     red: 'bg-red-900/30 text-red-400',
-    purple: 'bg-purple-900/30 text-purple-400'
+    purple: 'bg-slate-900/30 text-slate-400'
   };
 
   if (loading) {
