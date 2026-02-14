@@ -107,6 +107,16 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 ## Bugs Corrigidos
 
 ### Sessão Atual (Fevereiro/2026)
+14. ✅ **CORREÇÃO CRÍTICA - SPED com destaque de ICMS incorreto em Despesas e ST**:
+    - **Problema**: Ao gerar o SPED Fiscal, as despesas e notas de ST estavam sendo geradas com destaque de ICMS mesmo com as opções marcadas para excluí-los
+    - **Causa Raiz**: Frontend (`ExportSPED.js`) enviava parâmetros com nomes incorretos (`zerarIcmsSt`, `incluirDespesas`) que não correspondiam aos nomes esperados pelo backend (`excluir_creditos_despesa_st`, `aplicar_beneficio_fiscal`)
+    - **Correção**:
+      - Frontend: Corrigidos os nomes dos parâmetros em `ExportSPED.js` para `excluir_creditos_despesa_st` e `aplicar_beneficio_fiscal`
+      - Backend: Expandidas as listas de CFOPs de despesas e ST para incluir mais casos (1551, 2551, 1653, 2653, 1407, 2407, etc.)
+      - Backend: Sincronizadas as listas `CFOPS_DESPESAS`, `CFOPS_ST` e `CFOPS_SEM_CREDITO_SPED` em todas as partes do código
+    - **Arquivos Modificados**: `/app/frontend/src/pages/ExportSPED.js`, `/app/backend/server.py`
+    - **Verificação**: Testado com empresa COMERCIAL RS LTDA, competência 01/2026 - 333 itens de despesa/ST verificados, todos com ICMS=0 quando flag ativa
+
 11. ✅ **CORREÇÃO CRÍTICA - Dashboard e Apuração ICMS mostrando dados incorretos de vendas/débitos**:
     - **Problema**: Dashboard e tela de Apuração ICMS mostravam valores de vendas/débitos mesmo quando a empresa não tinha notas de saída importadas
     - **Causa Raiz**: Múltiplos endpoints usavam CFOP do produto para determinar se era entrada ou saída, ignorando o campo `tipo` do documento (que é a fonte da verdade, baseada no CNPJ do emitente)
