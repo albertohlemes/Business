@@ -9591,7 +9591,7 @@ async def _get_simples_nacional_stats(company: dict, company_id: str, competenci
     difal_valor = 0
     try:
         difal_query = {"company_id": company_id, "competencia": competencia}
-        difal_docs = await db.xml_documents.find(difal_query, {"_id": 0}).to_list(100000)
+        difal_docs = await db.xml_documents.find(difal_query, {"_id": 0}).to_list(15000)
         
         for doc in difal_docs:
             if doc.get('tipo') != 'entrada':
@@ -9914,7 +9914,7 @@ async def get_dashboard_stats(
         return await _get_dashboard_stats_aggregated(company, company_id, competencia, query, total_docs)
     
     # Para volumes menores, usar lógica original
-    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     logger.info(f"DASHBOARD: Documentos encontrados = {len(documents)}")
     
@@ -12876,7 +12876,7 @@ async def relatorio_divergencias_saida(
         "company_id": company_id,
         "competencia": competencia,
         "tipo": "saida"
-    }, {"_id": 0}).to_list(100000)
+    }, {"_id": 0}).to_list(15000)
     
     # NCMs com alíquota zero (prefixos e completos)
     NCMS_ALIQ_ZERO_PREFIXOS = [
@@ -13107,7 +13107,7 @@ async def relatorio_divergencias_entrada(
         "competencia": competencia,
         "tipo": "entrada",
         **get_filtro_notas_ativas()
-    }, {"_id": 0, "xml_content": 0}).to_list(100000)
+    }, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     # CFOPs de ENTRADA que dão direito a crédito (Lucro Real)
     CFOPS_COM_CREDITO = [
@@ -13279,7 +13279,7 @@ async def relatorio_agrupado_aliquota(
         **get_filtro_notas_ativas()
     }
     
-    documents = await db.xml_documents.find(filtro, {"_id": 0, "xml_content": 0}).to_list(100000)
+    documents = await db.xml_documents.find(filtro, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     # Mapear campo de alíquota e valor conforme o imposto
     if imposto == 'icms':
@@ -13746,13 +13746,13 @@ async def get_viloes_oportunidades(
         "company_id": company_id,
         "competencia": competencia,
         "$or": [{"tipo": "entrada"}, {"tipo_operacao": "entrada"}]
-    }, {"_id": 0}).to_list(100000)
+    }, {"_id": 0}).to_list(15000)
     
     docs_saida = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia,
         "$or": [{"tipo": "saida"}, {"tipo_operacao": "saida"}]
-    }, {"_id": 0}).to_list(100000)
+    }, {"_id": 0}).to_list(15000)
     
     # Agrupar por NCM
     produtos_por_ncm = {}
@@ -14155,7 +14155,7 @@ async def analise_pis_cofins_completa(
         "company_id": company_id,
         "competencia": competencia,
         "tipo": "saida"
-    }, {"_id": 0}).to_list(100000)
+    }, {"_id": 0}).to_list(15000)
     
     if not documents:
         return {
@@ -14804,7 +14804,7 @@ async def alertas_cfop_operacoes_distintas(
             {"$or": [{"cancelada": {"$ne": True}}, {"cancelada": {"$exists": False}}]},
             {"$or": [{"desconsiderada_devolucao": {"$ne": True}}, {"desconsiderada_devolucao": {"$exists": False}}]}
         ]
-    }, {"_id": 0}).to_list(100000)
+    }, {"_id": 0}).to_list(15000)
     
     alertas = []
     total_pendentes = 0
@@ -14903,7 +14903,7 @@ async def alertas_cfop_agrupado_por_cfop(
             {"$or": [{"cancelada": {"$ne": True}}, {"cancelada": {"$exists": False}}]},
             {"$or": [{"desconsiderada_devolucao": {"$ne": True}}, {"desconsiderada_devolucao": {"$exists": False}}]}
         ]
-    }, {"_id": 0}).to_list(100000)
+    }, {"_id": 0}).to_list(15000)
     
     # Agrupar por CFOP atual
     grupos_cfop = {}
@@ -15007,7 +15007,7 @@ async def resolver_alerta_cfop_por_grupo(
         "company_id": company_id,
         "competencia": competencia,
         "tipo": "entrada"
-    }).to_list(100000)
+    }).to_list(15000)
     
     # Determinar categoria baseada no CFOP se não foi informada
     categoria_final = categoria or obter_categoria_por_cfop(novo_cfop)
@@ -15150,7 +15150,7 @@ async def resolver_alerta_cfop_lote(
         "company_id": company_id,
         "competencia": competencia,
         "tipo": "entrada"
-    }).to_list(100000)
+    }).to_list(15000)
     
     total_resolvidos = 0
     
@@ -15216,7 +15216,7 @@ async def resolver_alerta_cfop_ia(
         "company_id": company_id,
         "competencia": competencia,
         "tipo": "entrada"
-    }).to_list(100000)
+    }).to_list(15000)
     
     produtos_pendentes = []
     for doc in documents:
@@ -15423,7 +15423,7 @@ async def report_by_product(
     if tipo and tipo != 'todos':
         query['tipo'] = tipo
     
-    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(15000)
     
     product_summary = defaultdict(lambda: {
         'descricao': '',
@@ -15479,7 +15479,7 @@ async def get_classification_suggestions(
         **get_filtro_notas_ativas()
     }
     
-    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     # Agrupar produtos por código+descricao
     produtos_agrupados = defaultdict(lambda: {
@@ -15777,7 +15777,7 @@ async def classificar_produtos_ia(
         "competencia": competencia,
         "tipo": "entrada",
         **get_filtro_notas_ativas()
-    }).to_list(100000)
+    }).to_list(15000)
     
     # Agrupar produtos únicos
     produtos_unicos = {}
@@ -16329,7 +16329,7 @@ async def report_by_ncm(
     if tipo and tipo != 'todos':
         query['tipo'] = tipo
     
-    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(15000)
     
     ncm_summary = defaultdict(lambda: {
         'quantidade_produtos': 0,
@@ -16454,7 +16454,7 @@ async def export_sped(
     if competencia:
         query['competencia'] = competencia
     
-    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(15000)
     
     for doc in documents:
         if isinstance(doc['uploaded_at'], str):
@@ -16508,7 +16508,7 @@ async def validar_sped(
     # IMPORTANTE: Excluir notas canceladas e desconsideradas (igual à Apuração Mensal)
     query.update(get_filtro_notas_ativas())
     
-    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(15000)
     
     # CFOPs sem crédito de ICMS (despesa e ST)
     CFOPS_SEM_CREDITO = {
@@ -16665,7 +16665,7 @@ async def analise_tributaria_ia(
     if competencia:
         query['competencia'] = competencia
     
-    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     if not documents:
         return {
@@ -17583,7 +17583,7 @@ async def exportar_e_validar_sped(
     }
     query.update(get_filtro_notas_ativas())
     documents_cursor = db.xml_documents.find(query, {"_id": 0})
-    documents_data = await documents_cursor.to_list(100000)
+    documents_data = await documents_cursor.to_list(15000)
     
     if not documents_data:
         raise HTTPException(status_code=404, detail=f"Nenhum documento encontrado para competência {competencia}")
@@ -17898,7 +17898,7 @@ async def export_csv_saida(
         "company_id": company_id,
         "competencia": competencia,
         "tipo": "saida"
-    }, {"_id": 0, "xml_content": 0}).to_list(100000)
+    }, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     csv_content = generate_csv_saida(docs)
     
@@ -17926,7 +17926,7 @@ async def export_csv_entrada(
         "company_id": company_id,
         "competencia": competencia,
         "tipo": "entrada"
-    }, {"_id": 0, "xml_content": 0}).to_list(100000)
+    }, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     csv_content = generate_csv_entrada(docs)
     
@@ -18044,7 +18044,7 @@ async def get_documents_for_reclassification(
     if tipo:
         query['tipo'] = tipo
     
-    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     # Adicionar contagem sequencial
     for idx, doc in enumerate(documents, 1):
@@ -18078,7 +18078,7 @@ async def get_products_grouped(
     if tipo:
         query['tipo'] = tipo
     
-    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     # Agrupar produtos por código
     produtos_agrupados = defaultdict(lambda: {
@@ -18213,7 +18213,7 @@ async def update_learned_rule(
             documentos = await db.xml_documents.find({
                 "company_id": company_id,
                 "produtos.descricao": descricao_produto
-            }).to_list(100000)
+            }).to_list(15000)
             
             for doc in documentos:
                 produtos = doc.get('produtos', [])
@@ -18415,7 +18415,7 @@ async def ai_reclassify_products(
     
     # Buscar documentos da competência
     query = {"company_id": request.company_id, "competencia": request.competencia}
-    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(15000)
     
     if not documents:
         raise HTTPException(status_code=404, detail="Nenhum documento encontrado para esta competência")
@@ -18599,7 +18599,7 @@ async def ai_smart_reclassify(
     
     # Buscar todos os documentos da competência
     query = {"company_id": request.company_id, "competencia": request.competencia}
-    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(15000)
     
     if not documents:
         raise HTTPException(status_code=404, detail="Nenhum documento encontrado")
@@ -18812,7 +18812,7 @@ async def ai_validate_taxes(
     if request.document_ids:
         query['id'] = {"$in": request.document_ids}
     
-    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     if not documents:
         raise HTTPException(status_code=404, detail="Nenhum documento encontrado")
@@ -19021,13 +19021,13 @@ async def internal_analise_tributaria(
         "company_id": request.company_id,
         "competencia": request.competencia,
         "tipo": "entrada"
-    }, {"_id": 0, "xml_content": 0}).to_list(100000)
+    }, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     docs_saida = await db.xml_documents.find({
         "company_id": request.company_id,
         "competencia": request.competencia,
         "tipo": "saida"
-    }, {"_id": 0, "xml_content": 0}).to_list(100000)
+    }, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     if len(docs_entrada) == 0 and len(docs_saida) == 0:
         raise HTTPException(status_code=404, detail="Nenhum documento encontrado para esta competência")
@@ -20911,7 +20911,7 @@ async def preview_delete_documents(
     # O campo 'tipo' é definido na importação baseado no CNPJ do emitente vs empresa:
     # - Se CNPJ emitente == CNPJ empresa -> tipo='saida' (empresa emitiu)
     # - Se CNPJ emitente != CNPJ empresa -> tipo='entrada' (empresa recebeu)
-    all_docs = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
+    all_docs = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     # Filtrar pelo campo 'tipo' que é a fonte de verdade para entrada/saída
     # Mapeamento: filters.tipo_operacao = 'entrada' ou 'saida' -> campo 'tipo'
@@ -21052,7 +21052,7 @@ async def get_cfops_for_company(
     if competencia:
         query["competencia"] = competencia
     
-    documents = await db.xml_documents.find(query, {"_id": 0, "produtos": 1, "tipo_operacao": 1}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0, "produtos": 1, "tipo_operacao": 1}).to_list(15000)
     
     cfops = set()
     for doc in documents:
@@ -21093,7 +21093,7 @@ async def get_emitentes_for_company(
     if competencia:
         query["competencia"] = competencia
     
-    documents = await db.xml_documents.find(query, {"_id": 0, "emitente_nome": 1, "emitente_cnpj": 1, "tipo_operacao": 1, "produtos": 1}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0, "emitente_nome": 1, "emitente_cnpj": 1, "tipo_operacao": 1, "produtos": 1}).to_list(15000)
     
     emitentes = {}
     for doc in documents:
@@ -24374,7 +24374,7 @@ async def inteligencia_tributaria(
         }
         
         # Pipeline para calcular ICMS igual ao endpoint de apuração
-        docs_icms = await db.xml_documents.find(query_icms, {"produtos": 1, "tipo": 1}).to_list(100000)
+        docs_icms = await db.xml_documents.find(query_icms, {"produtos": 1, "tipo": 1}).to_list(15000)
         
         debito_icms = 0
         credito_icms = 0
@@ -24421,7 +24421,7 @@ async def inteligencia_tributaria(
             **get_filtro_notas_ativas()
         }
         
-        docs_pis = await db.xml_documents.find(query_pis).to_list(100000)
+        docs_pis = await db.xml_documents.find(query_pis).to_list(15000)
         
         # Inferir tipo_operacao se não tiver
         for doc in docs_pis:
@@ -24693,7 +24693,7 @@ async def inteligencia_tributaria(
             "tipo": "saida",
             **query_competencia,
             **get_filtro_notas_ativas()
-        }, {"_id": 0, "produtos": 1}).to_list(100000)
+        }, {"_id": 0, "produtos": 1}).to_list(15000)
         
         for doc in docs_periodo:
             for prod in doc.get("produtos", []):
@@ -24780,7 +24780,7 @@ async def inteligencia_tributaria(
             "tipo": "saida",
             **query_competencia,
             **get_filtro_notas_ativas()
-        }, {"_id": 0, "valor_total": 1, "modelo": 1, "tipo_operacao": 1}).to_list(100000)
+        }, {"_id": 0, "valor_total": 1, "modelo": 1, "tipo_operacao": 1}).to_list(15000)
         
         for doc in docs_saida:
             modelo = doc.get('modelo', '').lower()
@@ -25121,7 +25121,7 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
             {"tipo_operacao": "prestado"}
         ],
         **get_filtro_notas_ativas()
-    }, {"_id": 0}).to_list(100000)
+    }, {"_id": 0}).to_list(15000)
     
     # Separar faturamento com e sem ISS retido
     faturamento_iss_retido = 0
@@ -25443,7 +25443,7 @@ async def exportar_produtos_agrupados_simples(
         "competencia": competencia,
         "tipo": "saida",
         **get_filtro_notas_ativas()
-    }, {"_id": 0, "produtos": 1, "numero_nfe": 1}).to_list(100000)
+    }, {"_id": 0, "produtos": 1, "numero_nfe": 1}).to_list(15000)
     
     # Agrupar produtos por classificação
     produtos_agrupados = {
@@ -27394,7 +27394,7 @@ async def get_impostos_retidos(
             {"tipo_operacao": {"$in": ["tomado", "prestado"]}}
         ],
         **get_filtro_notas_ativas()
-    }, {"_id": 0}).to_list(100000)
+    }, {"_id": 0}).to_list(15000)
     
     # Estrutura para acumular dados
     retencoes_tomados = {
@@ -27577,7 +27577,7 @@ async def get_guias_retencao(
             {"tipo_operacao": "tomado"}
         ],
         **get_filtro_notas_ativas()
-    }, {"_id": 0}).to_list(100000)
+    }, {"_id": 0}).to_list(15000)
     
     # Estruturas para acumular por tipo de guia
     guia_ir = {
@@ -29086,7 +29086,7 @@ async def exportar_documentos_categoria(
         query["modelo"] = {"$in": modelos_map.get(tipo_doc, [])}
     
     # Buscar documentos
-    documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
+    documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     if not documentos:
         raise HTTPException(status_code=404, detail="Nenhum documento encontrado para os filtros informados")
@@ -29659,7 +29659,7 @@ async def get_fechamento_mensal(
     }
     query.update(get_filtro_notas_ativas())
     
-    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     # Calcular totais de entradas e saídas
     entradas = [d for d in documents if d.get('tipo') == 'entrada' or d.get('tipo_operacao') == 'entrada']
@@ -30252,7 +30252,7 @@ async def get_grupo_consolidado(
             "competencia": competencia
         }
         query.update(get_filtro_notas_ativas())
-        documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
+        documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
         
         entradas = [d for d in documents if d.get('tipo') == 'entrada' or d.get('tipo_operacao') == 'entrada']
         saidas = [d for d in documents if d.get('tipo') == 'saida' or d.get('tipo_operacao') == 'saida']
