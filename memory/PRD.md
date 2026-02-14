@@ -203,6 +203,13 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
     - Animações (`animate-bounce`, `animate-pulse-slow`)
   - Corrigido bug do `case 7` duplicado → agora é `case 8`
 - ✅ Nova animação CSS `animate-pulse-slow` em `App.css`
+- ✅ **UX WIZARD ETAPA 3 (Alertas de CFOP)**: Refatorada para seleção visual
+  - Opções de CFOP agora são botões estilo **radio button** (Manter, Converter, Outro CFOP)
+  - Opção selecionada fica destacada com borda colorida e indicador visual
+  - Input de CFOP manual aparece apenas quando "Outro CFOP" está selecionado
+  - **Resumo das alterações** exibido antes do botão Confirmar
+  - Ao confirmar, todas as seleções são aplicadas em lote
+  - Estados React (`cfopSelections`, `manualCfopInputs`) em vez de localStorage
 
 ### Fevereiro/2026 (Sessão 13/02)
 - ✅ **CORREÇÃO CRÍTICA**: Dashboard e Apuração ICMS mostravam vendas/débitos incorretos
