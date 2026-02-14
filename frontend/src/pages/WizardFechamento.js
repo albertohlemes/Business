@@ -669,21 +669,26 @@ const WizardFechamento = ({ user, onLogout }) => {
             
             <button
               onClick={() => {
-                // Filtrar notas com base nas decisões do usuário para divergências
+                // Filtrar notas COM base nas decisões do usuário
+                // REGRA: 
+                // - Notas SEM divergência de valor → excluir original automaticamente
+                // - Notas COM divergência de valor → só excluir se usuário escolheu 'excluir' explicitamente
                 const notasParaExcluir = data.notas_devolucao?.filter(n => {
                   if (n.desconsiderada) return false;
                   if (!n.nota_original_encontrada) return false;
                   
-                  // Se tem divergência, respeitar a decisão do usuário
                   const valorDev = n.valor_total || 0;
                   const valorOrig = n.nota_original?.valor_total || 0;
                   const temDiferenca = Math.abs(valorOrig - valorDev) > 0.01;
                   
                   if (temDiferenca) {
-                    return decisoesOriginais[n.id] !== 'manter';
+                    // COM divergência: só excluir se usuário EXPLICITAMENTE escolheu 'excluir'
+                    // Se não decidiu ou escolheu 'manter', NÃO excluir (manter por padrão)
+                    return decisoesOriginais[n.id] === 'excluir';
                   }
                   
-                  return true; // Se não tem divergência, excluir por padrão
+                  // SEM divergência: valores iguais = excluir original automaticamente
+                  return true;
                 }).map(n => ({ devolucao_id: n.id, original_id: n.nota_original?.id })) || [];
                 
                 completeStep({ 
