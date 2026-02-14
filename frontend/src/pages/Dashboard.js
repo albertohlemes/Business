@@ -7,7 +7,8 @@ import { useUpload } from '../context/UploadContext';
 import { 
   Building2, FileText, CheckCircle, AlertTriangle, TrendingUp, 
   ArrowDownCircle, ArrowUpCircle, Receipt, FileCheck, 
-  DollarSign, Percent, Calculator, ChevronRight, Scale, Lightbulb, X, Gift
+  DollarSign, Percent, Calculator, ChevronRight, Scale, Lightbulb, X, Gift,
+  TrendingDown, AlertCircle, Info, CheckCircle2
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
