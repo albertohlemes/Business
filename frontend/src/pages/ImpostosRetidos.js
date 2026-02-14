@@ -224,7 +224,7 @@ const ImpostosRetidos = ({ user, onLogout }) => {
     const cores = {
       blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400', accent: 'bg-blue-500/20' },
       green: { bg: 'bg-green-500/10', border: 'border-green-500/30', text: 'text-green-400', accent: 'bg-green-500/20' },
-      purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', accent: 'bg-purple-500/20' },
+      purple: { bg: 'bg-slate-500/10', border: 'border-slate-500/30', text: 'text-slate-400', accent: 'bg-slate-500/20' },
       red: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400', accent: 'bg-red-500/20' },
       amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400', accent: 'bg-amber-500/20' }
     };
@@ -310,7 +310,7 @@ const ImpostosRetidos = ({ user, onLogout }) => {
                 <td className="py-3 px-4 text-right text-white">{formatCurrency(item.valor_servicos)}</td>
                 <td className="py-3 px-4 text-right text-blue-400">{item.retencoes?.iss > 0 ? formatCurrency(item.retencoes.iss) : '-'}</td>
                 <td className="py-3 px-4 text-right text-green-400">{item.retencoes?.ir > 0 ? formatCurrency(item.retencoes.ir) : '-'}</td>
-                <td className="py-3 px-4 text-right text-purple-400">{item.retencoes?.pis > 0 ? formatCurrency(item.retencoes.pis) : '-'}</td>
+                <td className="py-3 px-4 text-right text-slate-400">{item.retencoes?.pis > 0 ? formatCurrency(item.retencoes.pis) : '-'}</td>
                 <td className="py-3 px-4 text-right text-amber-400">{item.retencoes?.cofins > 0 ? formatCurrency(item.retencoes.cofins) : '-'}</td>
                 <td className="py-3 px-4 text-right text-cyan-400">{item.retencoes?.csll > 0 ? formatCurrency(item.retencoes.csll) : '-'}</td>
                 <td className="py-3 px-4 text-right text-red-400">{item.retencoes?.inss > 0 ? formatCurrency(item.retencoes.inss) : '-'}</td>
