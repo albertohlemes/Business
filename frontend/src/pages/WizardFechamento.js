@@ -505,9 +505,6 @@ const WizardFechamento = ({ user, onLogout }) => {
           return Math.abs(valorDev - valorOrig) > 0.01; // Diferença significativa
         });
         
-        // State para controlar quais notas originais manter/excluir
-        const [decisoesOriginais, setDecisoesOriginais] = useState({});
-        
         return (
           <div className="space-y-4">
             <p className="text-[#A1A1AA]">
