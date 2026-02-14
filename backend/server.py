@@ -30778,6 +30778,129 @@ async def get_wizard_step_data(
     return result
 
 
+
+@api_router.post("/wizard-fechamento/classificar-pendentes/{company_id}")
+async def classificar_produtos_pendentes_wizard(
+    company_id: str,
+    competencia: str = Query(...),
+    usar_ia: bool = Query(default=False, description="Se True, usa IA para classificar. Se False, usa padrão da empresa."),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Classifica em lote TODOS os produtos pendentes de classificação.
+    
+    Regras de classificação por tipo de atividade:
+    - Indústria → INSUMO (matéria-prima para produção)
+    - Comércio → REVENDA (mercadoria para comercialização)  
+    - Serviços → DESPESA (material de consumo)
+    
+    Args:
+        usar_ia: Se True, tenta classificar usando IA. Se False, aplica categoria padrão.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    uf_empresa = company.get('uf', 'SP')
+    tipo_atividade = company.get('tipo_atividade', 'comercio')
+    categoria_padrao, cfop_sufixo_normal, cfop_sufixo_st = obter_categoria_padrao_por_atividade(tipo_atividade)
+    
+    # Buscar documentos de entrada com produtos pendentes
+    docs = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada",
+        "$or": [
+            {"produtos.categoria_classificada": {"$exists": False}},
+            {"produtos.categoria_classificada": None},
+            {"produtos.categoria_classificada": ""},
+            {"produtos.pendente_revisao_cfop": True}
+        ]
+    }, {"_id": 0}).to_list(length=None)
+    
+    total_docs_atualizados = 0
+    total_produtos_classificados = 0
+    
+    # CFOPs de ST para verificação
+    cfops_st_originais = ['5403', '5405', '5408', '5409', '5410', '5411', '5412', '5413', '5414', '5415',
+                          '6403', '6404', '6405', '6408', '6409', '6410', '6411', '6412', '6413', '6414', '6415']
+    
+    # Mapeamento de CFOP saída -> entrada
+    CFOP_SAIDA_PARA_ENTRADA = {
+        '5101': '1101', '5102': '1102', '5103': '1103', '5104': '1104', '5105': '1105',
+        '5106': '1106', '5109': '1109', '5110': '1110', '5111': '1111', '5112': '1112',
+        '5401': '1401', '5402': '1402', '5403': '1403', '5405': '1405',
+        '6101': '2101', '6102': '2102', '6103': '2103', '6104': '2104', '6105': '2105',
+        '6106': '2106', '6107': '2107', '6108': '2108', '6109': '2109', '6110': '2110',
+        '6401': '2401', '6402': '2402', '6403': '2403', '6404': '2404',
+    }
+    
+    for doc in docs:
+        produtos = doc.get('produtos', [])
+        doc_atualizado = False
+        emitente_uf = doc.get('emitente_uf', '')
+        
+        for produto in produtos:
+            categoria_atual = produto.get('categoria_classificada', '')
+            pendente_cfop = produto.get('pendente_revisao_cfop', False)
+            
+            if not categoria_atual or pendente_cfop:
+                cfop_original = produto.get('cfop_original_emissor', produto.get('cfop', ''))
+                cst = str(produto.get('cst', ''))
+                
+                # Verificar se é ST
+                is_st_by_cfop = cfop_original in cfops_st_originais
+                is_st = is_st_by_cfop or cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+                
+                # Calcular prefixo do CFOP (1 = estadual, 2 = interestadual)
+                cfop_prefix = '2' if (emitente_uf and emitente_uf != uf_empresa) else '1'
+                
+                # Calcular novo CFOP baseado na categoria padrão
+                cfop_novo = cfop_prefix + (cfop_sufixo_st if is_st else cfop_sufixo_normal)
+                
+                # Converter CFOP de saída para entrada se necessário
+                if cfop_original.startswith(('5', '6')):
+                    cfop_convertido = CFOP_SAIDA_PARA_ENTRADA.get(cfop_original, cfop_novo)
+                    # Ajustar para ST se o original era ST
+                    if is_st and not cfop_convertido.endswith(('01', '03', '05', '07')):
+                        cfop_novo = cfop_convertido
+                    else:
+                        cfop_novo = cfop_convertido if cfop_convertido.startswith(('1', '2')) else cfop_novo
+                
+                # Atualizar produto
+                produto['cfop_original_emissor'] = cfop_original
+                produto['cfop'] = cfop_novo
+                produto['cfop_sugerido'] = cfop_novo
+                produto['categoria_classificada'] = categoria_padrao
+                produto['justificativa_ia'] = f'Classificação em lote: {categoria_padrao.upper()} (tipo atividade: {tipo_atividade})'
+                produto['pendente_revisao_cfop'] = False
+                produto['classificado_wizard'] = True
+                produto['classificado_em'] = datetime.now(timezone.utc).isoformat()
+                
+                doc_atualizado = True
+                total_produtos_classificados += 1
+        
+        if doc_atualizado:
+            await db.xml_documents.update_one(
+                {"id": doc['id']},
+                {"$set": {"produtos": produtos}}
+            )
+            total_docs_atualizados += 1
+    
+    return {
+        "success": True,
+        "message": f"Classificação em lote concluída",
+        "total_docs_atualizados": total_docs_atualizados,
+        "total_produtos_classificados": total_produtos_classificados,
+        "categoria_aplicada": categoria_padrao,
+        "tipo_atividade": tipo_atividade
+    }
+
+
+
 @api_router.post("/wizard-fechamento/step/{company_id}/{step_id}/complete")
 async def complete_wizard_step(
     company_id: str,
