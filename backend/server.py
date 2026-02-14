@@ -21523,9 +21523,9 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
                     "cfop": {"$substr": [{"$toString": {"$ifNull": ["$produtos.cfop", "0000"]}}, 0, 4]}
                 },
                 "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
-                "bc_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.bc_icms", 0]}}},
-                "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_icms", 0]}}},
-                "valor_icms_st": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_icms_st", 0]}}},
+                "bc_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_bc_icms", {"$ifNull": ["$produtos.bc_icms", 0]}]}}},
+                "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms", {"$ifNull": ["$produtos.valor_icms", 0]}]}}},
+                "valor_icms_st": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms_st", {"$ifNull": ["$produtos.valor_icms_st", 0]}]}}},
                 "qtd_itens": {"$sum": 1}
             }
         }
