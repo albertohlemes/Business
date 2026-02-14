@@ -34518,6 +34518,57 @@ async def get_relatorio_reforma_tributaria_pdf(
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
 
+
+# ============== ENDPOINTS DE CACHE ==============
+
+@api_router.get("/cache/stats")
+async def get_cache_stats(current_user: User = Depends(get_current_user)):
+    """
+    Retorna estatísticas do cache de agregações.
+    Apenas para admins.
+    """
+    if not UserRole.is_admin(current_user.role):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    return {
+        "status": "active",
+        "stats": aggregation_cache.stats(),
+        "ttl_seconds": aggregation_cache.ttl
+    }
+
+@api_router.post("/cache/invalidate/{company_id}")
+async def invalidate_cache(
+    company_id: str,
+    competencia: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Invalida cache de uma empresa manualmente.
+    """
+    if not UserRole.is_admin(current_user.role):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    invalidate_company_cache(company_id, competencia)
+    
+    return {
+        "message": f"Cache invalidado para {company_id}" + (f"/{competencia}" if competencia else " (todas competências)"),
+        "stats": aggregation_cache.stats()
+    }
+
+@api_router.post("/cache/clear")
+async def clear_cache(current_user: User = Depends(get_current_user)):
+    """
+    Limpa todo o cache. Apenas super admin.
+    """
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Apenas super admin pode limpar todo o cache")
+    
+    aggregation_cache.clear_all()
+    
+    return {"message": "Cache completamente limpo"}
+
+
+
 app.include_router(api_router)
 
 app.add_middleware(
