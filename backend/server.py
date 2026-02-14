@@ -23506,12 +23506,30 @@ async def listar_divergencias_pis_cofins(
     
     # Buscar apenas documentos de SAÍDA (notas emitidas pela empresa)
     # Divergências de PIS/COFINS são relevantes apenas nas saídas
-    documents = await db.xml_documents.find({
+    query_saidas = {
         "company_id": company_id,
         "competencia": competencia,
-        "tipo": "saida",  # Apenas notas de saída
+        "tipo": "saida",
         **get_filtro_notas_ativas()
-    }, {"_id": 0, "xml_content": 0}).to_list(100000)
+    }
+    
+    # ============== OTIMIZAÇÃO PARA GRANDES VOLUMES ==============
+    total_docs = await db.xml_documents.count_documents(query_saidas)
+    logger.info(f"PIS/COFINS DIVERGENCIAS: Total documentos = {total_docs}")
+    
+    if total_docs > 10000:
+        return {
+            "divergencias": [],
+            "totais": {
+                "total_documentos": total_docs,
+                "documentos_com_divergencia": 0,
+                "produtos_divergentes": 0,
+                "_alerta": f"Volume muito grande ({total_docs} documentos). Use filtros de período mais específicos."
+            },
+            "agrupamento": agrupamento
+        }
+    
+    documents = await db.xml_documents.find(query_saidas, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     todas_divergencias = []
     totais = {
