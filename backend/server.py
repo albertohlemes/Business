@@ -14088,6 +14088,157 @@ ALIQUOTAS_PADRAO = {
 }
 
 
+async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str, regime: str):
+    """
+    Versão otimizada do endpoint de vilões e oportunidades usando agregação do MongoDB.
+    Usada quando há mais de 5000 documentos para evitar timeout.
+    """
+    logger.info(f"VILOES AGREGADO: Iniciando para empresa {company_id}, competencia {competencia}")
+    
+    # Pipeline de agregação para agrupar por NCM e tipo
+    pipeline = [
+        {
+            "$match": {
+                "company_id": company_id,
+                "competencia": competencia
+            }
+        },
+        {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": False}},
+        {
+            "$group": {
+                "_id": {
+                    "tipo": {"$ifNull": ["$tipo", "$tipo_operacao"]},
+                    "ncm": {"$substr": [{"$toString": {"$ifNull": ["$produtos.ncm", "00000000"]}}, 0, 8]}
+                },
+                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                "icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms", {"$ifNull": ["$produtos.valor_icms", 0]}]}}},
+                "pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", {"$ifNull": ["$produtos.valor_pis", 0]}]}}},
+                "cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_cofins", {"$ifNull": ["$produtos.valor_cofins", 0]}]}}},
+                "descricao": {"$first": "$produtos.descricao"},
+                "qtd": {"$sum": 1}
+            }
+        },
+        {"$sort": {"valor_total": -1}},
+        {"$limit": 500}  # Limitar para performance
+    ]
+    
+    cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
+    resultados = await cursor.to_list(length=500)
+    
+    # Processar resultados
+    produtos_por_ncm = {}
+    
+    for item in resultados:
+        tipo = (item['_id'].get('tipo', '') or '').lower()
+        ncm = item['_id'].get('ncm', '00000000')
+        
+        if ncm not in produtos_por_ncm:
+            produtos_por_ncm[ncm] = {
+                'ncm': ncm,
+                'descricao': (item.get('descricao', '') or '')[:50],
+                'entrada': {'valor': 0, 'icms': 0, 'pis': 0, 'cofins': 0, 'qtd': 0, 'produtos': []},
+                'saida': {'valor': 0, 'icms': 0, 'pis': 0, 'cofins': 0, 'qtd': 0, 'produtos': []}
+            }
+        
+        if tipo == 'entrada':
+            produtos_por_ncm[ncm]['entrada']['valor'] += item.get('valor_total', 0)
+            produtos_por_ncm[ncm]['entrada']['icms'] += item.get('icms', 0)
+            produtos_por_ncm[ncm]['entrada']['pis'] += item.get('pis', 0)
+            produtos_por_ncm[ncm]['entrada']['cofins'] += item.get('cofins', 0)
+            produtos_por_ncm[ncm]['entrada']['qtd'] += item.get('qtd', 0)
+        else:
+            produtos_por_ncm[ncm]['saida']['valor'] += item.get('valor_total', 0)
+            produtos_por_ncm[ncm]['saida']['icms'] += item.get('icms', 0)
+            produtos_por_ncm[ncm]['saida']['pis'] += item.get('pis', 0)
+            produtos_por_ncm[ncm]['saida']['cofins'] += item.get('cofins', 0)
+            produtos_por_ncm[ncm]['saida']['qtd'] += item.get('qtd', 0)
+    
+    # Identificar vilões e oportunidades
+    viloes = []
+    oportunidades = []
+    
+    for ncm, dados in produtos_por_ncm.items():
+        entrada = dados['entrada']
+        saida = dados['saida']
+        descricao = dados.get('descricao', '')
+        
+        # Calcular totais de impostos
+        total_debito = saida['icms'] + saida['pis'] + saida['cofins']
+        total_credito = entrada['icms'] + entrada['pis'] + entrada['cofins']
+        impacto = total_debito - total_credito
+        
+        # Vilões: NCMs que geram mais débito que crédito
+        if impacto > 100:  # Mínimo de R$100 de impacto
+            viloes.append({
+                'ncm': ncm,
+                'descricao': descricao,
+                'entrada': {
+                    'valor': round(entrada['valor'], 2),
+                    'icms': round(entrada['icms'], 2),
+                    'pis': round(entrada['pis'], 2),
+                    'cofins': round(entrada['cofins'], 2),
+                    'qtd': entrada['qtd']
+                },
+                'saida': {
+                    'valor': round(saida['valor'], 2),
+                    'icms': round(saida['icms'], 2),
+                    'pis': round(saida['pis'], 2),
+                    'cofins': round(saida['cofins'], 2),
+                    'qtd': saida['qtd']
+                },
+                'impacto_icms': round(saida['icms'] - entrada['icms'], 2),
+                'impacto_pis_cofins': round((saida['pis'] + saida['cofins']) - (entrada['pis'] + entrada['cofins']), 2),
+                'impacto_total': round(impacto, 2),
+                'margem_contribuicao': round((saida['valor'] - entrada['valor'] - impacto) if saida['valor'] > 0 else 0, 2)
+            })
+        
+        # Oportunidades: NCMs com potencial de crédito não aproveitado
+        if entrada['valor'] > 0 and total_credito < entrada['valor'] * 0.05:
+            beneficio_potencial = entrada['valor'] * 0.0925  # PIS + COFINS potencial
+            if beneficio_potencial > 100:
+                oportunidades.append({
+                    'ncm': ncm,
+                    'descricao': descricao,
+                    'valor_entrada': round(entrada['valor'], 2),
+                    'credito_atual': round(total_credito, 2),
+                    'beneficio_potencial': round(beneficio_potencial, 2),
+                    'beneficio_total': round(beneficio_potencial - total_credito, 2),
+                    'qtd_itens': entrada['qtd'],
+                    'sugestao': 'Verificar se produto permite crédito de PIS/COFINS'
+                })
+    
+    # Ordenar por impacto
+    viloes.sort(key=lambda x: x['impacto_total'], reverse=True)
+    oportunidades.sort(key=lambda x: x.get('beneficio_total', 0), reverse=True)
+    
+    # Limitar para não sobrecarregar o frontend
+    viloes = viloes[:30]
+    oportunidades = oportunidades[:30]
+    
+    # Calcular totais
+    impacto_total_viloes = sum(v['impacto_total'] for v in viloes)
+    beneficio_total_oportunidades = sum(o.get('beneficio_total', 0) for o in oportunidades)
+    
+    logger.info(f"VILOES AGREGADO: Encontrados {len(viloes)} vilões, {len(oportunidades)} oportunidades")
+    
+    return {
+        "empresa": company_id,
+        "competencia": competencia,
+        "regime": regime,
+        "viloes": viloes,
+        "oportunidades": oportunidades,
+        "viloes_por_keyword": [],  # Não calculado na versão agregada
+        "oportunidades_por_keyword": [],
+        "resumo": {
+            "total_viloes": len(viloes),
+            "impacto_total_viloes": round(impacto_total_viloes, 2),
+            "total_oportunidades": len(oportunidades),
+            "beneficio_total_oportunidades": round(beneficio_total_oportunidades, 2)
+        },
+        "_alerta": "Análise simplificada devido ao grande volume de dados"
+    }
+
+
 @api_router.get("/viloes-oportunidades/{company_id}")
 async def get_viloes_oportunidades(
     company_id: str,
