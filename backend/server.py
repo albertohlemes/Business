@@ -2814,10 +2814,19 @@ def generate_sped_fiscal(
             }
         
         # Coletar dados do destinatário (se não for a própria empresa)
-        if dest_cnpj and dest_cnpj not in participantes and dest_cnpj != cnpj_empresa:
+        # Para pessoa física (CPF), usar o CPF como identificador
+        dest_doc_id = dest_cnpj or getattr(doc, 'destinatario_cpf', '') or ''
+        if dest_doc_id and dest_doc_id not in participantes and dest_doc_id != cnpj_empresa:
             dest_end = getattr(doc, 'destinatario_endereco', {}) or {}
-            participantes[dest_cnpj] = {
-                'nome': (doc.destinatario_nome or 'CLIENTE')[:60],
+            # Manter o nome original da NF-e - não substituir por genérico
+            nome_destinatario = doc.destinatario_nome or ''
+            if not nome_destinatario:
+                nome_destinatario = 'CONSUMIDOR FINAL' if len(dest_doc_id) == 11 else 'CLIENTE'
+            
+            participantes[dest_doc_id] = {
+                'nome': nome_destinatario[:60],
+                'cpf': getattr(doc, 'destinatario_cpf', '') or (dest_doc_id if len(dest_doc_id) == 11 else ''),
+                'cnpj': dest_cnpj if len(dest_cnpj) == 14 else '',
                 'ie': (getattr(doc, 'destinatario_ie', '') or '').replace('.','').replace('-',''),
                 'cod_mun': dest_end.get('cod_municipio', '') or '',
                 'uf': dest_end.get('uf', '') or getattr(doc, 'destinatario_uf', '') or '',
