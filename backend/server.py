@@ -15740,7 +15740,6 @@ async def list_exceptions(
     return exceptions
 
 @api_router.get("/sped/export/{company_id}")
-@api_router.get("/sped/export/{company_id}")
 async def export_sped(
     company_id: str,
     competencia: Optional[str] = None,
