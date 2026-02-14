@@ -31594,6 +31594,62 @@ async def complete_wizard_step(
         
         if total_remanescentes > 0:
             actions_taken.append(f"Sincronização: {total_remanescentes} produtos adicionais resolvidos automaticamente")
+        
+        # 5. PROCESSAR CFOPs INDIVIDUAIS POR PRODUTO (NOVA FUNCIONALIDADE)
+        # Formato: { "cfop_docId_prodIdx": "cfop_destino" }
+        cfops_individuais = step_data.get("cfops_individuais", {})
+        
+        if cfops_individuais:
+            total_individuais = 0
+            docs_modificados = set()
+            
+            for key, cfop_destino in cfops_individuais.items():
+                # Parse key: "cfop_docId_prodIdx"
+                parts = key.split("_")
+                if len(parts) >= 3:
+                    try:
+                        # Formato: cfop_docId_prodIdx
+                        cfop_original = parts[0]
+                        doc_id = parts[1]
+                        prod_idx = int(parts[2])
+                        
+                        # Buscar documento
+                        doc = await db.xml_documents.find_one({"id": doc_id})
+                        if doc:
+                            produtos = doc.get("produtos", [])
+                            if 0 <= prod_idx < len(produtos):
+                                produto = produtos[prod_idx]
+                                
+                                # Determinar categoria baseada no novo CFOP
+                                categoria_cfop = obter_categoria_por_cfop(cfop_destino)
+                                
+                                # Atualizar produto
+                                produto["cfop_original_distinto"] = produto.get("cfop", cfop_original)
+                                produto["cfop"] = cfop_destino
+                                produto["pendente_revisao_cfop"] = False
+                                produto["cfop_individual_wizard"] = True
+                                produto["cfop_revisado_em"] = datetime.now(timezone.utc).isoformat()
+                                
+                                if categoria_cfop:
+                                    produto["categoria"] = categoria_cfop
+                                    produto["categoria_classificada"] = categoria_cfop
+                                    produto["categoria_origem"] = "wizard_individual"
+                                    produto["categoria_classificada_em"] = datetime.now(timezone.utc).isoformat()
+                                
+                                produtos[prod_idx] = produto
+                                docs_modificados.add(doc_id)
+                                total_individuais += 1
+                                
+                                # Salvar imediatamente
+                                await db.xml_documents.update_one(
+                                    {"id": doc_id},
+                                    {"$set": {"produtos": produtos}}
+                                )
+                    except (ValueError, IndexError) as e:
+                        logger.warning(f"[WIZARD] Erro ao processar CFOP individual {key}: {e}")
+            
+            if total_individuais > 0:
+                actions_taken.append(f"CFOPs individuais: {total_individuais} produtos com CFOP personalizado")
     
     
     elif step_id == 4:  # Classificação de CFOPs (antigo step 3)
