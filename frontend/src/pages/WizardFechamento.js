@@ -394,7 +394,10 @@ const WizardFechamento = ({ user, onLogout }) => {
     const data = currentStepData.data || {};
     
     switch (step) {
-      case 1: // Notas Canceladas
+      case 1: // Notas Canceladas - Separadas por Entradas e Saídas
+        const entradas_canceladas = (data.notas_canceladas || []).filter(n => n.tipo === 'entrada');
+        const saidas_canceladas = (data.notas_canceladas || []).filter(n => n.tipo === 'saida');
+        
         return (
           <div className="space-y-4">
             <p className="text-[#A1A1AA]">
@@ -402,24 +405,76 @@ const WizardFechamento = ({ user, onLogout }) => {
             </p>
             
             {data.notas_canceladas?.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-sm text-amber-400">
-                  {data.total} notas potencialmente canceladas encontradas
-                </p>
-                <div className="max-h-64 overflow-y-auto space-y-2">
-                  {data.notas_canceladas.map((nota, idx) => (
-                    <div key={idx} className="bg-[#0C0C0C] rounded-lg p-3 flex items-center justify-between">
-                      <div>
-                        <p className="text-white font-medium">NF {nota.numero_nfe}</p>
-                        <p className="text-xs text-[#666]">{nota.emitente_nome}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-white">R$ {(nota.valor_total || 0).toFixed(2)}</p>
-                        <p className="text-xs text-[#666]">{nota.data_emissao?.substring(0, 10)}</p>
-                      </div>
-                    </div>
-                  ))}
+              <div className="space-y-4">
+                {/* Resumo com separação */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-amber-400">{data.total || 0}</p>
+                    <p className="text-xs text-[#666]">Total Canceladas</p>
+                  </div>
+                  <div className="bg-[#0C0C0C] rounded-lg p-3 text-center border border-blue-500/30">
+                    <p className="text-2xl font-bold text-blue-400">{entradas_canceladas.length}</p>
+                    <p className="text-xs text-blue-400">Entradas</p>
+                  </div>
+                  <div className="bg-[#0C0C0C] rounded-lg p-3 text-center border border-emerald-500/30">
+                    <p className="text-2xl font-bold text-emerald-400">{saidas_canceladas.length}</p>
+                    <p className="text-xs text-emerald-400">Saídas</p>
+                  </div>
                 </div>
+                
+                {/* Lista de Entradas Canceladas */}
+                {entradas_canceladas.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <p className="text-sm font-medium text-blue-400">ENTRADAS ({entradas_canceladas.length})</p>
+                    </div>
+                    <div className="max-h-40 overflow-y-auto space-y-2">
+                      {entradas_canceladas.map((nota, idx) => (
+                        <div key={`entrada-${idx}`} className="bg-[#0C0C0C] border-l-4 border-blue-500 rounded-lg p-3 flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-white font-medium">NF {nota.numero_nfe}</p>
+                              <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">ENTRADA</span>
+                            </div>
+                            <p className="text-xs text-[#666]">{nota.emitente_nome}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-white">R$ {(nota.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                            <p className="text-xs text-[#666]">{nota.data_emissao?.substring(0, 10)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Lista de Saídas Canceladas */}
+                {saidas_canceladas.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                      <p className="text-sm font-medium text-emerald-400">SAÍDAS ({saidas_canceladas.length})</p>
+                    </div>
+                    <div className="max-h-40 overflow-y-auto space-y-2">
+                      {saidas_canceladas.map((nota, idx) => (
+                        <div key={`saida-${idx}`} className="bg-[#0C0C0C] border-l-4 border-emerald-500 rounded-lg p-3 flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-white font-medium">NF {nota.numero_nfe}</p>
+                              <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">SAÍDA</span>
+                            </div>
+                            <p className="text-xs text-[#666]">{nota.emitente_nome}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-white">R$ {(nota.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                            <p className="text-xs text-[#666]">{nota.data_emissao?.substring(0, 10)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
@@ -430,6 +485,7 @@ const WizardFechamento = ({ user, onLogout }) => {
             <button
               onClick={() => completeStep({ notas_confirmar: data.notas_canceladas?.map(n => n.id) || [] })}
               disabled={processing}
+              data-testid="wizard-step1-confirm"
               className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-[#2A2A2A] text-white py-3 rounded-lg flex items-center justify-center gap-2"
             >
               {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
