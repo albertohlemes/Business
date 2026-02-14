@@ -9757,6 +9757,220 @@ async def _get_simples_nacional_stats(company: dict, company_id: str, competenci
 
 
 
+
+# ============== SISTEMA DE ALERTAS DE VARIAÇÃO ==============
+
+async def calcular_alertas_variacao(company_id: str, company: dict, competencia_atual: str, dados_atuais: dict) -> List[dict]:
+    """
+    Calcula alertas de variação comparando a competência atual com a média dos últimos 12 meses.
+    
+    Args:
+        company_id: ID da empresa
+        company: Dados da empresa
+        competencia_atual: Competência no formato "MM/YYYY"
+        dados_atuais: Dict com valores atuais {compras, vendas, icms, pis_cofins}
+    
+    Returns:
+        Lista de alertas de variação
+    """
+    alertas = []
+    
+    # Obter limite de variação configurado na empresa (padrão 20%)
+    limite_variacao = company.get('limite_alerta_variacao', 20) / 100  # Converter para decimal
+    
+    try:
+        # Parsear competência atual para calcular os 12 meses anteriores
+        mes_atual, ano_atual = competencia_atual.split('/')
+        mes_atual = int(mes_atual)
+        ano_atual = int(ano_atual)
+        
+        # Gerar lista das 12 competências anteriores
+        competencias_anteriores = []
+        for i in range(1, 13):  # 1 a 12 meses atrás
+            mes = mes_atual - i
+            ano = ano_atual
+            while mes <= 0:
+                mes += 12
+                ano -= 1
+            competencias_anteriores.append(f"{str(mes).zfill(2)}/{ano}")
+        
+        # Buscar dados históricos via agregação
+        pipeline_historico = [
+            {
+                "$match": {
+                    "company_id": company_id,
+                    "competencia": {"$in": competencias_anteriores},
+                    **get_filtro_notas_ativas()
+                }
+            },
+            {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
+            {
+                "$group": {
+                    "_id": {
+                        "competencia": "$competencia",
+                        "tipo": {"$ifNull": ["$tipo", "$tipo_operacao"]}
+                    },
+                    "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                    "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_icms", 0]}}},
+                    "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_pis", 0]}}},
+                    "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_cofins", 0]}}}
+                }
+            }
+        ]
+        
+        cursor = db.xml_documents.aggregate(pipeline_historico, allowDiskUse=True)
+        historico_raw = await cursor.to_list(length=200)
+        
+        # Processar histórico por competência
+        historico_por_competencia = {}
+        for item in historico_raw:
+            comp = item['_id']['competencia']
+            tipo = (item['_id']['tipo'] or '').lower()
+            
+            if comp not in historico_por_competencia:
+                historico_por_competencia[comp] = {
+                    'compras': 0, 'vendas': 0, 'icms_credito': 0, 'icms_debito': 0,
+                    'pis_credito': 0, 'pis_debito': 0, 'cofins_credito': 0, 'cofins_debito': 0
+                }
+            
+            if tipo == 'entrada':
+                historico_por_competencia[comp]['compras'] += item['valor_total']
+                historico_por_competencia[comp]['icms_credito'] += item['valor_icms']
+                historico_por_competencia[comp]['pis_credito'] += item['valor_pis']
+                historico_por_competencia[comp]['cofins_credito'] += item['valor_cofins']
+            elif tipo == 'saida':
+                historico_por_competencia[comp]['vendas'] += item['valor_total']
+                historico_por_competencia[comp]['icms_debito'] += item['valor_icms']
+                historico_por_competencia[comp]['pis_debito'] += item['valor_pis']
+                historico_por_competencia[comp]['cofins_debito'] += item['valor_cofins']
+        
+        # Se não há histórico suficiente, não gerar alertas
+        if len(historico_por_competencia) < 3:
+            return [{
+                "tipo": "INFO",
+                "categoria": "historico",
+                "mensagem": f"Histórico insuficiente para análise de variação ({len(historico_por_competencia)} meses disponíveis)",
+                "icone": "info"
+            }]
+        
+        # Calcular médias
+        num_meses = len(historico_por_competencia)
+        media_compras = sum(h['compras'] for h in historico_por_competencia.values()) / num_meses
+        media_vendas = sum(h['vendas'] for h in historico_por_competencia.values()) / num_meses
+        media_icms = sum((h['icms_debito'] - h['icms_credito']) for h in historico_por_competencia.values()) / num_meses
+        media_pis_cofins = sum(
+            (h['pis_debito'] + h['cofins_debito'] - h['pis_credito'] - h['cofins_credito']) 
+            for h in historico_por_competencia.values()
+        ) / num_meses
+        
+        # Extrair valores atuais
+        compras_atual = dados_atuais.get('compras', 0)
+        vendas_atual = dados_atuais.get('vendas', 0)
+        icms_atual = dados_atuais.get('icms', 0)
+        pis_cofins_atual = dados_atuais.get('pis_cofins', 0)
+        
+        # Função helper para calcular variação percentual
+        def calcular_variacao(atual, media):
+            if media == 0:
+                return 0 if atual == 0 else 100  # 100% de variação se média é 0 mas atual não
+            return ((atual - media) / abs(media)) * 100
+        
+        # Verificar variação de COMPRAS
+        if media_compras > 0:
+            var_compras = calcular_variacao(compras_atual, media_compras)
+            if abs(var_compras) > limite_variacao * 100:
+                alertas.append({
+                    "tipo": "WARNING" if var_compras > 0 else "ALERT",
+                    "categoria": "compras",
+                    "titulo": "Variação em Compras",
+                    "mensagem": f"Compras {'acima' if var_compras > 0 else 'abaixo'} da média: {abs(var_compras):.1f}%",
+                    "detalhe": f"Atual: R$ {compras_atual:,.2f} | Média 12m: R$ {media_compras:,.2f}",
+                    "variacao_percentual": round(var_compras, 1),
+                    "valor_atual": round(compras_atual, 2),
+                    "valor_media": round(media_compras, 2),
+                    "direcao": "alta" if var_compras > 0 else "baixa",
+                    "icone": "trending-up" if var_compras > 0 else "trending-down",
+                    "cor": "amber" if var_compras > 0 else "red"
+                })
+        
+        # Verificar variação de VENDAS
+        if media_vendas > 0:
+            var_vendas = calcular_variacao(vendas_atual, media_vendas)
+            if abs(var_vendas) > limite_variacao * 100:
+                alertas.append({
+                    "tipo": "WARNING" if var_vendas > 0 else "ALERT",
+                    "categoria": "vendas",
+                    "titulo": "Variação em Vendas",
+                    "mensagem": f"Vendas {'acima' if var_vendas > 0 else 'abaixo'} da média: {abs(var_vendas):.1f}%",
+                    "detalhe": f"Atual: R$ {vendas_atual:,.2f} | Média 12m: R$ {media_vendas:,.2f}",
+                    "variacao_percentual": round(var_vendas, 1),
+                    "valor_atual": round(vendas_atual, 2),
+                    "valor_media": round(media_vendas, 2),
+                    "direcao": "alta" if var_vendas > 0 else "baixa",
+                    "icone": "trending-up" if var_vendas > 0 else "trending-down",
+                    "cor": "emerald" if var_vendas > 0 else "red"
+                })
+        
+        # Verificar variação de ICMS
+        if abs(media_icms) > 0:
+            var_icms = calcular_variacao(icms_atual, media_icms)
+            if abs(var_icms) > limite_variacao * 100:
+                alertas.append({
+                    "tipo": "WARNING" if var_icms > 0 else "ALERT",
+                    "categoria": "icms",
+                    "titulo": "Variação em ICMS",
+                    "mensagem": f"ICMS a pagar {'acima' if var_icms > 0 else 'abaixo'} da média: {abs(var_icms):.1f}%",
+                    "detalhe": f"Atual: R$ {icms_atual:,.2f} | Média 12m: R$ {media_icms:,.2f}",
+                    "variacao_percentual": round(var_icms, 1),
+                    "valor_atual": round(icms_atual, 2),
+                    "valor_media": round(media_icms, 2),
+                    "direcao": "alta" if var_icms > 0 else "baixa",
+                    "icone": "alert-triangle" if var_icms > 0 else "alert-circle",
+                    "cor": "red" if var_icms > 0 else "amber"
+                })
+        
+        # Verificar variação de PIS/COFINS
+        if abs(media_pis_cofins) > 0:
+            var_pis_cofins = calcular_variacao(pis_cofins_atual, media_pis_cofins)
+            if abs(var_pis_cofins) > limite_variacao * 100:
+                alertas.append({
+                    "tipo": "WARNING" if var_pis_cofins > 0 else "ALERT",
+                    "categoria": "pis_cofins",
+                    "titulo": "Variação em PIS/COFINS",
+                    "mensagem": f"PIS/COFINS a pagar {'acima' if var_pis_cofins > 0 else 'abaixo'} da média: {abs(var_pis_cofins):.1f}%",
+                    "detalhe": f"Atual: R$ {pis_cofins_atual:,.2f} | Média 12m: R$ {media_pis_cofins:,.2f}",
+                    "variacao_percentual": round(var_pis_cofins, 1),
+                    "valor_atual": round(pis_cofins_atual, 2),
+                    "valor_media": round(media_pis_cofins, 2),
+                    "direcao": "alta" if var_pis_cofins > 0 else "baixa",
+                    "icone": "alert-triangle" if var_pis_cofins > 0 else "alert-circle",
+                    "cor": "red" if var_pis_cofins > 0 else "amber"
+                })
+        
+        # Adicionar resumo do histórico se não houver alertas
+        if not alertas:
+            alertas.append({
+                "tipo": "SUCCESS",
+                "categoria": "geral",
+                "titulo": "Valores dentro da média",
+                "mensagem": f"Todos os indicadores estão dentro do limite de variação ({int(limite_variacao * 100)}%)",
+                "icone": "check-circle",
+                "cor": "emerald"
+            })
+        
+        return alertas
+        
+    except Exception as e:
+        logger.error(f"Erro ao calcular alertas de variação: {e}")
+        return [{
+            "tipo": "ERROR",
+            "categoria": "sistema",
+            "mensagem": f"Erro ao calcular variações: {str(e)}",
+            "icone": "alert-circle"
+        }]
+
+
+
 # ============== FUNÇÃO DE AGREGAÇÃO OTIMIZADA PARA DASHBOARD ==============
 async def _get_dashboard_stats_aggregated(company: dict, company_id: str, competencia: str, base_query: dict, total_docs: int):
     """
