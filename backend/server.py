@@ -13989,6 +13989,42 @@ def obter_nome_categoria(categoria: str) -> str:
         return 'Compra p/ Revenda'  # Padrão é revenda, nunca pendente
     return CATEGORIA_NOMES.get(categoria, categoria.replace('_', ' ').title())
 
+
+def calcular_cfop_por_categoria(categoria: str, uf_empresa: str, uf_emitente: str) -> str:
+    """
+    Calcula o CFOP adequado baseado na categoria do produto e na UF.
+    
+    Args:
+        categoria: Categoria do produto (revenda, insumo, despesa, etc.)
+        uf_empresa: UF da empresa (destinatário)
+        uf_emitente: UF do emitente (fornecedor)
+    
+    Returns:
+        CFOP adequado para a operação de entrada
+    """
+    # Determinar se é operação interestadual ou estadual
+    interestadual = uf_empresa and uf_emitente and uf_empresa.upper() != uf_emitente.upper()
+    prefixo = "2" if interestadual else "1"
+    
+    categoria = str(categoria).lower().strip()
+    
+    # Mapeamento categoria -> CFOP
+    cfop_por_categoria = {
+        "revenda": f"{prefixo}102",           # Compra para comercialização
+        "insumo": f"{prefixo}101",             # Compra para industrialização
+        "despesa": f"{prefixo}556",            # Compra de material para uso ou consumo
+        "ativo_imobilizado": f"{prefixo}551",  # Compra para ativo imobilizado
+        "servico_aplicacao": f"{prefixo}128",  # Compra para aplicação em serviço
+        "combustivel": f"{prefixo}653",        # Compra de combustível
+        "devolucao": f"{prefixo}202",          # Devolução de venda (entrada)
+        "bonificacao": f"{prefixo}910",        # Bonificação/doação/brinde
+        "amostra_gratis": f"{prefixo}911",     # Amostra grátis
+        "outras_entradas": f"{prefixo}949",    # Outras entradas não especificadas
+    }
+    
+    return cfop_por_categoria.get(categoria, f"{prefixo}102")  # Padrão: revenda
+
+
 @api_router.get("/alertas-cfop/{company_id}")
 async def alertas_cfop_operacoes_distintas(
     company_id: str,
