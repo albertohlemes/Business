@@ -904,9 +904,16 @@ const WizardFechamento = ({ user, onLogout }) => {
                         )}
                       </div>
                       
-                      {/* Conteúdo expandível - Notas e Produtos */}
+                      {/* Conteúdo expandível - Notas e Produtos com CFOP individual */}
                       {expandedItems[`cfop-${cfopItem.cfop}`] && (
-                        <div className="border-t border-[#333] bg-[#0a0a0a] max-h-64 overflow-y-auto">
+                        <div className="border-t border-[#333] bg-[#0a0a0a] max-h-80 overflow-y-auto">
+                          {/* Dica sobre CFOP individual */}
+                          <div className="px-3 py-2 bg-purple-500/10 border-b border-purple-500/20">
+                            <p className="text-xs text-purple-300">
+                              💡 Você pode definir um CFOP diferente para cada produto individualmente, ou deixar em branco para usar a ação padrão do CFOP acima.
+                            </p>
+                          </div>
+                          
                           {cfopItem.notas?.map((nota, nIdx) => (
                             <div key={nIdx} className="p-3 border-b border-[#222] last:border-0">
                               <div className="flex items-center justify-between mb-2">
@@ -919,24 +926,79 @@ const WizardFechamento = ({ user, onLogout }) => {
                                 </div>
                               </div>
                               
-                              {/* Produtos da nota */}
-                              <div className="space-y-1 mt-2">
-                                {nota.produtos?.map((prod, pIdx) => (
-                                  <div key={pIdx} className="flex items-center justify-between text-xs bg-[#111] rounded p-2">
-                                    <div className="flex-1">
-                                      <p className="text-white truncate">{prod.descricao}</p>
-                                      <p className="text-[#666]">
-                                        NCM: {prod.ncm || 'N/A'} 
-                                        {prod.cfop_original_emissor && (
-                                          <span className="ml-2 text-purple-400">CFOP Original: {prod.cfop_original_emissor}</span>
+                              {/* Produtos da nota com CFOP individual */}
+                              <div className="space-y-2 mt-2">
+                                {nota.produtos?.map((prod, pIdx) => {
+                                  const prodKey = `${cfopItem.cfop}_${nota.doc_id}_${prod.produto_idx}`;
+                                  const cfopIndividual = cfopsPorProduto[prodKey] || '';
+                                  const temCfopIndividual = cfopIndividual.length === 4;
+                                  
+                                  return (
+                                    <div key={pIdx} className={`bg-[#111] rounded-lg p-3 transition-all ${temCfopIndividual ? 'border border-cyan-500/30' : ''}`}>
+                                      <div className="flex items-center justify-between mb-2">
+                                        <div className="flex-1">
+                                          <p className="text-white text-sm font-medium truncate">{prod.descricao}</p>
+                                          <p className="text-xs text-[#666]">
+                                            NCM: {prod.ncm || 'N/A'} 
+                                            {prod.cfop_original_emissor && (
+                                              <span className="ml-2 text-purple-400">CFOP Original: {prod.cfop_original_emissor}</span>
+                                            )}
+                                          </p>
+                                        </div>
+                                        <span className="text-white text-sm ml-2">
+                                          R$ {(prod.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                                        </span>
+                                      </div>
+                                      
+                                      {/* Input de CFOP individual por produto */}
+                                      <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#222]">
+                                        <span className="text-xs text-[#A1A1AA]">CFOP Individual:</span>
+                                        <input
+                                          type="text"
+                                          placeholder={selectedAction.cfop_destino || cfopItem.cfop}
+                                          maxLength={4}
+                                          value={cfopIndividual}
+                                          onChange={(e) => {
+                                            const cfopDigitado = e.target.value.replace(/\D/g, '');
+                                            setCfopsPorProduto(prev => ({
+                                              ...prev,
+                                              [prodKey]: cfopDigitado
+                                            }));
+                                          }}
+                                          className={`w-24 bg-[#1a1a1a] border rounded px-2 py-1.5 text-sm text-white text-center font-mono transition-all ${
+                                            temCfopIndividual 
+                                              ? 'border-cyan-500 bg-cyan-500/10' 
+                                              : 'border-[#333] hover:border-[#555]'
+                                          }`}
+                                          data-testid={`cfop-produto-${prodKey}`}
+                                        />
+                                        {temCfopIndividual ? (
+                                          <div className="flex items-center gap-1">
+                                            <CheckCircle className="w-4 h-4 text-cyan-400" />
+                                            <span className="text-xs text-cyan-400">Personalizado</span>
+                                            <button
+                                              onClick={() => {
+                                                setCfopsPorProduto(prev => {
+                                                  const newState = { ...prev };
+                                                  delete newState[prodKey];
+                                                  return newState;
+                                                });
+                                              }}
+                                              className="ml-1 text-[#666] hover:text-red-400"
+                                              title="Limpar CFOP individual"
+                                            >
+                                              <XCircle className="w-4 h-4" />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <span className="text-xs text-[#666]">
+                                            → Usar padrão: {selectedAction.cfop_destino || cfopItem.cfop}
+                                          </span>
                                         )}
-                                      </p>
+                                      </div>
                                     </div>
-                                    <span className="text-white ml-2">
-                                      R$ {(prod.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                                    </span>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             </div>
                           ))}
