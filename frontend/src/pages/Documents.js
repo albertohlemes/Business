@@ -3015,15 +3015,18 @@ const Documents = ({ user, onLogout }) => {
                       const devolucoes = uploadResult.notasDevolucao.filter(d => d.tipo === 'devolucao_entrada' || !d.tipo);
                       const originaisEncontradas = uploadResult.notasDevolucao.filter(d => d.tipo === 'saida_original');
                       const originaisNaoEncontradas = uploadResult.notasDevolucao.filter(d => d.tipo === 'saida_original_nao_encontrada');
+                      const originaisDivergentes = uploadResult.notasDevolucao.filter(d => d.tipo === 'saida_original_divergente');
                       
                       // Criar mapeamento de NF devolução -> NF original
                       const correlacao = devolucoes.map(dev => {
                         const original = originaisEncontradas.find(o => o.vinculadaA === dev.numero);
                         const naoEncontrada = originaisNaoEncontradas.find(o => o.vinculadaA === dev.numero);
+                        const divergente = originaisDivergentes.find(o => o.vinculadaA === dev.numero);
                         return {
                           devolucao: dev,
                           original: original || null,
-                          naoEncontrada: naoEncontrada || null
+                          naoEncontrada: naoEncontrada || null,
+                          divergente: divergente || null
                         };
                       });
                       
