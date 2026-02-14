@@ -9,7 +9,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://wizard-cfop-alert.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://closing-wizard-dev.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 TEST_EMAIL = "alberto.lemes@businessconta.com.br"

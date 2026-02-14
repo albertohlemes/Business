@@ -11,7 +11,7 @@ from datetime import datetime
 from pymongo import MongoClient
 
 class CascadeDeleteEdgeCaseTester:
-    def __init__(self, base_url="https://wizard-cfop-alert.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://closing-wizard-dev.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.admin_token = None
         # MongoDB connection for direct DB operations

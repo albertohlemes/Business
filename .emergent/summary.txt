@@ -1,96 +1,493 @@
 <analysis>**original_problem_statement:**
-O usuário reportou uma série de bugs críticos e solicitou várias melhorias. Os principais problemas relatados foram:
-1.  **SPED com Destaque de ICMS Incorreto (RESOLVIDO)**: Ao gerar o SPED, as opções para não destacar ICMS em despesas e notas de ST não estavam sendo respeitadas.
-2.  **Dashboard Travando (RESOLVIDO)**: Com um grande volume de dados (14.000+ cupons), o dashboard travava e caía.
-3.  **Histórico de Importação Inconsistente (PARCIALMENTE RESOLVIDO)**: Os relatórios no histórico de importação não batiam com o relatório exibido ao final do processo.
-4.  **Barra de Progresso Travada (PENDENTE DE VALIDAÇÃO)**: A barra de progresso de importação de XML trava em produção.
-5.  **CFOPs Faltantes (RESOLVIDO EM SESSÃO ANTERIOR)**: CFOPs como 5929, 5906, etc., não eram tratados corretamente.
-6.  **ICMS Zerado na Reforma Tributária (RESOLVIDO EM SESSÃO ANTERIOR)**.
-7.  **Dados do Consumidor Genéricos (RESOLVIDO EM SESSÃO ANTERIOR)**.
+O usuário iniciou a sessão com várias solicitações de melhoria para o Wizard de Fechamento e reportou bugs críticos.
 
-**Novas Solicitações (Última Mensagem do Usuário):**
-1.  **CFOP Individual por Produto**: No wizard, permitir que o usuário indique o CFOP para cada produto individualmente.
+**Solicitações Iniciais do Usuário (Wizard):**
+1.  **CFOP Individual por Produto**: Permitir que o usuário indique o CFOP para cada produto individualmente no wizard.
 2.  **Alerta em Devoluções**: Se uma nota de devolução tiver valor diferente da nota referenciada, destacar a diferença e perguntar se o usuário quer manter ou excluir a nota original.
-3.  **Clareza em Notas Canceladas**: Na tela de notas canceladas, identificar claramente o que são Entradas e o que são Saídas.
+3.  **Clareza em Notas Canceladas**: Na tela de notas canceladas, identificar claramente Entradas e Saídas.
+4.  **Verificar Classificação IA**: Confirmar que a classificação inteligente de produtos durante a importação está seguindo as regras definidas.
+
+**Novos Bugs Reportados Durante a Sessão:**
+1.  **Lógica Incorreta no Wizard**: Após a primeira implementação, o usuário reportou que o CFOP mostrado era o já convertido (incorreto) e que as notas de devolução com valor divergente estavam sendo tratadas de forma errada.
+2.  **Importação sem Validação de Empresa**: O sistema estava importando arquivos XML mesmo que o CNPJ da empresa selecionada não estivesse no documento (nem como emissor, nem como destinatário).
+3.  **Site Caindo Constantemente (CRÍTICO)**: O usuário reportou que o site cai constantemente, especialmente ao navegar por menus como pis e cofins e indicadores, tornando a aplicação inutilizável.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-O agente anterior corrigiu com sucesso dois bugs críticos.
-1.  **Correção do SPED**: O agente identificou uma incompatibilidade de parâmetros entre o frontend () e o backend () na geração do SPED. Os nomes dos parâmetros foram alinhados e a lógica foi corrigida. A correção foi validada através do , que confirmou que o ICMS é zerado corretamente quando a flag correspondente está ativa.
-2.  **Otimização do Dashboard**: O agente diagnosticou um grave problema de performance no endpoint do dashboard, que travava ao processar um grande volume de documentos. A causa era a iteração em Python sobre todos os documentos e produtos. A solução foi refatorar a consulta para usar uma pipeline de agregação do MongoDB diretamente no banco de dados, o que reduziu drasticamente o tempo de carregamento (de crash para ~1 segundo para 14.700 documentos).
-3.  **Correção do Histórico de Importação**: O agente investigou inconsistências nos dados do histórico de importação e ajustou a forma como os resultados da importação são salvos no  para garantir que os dados para *futuras* importações sejam consistentes.
+O agente implementou as 4 solicitações do usuário para o Wizard de Fechamento e, após feedback, corrigiu a lógica. Também foi adicionada a validação de CNPJ nos endpoints de importação de XML.
+
+1.  **Melhorias no Wizard ( e )**:
+    *   **Notas Canceladas**: Adicionada a identificação visual de ENTRADAS e SAÍDAS.
+    *   **Devoluções**: Implementado um alerta para notas com valor divergente, com botões para o usuário decidir se mantém ou exclui a nota original. A lógica foi corrigida para que a ação padrão seja manter, e a exclusão só ocorra com consentimento explícito.
+    *   **CFOPs**: Implementada a seleção de CFOP por produto. A lógica foi corrigida para exibir o **CFOP original** do documento e permitir que o usuário escolha para qual CFOP de entrada converter.
+2.  **Validação de CNPJ na Importação ()**:
+    *   O agente adicionou uma verificação nos endpoints de upload (, , etc.) para rejeitar arquivos XML onde o CNPJ da empresa ativa não seja nem o emissor () nem o destinatário ().
+3.  **Verificação da IA**: O agente confirmou que a lógica de classificação hierárquica de 6 regras já estava implementada no backend.
 
 **Last working item**:
--   **Last item agent was working**: O agente recebeu três novas solicitações de melhoria para a tela do Wizard de Fechamento (listadas no ). O agente apenas reconheceu as solicitações e estava prestes a iniciar a análise e implementação.
+-   **Last item agent was working**: Investigar a causa das falhas generalizadas do site. O usuário reportou que a aplicação cai toda hora, especialmente ao navegar para as páginas de pis e cofins e indicadores. O agente concluiu que a causa provável é um erro de serialização de  do MongoDB no backend, mas não iniciou a correção.
 -   **Status**: NOT STARTED
--   **Agent Testing Done**: N/A
--   **Which testing method agent to use?**: both. A implementação exigirá mudanças no frontend (provavelmente  e componentes relacionados) e no backend (). Após a implementação, o  deve ser usado para validar o fluxo completo do wizard.
--   **User Testing Done**: N
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: backend testing agent. O próximo agente deve primeiramente inspecionar os logs do backend para confirmar o erro de . Em seguida, usar  para reproduzir o erro nos endpoints problemáticos (ex: os que alimentam as páginas de PIS/COFINS) e então corrigir o código em  para remover os s das respostas da API.
+-   **User Testing Done**: N/A
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Barra de progresso de importação de XML trava (P0 - CORREÇÃO NÃO VALIDADA)
--   **Issue 2**: Deploy não reflete as atualizações (P0 - BLOQUEADOR DE PROCESSO)
--   **Issue 3**: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)
--   **Issue 4**: Dados do histórico de importação *antigo* podem continuar inconsistentes (P2)
--   **Issue 5**: Discrepância de valores entre Dashboard e SPED (P2)
--   **Issue 6**: Botão de Login fica travado em Processando... (P2)
+-   **Issue 1**: Site caindo ao navegar em menus como PIS/COFINS e Indicadores (P0 - BLOQUEADOR CRÍTICO).
+-   **Issue 2**: Barra de progresso de importação de XML trava (P0 - CORREÇÃO NÃO VALIDADA).
+-   **Issue 3**: Deploy não reflete as atualizações (P0 - BLOQUEADOR DE PROCESSO).
+-   **Issue 4**: NF de fevereiro continua aparecendo nas entradas de janeiro (P1).
+-   **Issue 5**: Dados do histórico de importação *antigo* podem continuar inconsistentes (P2).
+-   **Issue 6**: Discrepância de valores entre Dashboard e SPED (P2).
+-   **Issue 7**: Botão de Login fica travado em Processando... (P2).
 
 **Issues Detail**:
--   **Issue 1: Barra de progresso de importação de XML trava (P0 - CORREÇÃO NÃO VALIDADA)**
-    -   **Attempted fixes**: Um agente anterior modificou o  para forçar a leitura/escrita do progresso diretamente no MongoDB, em vez de depender de um cache em memória, que era a causa provável do problema em um ambiente com múltiplas instâncias.
+-   **Issue 1: Site caindo ao navegar (P0 - BLOQUEADOR CRÍTICO)**
+    -   **Attempted fixes**: Nenhuma correção foi tentada ainda. O agente apenas diagnosticou a provável causa.
     -   **Next debug checklist**:
-        1.  Perguntar ao usuário se ele pode realizar uma nova importação grande em produção para confirmar se a correção funcionou.
-        2.  Se o problema persistir, analisar os logs para verificar o estado da sessão de upload e considerar outras causas, como timeouts de proxy.
-    -   **Why fix this issue and what will be achieved with the fix?**: É um bug crítico que impede o usuário de ter feedback sobre as importações, gerando incerteza e retrabalho.
+        1.  Inspecionar os logs do backend: ==> /var/log/supervisor/backend.err.log <==
+INFO:server:DASHBOARD: Markup=0.00%
+INFO:server:DASHBOARD: Entradas(NFe=0, CTe=0, Serv.Tomados=0) = 0
+INFO:server:DASHBOARD: Saídas(NFe=0, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 0
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 0
+INFO:server:DASHBOARD: Query = {'company_id': '2bde03ac-7314-40b3-94cc-eb7827bccd55', 'competencia': '02/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Total documentos = 0
+INFO:server:DASHBOARD: Documentos encontrados = 0
+INFO:server:DASHBOARD: NFe Entrada = 0 docs
+INFO:server:DASHBOARD: NFe Saída = 0 docs
+INFO:server:DASHBOARD: NFe Entrada=0, NFe Saída=0, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=0, Devoluções Compra=0, Compras Líquidas=0
+INFO:server:DASHBOARD: Vendas Brutas=0, Devoluções Venda=0, Vendas Líquidas=0
+INFO:server:DASHBOARD: Markup=0.00%
+INFO:server:DASHBOARD: Entradas(NFe=0, CTe=0, Serv.Tomados=0) = 0
+INFO:server:DASHBOARD: Saídas(NFe=0, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 0
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 0
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/root/.venv/lib/python3.11/site-packages/fastapi/encoders.py", line 322, in jsonable_encoder
+    data = dict(obj)
+           ^^^^^^^^^
+TypeError: 'ObjectId' object is not iterable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/root/.venv/lib/python3.11/site-packages/fastapi/encoders.py", line 327, in jsonable_encoder
+    data = vars(obj)
+           ^^^^^^^^^
+TypeError: vars() argument must have __dict__ attribute
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/root/.venv/lib/python3.11/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/root/.venv/lib/python3.11/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 189, in __call__
+    with collapse_excgroups():
+  File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/root/.venv/lib/python3.11/site-packages/starlette/_utils.py", line 93, in collapse_excgroups
+    raise exc
+  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 191, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/server.py", line 116, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 165, in call_next
+    raise app_exc
+  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 151, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.venv/lib/python3.11/site-packages/starlette/routing.py", line 756, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/root/.venv/lib/python3.11/site-packages/starlette/routing.py", line 776, in app
+    await route.handle(scope, receive, send)
+  File "/root/.venv/lib/python3.11/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/root/.venv/lib/python3.11/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/root/.venv/lib/python3.11/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 296, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 180, in serialize_response
+    return jsonable_encoder(response_content)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/fastapi/encoders.py", line 287, in jsonable_encoder
+    encoded_value = jsonable_encoder(
+                    ^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/fastapi/encoders.py", line 287, in jsonable_encoder
+    encoded_value = jsonable_encoder(
+                    ^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/fastapi/encoders.py", line 330, in jsonable_encoder
+    raise ValueError(errors) from e
+ValueError: [TypeError("'ObjectId' object is not iterable"), TypeError('vars() argument must have __dict__ attribute')]
+INFO:server:DASHBOARD: Query = {'company_id': '2bde03ac-7314-40b3-94cc-eb7827bccd55', 'competencia': '02/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
+INFO:server:DASHBOARD: Total documentos = 0
+INFO:server:DASHBOARD: Documentos encontrados = 0
+INFO:server:DASHBOARD: NFe Entrada = 0 docs
+INFO:server:DASHBOARD: NFe Saída = 0 docs
+INFO:server:DASHBOARD: NFe Entrada=0, NFe Saída=0, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
+INFO:server:DASHBOARD: Compras Brutas=0, Devoluções Compra=0, Compras Líquidas=0
+INFO:server:DASHBOARD: Vendas Brutas=0, Devoluções Venda=0, Vendas Líquidas=0
+INFO:server:DASHBOARD: Markup=0.00%
+INFO:server:DASHBOARD: Entradas(NFe=0, CTe=0, Serv.Tomados=0) = 0
+INFO:server:DASHBOARD: Saídas(NFe=0, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 0
+INFO:server:BENEFICIO FISCAL: Ativo=False, Tipo=, Lista=[]
+INFO:server:DASHBOARD: Base crédito PIS/COFINS Real = 0
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [48] using WatchFiles
+INFO:     Started server process [85]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [85]
+Process SpawnProcess-2:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/local/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/root/.venv/lib/python3.11/site-packages/uvicorn/_subprocess.py", line 76, in subprocess_started
+    target(sockets=sockets)
+  File "/root/.venv/lib/python3.11/site-packages/uvicorn/server.py", line 61, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/asyncio/runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/uvicorn/server.py", line 68, in serve
+    config.load()
+  File "/root/.venv/lib/python3.11/site-packages/uvicorn/config.py", line 467, in load
+    self.loaded_app = import_from_string(self.app)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.venv/lib/python3.11/site-packages/uvicorn/importer.py", line 21, in import_from_string
+    module = importlib.import_module(module_str)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 936, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1074, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1004, in source_to_code
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/app/backend/server.py", line 5877
+    // ================================================================
+    ^^
+SyntaxError: invalid syntax
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Started server process [346]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [346]
+INFO:     Started server process [502]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [502]
+INFO:     Stopping reloader process [48]
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [560] using WatchFiles
+INFO:     Started server process [562]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [46] using WatchFiles
+INFO:     Started server process [89]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+
+==> /var/log/supervisor/backend.out.log <==
+INFO:     10.64.132.108:44630 - "GET /api/companies/responsaveis HTTP/1.1" 200 OK
+INFO:     10.64.132.108:44630 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.64.132.108:44630 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:43362 - "GET /api/companies/responsaveis HTTP/1.1" 200 OK
+INFO:     10.64.130.7:43362 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.64.132.108:51728 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.132.108:51728 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:59984 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:51720 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.133.74:51720 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:51720 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:53412 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.133.74:53412 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:53412 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:53412 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.64.133.74:53412 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:53412 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:53412 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:34710 - "GET /api/wizard-fechamento/summary/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:53412 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:50072 - "GET /api/wizard-fechamento/summary/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:50056 - "GET /api/inconsistencias/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:53412 - "GET /api/inconsistencias/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:38470 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.132.108:56194 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:56194 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:38470 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:38470 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:47366 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.132.108:47366 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:47366 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:44352 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.64.132.108:47366 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:44352 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:46282 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:44352 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:46282 - "GET /api/wizard-fechamento/summary/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:46282 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:44352 - "GET /api/wizard-fechamento/summary/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:60802 - "GET /api/inconsistencias/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:46282 - "GET /api/inconsistencias/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:46282 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:60802 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:60802 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:46282 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:60802 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/5?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:60802 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/5?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:32956 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.130.198:46008 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:48818 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:39354 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.133.74:39354 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:57560 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:39354 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.64.133.74:39354 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:48828 - "GET /api/dashboard/stats/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:39354 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:57096 - "GET /api/wizard-fechamento/summary/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:39354 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:57096 - "GET /api/wizard-fechamento/summary/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:47974 - "GET /api/inconsistencias/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:39354 - "GET /api/inconsistencias/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:48828 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:39354 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:57096 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:47974 - "GET /api/wizard-fechamento/status/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:39354 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/5?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:38776 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/5?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:48828 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/1/go?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:39354 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/1?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:38776 - "POST /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/2/go?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:47974 - "GET /api/wizard-fechamento/step/48a04e0a-edaf-4f9e-8734-068a78df692e/2?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:39354 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:39354 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.7:38776 - "GET /api/classification/suggestions/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:48828 - "GET /api/alertas-cfop/48a04e0a-edaf-4f9e-8734-068a78df692e/agrupado?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:39354 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:34320 - "GET /api/alertas-cfop/48a04e0a-edaf-4f9e-8734-068a78df692e/agrupado?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:47974 - "GET /api/classification/suggestions/48a04e0a-edaf-4f9e-8734-068a78df692e?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:52852 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.132.108:34290 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:52852 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:34290 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.64.133.74:52852 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:40720 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:40720 - "GET /api/dashboard/stats/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:43646 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.64.132.108:40720 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:43646 - "GET /api/dashboard/stats/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:40720 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43588 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:51746 - "GET /api/wizard-fechamento/summary/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43590 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43588 - "GET /api/inconsistencias/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43588 - "GET /api/wizard-fechamento/summary/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:33414 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43588 - "GET /api/inconsistencias/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43588 - "GET /api/wizard-fechamento/status/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43590 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:40750 - "GET /api/wizard-fechamento/status/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43590 - "POST /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/1/go?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:51746 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43590 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/1?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43590 - "POST /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/1/go?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:51746 - "GET /api/wizard-fechamento/status/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43590 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/1?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43590 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/1?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:40750 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:55840 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43590 - "GET /api/dashboard/stats/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:40750 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43590 - "GET /api/dashboard/stats/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43590 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43590 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:59742 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:43060 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:58920 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:58920 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:58920 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:52498 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+INFO:     10.64.131.6:50204 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.133.74:47732 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/3?competencia=01/2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:42212 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.130.198:53434 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:42212 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:49658 - "GET /api/health HTTP/1.1" 404 Not Found
+INFO:     10.64.132.108:47546 - "GET /api/ HTTP/1.1" 200 OK
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+INFO:     10.64.133.74:54518 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.131.6:42874 - "GET /api/ HTTP/1.1" 200 OK
+INFO:     10.64.130.198:35496 - "GET /api/wizard-fechamento/status/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:42874 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/3?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:42874 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/3?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:35496 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/2?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:42874 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/2?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:35496 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/3?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:35496 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/3?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43936 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.132.108:43936 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:60714 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:39510 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.131.6:34642 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:34642 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:39510 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.64.130.198:39510 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:54620 - "GET /api/dashboard/stats/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:48082 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.133.74:57220 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:46642 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:48082 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.64.131.6:46642 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:36008 - "GET /api/dashboard/stats/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:55442 - "GET /api/wizard-fechamento/summary/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:36024 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:55442 - "GET /api/wizard-fechamento/summary/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:36024 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:36008 - "GET /api/inconsistencias/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:46642 - "GET /api/inconsistencias/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:36008 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:46642 - "GET /api/wizard-fechamento/status/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=02%2F2026 HTTP/1.1" 500 Internal Server Error
+INFO:     10.64.132.108:36024 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:36008 - "GET /api/wizard-fechamento/status/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:36008 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/1?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:52766 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.131.6:48320 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:49542 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:48320 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.64.130.198:52776 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:57472 - "GET /api/dashboard/stats/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=02/2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:57472 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:38884 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.64.133.74:57472 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:53512 - "GET /api/companies HTTP/1.1" 200 OK
+INFO:     10.64.132.108:38884 - "GET /api/wizard-fechamento/status/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:57472 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/1?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:49968 - "POST /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/1/complete?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:38884 - "GET /api/wizard-fechamento/status/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:57472 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/2?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:49968 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:38884 - "POST /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/2/complete?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:57472 - "GET /api/wizard-fechamento/status/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:49968 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/3?competencia=02%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.133.74:33062 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.64.132.108:52548 - "GET /api/ HTTP/1.1" 200 OK
+INFO:     10.64.131.6:36482 - "GET /api/wizard-fechamento/status/2bde03ac-7314-40b3-94cc-eb7827bccd55?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:52548 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/3?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:40454 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/3?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:52548 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/2?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.130.198:40454 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/2?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.132.108:52548 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/3?competencia=01%2F2026 HTTP/1.1" 200 OK
+INFO:     10.64.131.6:36482 - "GET /api/wizard-fechamento/step/2bde03ac-7314-40b3-94cc-eb7827bccd55/3?competencia=01%2F2026 HTTP/1.1" 200 OK
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
+INFO:     10.208.139.130:53320 - "GET /api/health HTTP/1.1" 404 Not Found
+INFO:     10.208.139.130:39080 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.208.139.130:39080 - "GET /api/companies HTTP/1.1" 200 OK. Procurar por erros de .
+        2.  Identificar os endpoints de API que as páginas pis e cofins e indicadores consomem.
+        3.  Usar  para chamar esses endpoints e confirmar que o erro de serialização ocorre.
+        4.  Localizar as funções correspondentes em .
+        5.  Corrigir as consultas do MongoDB para excluir o campo  e quaisquer outros campos  da resposta. Ex: .
+    -   **Why fix this issue and what will be achieved with the fix?**: A aplicação está instável e inutilizável para o usuário. A correção restaurará a funcionalidade básica de navegação.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y (Erros de  são um problema recorrente neste projeto).
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: Não.
+
+-   **Issue 2: Barra de progresso de importação de XML trava (P0 - CORREÇÃO NÃO VALIDADA)**
+    -   **Attempted fixes**: Um agente anterior alterou a lógica para usar o MongoDB em vez de cache em memória.
+    -   **Next debug checklist**: Perguntar ao usuário se ele conseguiu validar a correção em produção com uma importação grande. Se persistir, analisar logs.
+    -   **Why fix this issue and what will be achieved with the fix?**: Fornece feedback crucial ao usuário durante importações longas.
     -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: both
     -   **Blocked on other issue**: Não.
 
--   **Issue 2: Deploy não reflete as atualizações (P0 - BLOQUEADOR DE PROCESSO)**
-    -   **Attempted fixes**: Nenhum. É um problema de infraestrutura ou processo.
-    -   **Next debug checklist**: Informar o usuário sobre o problema persistente e sugerir que ele verifique seu processo de deploy.
-    -   **Why fix this issue and what will be achieved with the fix?**: Impede a validação de qualquer correção ou funcionalidade nova.
-    -   **Status**: BLOCKED
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: N/A
-    -   **Blocked on other issue**: Não.
-
--   **Issue 4: Dados do histórico de importação *antigo* podem continuar inconsistentes (P2)**
-    -   **Attempted fixes**: O agente corrigiu o *salvamento* de novas importações. A correção não é retroativa.
-    -   **Next debug checklist**: Se o usuário insistir em corrigir os dados antigos, seria necessário criar um script de migração para percorrer os documentos  no MongoDB e reestruturar o campo .
-    -   **Why fix this issue and what will be achieved with the fix?**: Traria consistência a todos os dados históricos, mas com baixo impacto, já que o problema principal foi resolvido para o futuro.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: backend
-    -   **Blocked on other issue**: Não.
-
 **In progress Task List**:
--   **Task 1: Refatoração Completa do Wizard (P1)**
-    -   **Where to resume**: As 3 novas solicitações do usuário (CFOP individual, alerta de devolução, clareza em notas canceladas) devem ser o ponto de partida. A implementação deve ser feita nos arquivos do wizard, como  e .
-    -   **What will be achieved with this?**: Um fluxo de trabalho fiscal mais flexível, informativo e confiável para o usuário.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on something**: Não.
+-   Nenhuma. As tarefas do Wizard foram concluídas e o novo item é um bug crítico.
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
-    *   **(P0)** Implementar as 3 novas funcionalidades do Wizard de Fechamento.
     *   **(P1)** Implementar visualização agrupada por dia na página de documentos.
     *   **(P1)** Implementar relatórios por email para a importação em lote.
 *   **Future Tasks (Refatoração Crítica):**
-    *   **(P0)** Refatoração do  (urgente, >31k linhas). Continua sendo a principal fonte de bugs e problemas de performance.
-    *   **(P1)** Refatoração do  (monolítico, >4k linhas).
-    *   **(P1)** Refatoração do  em componentes menores.
+    *   **(P0)** Refatoração do  (urgente, >31k linhas). A instabilidade atual reforça a necessidade disso.
+    -   **(P1)** Refatoração do  (>4k linhas) e  em componentes menores.
 *   **Future Tasks (Novas Funcionalidades):**
-    -   **(P1)** Integração de CT-e (Conhecimento de Transporte Eletrônico).
-    -   **(P2)** Implementação de testes automatizados (e.g., Playwright).
+    *   **(P1)** Integração de CT-e (Conhecimento de Transporte Eletrônico).
+    *   **(P2)** Implementação de testes automatizados.
 
 **Completed work in this session**
--   **Fix: Geração do SPED (P0)**: Corrigido o bug que ignorava as flags para zerar ICMS de despesas e ST. A correção foi feita no  e  e validada via .
--   **Optimization: Performance do Dashboard (P0)**: Corrigido o crash do dashboard com alto volume de dados, otimizando a consulta com uma pipeline de agregação do MongoDB em .
--   **Fix: Histórico de Importação (P1)**: Ajustada a lógica de salvamento em  para garantir que os dados de resumo das *próximas* importações sejam consistentes.
+-   **Feature/Fix: Wizard de Fechamento**: Implementadas e corrigidas 3 funcionalidades chave no wizard (, ):
+    -   Clareza em notas canceladas (Entrada/Saída).
+    -   Alerta e decisão do usuário para devoluções com valor divergente.
+    -   Exibição do CFOP original com opções de conversão, em vez de mostrar o CFOP já convertido.
+-   **Fix: Validação de CNPJ na Importação**: Adicionada lógica em  para garantir que os XMLs importados pertençam à empresa selecionada.
+-   **Testing**: As funcionalidades do wizard foram validadas e corrigidas usando o .
 
 **Earlier issues found/mentioned but not fixed**
 -   NF de fevereiro continua aparecendo nas entradas de janeiro (P1).
@@ -98,64 +495,66 @@ O agente anterior corrigiu com sucesso dois bugs críticos.
 -   Botão de Login fica travado em Processando... (P2).
 
 **Known issue recurrence from previous fork**
--   **Deploy não reflete as atualizações**: Problema de infraestrutura/processo que persiste e pode impedir o usuário de validar as correções.
+-   **Deploy não reflete as atualizações**: Problema de processo/infraestrutura do lado do usuário que continua a ser um risco.
+-   **Erros de **: A causa do crash atual é um  não serializado, um tipo de bug que já ocorreu antes devido à falta de modelos de resposta estritos no backend.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **MongoDB Aggregation Pipeline**: Utilizada para otimizar drasticamente a performance de consultas complexas, movendo o processamento de dados da aplicação (Python) para o banco de dados.
--   **State Management for Background Tasks**: Migração da lógica de estado de um cache em memória para o MongoDB para garantir consistência em ambientes com múltiplas instâncias.
--   **SPED Fiscal Generation**: Manipulação de regras de negócio complexas baseadas em flags de usuário para incluir ou omitir créditos de ICMS.
+-   Manipulação de estado complexo no Frontend com React ().
+-   Validação de dados de negócio no Backend (Python/FastAPI).
+-   **Serialização de Respostas da API**: A falha em remover s do MongoDB antes de enviá-los como JSON é a causa do bug crítico atual.
 
 **key DB schema**
--   Nenhuma alteração no esquema. As alterações foram na lógica de consulta e escrita nas coleções  e .
+-   Nenhuma alteração de esquema.
 
 **All files of reference**
 -   
 -   
--   
--   
--    (relevante para as próximas tarefas)
 
 **Areas that need refactoring**:
--   ** (CRÍTICO)**: O arquivo monolítico continua sendo a fonte da maioria dos bugs e dívidas técnicas. Sua refatoração em módulos (ex: , , ) é a principal prioridade para a saúde do projeto a longo prazo.
+-   ** (CRÍTICO)**: As falhas constantes e a dificuldade em depurar reforçam a necessidade urgente de dividir este arquivo monolítico em módulos menores (rotas, serviços, modelos de dados). A instabilidade atual é um sintoma direto dessa dívida técnica.
 
 **key api endpoints**
--   : Endpoint corrigido para respeitar as flags do usuário.
--   : Endpoint otimizado com agregação do MongoDB.
--   : Endpoint relacionado ao bug da barra de progresso (correção pendente de validação).
--   : Endpoint modificado para salvar o histórico de importação corretamente.
+-   : Modificado para retornar o CFOP original.
+-    (e outros endpoints de upload): Modificados para adicionar validação de CNPJ.
+-   **Endpoints a serem investigados**: As APIs que servem as páginas de pis e cofins e indicadores, pois são as prováveis fontes do crash.
 
 **Critical Info for New Agent**
--   **PRIORIDADE IMEDIATA**: Iniciar a implementação das 3 novas funcionalidades para o Wizard de Fechamento, conforme solicitado pelo usuário na última mensagem.
--   **VALIDAÇÃO PENDENTE**: Antes de mergulhar nas novas funcionalidades, pergunte proativamente ao usuário se ele teve a chance de testar a importação de um arquivo grande e se o problema da barra de progresso foi resolvido.
--   **RISCO TÉCNICO**: O arquivo  é extremamente frágil. Qualquer alteração deve ser feita com o máximo de cuidado e, se possível, deve-se tentar isolar a nova lógica em funções puras e bem definidas para facilitar uma futura refatoração.
+-   **PRIORIDADE MÁXIMA**: Corrigir o bug que está fazendo o site cair. O usuário está bloqueado. A investigação deve começar imediatamente no backend, procurando por erros de serialização de  nos logs e corrigindo as consultas no .
+-   **CONTEXTO DAS MUDANÇAS**: Esteja ciente de que a lógica do Wizard de Fechamento e da importação de XML foi alterada significativamente. As correções no wizard foram para alinhar com a regra de negócio correta (mostrar CFOP original, não excluir devoluções automaticamente).
+-   **RISCO DE REFACTORING**: O arquivo  é extremamente frágil. A correção do bug de  deve ser feita de forma cirúrgica, mas é mais um sinal de que a refatoração deste arquivo é essencial para a estabilidade do projeto a longo prazo.
 
 **documents and test reports created in this job**
--    (Relatório do  que validou a correção do SPED)
--    (Atualizado com o progresso)
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **PENDING (P0 NEW FEATURES)**:  - O usuário solicita 3 novas funcionalidades para o Wizard: CFOP individual por produto, alerta para devoluções com valor divergente e identificação clara de entradas/saídas em notas canceladas. (Status: NOT STARTED)
-2.   - O usuário reporta o crash do dashboard e a inconsistência no histórico de importação. (Status: RESOLVED)
-3.   - Reporte do bug do SPED. (Status: RESOLVED)
+1.  **PENDING (P0 CRASH)**: quando eu navego nos menu pis e cofins empresa republic mes 01-2026 base principal, cai. menu indicadores, etc. qqr navegacao. simplesmente as paginas parao de abiri / funcionar - **Status: NOT STARTED**.
+2.  **Partially Resolved**: o site na base principal fica caindo toda hora. voce nao esta validando se o documento que estou importando... precisa dar erro - Validação de importação **RESOLVIDA**. Problema do site caindo **PENDENTE**.
+3.  **Resolved**: voce ja esta trazendo convertido. o que nao é de todo ruim, mas vc esta descaracterizando operacoes... 5910 vc esta trazendo isso como 1102 o que esta mto incorreto... - Lógica do wizard foi corrigida.
+4.  **Initial Request**: AO EXPANDIR PARA A LISTAGEM DE PRODUTOS... - As 4 solicitações originais para o wizard. **Status: RESOLVED**.
 
 **Project Health Check:**
--   **Broken**: O problema da barra de progresso de importação tem uma correção implementada, mas ainda não foi validada pelo usuário em produção, então deve ser considerado potencialmente quebrado. O processo de deploy do usuário é relatado como não confiável.
+-   **Broken**: A aplicação está criticamente instável, com crashes que impedem a navegação em páginas essenciais. O problema da barra de progresso da importação continua sem validação do usuário.
 -   **Mocked**: N/A.
 
 **3rd Party Integrations**
--   **Gemini**: Usado para classificação de produtos.
+-   Gemini (usado para classificação de produtos durante a importação).
 
 **Testing status**
--   **Testing agent used after significant changes**: YES (para o bug do SPED).
+-   **Testing agent used after significant changes**: YES (usado duas vezes para validar as mudanças no wizard).
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
--   **Test files created**: []
--   **Known regressions**: Nenhuma identificada.
+-   **Test files created**:
+    -   
+    -   
+-   **Known regressions**: O crash geral do site pode ser considerado uma regressão grave.
 
 **Credentials to test flow:**
 -   **Super Admin**:  / 
 
 **What agent forgot to execute**
--   O agente não perguntou proativamente ao usuário sobre a validação da correção da barra de progresso. Ele priorizou o novo bug crítico reportado (crash do dashboard), o que foi uma decisão razoável, mas deixou o status do bug anterior em aberto.</analysis>
+-   O agente não conseguiu começar a depuração do bug mais crítico (site caindo), pois foi o último problema relatado pelo usuário no final da sessão.
+-   Não houve um follow-up sobre a validação da correção da barra de progresso, um item pendente da sessão anterior. A prioridade foi dada aos novos bugs e funcionalidades reportados pelo usuário.</analysis>
