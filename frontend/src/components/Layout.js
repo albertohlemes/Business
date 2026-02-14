@@ -247,7 +247,7 @@ const Layout = ({ user, onLogout, children }) => {
               <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                 item.badgeColor === 'emerald' ? 'bg-emerald-500/20 text-emerald-400' :
                 item.badgeColor === 'amber' ? 'bg-amber-500/20 text-amber-400' :
-                'bg-purple-500/20 text-purple-400'
+                'bg-cyan-500/20 text-cyan-400'
               }`}>
                 {item.badge}
               </span>
