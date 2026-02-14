@@ -4876,7 +4876,15 @@ async def delete_document(
         if not company or company['cnpj'] not in current_user.company_ids:
              raise HTTPException(status_code=403, detail="Acesso negado")
     
+    # Guardar dados para invalidação antes de deletar
+    company_id_doc = doc.get('company_id')
+    competencia_doc = doc.get('competencia')
+    
     await db.xml_documents.delete_one({"id": document_id})
+    
+    # INVALIDAR CACHE DE AGREGAÇÕES - documento foi deletado
+    if company_id_doc and competencia_doc:
+        invalidate_company_cache(company_id_doc, competencia_doc)
     
     return {
         "message": "Documento apagado com sucesso",
