@@ -494,7 +494,18 @@ const WizardFechamento = ({ user, onLogout }) => {
           </div>
         );
       
-      case 2: // Devoluções - Notas de entrada emitidas por terceiros
+      case 2: // Devoluções - Notas de entrada emitidas por terceiros com alerta de diferença de valor
+        // Calcular diferenças de valor para destacar
+        const notasComDiferenca = (data.notas_devolucao || []).filter(nota => {
+          if (!nota.nota_original_encontrada || !nota.nota_original) return false;
+          const valorDev = nota.valor_total || 0;
+          const valorOrig = nota.nota_original.valor_total || 0;
+          return Math.abs(valorDev - valorOrig) > 0.01; // Diferença significativa
+        });
+        
+        // State para controlar quais notas originais manter/excluir
+        const [decisoesOriginais, setDecisoesOriginais] = useState({});
+        
         return (
           <div className="space-y-4">
             <p className="text-[#A1A1AA]">
@@ -502,7 +513,7 @@ const WizardFechamento = ({ user, onLogout }) => {
               Ao lado de cada nota, é exibida a nota de venda original referenciada (se encontrada).
             </p>
             
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-white">{data.total || 0}</p>
                 <p className="text-xs text-[#666]">Notas de Terceiros</p>
@@ -515,70 +526,140 @@ const WizardFechamento = ({ user, onLogout }) => {
                 <p className="text-2xl font-bold text-amber-400">{data.total_sem_original || 0}</p>
                 <p className="text-xs text-[#666]">Sem Original</p>
               </div>
+              {notasComDiferenca.length > 0 && (
+                <div className="bg-[#0C0C0C] border border-red-500/30 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-red-400">{notasComDiferenca.length}</p>
+                  <p className="text-xs text-red-400">Com Divergência</p>
+                </div>
+              )}
             </div>
             
             {data.notas_devolucao?.length > 0 ? (
               <div className="space-y-2">
-                <div className="max-h-80 overflow-y-auto space-y-2">
-                  {data.notas_devolucao.map((nota, idx) => (
-                    <div key={idx} className={`bg-[#0C0C0C] rounded-lg p-3 ${nota.desconsiderada ? 'opacity-60' : ''}`}>
-                      {/* Layout em duas colunas */}
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Coluna 1: Nota de entrada (devolução) */}
-                        <div className="border-r border-[#333] pr-4">
-                          <p className="text-xs text-amber-400 font-medium mb-1">NOTA DE ENTRADA (TERCEIRO)</p>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-white font-bold">NF {nota.numero_nfe}</p>
-                              <p className="text-xs text-[#666] truncate">{nota.emitente_nome}</p>
-                              <p className="text-xs text-[#888]">{nota.data_emissao?.slice(0,10) || ''}</p>
+                <div className="max-h-[420px] overflow-y-auto space-y-3">
+                  {data.notas_devolucao.map((nota, idx) => {
+                    // Calcular diferença de valor
+                    const valorDev = nota.valor_total || 0;
+                    const valorOrig = nota.nota_original?.valor_total || 0;
+                    const diferenca = nota.nota_original_encontrada ? valorOrig - valorDev : 0;
+                    const temDiferenca = Math.abs(diferenca) > 0.01;
+                    const decisao = decisoesOriginais[nota.id] || 'excluir'; // default: excluir original
+                    
+                    return (
+                      <div key={idx} className={`bg-[#0C0C0C] rounded-lg p-3 ${nota.desconsiderada ? 'opacity-60' : ''} ${temDiferenca ? 'border border-red-500/50' : ''}`}>
+                        {/* Layout em duas colunas */}
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Coluna 1: Nota de entrada (devolução) */}
+                          <div className="border-r border-[#333] pr-4">
+                            <p className="text-xs text-amber-400 font-medium mb-1">NOTA DE ENTRADA (TERCEIRO)</p>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-white font-bold">NF {nota.numero_nfe}</p>
+                                <p className="text-xs text-[#666] truncate">{nota.emitente_nome}</p>
+                                <p className="text-xs text-[#888]">{nota.data_emissao?.slice(0,10) || ''}</p>
+                              </div>
+                              <p className="text-white font-medium">R$ {(nota.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
                             </div>
-                            <p className="text-white font-medium">R$ {(nota.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                            {nota.cfops?.length > 0 && (
+                              <div className="mt-1 flex gap-1 flex-wrap">
+                                {nota.cfops.map((c, i) => (
+                                  <span key={i} className="text-xs bg-purple-500/20 text-purple-300 px-1 rounded">{c}</span>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          {nota.cfops?.length > 0 && (
-                            <div className="mt-1 flex gap-1 flex-wrap">
-                              {nota.cfops.map((c, i) => (
-                                <span key={i} className="text-xs bg-purple-500/20 text-purple-300 px-1 rounded">{c}</span>
-                              ))}
-                            </div>
-                          )}
+                          
+                          {/* Coluna 2: Nota original referenciada */}
+                          <div className="pl-2">
+                            <p className="text-xs text-emerald-400 font-medium mb-1">NOTA ORIGINAL (SUA VENDA)</p>
+                            {nota.nota_original_encontrada && nota.nota_original ? (
+                              <div>
+                                <p className="text-white font-bold">NF {nota.nota_original.numero_nfe}</p>
+                                <p className="text-xs text-[#888]">{nota.nota_original.data_emissao?.slice(0,10) || ''}</p>
+                                <p className="text-white">R$ {(nota.nota_original.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                                {nota.nota_original.cfops?.length > 0 && (
+                                  <div className="mt-1 flex gap-1 flex-wrap">
+                                    {nota.nota_original.cfops.map((c, i) => (
+                                      <span key={i} className="text-xs bg-emerald-500/20 text-emerald-300 px-1 rounded">{c}</span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="bg-amber-500/10 rounded p-2">
+                                <p className="text-amber-400 text-xs">⚠ Nota original não encontrada</p>
+                                <p className="text-[#666] text-xs mt-1">
+                                  {nota.nfe_referenciada ? `Ref: ${nota.nfe_referenciada.slice(-15)}` : 'Sem referência no XML'}
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         
-                        {/* Coluna 2: Nota original referenciada */}
-                        <div className="pl-2">
-                          <p className="text-xs text-emerald-400 font-medium mb-1">NOTA ORIGINAL (SUA VENDA)</p>
-                          {nota.nota_original_encontrada && nota.nota_original ? (
-                            <div>
-                              <p className="text-white font-bold">NF {nota.nota_original.numero_nfe}</p>
-                              <p className="text-xs text-[#888]">{nota.nota_original.data_emissao?.slice(0,10) || ''}</p>
-                              <p className="text-white">R$ {(nota.nota_original.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
-                              {nota.nota_original.cfops?.length > 0 && (
-                                <div className="mt-1 flex gap-1 flex-wrap">
-                                  {nota.nota_original.cfops.map((c, i) => (
-                                    <span key={i} className="text-xs bg-emerald-500/20 text-emerald-300 px-1 rounded">{c}</span>
-                                  ))}
-                                </div>
-                              )}
+                        {/* ALERTA DE DIFERENÇA DE VALOR */}
+                        {temDiferenca && nota.nota_original_encontrada && !nota.desconsiderada && (
+                          <div className="mt-3 bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <AlertTriangle className="w-5 h-5 text-red-400" />
+                              <p className="text-red-400 font-medium">Diferença de Valor Detectada!</p>
                             </div>
-                          ) : (
-                            <div className="bg-amber-500/10 rounded p-2">
-                              <p className="text-amber-400 text-xs">⚠ Nota original não encontrada</p>
-                              <p className="text-[#666] text-xs mt-1">
-                                {nota.nfe_referenciada ? `Ref: ${nota.nfe_referenciada.slice(-15)}` : 'Sem referência no XML'}
-                              </p>
+                            <div className="grid grid-cols-3 gap-2 text-sm mb-3">
+                              <div className="text-center">
+                                <p className="text-[#666]">Devolução</p>
+                                <p className="text-amber-400 font-bold">R$ {valorDev.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-[#666]">Original</p>
+                                <p className="text-emerald-400 font-bold">R$ {valorOrig.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-[#666]">Diferença</p>
+                                <p className={`font-bold ${diferenca > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                  {diferenca > 0 ? '+' : ''}R$ {diferenca.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                                </p>
+                              </div>
                             </div>
-                          )}
-                        </div>
+                            
+                            {/* Opções para o usuário */}
+                            <p className="text-xs text-[#A1A1AA] mb-2">O que fazer com a nota original?</p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setDecisoesOriginais(prev => ({ ...prev, [nota.id]: 'manter' }))}
+                                className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-all ${
+                                  decisao === 'manter'
+                                    ? 'bg-emerald-600 text-white border-2 border-emerald-400'
+                                    : 'bg-[#1A1A1A] text-[#A1A1AA] border border-[#333] hover:border-emerald-500/50'
+                                }`}
+                                data-testid={`devolucao-manter-${nota.id}`}
+                              >
+                                <CheckCircle className="w-4 h-4 inline mr-1" />
+                                Manter Original
+                              </button>
+                              <button
+                                onClick={() => setDecisoesOriginais(prev => ({ ...prev, [nota.id]: 'excluir' }))}
+                                className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-all ${
+                                  decisao === 'excluir'
+                                    ? 'bg-red-600 text-white border-2 border-red-400'
+                                    : 'bg-[#1A1A1A] text-[#A1A1AA] border border-[#333] hover:border-red-500/50'
+                                }`}
+                                data-testid={`devolucao-excluir-${nota.id}`}
+                              >
+                                <XCircle className="w-4 h-4 inline mr-1" />
+                                Excluir Original
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Status de desconsideração */}
+                        {nota.desconsiderada && (
+                          <div className="mt-2 bg-emerald-500/10 rounded p-2">
+                            <p className="text-emerald-400 text-xs">✓ Já desconsiderada: {nota.motivo_desconsideracao}</p>
+                          </div>
+                        )}
                       </div>
-                      
-                      {/* Status de desconsideração */}
-                      {nota.desconsiderada && (
-                        <div className="mt-2 bg-emerald-500/10 rounded p-2">
-                          <p className="text-emerald-400 text-xs">✓ Já desconsiderada: {nota.motivo_desconsideracao}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : (
@@ -588,11 +669,32 @@ const WizardFechamento = ({ user, onLogout }) => {
             )}
             
             <button
-              onClick={() => completeStep({ 
-                notas_desconsiderar: data.notas_devolucao?.filter(n => !n.desconsiderada && n.nota_original_encontrada).map(n => ({ devolucao_id: n.id, original_id: n.nota_original?.id })) || [],
-                desconsiderar_sem_original: data.notas_devolucao?.filter(n => !n.desconsiderada && !n.nota_original_encontrada).map(n => n.id) || []
-              })}
+              onClick={() => {
+                // Filtrar notas com base nas decisões do usuário para divergências
+                const notasParaExcluir = data.notas_devolucao?.filter(n => {
+                  if (n.desconsiderada) return false;
+                  if (!n.nota_original_encontrada) return false;
+                  
+                  // Se tem divergência, respeitar a decisão do usuário
+                  const valorDev = n.valor_total || 0;
+                  const valorOrig = n.nota_original?.valor_total || 0;
+                  const temDiferenca = Math.abs(valorOrig - valorDev) > 0.01;
+                  
+                  if (temDiferenca) {
+                    return decisoesOriginais[n.id] !== 'manter';
+                  }
+                  
+                  return true; // Se não tem divergência, excluir por padrão
+                }).map(n => ({ devolucao_id: n.id, original_id: n.nota_original?.id })) || [];
+                
+                completeStep({ 
+                  notas_desconsiderar: notasParaExcluir,
+                  desconsiderar_sem_original: data.notas_devolucao?.filter(n => !n.desconsiderada && !n.nota_original_encontrada).map(n => n.id) || [],
+                  decisoes_divergencia: decisoesOriginais
+                });
+              }}
               disabled={processing}
+              data-testid="wizard-step2-confirm"
               className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-[#2A2A2A] text-white py-3 rounded-lg flex items-center justify-center gap-2"
             >
               {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
