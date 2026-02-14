@@ -7417,6 +7417,8 @@ async def upload_xml_with_progress(
         # Atualizar progresso
         progress["current_step"] = f"Lendo arquivos {batch_start + 1}-{batch_end} de {len(files)}..."
         upload_progress_store[upload_id] = progress
+        # Salvar no MongoDB para sincronização entre instâncias
+        await save_upload_session(upload_id, progress)
         
         # Ler lote em paralelo
         batch_tasks = [read_file_async(f, batch_start + i) for i, f in enumerate(batch_files)]
