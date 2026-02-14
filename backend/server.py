@@ -9456,7 +9456,7 @@ async def get_dashboard_stats(
     competencia: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Estatísticas do dashboard por empresa e competência"""
+    """Estatísticas do dashboard por empresa e competência - OTIMIZADO para grandes volumes"""
     
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
@@ -9476,6 +9476,19 @@ async def get_dashboard_stats(
     
     logger.info(f"DASHBOARD: Query = {query}")
     
+    # ============== OTIMIZAÇÃO: Usar agregação do MongoDB ==============
+    # Para grandes volumes (>1000 docs), calcular totais no MongoDB
+    # Primeiro, contar documentos para decidir estratégia
+    total_docs = await db.xml_documents.count_documents(query)
+    logger.info(f"DASHBOARD: Total documentos = {total_docs}")
+    
+    # Se há muitos documentos, usar agregação para calcular totais
+    # Isso evita carregar todos os produtos na memória
+    if total_docs > 5000:
+        logger.info(f"DASHBOARD: Usando agregação otimizada para {total_docs} documentos")
+        return await _get_dashboard_stats_aggregated(company, company_id, competencia, query, total_docs)
+    
+    # Para volumes menores, usar lógica original
     documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
     
     logger.info(f"DASHBOARD: Documentos encontrados = {len(documents)}")
