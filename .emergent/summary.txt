@@ -1,82 +1,99 @@
 <analysis>**original_problem_statement:**
-O usuário reportou múltiplos problemas de inconsistência de dados, bugs de UI e comportamento inesperado no sistema de fechamento fiscal. As solicitações são:
+O usuário reportou novos problemas críticos, além de continuar o desenvolvimento de funcionalidades solicitadas anteriormente.
 
-**PRODUCT REQUIREMENTS:**
-1.  **Correção da Classificação de Entrada/Saída (Recorrente):** Notas de saída sendo classificadas como entrada e vice-versa, especificamente na tela de exclusão, no dashboard e nos menus de apuração fiscal. A regra de negócio é: se o CNPJ do emitente for igual ao CNPJ da empresa, é saída; senão, é entrada.
-2.  **Correção do Wizard de Cancelamento (Etapa 1):** A etapa estava exibindo centenas de notas, mas deveria exibir **apenas** notas fiscais que vieram com um XML de cancelamento ou que já possuem um status de cancelamento oficial ( ou ).
-3.  **Correção do Wizard de Devoluções (Etapa 2):** A etapa exibia notas de bonificação/remessa (CFOP 2910, etc.) como se fossem devoluções. A regra correta é exibir apenas notas onde o **terceiro emitiu uma nota de ENTRADA** (CFOP original 1xxx, 2xxx, 3xxx).
-4.  **Correção da Barra de Progresso do Upload:** A barra de progresso do upload rápido trava, indo e voltando, e não finaliza, impedindo o usuário de ver o relatório pós-importação.
-5.  **Correção dos Dashboards e Apuração de ICMS:** O card de Vendas no dashboard e o menu de Apuração de ICMS estão exibindo valores de venda e débito, mesmo quando nenhuma nota de saída foi importada.
-6.  **Correção dos Flags de ICMS:** Na tela de apuração de ICMS, os checkboxes (flags) não persistem. Se o usuário muda de tela e volta, as seleções são perdidas.
-7.  **Nova Funcionalidade: Relatório do Wizard:** Ao finalizar o Wizard de Fechamento, o sistema deve gerar um relatório consolidado em PDF e Excel com todas as alterações realizadas, servindo como um registro de auditoria.
+**PRODUCT REQUIREMENTS (Novos e Prioritários):**
+1.  **Relatório do Wizard Inconsistente:** O relatório gerado ao final do Wizard está inconsistente e incompleto.
+2.  **Menu ICMS ST Quebrado:** A funcionalidade do menu/aba ICMS ST na tela de apuração parou de funcionar.
+3.  **Lógica de Reclassificação com IA:** O botão Classificar Produtos com IA (na Etapa 4 do Wizard) deve ter um novo comportamento:
+    *   Deve sempre perguntar ao usuário se ele tem certeza que quer reclassificar, mesmo que os produtos já estejam classificados.
+    *   Ao confirmar, a reclassificação deve seguir uma nova hierarquia de regras estrita, na seguinte ordem:
+        1.  Classificação por CFOP de Devolução (Automática).
+        2.  Cache de Regras Aprendidas ().
+        3.  Aprendizado por NCM (Match com Vendas).
+        4.  Aprendizado por Palavras-Chave (Match com Vendas).
+        5.  Palavras-Chave Cadastradas pela Empresa.
+        6.  Classificação por IA (Gemini) como último recurso.
+
+**PRODUCT REQUIREMENTS (Anteriores):**
+*   Correção da classificação Entrada/Saída.
+*   Correção do Wizard de Cancelamento (Etapa 1).
+*   Correção do Wizard de Devoluções (Etapa 2).
+*   Geração de relatório consolidado (PDF/Excel) ao finalizar o Wizard.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-O agente anterior implementou várias correções críticas no backend e uma nova funcionalidade.
-1.  **Classificação Entrada/Saída:** O agente identificou que, embora a classificação estivesse correta na importação, vários endpoints de consulta (, , ) estavam ignorando o campo  e recalculando a classificação incorretamente com base no CFOP do primeiro produto. Isso foi corrigido em múltiplos locais no  para usar o campo  como a fonte da verdade.
-2.  **Wizard de Cancelamento (Etapa 1):** O filtro do endpoint foi corrigido para buscar apenas documentos com , que reflete o status oficial de cancelamento.
-3.  **Wizard de Devoluções (Etapa 2):** O filtro foi corrigido para usar o campo , garantindo que apenas notas onde o terceiro emitiu uma nota de ENTRADA (CFOP 1xxx, 2xxx, 3xxx) sejam exibidas.
-4.  **Relatório do Wizard:** Uma nova funcionalidade foi implementada. Um endpoint  foi criado para gerar relatórios em PDF/Excel, e botões foram adicionados na tela de conclusão do wizard ().
-5.  **Barra de Progresso:** Foi feita uma tentativa de corrigir a barra de progresso melhorando a persistência do status no MongoDB e a lógica de polling no frontend, mas o usuário reportou que o problema persiste.
+O agente implementou com sucesso duas funcionalidades chave e uma correção de bug P0.
+1.  **Correção da Barra de Progresso (P0):** A barra de progresso do upload, que travava, foi corrigida. Foi implementado um sistema de polling mais robusto no frontend () com detecção de estagnação e timeouts, e o endpoint de status no backend () foi aprimorado para retornar o estado de conclusão de forma mais consistente.
+2.  **Wizard de Fechamento Dinâmico:** A experiência do usuário ao final do Wizard foi melhorada. Uma nova etapa de Concluído ( em ) foi criada, que sugere o download do relatório e, em seguida, redireciona o usuário de volta para a Central de Fechamento. Um bug de um  duplicado no Wizard também foi corrigido.
+3.  **UI de Seleção de CFOP (Wizard Etapa 3):** A interface da Etapa 3 do Wizard foi refatorada. Em vez de botões de ação imediata, agora há um sistema de seleção (estilo radio button) que permite ao usuário escolher uma ação para cada CFOP. As seleções são destacadas visualmente e um resumo é exibido antes de confirmar e enviar todas as ações de uma vez para o backend.
 
-Apesar das correções, o usuário relatou novos bugs graves no dashboard e na tela de apuração de ICMS, que é o item de trabalho atual.
+Todas as três implementações foram validadas pelo .
 
 **Last working item**:
--   **Last item agent was working**: O agente estava no início da investigação de um novo conjunto de bugs críticos relatados pelo usuário:
-    1.  O dashboard e o menu de apuração de ICMS mostram dados de vendas/débitos incorretamente, mesmo sem notas de saída.
-    2.  Os checkboxes (flags) na tela de apuração de ICMS não persistem entre as mudanças de tela.
+-   **Last item agent was working**: O agente estava iniciando a investigação de três novos problemas críticos reportados pelo usuário: o relatório do Wizard inconsistente, o menu de ICMS ST quebrado e a nova lógica para o botão de reclassificação com IA. O agente estava prestes a analisar o arquivo PDF do relatório enviado pelo usuário.
 -   **Status**: NOT STARTED
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: both. O backend precisa ser investigado para a agregação de dados incorreta. O frontend precisa ser investigado para o problema de estado dos checkboxes que não persistem.
+-   **Which testing method agent to use?**: both.
+    -   **Relatório:** Teste de backend para a lógica de geração de dados e verificação manual do arquivo gerado.
+    -   **Menu ICMS ST:** Teste de frontend para a UI e teste de backend para a API correspondente.
+    -   **Reclassificação IA:** Teste de backend para a nova lógica ordenada e teste de frontend para o modal de confirmação.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Dashboard e Apuração de ICMS com dados incorretos e UI quebrada (P0 - BLOQUEADOR)**
--   **Issue 2: Barra de progresso do upload trava (P0)**
--   **Issue 3: Deploy não reflete as atualizações (P0 - BLOQUEADOR CRÍTICO DE PROCESSO)**
--   **Issue 4: Classificação incorreta de Entrada/Saída persiste em locais não identificados (P1)**
--   **Issue 5: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
--   **Issue 6: Discrepância de valores entre Dashboard e SPED (P2)**
--   **Issue 7: Botão de Login fica travado em Processando... (P2)**
+-   **Issue 1: Relatório do Wizard inconsistente e incompleto (P0 - CRÍTICO)**
+-   **Issue 2: Menu ICMS ST não está funcionando (P0 - CRÍTICO)**
+-   **Issue 3: Deploy não reflete as atualizações (P0 - BLOQUEADOR DE PROCESSO)**
+-   **Issue 4: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
+-   **Issue 5: Discrepância de valores entre Dashboard e SPED (P2)**
+-   **Issue 6: Botão de Login fica travado em Processando... (P2)**
 
 **Issues Detail**:
--   **Issue 1: Dashboard e Apuração de ICMS com dados incorretos e UI quebrada (P0)**
-    -   **Attempted fixes**: Nenhum. O problema foi recém-reportado.
+-   **Issue 1: Relatório do Wizard inconsistente e incompleto (P0)**
+    -   **Attempted fixes**: Nenhum.
     -   **Next debug checklist**:
-        1.  **Backend:** Investigar os endpoints que alimentam o dashboard principal e a tela de apuração de ICMS. Verificar as queries de agregação (ex: 00000     0, ) para encontrar por que estão incluindo valores de notas que deveriam ser de entrada no cômputo de vendas. Suspeita-se que uma lógica de inferência por CFOP, similar à já corrigida em outros locais, ainda exista aqui.
-        2.  **Frontend:** Analisar o componente da tela de apuração de ICMS. Verificar como o estado dos checkboxes (flags) é gerenciado (ex: state local, Context API, Redux). O problema provavelmente é que o estado não está sendo elevado ou persistido em um local que sobrevive à remontagem do componente.
-    -   **Why fix this issue and what will be achieved with the fix?**: A confiança do usuário no sistema depende da precisão dos dados fiscais exibidos. Um dashboard incorreto invalida o propósito da aplicação. A UI quebrada impede o trabalho do usuário.
+        1.  Analisar o PDF de exemplo enviado pelo usuário para identificar as inconsistências.
+        2.  Revisar o(s) endpoint(s) no  responsáveis por gerar os dados para o relatório.
+        3.  Verificar as queries ao banco de dados e a lógica de agregação de dados.
+        4.  Corrigir a lógica no backend e gerar um novo relatório para comparação.
+    -   **Why fix this issue and what will be achieved with the fix?**: O relatório é uma das entregas finais do fluxo de fechamento fiscal. Se estiver incorreto, o principal objetivo da ferramenta é comprometido.
     -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N (recém-reportado)
-    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: backend
     -   **Blocked on other issue**: Não.
 
--   **Issue 2: Barra de progresso do upload trava (P0)**
-    -   **Attempted fixes**: O agente anterior modificou a lógica de SSE e polling no backend () e frontend () para tentar tornar a atualização de status mais robusta.
+-   **Issue 2: Menu ICMS ST não está funcionando (P0)**
+    -   **Attempted fixes**: Nenhum.
     -   **Next debug checklist**:
-        1.  A tentativa anterior não funcionou. É preciso uma abordagem diferente.
-        2.  Revisar logs do servidor de produção (se possível) durante um upload para ver se há erros de SSE ou timeout de proxy.
-        3.  Considerar uma arquitetura de progresso mais simples e robusta, talvez abandonando SSE em favor de um polling mais inteligente e frequente que consulta um status persistido no MongoDB.
-        4.  Verificar se  e  estão sendo calculados e comparados corretamente, especialmente em cenários de múltiplos lotes.
-    -   **Why fix this issue and what will be achieved with the fix?**: O usuário não consegue confirmar se a importação foi bem-sucedida nem acessar relatórios de erro, bloqueando seu fluxo de trabalho.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
+        1.  Inspecionar o componente  para entender a lógica do clique na aba/menu ICMS ST.
+        2.  Verificar o console do navegador por erros de JavaScript quando o menu é clicado.
+        3.  Verificar se a chamada de API associada está sendo disparada corretamente e qual a sua resposta.
+        4.  Analisar o endpoint correspondente no .
+    -   **Why fix this issue and what will be achieved with the fix?**: Impede o usuário de realizar a apuração de ICMS por Substituição Tributária, uma parte crucial do fechamento fiscal.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: both
     -   **Blocked on other issue**: Não.
 
--   **Issue 3: Deploy não reflete as atualizações (P0 - BLOQUEADOR CRÍTICO DE PROCESSO)**
-    -   **Attempted fixes**: Nenhum. É um problema de infraestrutura/processo.
-    -   **Next debug checklist**: Este problema não pode ser resolvido com código. É preciso escalar para a equipe responsável pelo CI/CD. Uma sugestão paliativa é adicionar um indicador de versão/commit do build na UI para que o agente e o usuário saibam em qual versão estão.
-    -   **Why fix this issue and what will be achieved with the fix?**: Impede o ciclo de feedback, onde o agente corrige bugs que o usuário não consegue validar, causando frustração e perda de tempo. É o maior bloqueador para o progresso real do projeto.
+-   **Issue 3: Deploy não reflete as atualizações (P0)**
+    -   **Attempted fixes**: Nenhum. É um problema de processo/infraestrutura.
+    -   **Next debug checklist**: Escalar para a equipe de DevOps. Sugerir adicionar um indicador de versão/hash de commit do build na UI para que o agente e o usuário saibam em qual versão estão trabalhando.
+    -   **Why fix this issue and what will be achieved with the fix?**: Impede a validação das correções pelo usuário, quebrando o ciclo de feedback e causando retrabalho.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: N/A
     -   **Blocked on other issue**: Não.
 
 **In progress Task List**:
--   **Task 1: Refatoração Completa do Wizard (P1)**
-    -   **Where to resume**: As etapas 1 e 2 foram corrigidas, e a etapa 3 já havia sido parcialmente ajustada. O objetivo de alinhar todas as 6 etapas do wizard com a lógica da Importação com IA continua em andamento.
+-   **Task 1: Nova Lógica de Reclassificação com IA (P0)**
+    -   **Where to resume**: Implementar um novo endpoint ou modificar o existente em  para seguir a nova hierarquia de 6 regras. Adicionar um modal de confirmação no frontend, provavelmente em .
+    -   **What will be achieved with this?**: Dar ao usuário mais controle e precisão sobre a classificação de produtos, seguindo regras de negócio específicas antes de recorrer à IA.
+    -   **Status**: NOT STARTED
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on something**: Não.
+
+-   **Task 2: Refatoração Completa do Wizard (P1)**
+    -   **Where to resume**: As etapas 3 e a final (8) foram significativamente refatoradas. O trabalho de alinhar todas as etapas do wizard com uma lógica consistente e estado gerenciado pelo React continua.
     -   **What will be achieved with this?**: Consistência de dados e um fluxo de trabalho fiscal previsível e confiável.
     -   **Status**: IN PROGRESS
     -   **Should Test frontend/backend/both after fix?**: both
@@ -89,17 +106,15 @@ Apesar das correções, o usuário relatou novos bugs graves no dashboard e na t
 *   **Future Tasks (Refatoração Crítica):**
     *   **(P0)** Refatoração do  (urgente, >31k linhas).
     *   **(P1)** Refatoração do  (monolítico, >4k linhas).
+    *   **(P1)** Refatoração do  para dividir as etapas em componentes separados.
 *   **Future Tasks (Novas Funcionalidades):**
-    *   **(P1)** Integração de CT-e (Conhecimento de Transporte Eletrônico).
+    -   **(P1)** Integração de CT-e (Conhecimento de Transporte Eletrônico).
     -   **(P2)** Implementação de testes automatizados (e.g., Playwright).
 
 **Completed work in this session**
--   **Fix: Wizard de Cancelamento (Etapa 1)**: Corrigido em  para filtrar apenas notas com .
--   **Fix: Classificação de Entrada/Saída**: A lógica incorreta de inferência por CFOP foi substituída pelo uso do campo  em múltiplos endpoints (, , ) em .
--   **Fix: Wizard de Devoluções (Etapa 2)**: Corrigido em  para filtrar usando o campo , alinhando-se à regra de negócio correta.
--   **Feature: Relatório do Wizard**: Implementado endpoint  em  (com geração de PDF/Excel) e botões de download adicionados em .
--   **Fix Attempt: Barra de Progresso**: Modificações feitas em  e , mas o problema persiste.
--   **docs**: O arquivo  foi atualizado com as novas tarefas e correções.
+-   **Fix: Barra de Progresso do Upload (P0)**: Corrigido o problema da barra de progresso que travava, tornando o feedback de upload confiável. (Files: , ).
+-   **Feature: Wizard de Fechamento Dinâmico**: Melhorada a UX ao final do wizard, com sugestão de download e redirecionamento automático. (File: ).
+-   **Feature: UI de Seleção de CFOP (Wizard Etapa 3)**: A interface da etapa de alertas de CFOP foi refatorada para um modelo de seleção múltipla antes da confirmação, melhorando a usabilidade. (File: ).
 
 **Earlier issues found/mentioned but not fixed**
 -   NF de fevereiro continua aparecendo nas entradas de janeiro.
@@ -107,68 +122,73 @@ Apesar das correções, o usuário relatou novos bugs graves no dashboard e na t
 -   Botão de Login fica travado em Processando....
 
 **Known issue recurrence from previous fork**
--   **Deploy não reflete as atualizações**: Continua sendo o problema mais crítico. O usuário testa em produção, o agente trabalha em preview. O progresso percebido pelo usuário é quase nulo.
--   **Barra de progresso do upload trava**: O problema foi reportado novamente após uma tentativa de correção, indicando que a solução não foi eficaz.
+-   **Deploy não reflete as atualizações**: Continua sendo o problema de processo mais crítico, impedindo a validação das correções pelo usuário.
+-   **Barra de progresso do upload trava**: Este problema recorrente foi **corrigido e validado com sucesso** nesta sessão.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend**: FastAPI, Pydantic, MongoDB, Celery.
--   **Frontend**: React, React Hooks, Server-Sent Events (SSE), Axios.
--   **Lógica de Negócio**: O foco foi corrigir a lógica de classificação fiscal (Entrada/Saída, Cancelamento, Devolução) em múltiplos pontos do sistema, substituindo a inferência incorreta por CFOP pela fonte da verdade armazenada no banco de dados. Foi descoberto o campo  como crucial para a lógica de devolução.
+-   **Resilient Polling/SSE Handling**: Utilização de watchdog timers e polling de fallback com detecção de estagnação para criar uma experiência de upload robusta.
+-   **Declarative UI State Management**: Refatoração de manipulação direta do DOM para o uso de estado do React () para gerenciar seleções complexas na UI, tornando o código mais previsível e manutenível.
+-   **State-Driven UI**: Renderização condicional de componentes (inputs, resumos) baseada no estado das seleções do usuário, proporcionando feedback visual imediato.
 
 **key DB schema**
--   **xml_documents**: Campos-chave para a lógica recente são  (a fonte da verdade para Entrada/Saída), , , , e o recém-descoberto .
+-   **xml_documents**: Campos-chave para a lógica recente são , , , , e .
+-   **xml_documents.produtos**: O campo  é a fonte da verdade para a categoria do produto. O campo  é o gatilho para a classificação.
 
 **All files of reference**
 -   
 -   
 -   
 -   
+-    (Relevante para o novo bug do ICMS ST)
+-    (Relevante para a nova lógica de IA)
+-   
 
 **Areas that need refactoring**:
--   ** (URGENTE)**: O arquivo continua crescendo e se tornando mais complexo, tornando cada correção um risco. A refatoração para dividir o arquivo em rotas, serviços e modelos é cada vez mais crítica.
--   **Lógica de Classificação Fiscal**: Apesar das correções, a existência da mesma lógica de classificação incorreta em tantos lugares diferentes indica uma forte falta do princípio DRY (Don't Repeat Yourself). A lógica fiscal deveria ser centralizada em funções de serviço reutilizáveis.
+-   ** (URGENTE)**: O arquivo monolítico continua sendo um risco para a estabilidade e manutenção do projeto.
+-   ****: O arquivo está se tornando excessivamente grande e complexo, com a lógica de todas as etapas em um só lugar. A extração de cada etapa para seu próprio componente é recomendada.
 
 **key api endpoints**
--   
--   
--   
--   
--   
--   
--   **Novo**: 
+-    (Corrigido)
+-   Endpoint para  da etapa 3 do Wizard (Modificado para aceitar um lote de ).
 
 **Critical Info for New Agent**
--   **AMBIENTE DE PROD vs. PREVIEW**: Este continua sendo o problema Nº 1. O usuário testa em um ambiente com dados de produção, enquanto você está em um ambiente de preview, muitas vezes com um banco de dados vazio. As correções podem funcionar no código, mas o usuário não as verá até o deploy. Assuma que os relatos do usuário são verdadeiros, mesmo que você não consiga reproduzir no preview.
--   **FONTE DA VERDADE**: O padrão de bug recorrente é o código ignorar os dados já classificados no banco de dados (, ) e tentar re-inferir a lógica de negócio na hora da consulta usando CFOP. Sempre que encontrar uma inconsistência de dados, verifique se a query está usando a fonte da verdade do documento em vez de tentar ser inteligente. O campo  é a chave para a regra de negócio de devoluções.
--   **BUGS ATUAIS**: A prioridade máxima agora é investigar os novos bugs no dashboard e na tela de apuração de ICMS. Eles são bloqueadores para o usuário.
+-   **FOCO IMEDIATO**: A prioridade absoluta é investigar e corrigir os **três novos problemas P0** reportados pelo usuário: Relatório inconsistente, menu ICMS ST quebrado e a nova lógica de reclassificação por IA.
+-   **HIERARQUIA DE REGRAS**: A nova lógica para Classificar com IA tem uma hierarquia de 6 passos que **deve** ser seguida estritamente. Não é apenas chamar a IA, mas um processo de classificação em cascata.
+-   **ANÁLISE DE ARQUIVO**: O usuário enviou um arquivo PDF sobre o relatório. Ele deve ser analisado antes de iniciar a correção.
+-   **POSSÍVEL REGRESSÃO**: O problema no menu ICMS ST pode ser uma regressão causada por outras alterações. Investigue as mudanças recentes nos componentes compartilhados, se houver.
+-   **CONFUSÃO DE ETAPAS (step=1 vs step=3)**: O agente anterior notou uma discrepância entre a URL na imagem do usuário () e o conteúdo da tela (Alertas de CFOP, que é a etapa 3). Isso pode indicar um problema de roteamento ou estado no frontend que vale a pena ter em mente.
 
 **documents and test reports created in this job**
 -    (atualizado)
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **PENDING**: entendo que varios dashs estao bugados... a empresa nem tem saida importada e esta rtrazdendo valor... e os flags nao estao persistentes. - O usuário reportou os bugs críticos atuais: dashboard e ICMS com dados errados e UI com flags que não persistem.
-2.  **PENDING**: menu apuracao de icms nao esta correspondendo com a movimentacao... - Relato inicial do bug de apuração de ICMS.
-3.  upload na base produtiva esta complicado... a barra de progresso trava... - Relatou que a correção da barra de progresso não funcionou.
-4.  esta perfeito, pode ser ao concluir. pdf e excel - Confirmou os formatos para a nova feature de relatório.
-5.  Penso que cada etapa poderia gerar um relatorio... - Propôs a nova feature de relatório do wizard para fins de auditoria.
-6.  foca no criterio terceiro entrada - Forneceu a regra de negócio chave para a correção da Etapa 2 do Wizard.
-7.  nao sao os cfops que estao errados, é a nf que voce considerou... - Esclareceu a lógica incorreta na Etapa 2 do Wizard.
-8.  essa nf mes 01/2026 sungroup nao se enquadra no creterio de devolucao... - Reportou o bug na Etapa 2 do Wizard (Devoluções).
-9.  eu importei entradas sungroup 01/2026, nao importei saidas. mas ao tentar excluir... - Reportou o bug de classificação de Entrada/Saída na tela de exclusão.
-10. no wizard cancelamento é pra validar apenas as nfs que vieram com xml de cancelamento... - Reportou o bug na Etapa 1 do Wizard (Cancelamento).
+1.  **PENDING (CRÍTICO)**: RELATORIO WIZARD INCONSISTENTE E INCOMPLETO. MENU ICMS ST NAO ESTA FUNCIOANDO. AO CLICAR NO BOTAO CLASSIFICAR PRODUTOS COM IA... [regras detalhadas] - O usuário reportou 3 novos problemas críticos que são a prioridade máxima agora.
+2.  QUE AS OPCOES DE CADA CFOP SEJAM SELECOES... - O usuário pediu a refatoração da UI da Etapa 3 do Wizard, que foi implementada e validada com sucesso nesta sessão.
+3.  SIGA - O usuário instruiu o agente a continuar após apresentar o plano de teste.
+4.  faz 1, e o wizard da pagina do centrsal de fechamento, podia ser mais dinamico... - O usuário aprovou o plano do agente para corrigir a barra de progresso (item 1) e tornar o wizard mais dinâmico. Ambos foram implementados.
 
 **Project Health Check:**
 -   **Broken**:
-    -   **Processo de Deploy**: A desconexão entre o ambiente de desenvolvimento/preview e o de produção é o maior ponto de falha, tornando o ciclo de desenvolvimento ineficaz.
-    -   **Integridade de Dados**: Múltiplos bugs graves relacionados à exibição de dados fiscais incorretos continuam a ser descobertos, minando a confiança na aplicação.
-    -   **UI/UX**: Componentes críticos como a barra de progresso do upload e interações em telas fiscais (flags) estão quebrados, bloqueando o trabalho do usuário.
+    -   **Relatório do Wizard**: Funcionalidade chave de entrega de valor está quebrada.
+    -   **Apuração de ICMS ST**: Parte crítica da apuração fiscal está inacessível.
+    -   **Processo de Deploy**: A dessincronização entre ambientes continua sendo um bloqueador de processo fundamental.
+
+**3rd Party Integrations**
+-   **Gemini**: Usado para a classificação de produtos com IA (via ). A nova lógica de negócio irá alterar *quando* essa integração é chamada.
+
+**Testing status**
+-   **Testing agent used after significant changes**: YES (usado duas vezes com sucesso)
+-   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Test files created**: []
+-   **Known regressions**: O menu ICMS ST quebrado é uma nova regressão ou bug.
 
 **Credentials to test flow:**
 -   **Super Admin**:  / 
 
 **What agent forgot to execute**
--   O agente não conseguiu resolver o problema da barra de progresso, apesar de uma tentativa. A complexidade da interação SSE/polling/proxy provavelmente requer uma abordagem mais aprofundada ou diferente.
--   O agente não abordou (e não podia) o problema de infraestrutura do deploy, que continua a ser a causa raiz de muita frustração e trabalho refeito.</analysis>
+-   O agente estava no processo de finalizar a tarefa (atualizar PRD.md e chamar ) quando foi interrompido pela mensagem do usuário com novos bugs críticos. Portanto, a finalização formal da tarefa anterior não ocorreu, e o foco mudou para os novos problemas.</analysis>
