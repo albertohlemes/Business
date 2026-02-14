@@ -7654,9 +7654,30 @@ async def upload_xml_with_progress(
             if modelo != '57' and xml_type != 'cte':
                 tipo_calculado = 'saida' if cnpj_emitente == cnpj_empresa else 'entrada'
                 tipo = tipo_calculado  # Sobrescreve o tipo da sessão
-                logger.info(f"CLASSIFICAÇÃO AUTO (STREAM): NF {parsed_data.get('numero_nfe', '')} - CNPJ emit={cnpj_emitente}, CNPJ empresa={cnpj_empresa} -> {tipo}")
+                logger.info(f"CLASSIFICAÇÃO AUTO (STREAM): NF {parsed_data.get('numero_nfe', '')} - CNPJ emit={cnpj_emitente}, CNPJ empresa={cnpj_empresa}, CNPJ dest={cnpj_destinatario} -> {tipo}")
+                
+                # ================================================================
+                # VALIDAÇÃO CRÍTICA: CNPJ DA EMPRESA DEVE ESTAR NO DOCUMENTO
+                # A empresa selecionada deve ser o EMITENTE ou o DESTINATÁRIO
+                # Se não for nenhum dos dois, REJEITAR o documento
+                # ================================================================
+                empresa_envolvida = (cnpj_emitente == cnpj_empresa) or (cnpj_destinatario == cnpj_empresa)
+                
+                if not empresa_envolvida:
+                    # Documento não pertence à empresa - REJEITAR
+                    rejeitadas_cnpj.append({
+                        "filename": file.filename,
+                        "numero_nfe": parsed_data.get('numero_nfe', ''),
+                        "motivo": f"Este documento não pertence à empresa selecionada. CNPJ da empresa ({cnpj_empresa}) não é nem o emitente ({cnpj_emitente}) nem o destinatário ({cnpj_destinatario}).",
+                        "emitente": parsed_data.get('emitente_nome', ''),
+                        "destinatario": parsed_data.get('destinatario_nome', ''),
+                        "cnpj_emitente": cnpj_emitente,
+                        "cnpj_destinatario": cnpj_destinatario
+                    })
+                    logger.warning(f"REJEITADO (STREAM) - NF {parsed_data.get('numero_nfe', '')}: Documento não pertence à empresa. Emit={cnpj_emitente}, Dest={cnpj_destinatario}, Empresa={cnpj_empresa}")
+                    continue
             
-            cnpj_valido = True  # Validação já é feita pela classificação automática
+            cnpj_valido = True  # Validação passou
             is_devolucao_fornecedor = False
             motivo_devolucao = ""
             nfe_ref_devolucao = ""
