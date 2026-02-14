@@ -164,6 +164,8 @@ const WizardFechamento = ({ user, onLogout }) => {
   const [stepProgress, setStepProgress] = useState(null);  // Progresso da etapa atual
   const [initialStepLoaded, setInitialStepLoaded] = useState(false);  // Flag para carregar etapa inicial
   const [downloadingReport, setDownloadingReport] = useState(null);  // 'pdf' ou 'excel'
+  const [cfopSelections, setCfopSelections] = useState({});  // { cfop: { acao: 'manter'|'converter'|'manual', cfop_destino: '...' } }
+  const [manualCfopInputs, setManualCfopInputs] = useState({});  // { cfop: '1234' } - valores dos inputs manuais
 
   // Função para baixar relatório do wizard
   const downloadReport = async (formato) => {
