@@ -293,15 +293,16 @@ export const UploadProvider = ({ children }) => {
         }
       };
       
-      // FALLBACK: Iniciar polling após 3 segundos como backup do SSE
+      // FALLBACK: Iniciar polling após 2 segundos como backup do SSE
       // Isso garante que mesmo se o SSE falhar silenciosamente, teremos progresso
+      // Em produção com múltiplas instâncias, o polling é mais confiável que SSE
       setTimeout(() => {
         // Verificar se já não completou e se polling ainda não está ativo
         if (!pollingIntervalRef.current && isUploading && !uploadResults) {
-          console.log('SSE timeout - ativando polling de fallback como backup');
+          console.log('Ativando polling como backup do SSE (recomendado em produção)');
           startPollingFallback(upload_id, token);
         }
-      }, 3000);
+      }, 2000);
       
       // Timeout de segurança: Se o SSE não receber eventos por 15s, forçar polling
       let sseWatchdog = setInterval(() => {
