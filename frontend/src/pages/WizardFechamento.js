@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   CheckCircle, XCircle, AlertTriangle, Loader2, ArrowRight, ArrowLeft,
   FileX, RotateCcw, Package, Receipt, Calculator, Flag, RefreshCw,
-  ChevronDown, ChevronUp, AlertOctagon, Download, FileText, FileSpreadsheet, Zap
+  ChevronDown, ChevronUp, AlertOctagon, Download, FileText, FileSpreadsheet, Zap, Home
 } from 'lucide-react';
 import axios from 'axios';
 import Layout from '../components/Layout';
@@ -21,6 +21,134 @@ const STEP_ICONS = {
   6: Receipt,         // PIS/COFINS Saídas
   7: Calculator,      // Reforma Tributária
   8: Flag             // Concluído
+};
+
+// Componente para a etapa de conclusão - mais dinâmico
+const WizardConcluidoStep = ({ 
+  selectedCompany, 
+  selectedCompetencia, 
+  data, 
+  downloadReport, 
+  downloadingReport, 
+  resetWizard,
+  navigate 
+}) => {
+  const [reportDownloaded, setReportDownloaded] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  // Handler para baixar e depois mostrar opção de voltar
+  const handleDownloadAndClose = async (formato) => {
+    await downloadReport(formato);
+    setReportDownloaded(true);
+    setShowSuccessMessage(true);
+    
+    // Após 2 segundos, redirecionar automaticamente
+    setTimeout(() => {
+      navigate('/alertas');
+    }, 2500);
+  };
+
+  // Handler para voltar direto
+  const handleVoltar = () => {
+    navigate('/alertas');
+  };
+
+  return (
+    <div className="space-y-6 text-center">
+      {/* Ícone de Sucesso Animado */}
+      <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto animate-bounce">
+        <Flag className="w-10 h-10 text-emerald-400" />
+      </div>
+      
+      <h3 className="text-2xl font-bold text-white">Fechamento Concluído!</h3>
+      
+      <p className="text-[#A1A1AA]">
+        Todas as etapas do fechamento fiscal foram concluídas com sucesso.
+      </p>
+      
+      {/* Resumo */}
+      <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+        <p className="text-emerald-400">
+          ✓ Empresa: {selectedCompany?.razao_social}<br />
+          ✓ Competência: {selectedCompetencia}<br />
+          ✓ Etapas concluídas: {data?.steps_completed?.length || 7} de 7
+        </p>
+      </div>
+      
+      {/* Mensagem de sucesso após download */}
+      {showSuccessMessage && (
+        <div className="bg-purple-500/20 border border-purple-500/30 rounded-lg p-4 animate-pulse">
+          <p className="text-purple-400 font-medium">
+            ✓ Relatório baixado! Redirecionando para a Central de Fechamento...
+          </p>
+        </div>
+      )}
+      
+      {/* Seção de Relatórios - Destacada */}
+      {!reportDownloaded ? (
+        <div className="bg-gradient-to-r from-purple-500/20 to-purple-600/10 border-2 border-purple-500/40 rounded-xl p-6 animate-pulse-slow">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Download className="w-6 h-6 text-purple-400" />
+            <h4 className="text-xl font-bold text-white">Baixe seu Relatório</h4>
+          </div>
+          <p className="text-sm text-[#A1A1AA] mb-5">
+            Exporte o histórico completo de todas as alterações realizadas pelo wizard.
+            <br />
+            <span className="text-purple-300">Após o download, você será redirecionado automaticamente.</span>
+          </p>
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={() => handleDownloadAndClose('pdf')}
+              disabled={downloadingReport}
+              className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white py-3 px-6 rounded-lg inline-flex items-center gap-2 transition-all hover:scale-105 font-medium"
+            >
+              {downloadingReport === 'pdf' ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <FileText className="w-5 h-5" />
+              )}
+              Baixar PDF
+            </button>
+            <button
+              onClick={() => handleDownloadAndClose('excel')}
+              disabled={downloadingReport}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-3 px-6 rounded-lg inline-flex items-center gap-2 transition-all hover:scale-105 font-medium"
+            >
+              {downloadingReport === 'excel' ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="w-5 h-5" />
+              )}
+              Baixar Excel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+          <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+          <p className="text-emerald-400">Relatório baixado com sucesso!</p>
+        </div>
+      )}
+      
+      {/* Botões de Ação */}
+      <div className="flex justify-center gap-4 pt-2">
+        <button
+          onClick={handleVoltar}
+          className="bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg inline-flex items-center gap-2 font-medium transition-all hover:scale-105"
+        >
+          <Home className="w-5 h-5" />
+          Voltar para Central de Fechamento
+        </button>
+        <button
+          onClick={resetWizard}
+          className="bg-[#2A2A2A] hover:bg-[#3A3A3A] text-white py-3 px-6 rounded-lg inline-flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Reiniciar Wizard
+        </button>
+      </div>
+    </div>
+  );
 };
 
 const WizardFechamento = ({ user, onLogout }) => {
