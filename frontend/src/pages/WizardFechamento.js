@@ -1015,29 +1015,50 @@ const WizardFechamento = ({ user, onLogout }) => {
             )}
             
             {/* Resumo das seleções */}
-            {Object.keys(cfopSelections).length > 0 && (
+            {(Object.keys(cfopSelections).length > 0 || Object.keys(cfopsPorProduto).length > 0) && (
               <div className="bg-[#1A1A1A] border border-[#333] rounded-lg p-4">
                 <h4 className="text-white font-medium mb-2 flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400" />
-                  Resumo das Alterações ({Object.keys(cfopSelections).length} CFOPs selecionados)
+                  Resumo das Alterações
                 </h4>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(cfopSelections).map(([cfop, selection]) => (
-                    <span key={cfop} className={`px-3 py-1 rounded-lg text-sm ${
-                      selection.acao === 'manter' ? 'bg-blue-500/20 text-blue-400' :
-                      selection.acao === 'converter_compra' ? 'bg-green-500/20 text-green-400' :
-                      'bg-purple-500/20 text-purple-400'
-                    }`}>
-                      {cfop} → {selection.cfop_destino}
-                    </span>
-                  ))}
-                </div>
+                
+                {/* CFOPs em lote */}
+                {Object.keys(cfopSelections).length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs text-[#A1A1AA] mb-2">{Object.keys(cfopSelections).length} CFOPs selecionados (em lote):</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(cfopSelections).map(([cfop, selection]) => (
+                        <span key={cfop} className={`px-3 py-1 rounded-lg text-sm ${
+                          selection.acao === 'manter' ? 'bg-blue-500/20 text-blue-400' :
+                          selection.acao === 'converter_compra' ? 'bg-green-500/20 text-green-400' :
+                          'bg-purple-500/20 text-purple-400'
+                        }`}>
+                          {cfop} → {selection.cfop_destino}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* CFOPs individuais por produto */}
+                {Object.keys(cfopsPorProduto).length > 0 && (
+                  <div>
+                    <p className="text-xs text-[#A1A1AA] mb-2">{Object.keys(cfopsPorProduto).length} produtos com CFOP individual:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(cfopsPorProduto).filter(([, cfop]) => cfop.length === 4).map(([key, cfop]) => (
+                        <span key={key} className="px-3 py-1 rounded-lg text-sm bg-cyan-500/20 text-cyan-400">
+                          → {cfop}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             
             <button
               onClick={() => {
-                // Preparar ações para enviar ao backend
+                // Preparar ações em lote para enviar ao backend
                 const acoes_cfops = {};
                 Object.entries(cfopSelections).forEach(([cfop, selection]) => {
                   if (selection.acao && selection.cfop_destino) {
@@ -1053,12 +1074,27 @@ const WizardFechamento = ({ user, onLogout }) => {
                   }
                 });
                 
-                completeStep({ acoes_cfops });
+                // Preparar CFOPs individuais por produto
+                // Formato: { "cfop_docId_prodIdx": "cfop_destino" }
+                const cfops_individuais = {};
+                Object.entries(cfopsPorProduto).forEach(([key, cfop]) => {
+                  if (cfop.length === 4) {
+                    cfops_individuais[key] = cfop;
+                  }
+                });
+                
+                completeStep({ 
+                  acoes_cfops, 
+                  cfops_individuais 
+                });
+                
                 // Limpar seleções após confirmar
                 setCfopSelections({});
                 setManualCfopInputs({});
+                setCfopsPorProduto({});
               }}
               disabled={processing}
+              data-testid="wizard-step3-confirm"
               className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-[#2A2A2A] text-white py-3 rounded-lg flex items-center justify-center gap-2"
             >
               {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
