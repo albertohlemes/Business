@@ -1254,6 +1254,28 @@ def get_filtro_notas_ativas():
     }
 
 
+# ============== LIMITE SEGURO PARA CONSULTAS ==============
+# Limite máximo de documentos para carregar na memória
+SAFE_DOCUMENT_LIMIT = 10000
+AGGREGATION_THRESHOLD = 5000  # Usar agregação se tiver mais que isso
+
+async def safe_find_documents(collection, query: dict, projection: dict = None, limit: int = SAFE_DOCUMENT_LIMIT):
+    """
+    Busca documentos de forma segura, limitando o número de resultados.
+    Sempre exclui xml_content do resultado para economizar memória.
+    """
+    if projection is None:
+        projection = {"_id": 0, "xml_content": 0}
+    elif "xml_content" not in projection:
+        projection["xml_content"] = 0
+    if "_id" not in projection:
+        projection["_id"] = 0
+    
+    return await collection.find(query, projection).to_list(limit)
+
+
+
+
 
 def obter_categoria_padrao_por_atividade(tipo_atividade: str) -> tuple:
     """
