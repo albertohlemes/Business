@@ -31795,24 +31795,24 @@ def generate_wizard_report_pdf(data: Dict[str, Any]) -> io.BytesIO:
     if etapa2.get('notas'):
         table_data = [["NF Devolução", "Emitente", "Valor", "NF Original", "Motivo"]]
         for nota in etapa2['notas'][:50]:
-                table_data.append([
-                    nota.get('numero_nfe', '-'),
-                    nota.get('emitente_nome', '-')[:30],
-                    f"R$ {nota.get('valor_total', 0):,.2f}",
-                    nota.get('nf_original', '-'),
-                    "Desconsiderada"
-                ])
-            
-            t = Table(table_data, colWidths=[60, 150, 70, 70, 100])
-            t.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('ALIGN', (2, 1), (2, -1), 'RIGHT'),
-            ]))
-            elements.append(t)
+            table_data.append([
+                str(nota.get('numero_nfe', '-')),
+                str(nota.get('emitente_nome', '-'))[:30],
+                f"R$ {float(nota.get('valor_total', 0) or 0):,.2f}",
+                str(nota.get('nf_original', '-')),
+                "Desconsiderada"
+            ])
+        
+        t = Table(table_data, colWidths=[60, 150, 70, 70, 100])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (2, 1), (2, -1), 'RIGHT'),
+        ]))
+        elements.append(t)
     elif total_devolucoes == 0:
         elements.append(Paragraph("Nenhuma devolução de terceiros encontrada.", small_style))
     elements.append(Spacer(1, 3*mm))
