@@ -20660,6 +20660,179 @@ async def get_emitentes_for_company(
 # APURAÇÃO DE ICMS
 # ============================================================
 
+async def _get_icms_aggregated(company: dict, company_id: str, competencia: str, query: dict, total_docs: int, 
+                               cfops_despesa: list, cfops_st: list, desconsiderar_despesas: bool, 
+                               desconsiderar_st: bool, beneficio_fiscal: bool):
+    """
+    Versão otimizada da apuração ICMS usando agregação do MongoDB.
+    Usada quando há mais de 10000 documentos para evitar timeout.
+    """
+    logger.info(f"ICMS AGREGADO: Iniciando para {total_docs} documentos")
+    
+    # Pipeline de agregação para calcular totais por tipo
+    pipeline = [
+        {"$match": query},
+        {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
+        {
+            "$group": {
+                "_id": {
+                    "tipo": {"$ifNull": ["$tipo", "$tipo_operacao"]},
+                    "cfop": {"$substr": [{"$toString": {"$ifNull": ["$produtos.cfop", "0000"]}}, 0, 4]}
+                },
+                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                "bc_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.bc_icms", 0]}}},
+                "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_icms", 0]}}},
+                "valor_icms_st": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_icms_st", 0]}}},
+                "qtd_itens": {"$sum": 1}
+            }
+        }
+    ]
+    
+    cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
+    resultados = await cursor.to_list(length=500)
+    
+    # Processar resultados
+    credito_icms = 0
+    debito_icms = 0
+    icms_st_saidas = 0
+    icms_despesa_desc = 0
+    icms_st_desc = 0
+    total_entradas = 0
+    total_saidas = 0
+    entradas_por_cfop = {}
+    saidas_por_cfop = {}
+    
+    for item in resultados:
+        tipo = item['_id'].get('tipo', '') or ''
+        cfop = item['_id'].get('cfop', '') or ''
+        valor_icms = item.get('valor_icms', 0) or 0
+        valor_icms_st = item.get('valor_icms_st', 0) or 0
+        valor_total = item.get('valor_total', 0) or 0
+        bc_icms = item.get('bc_icms', 0) or 0
+        qtd = item.get('qtd_itens', 0) or 0
+        
+        cfop_data = {
+            "cfop": cfop,
+            "valor_total": round(valor_total, 2),
+            "bc_icms": round(bc_icms, 2),
+            "valor_icms": round(valor_icms, 2),
+            "valor_icms_st": round(valor_icms_st, 2),
+            "qtd_itens": qtd
+        }
+        
+        if tipo == 'entrada':
+            total_entradas += valor_total
+            # Verificar se deve desconsiderar
+            if desconsiderar_despesas and cfop in cfops_despesa:
+                icms_despesa_desc += valor_icms
+            elif desconsiderar_st and cfop in cfops_st:
+                icms_st_desc += valor_icms
+            else:
+                credito_icms += valor_icms
+            
+            if cfop not in entradas_por_cfop:
+                entradas_por_cfop[cfop] = cfop_data
+            else:
+                entradas_por_cfop[cfop]["valor_total"] += valor_total
+                entradas_por_cfop[cfop]["bc_icms"] += bc_icms
+                entradas_por_cfop[cfop]["valor_icms"] += valor_icms
+                entradas_por_cfop[cfop]["valor_icms_st"] += valor_icms_st
+                entradas_por_cfop[cfop]["qtd_itens"] += qtd
+        else:
+            total_saidas += valor_total
+            debito_icms += valor_icms
+            icms_st_saidas += valor_icms_st
+            
+            if cfop not in saidas_por_cfop:
+                saidas_por_cfop[cfop] = cfop_data
+            else:
+                saidas_por_cfop[cfop]["valor_total"] += valor_total
+                saidas_por_cfop[cfop]["bc_icms"] += bc_icms
+                saidas_por_cfop[cfop]["valor_icms"] += valor_icms
+                saidas_por_cfop[cfop]["valor_icms_st"] += valor_icms_st
+                saidas_por_cfop[cfop]["qtd_itens"] += qtd
+    
+    saldo = debito_icms - credito_icms
+    
+    return {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', ''),
+            "uf": company.get('uf', ''),
+            "regime_tributario": company.get('regime_tributario', 'lucro_presumido')
+        },
+        "competencia": competencia,
+        "valores_por_documento": {
+            "total_entradas": round(total_entradas, 2),
+            "total_saidas": round(total_saidas, 2)
+        },
+        "entradas": {
+            "por_cfop": list(entradas_por_cfop.values()),
+            "totais": {
+                "valor_total": round(total_entradas, 2),
+                "valor_total_por_documento": round(total_entradas, 2),
+                "bc_icms": round(sum(c.get('bc_icms', 0) for c in entradas_por_cfop.values()), 2),
+                "valor_icms": round(credito_icms + icms_despesa_desc + icms_st_desc, 2),
+                "valor_icms_st": round(sum(c.get('valor_icms_st', 0) for c in entradas_por_cfop.values()), 2),
+                "qtd_documentos": total_docs // 2,
+                "qtd_itens": sum(c.get('qtd_itens', 0) for c in entradas_por_cfop.values())
+            }
+        },
+        "saidas": {
+            "por_cfop": list(saidas_por_cfop.values()),
+            "totais": {
+                "valor_total": round(total_saidas, 2),
+                "valor_total_por_documento": round(total_saidas, 2),
+                "bc_icms": round(sum(c.get('bc_icms', 0) for c in saidas_por_cfop.values()), 2),
+                "valor_icms": round(debito_icms, 2),
+                "valor_icms_st": round(icms_st_saidas, 2),
+                "qtd_documentos": total_docs // 2,
+                "qtd_itens": sum(c.get('qtd_itens', 0) for c in saidas_por_cfop.values())
+            }
+        },
+        "top_10": {
+            "produtos_credito": [],
+            "produtos_debito": [],
+            "ncms_credito": [],
+            "ncms_debito": []
+        },
+        "apuracao": {
+            "credito_icms": round(credito_icms, 2),
+            "debito_icms": round(debito_icms, 2),
+            "credito_presumido_icms": 0,
+            "credito_presumido_percent": 0,
+            "is_transportadora": False,
+            "saldo": round(saldo, 2),
+            "situacao": "A_PAGAR" if saldo > 0 else "A_RECUPERAR" if saldo < 0 else "ZERADO"
+        },
+        "icms_st": {
+            "saidas": {"por_cfop": [], "total_bc": 0, "total_icms_st": round(icms_st_saidas, 2)},
+            "devolucoes": {"por_cfop": [], "total_bc": 0, "total_icms_st": 0},
+            "apuracao": {
+                "icms_st_gerado": round(icms_st_saidas, 2),
+                "icms_st_devolucoes": 0,
+                "icms_st_a_recolher": round(icms_st_saidas, 2),
+                "situacao": "A_PAGAR" if icms_st_saidas > 0 else "ZERADO"
+            }
+        },
+        "flags": {
+            "desconsiderar_icms_despesas": desconsiderar_despesas,
+            "desconsiderar_icms_st": desconsiderar_st,
+            "cfops_despesa": cfops_despesa,
+            "cfops_st": cfops_st
+        },
+        "desconsiderados": {
+            "despesas": {"bc_icms": 0, "valor_icms": round(icms_despesa_desc, 2), "qtd_itens": 0},
+            "st": {"bc_icms": 0, "valor_icms": round(icms_st_desc, 2), "qtd_itens": 0},
+            "beneficio_fiscal": {"bc_icms": 0, "valor_icms": 0, "qtd_itens": 0, "produtos": []},
+            "total_icms_desconsiderado": round(icms_despesa_desc + icms_st_desc, 2)
+        },
+        "_agregado": True,
+        "_total_docs": total_docs,
+        "_alerta": f"Apuração simplificada: {total_docs} documentos processados via agregação"
+    }
+
 @api_router.get("/apuracao-icms/{company_id}")
 async def apurar_icms(
     company_id: str,
