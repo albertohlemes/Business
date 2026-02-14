@@ -19121,17 +19121,15 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
             ]
             is_st = is_st_by_cfop or str(product.get('cst', '')) in ['10', '30', '60', '70', '201', '202', '203', '500']
             
-            if tipo_atividade == 'servicos':
-                results[p_id] = {
-                    "categoria": "aplicacao_servico",
-                    "cfop": cfop_prefix + '128' if not is_st else cfop_prefix + '401',
-                    "justificativa": "Auto: Aplicação em serviços (empresa de serviços)"
-                }
-            else:
-                results[p_id] = {
-                    "categoria": "revenda",
-                    "cfop": (cfop_prefix + '403') if is_st else (cfop_prefix + '102'),
-                    "justificativa": "Auto: Compra para revenda (padrão comercial)"
+            # Usar função utilitária para obter categoria padrão
+            categoria_padrao, cfop_sufixo_normal, cfop_sufixo_st = obter_categoria_padrao_por_atividade(tipo_atividade)
+            cfop_padrao = cfop_prefix + (cfop_sufixo_st if is_st else cfop_sufixo_normal)
+            
+            results[p_id] = {
+                "categoria": categoria_padrao,
+                "cfop": cfop_padrao,
+                "justificativa": f"Auto: {categoria_padrao.upper()} (tipo atividade: {tipo_atividade})"
+            }
                 }
             stats["from_rules"] += 1
     
