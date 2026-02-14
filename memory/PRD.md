@@ -189,6 +189,10 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 
 ## Bugs Pendentes
 
+### ~~P0 - Site caindo ao navegar para menus~~ ✅ CORRIGIDO
+- ~~Sistema travava ao acessar páginas de PIS/COFINS, ICMS, Indicadores com grandes volumes~~
+- **CORRIGIDO em 14/02/2026** - Implementada otimização global com agregação MongoDB
+
 ### P1 - Problema de Deploy
 - Atualizações não aparecem em produção
 - Usuário testa em produção, correções estão no preview
@@ -198,16 +202,15 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 - Bug recorrente na alocação de competência fiscal
 - Verificar campo de data usado (`dhEmi` vs `dhSaiEnt`)
 
-### P1 - Barra de progresso de upload trava para empresa Sungroup
-- ~~Precisa investigar caso específico~~ **CORRIGIDO em 14/02/2026** - Melhorado polling de fallback com detecção de erros e stale progress
+### ~~P1 - Barra de progresso de upload trava para empresa Sungroup~~ ✅ CORRIGIDO
+- ~~Precisa investigar caso específico~~
+- **CORRIGIDO em 14/02/2026** - Melhorado polling de fallback com detecção de erros e stale progress
 
 ### P2 - Discrepância Dashboard vs SPED
 - Valores totais não batem entre dashboard e registro E110
 
 ### P2 - Botão de Login travado
 - Botão fica em "Processando..." indefinidamente
-
-### P2 - Botão de Login fica travado em "Processando..."
 - Comportamento intermitente
 
 ## Credenciais de Teste
