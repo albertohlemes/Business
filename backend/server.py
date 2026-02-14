@@ -33210,6 +33210,110 @@ class ConfigReformaTributariaModel(BaseModel):
     aliquota_ibs: float = 17.70
 
 
+# ============================================================
+# REFORMA TRIBUTÁRIA (IVA Dual - CBS + IBS)
+# ============================================================
+
+async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, competencia: str, config, total_docs: int):
+    """
+    Versão otimizada do cálculo de Reforma Tributária usando agregação do MongoDB.
+    Usada quando há mais de 10000 documentos para evitar timeout.
+    """
+    logger.info(f"REFORMA TRIBUTÁRIA AGREGADO: Iniciando para {total_docs} documentos")
+    
+    aliquota_cbs = float(config.aliquota_cbs) / 100
+    aliquota_ibs = float(config.aliquota_ibs) / 100
+    
+    # Pipeline de agregação para somar valores por tipo
+    pipeline = [
+        {
+            "$match": {
+                "company_id": company_id,
+                "competencia": competencia,
+                "desconsiderada_devolucao": {"$ne": True}
+            }
+        },
+        {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
+        {
+            "$group": {
+                "_id": "$tipo",
+                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                "qtd_produtos": {"$sum": 1}
+            }
+        }
+    ]
+    
+    cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
+    resultados = await cursor.to_list(length=10)
+    
+    # Processar resultados
+    total_entradas = 0
+    total_saidas = 0
+    qtd_prod_entradas = 0
+    qtd_prod_saidas = 0
+    
+    for item in resultados:
+        tipo = item['_id'] or ''
+        if tipo == 'entrada':
+            total_entradas = item['valor_total']
+            qtd_prod_entradas = item['qtd_produtos']
+        elif tipo == 'saida':
+            total_saidas = item['valor_total']
+            qtd_prod_saidas = item['qtd_produtos']
+    
+    # Calcular impostos
+    credito_cbs = total_entradas * aliquota_cbs
+    credito_ibs = total_entradas * aliquota_ibs
+    credito_total = credito_cbs + credito_ibs
+    
+    debito_cbs = total_saidas * aliquota_cbs
+    debito_ibs = total_saidas * aliquota_ibs
+    debito_total = debito_cbs + debito_ibs
+    
+    saldo_cbs = debito_cbs - credito_cbs
+    saldo_ibs = debito_ibs - credito_ibs
+    saldo_total = debito_total - credito_total
+    
+    return {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', '')
+        },
+        "competencia": competencia,
+        "configuracao": {
+            "aliquota_cbs": float(config.aliquota_cbs),
+            "aliquota_ibs": float(config.aliquota_ibs)
+        },
+        "resumo": {
+            "creditos": {
+                "cbs": round(credito_cbs, 2),
+                "ibs": round(credito_ibs, 2),
+                "total": round(credito_total, 2),
+                "qtd_itens": qtd_prod_entradas,
+                "valor_base": round(total_entradas, 2)
+            },
+            "debitos": {
+                "cbs": round(debito_cbs, 2),
+                "ibs": round(debito_ibs, 2),
+                "total": round(debito_total, 2),
+                "qtd_itens": qtd_prod_saidas,
+                "valor_base": round(total_saidas, 2)
+            },
+            "saldo": {
+                "cbs": round(saldo_cbs, 2),
+                "ibs": round(saldo_ibs, 2),
+                "total": round(saldo_total, 2),
+                "situacao": "A_PAGAR" if saldo_total > 0 else "A_RECUPERAR" if saldo_total < 0 else "ZERADO"
+            }
+        },
+        "detalhes_entradas": [],
+        "detalhes_saidas": [],
+        "_agregado": True,
+        "_total_docs": total_docs,
+        "_alerta": f"Apuração simplificada: {total_docs} documentos processados via agregação"
+    }
+
 @api_router.get("/reforma-tributaria/config/{company_id}")
 async def get_config_reforma_tributaria(
     company_id: str,
