@@ -32544,7 +32544,15 @@ async def get_apuracao_reforma_tributaria(
         regime_atual['pis'] = resumo.get('pis_a_recolher', 0) or 0
         regime_atual['cofins'] = resumo.get('cofins_a_recolher', 0) or 0
         regime_atual['pis_cofins'] = regime_atual['pis'] + regime_atual['cofins']
-        regime_atual['icms'] = resumo.get('icms_a_recolher', 0) or 0
+        
+        # ICMS: tentar vários campos possíveis
+        icms_valor = (
+            resumo.get('icms_a_recolher') or 
+            resumo.get('saldo_icms') or 
+            resumo.get('icms_a_pagar') or
+            max(0, (resumo.get('debito_icms', 0) or 0) - (resumo.get('credito_icms', 0) or 0))
+        )
+        regime_atual['icms'] = float(icms_valor) if icms_valor else 0
         regime_atual['total'] = regime_atual['pis_cofins'] + regime_atual['icms']
     else:
         # Calcular PIS/COFINS e ICMS baseado nos XMLs
