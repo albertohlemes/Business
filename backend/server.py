@@ -5612,6 +5612,9 @@ async def upload_xml_batch(
     
     # CFOPs de operações distintas que precisam de alerta
     CFOPS_OPERACOES_DISTINTAS_UPLOAD = {
+        '5106': 'Venda de mercadoria que não transita pelo estabelecimento',
+        '5906': 'Retorno de mercadoria depositada em depósito fechado/armazém',
+        '5907': 'Retorno simbólico de mercadoria depositada',
         '5910': 'Remessa em bonificação',
         '5911': 'Remessa de amostra grátis',
         '5912': 'Remessa de mercadoria para demonstração',
@@ -5637,6 +5640,9 @@ async def upload_xml_batch(
         '5210': 'Devolução de compra para industrialização',
         '5122': 'Venda com entrega futura',
         '5123': 'Venda de mercadoria em consignação mercantil',
+        '6106': 'Venda de mercadoria que não transita pelo estabelecimento (interestadual)',
+        '6906': 'Retorno de mercadoria depositada em depósito (interestadual)',
+        '6907': 'Retorno simbólico de mercadoria depositada (interestadual)',
         '6910': 'Remessa em bonificação (interestadual)',
         '6911': 'Remessa de amostra grátis (interestadual)',
         '6912': 'Remessa para demonstração (interestadual)',
