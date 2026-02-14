@@ -260,7 +260,7 @@ const NfseCancellationModal = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowReportOption(!showReportOption)}
-                    className="px-3 py-1.5 text-sm text-purple-300 bg-purple-500/10 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 flex items-center gap-2"
+                    className="px-3 py-1.5 text-sm text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 rounded-lg hover:bg-cyan-500/20 flex items-center gap-2"
                   >
                     <FileSpreadsheet className="w-4 h-4" />
                     Importar Relatório
@@ -277,11 +277,11 @@ const NfseCancellationModal = ({
 
               {/* Upload de relatório */}
               {showReportOption && (
-                <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-                  <p className="text-sm text-purple-300 mb-2">
+                <div className="p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+                  <p className="text-sm text-cyan-300 mb-2">
                     Faça upload de um arquivo Excel, CSV ou TXT contendo os números das notas canceladas:
                   </p>
-                  <label className="flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg cursor-pointer hover:bg-purple-700 transition-all">
+                  <label className="flex items-center justify-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg cursor-pointer hover:bg-cyan-700 transition-all">
                     {uploadingReport ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
