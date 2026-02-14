@@ -107,6 +107,26 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 ## Bugs Corrigidos
 
 ### Sessão Atual (Fevereiro/2026)
+15. ✅ **CORREÇÃO CRÍTICA - Dashboard travando com 14.000+ documentos**:
+    - **Problema**: Ao clicar no menu Dashboard, o sistema caía quando havia muitos documentos (ex: 14.000 cupons da Republic)
+    - **Causa Raiz**: O endpoint `/api/dashboard/stats` carregava todos os documentos e seus produtos na memória, iterando em Python por cada produto para calcular estatísticas
+    - **Correção**: 
+      - Implementada função `_get_dashboard_stats_aggregated` usando agregação do MongoDB
+      - Para volumes > 5.000 documentos, os cálculos são feitos diretamente no banco de dados
+      - Tempo de resposta: de timeout para ~1 segundo
+    - **Arquivos Modificados**: `/app/backend/server.py`
+    - **Verificação**: Testado com empresa Republic (14.700 docs) - resposta em 1 segundo
+
+16. ✅ **CORREÇÃO - Histórico de importações inconsistente**:
+    - **Problema**: Os dados do card de histórico de importação não batiam com o relatório exibido ao término de cada importação
+    - **Causa Raiz**: A estrutura de dados `progress["results"]` nem sempre continha os campos esperados no momento do salvamento
+    - **Correção**:
+      - Adicionada lógica de fallback para calcular totais a partir das listas (`success`, `errors`, `duplicadas`) quando o `resumo` estiver incompleto
+      - Adicionado campo `tipo_operacao` para compatibilidade com frontend
+      - Melhorados os logs de debug
+    - **Arquivos Modificados**: `/app/backend/server.py`
+    - **Observação**: Importações anteriores podem ter dados inconsistentes, mas novas importações serão salvas corretamente
+
 14. ✅ **CORREÇÃO CRÍTICA - SPED com destaque de ICMS incorreto em Despesas e ST**:
     - **Problema**: Ao gerar o SPED Fiscal, as despesas e notas de ST estavam sendo geradas com destaque de ICMS mesmo com as opções marcadas para excluí-los
     - **Causa Raiz**: Frontend (`ExportSPED.js`) enviava parâmetros com nomes incorretos (`zerarIcmsSt`, `incluirDespesas`) que não correspondiam aos nomes esperados pelo backend (`excluir_creditos_despesa_st`, `aplicar_beneficio_fiscal`)
