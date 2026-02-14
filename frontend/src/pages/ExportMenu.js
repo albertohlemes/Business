@@ -409,7 +409,7 @@ const ExportMenu = ({ user, onLogout }) => {
                     <option value="">Selecione uma empresa</option>
                     {companies.map((company) => (
                       <option key={company.id} value={company.id}>
-                        {company.razao_social} ({company.cnpj})
+                        #{company.codigo || '0000'} - {company.razao_social} ({company.cnpj})
                       </option>
                     ))}
                   </select>
