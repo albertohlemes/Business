@@ -22148,6 +22148,118 @@ async def apurar_ipi(
 # APURAÇÃO DE PIS/COFINS
 # ============================================================
 
+async def _get_pis_cofins_aggregated(company: dict, company_id: str, competencia: str, query: dict, total_docs: int):
+    """
+    Versão otimizada da apuração PIS/COFINS usando agregação do MongoDB.
+    Usada quando há mais de 10000 documentos para evitar timeout.
+    """
+    logger.info(f"PIS/COFINS AGREGADO: Iniciando para {total_docs} documentos")
+    
+    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
+    perfil_empresa = company.get('perfil_comercial', 'VAREJO')
+    cnaes_empresa = company.get('cnaes', [])
+    
+    # Pipeline de agregação para calcular totais de PIS/COFINS por tipo
+    pipeline = [
+        {"$match": query},
+        {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
+        {
+            "$group": {
+                "_id": {
+                    "tipo": {"$ifNull": ["$tipo", "$tipo_operacao"]}
+                },
+                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_pis", 0]}}},
+                "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_cofins", 0]}}},
+                "bc_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_bc_pis", 0]}}},
+                "bc_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_bc_cofins", 0]}}},
+                "qtd_produtos": {"$sum": 1}
+            }
+        }
+    ]
+    
+    # Executar agregação
+    cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
+    resultados_agregados = await cursor.to_list(length=10)
+    
+    # Processar resultados
+    credito_pis = 0
+    credito_cofins = 0
+    debito_pis = 0
+    debito_cofins = 0
+    total_entradas = 0
+    total_saidas = 0
+    
+    for item in resultados_agregados:
+        tipo = item['_id'].get('tipo', '') or ''
+        if tipo == 'entrada':
+            total_entradas = item['valor_total']
+            # No lucro real, usar alíquotas não-cumulativas
+            if regime_tributario == 'lucro_real':
+                credito_pis = total_entradas * 0.0165  # 1.65%
+                credito_cofins = total_entradas * 0.076  # 7.6%
+            else:
+                credito_pis = item.get('valor_pis', 0)
+                credito_cofins = item.get('valor_cofins', 0)
+        elif tipo == 'saida':
+            total_saidas = item['valor_total']
+            # No lucro real, usar alíquotas não-cumulativas
+            if regime_tributario == 'lucro_real':
+                debito_pis = total_saidas * 0.0165
+                debito_cofins = total_saidas * 0.076
+            else:
+                # Lucro presumido: cumulativo
+                debito_pis = total_saidas * 0.0065  # 0.65%
+                debito_cofins = total_saidas * 0.03  # 3%
+    
+    # Calcular saldos
+    saldo_pis = debito_pis - credito_pis
+    saldo_cofins = debito_cofins - credito_cofins
+    
+    # Também calcular para lucro presumido para comparação
+    debito_pis_presumido = total_saidas * 0.0065
+    debito_cofins_presumido = total_saidas * 0.03
+    
+    resultado = {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', ''),
+            "regime_tributario": regime_tributario,
+            "perfil_comercial": perfil_empresa,
+            "cnaes": cnaes_empresa
+        },
+        "competencia": competencia,
+        "lucro_real": {
+            "creditos": {"pis": round(credito_pis, 2), "cofins": round(credito_cofins, 2), "total": round(credito_pis + credito_cofins, 2)},
+            "debitos_comercio": {"pis": round(debito_pis, 2), "cofins": round(debito_cofins, 2), "total": round(debito_pis + debito_cofins, 2)},
+            "debitos_servicos": {"pis": 0, "cofins": 0, "total": 0},
+            "debitos_total": {"pis": round(debito_pis, 2), "cofins": round(debito_cofins, 2), "total": round(debito_pis + debito_cofins, 2)},
+            "saldo": {"pis": round(saldo_pis, 2), "cofins": round(saldo_cofins, 2), "total": round(saldo_pis + saldo_cofins, 2)},
+            "imposto_a_pagar": {"pis": round(max(0, saldo_pis), 2), "cofins": round(max(0, saldo_cofins), 2), "total": round(max(0, saldo_pis + saldo_cofins), 2)}
+        },
+        "lucro_presumido": {
+            "creditos": {"pis": 0, "cofins": 0, "total": 0},
+            "debitos_comercio": {"pis": round(debito_pis_presumido, 2), "cofins": round(debito_cofins_presumido, 2), "total": round(debito_pis_presumido + debito_cofins_presumido, 2)},
+            "debitos_servicos": {"pis": 0, "cofins": 0, "total": 0},
+            "debitos_total": {"pis": round(debito_pis_presumido, 2), "cofins": round(debito_cofins_presumido, 2), "total": round(debito_pis_presumido + debito_cofins_presumido, 2)},
+            "saldo": {"pis": round(debito_pis_presumido, 2), "cofins": round(debito_cofins_presumido, 2), "total": round(debito_pis_presumido + debito_cofins_presumido, 2)},
+            "imposto_a_pagar": {"pis": round(debito_pis_presumido, 2), "cofins": round(debito_cofins_presumido, 2), "total": round(debito_pis_presumido + debito_cofins_presumido, 2)}
+        },
+        "comparativo": {
+            "regime_mais_economico": "LUCRO_REAL" if (saldo_pis + saldo_cofins) < (debito_pis_presumido + debito_cofins_presumido) else "LUCRO_PRESUMIDO",
+            "economia": round(abs((saldo_pis + saldo_cofins) - (debito_pis_presumido + debito_cofins_presumido)), 2)
+        },
+        "divergencias": [],
+        "alertas": [{"tipo": "INFO", "mensagem": f"Apuração simplificada: {total_docs} documentos processados via agregação"}],
+        "detalhamento": {"entradas": [], "saidas": []},
+        "por_cfop_cst": [],
+        "top_10": {"produtos_credito": [], "produtos_debito": [], "ncms_credito": [], "ncms_debito": []},
+        "resumo_divergencias": {"total_divergencias": 0, "recolhido_a_maior": 0, "recolhido_a_menor": 0, "saldo_reclassificacao": 0}
+    }
+    
+    return resultado
+
 @api_router.get("/pis-cofins/apuracao/{company_id}")
 async def apurar_pis_cofins(
     company_id: str,
