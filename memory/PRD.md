@@ -186,6 +186,28 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 
 ## Changelog
 
+### Fevereiro/2026 (Sessão 14/02 - P0 Bugs Fix)
+- ✅ **CORREÇÃO P0 - Relatório do Wizard**: Corrigida geração de dados para incluir TODAS as etapas (1-7)
+  - Corrigido step_name de 'classificacao' para 'classificacao_cfop' na busca de dados da Etapa 4
+  - Relatório agora mostra etapas mesmo quando não há dados (com mensagem informativa)
+  - Etapa 7 (Reforma Tributária) adicionada ao relatório
+  - PDF agora renderiza todas as etapas em sequência
+- ✅ **CORREÇÃO P0 - Menu ICMS ST**: Confirmado funcionando corretamente
+  - Aba ICMS ST exibe mensagem "Sem Movimentação de ICMS ST" quando não há dados
+  - Navegação entre abas ICMS Próprio e ICMS ST funcionando
+- ✅ **NOVO - Reclassificação com IA (Hierarquia de 6 Regras)**:
+  - **Modal de Confirmação**: Ao clicar em "Classificar Produtos com IA", modal pergunta se usuário deseja reclassificar
+  - **Hierarquia de 6 Regras** implementada no backend:
+    1. CFOP de Devolução (automático)
+    2. Cache de Regras Aprendidas (learned_rules)
+    3. Aprendizado por NCM (match com vendas)
+    4. Aprendizado por Palavras-Chave (match com vendas)
+    5. Palavras-Chave Cadastradas pela Empresa
+    6. Classificação por IA (Gemini) como último recurso
+  - Estatísticas detalhadas de classificação por fonte
+  - Parâmetro `forcar_reclassificacao` para reclassificar produtos já classificados
+- ✅ **NOVO - Função `calcular_cfop_por_categoria()`**: Calcula CFOP adequado baseado na categoria e UF
+
 ### Fevereiro/2026 (Sessão Atual - 14/02)
 - ✅ **CORREÇÃO P0**: Bug da barra de progresso do upload que travava
   - Melhorado `UploadContext.js` com polling mais robusto:
