@@ -2705,7 +2705,19 @@ def generate_sped_fiscal(
     lines = []
     
     # CFOPs de Substituição Tributária (não dão direito a crédito de ICMS)
-    CFOPS_ST_SPED = ['1403', '1409', '2403', '2409', '3403', '3409', '5403', '5405', '5409', '6403', '6404', '6409']
+    CFOPS_ST_SPED = [
+        '1401', '2401', '3401',  # Compra para industrialização com ST
+        '1403', '2403', '3403',  # Compra para comercialização com ST
+        '1405', '2405',  # Compra de bens sujeitos a ST
+        '1407', '2407',  # Compra para uso/consumo com ST
+        '1408', '2408',  # Transferência para industrialização com ST
+        '1409', '2409', '3409',  # Transferência para comercialização com ST
+        '1410', '2410',  # Devolução de venda com ST
+        '1411', '2411',  # Devolução com ST
+        '1414', '2414',  # Retorno de produto industrializado com ST
+        '1415', '2415',  # Retorno de mercadoria com ST
+        '5403', '5405', '5409', '6403', '6404', '6409'  # Saídas com ST
+    ]
     
     # CFOPs de Despesa/Uso e Consumo (não dão direito a crédito de ICMS)
     CFOPS_DESPESA_SPED = [
@@ -2714,10 +2726,14 @@ def generate_sped_fiscal(
         '1557', '2557',  # Transferência para uso/consumo
         '1128', '2128',  # Compra para ativo imobilizado
         '1551', '2551',  # Compra ativo imobilizado
+        '1552', '2552',  # Transferência de ativo imobilizado
         '1553', '2553',  # Devolução de venda ativo imobilizado
         '1554', '2554',  # Retorno de remessa ativo imobilizado
         '1406', '2406',  # Compra energia elétrica para uso/consumo
         '1408', '2408',  # Transferência energia elétrica
+        '1126', '2126',  # Compra para utilização na prestação de serviço
+        '1653', '2653',  # Compra de energia elétrica para consumo
+        '1932', '2932', '1933', '2933', '1949', '2949',  # Outras despesas
     ]
     
     # Combinar todos os CFOPs sem direito a crédito de ICMS
