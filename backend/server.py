@@ -7841,72 +7841,109 @@ async def upload_xml_with_progress(
             # Verificar se deve pular classificação IA (modo rápido)
             skip_ai = progress.get("skip_ai", False)
             
-            if produtos_para_classificar and tipo == 'entrada' and not skip_ai:
-                progress["current_step"] = f"Classificando produtos de {file.filename}..."
-                
-                classifications, stats = await classify_products_with_cache(
-                    produtos_para_classificar, 
-                    company_id, 
-                    company, 
-                    emitente_uf
-                )
-                
-                total_stats["from_cache"] += stats.get("from_cache", 0)
-                total_stats["from_rules"] += stats.get("from_rules", 0)
-                total_stats["from_ai"] += stats.get("from_ai", 0)
-                total_stats["total"] += stats.get("total", 0)
-                
-                for idx, product in enumerate(produtos_para_classificar):
-                    p_id = str(idx)
-                    if p_id in classifications:
-                        result = classifications[p_id]
-                        cfop_original = product.get('cfop', '')
-                        cfop_novo = result['cfop']
-                        
-                        product['cfop_original'] = cfop_original
-                        product['cfop'] = cfop_novo
-                        product['cfop_sugerido'] = cfop_novo
-                        product['categoria_classificada'] = result['categoria']
-                        product['justificativa_ia'] = result['justificativa']
-                        
-                        origem = "cache" if "Memorizado" in result['justificativa'] else ("regra" if "cadastrado" in result['justificativa'].lower() else "ia")
-                        
-                        file_conversions.append({
-                            'produto': product.get('descricao', ''),
-                            'codigo': product.get('codigo', ''),
-                            'cfop_original': cfop_original,
-                            'cfop_convertido': cfop_novo,
-                            'categoria': result['categoria'],
-                            'motivo': result['justificativa'],
-                            'origem': origem
-                        })
-                    else:
-                        # FALLBACK: Classificação padrão como REVENDA
+            if produtos_para_classificar and tipo == 'entrada':
+                if not skip_ai:
+                    # MODO COM IA: Usar classificação inteligente
+                    progress["current_step"] = f"Classificando produtos de {file.filename}..."
+                    
+                    classifications, stats = await classify_products_with_cache(
+                        produtos_para_classificar, 
+                        company_id, 
+                        company, 
+                        emitente_uf
+                    )
+                    
+                    total_stats["from_cache"] += stats.get("from_cache", 0)
+                    total_stats["from_rules"] += stats.get("from_rules", 0)
+                    total_stats["from_ai"] += stats.get("from_ai", 0)
+                    total_stats["total"] += stats.get("total", 0)
+                    
+                    for idx, product in enumerate(produtos_para_classificar):
+                        p_id = str(idx)
+                        if p_id in classifications:
+                            result = classifications[p_id]
+                            cfop_original = product.get('cfop', '')
+                            cfop_novo = result['cfop']
+                            
+                            product['cfop_original'] = cfop_original
+                            product['cfop'] = cfop_novo
+                            product['cfop_sugerido'] = cfop_novo
+                            product['categoria_classificada'] = result['categoria']
+                            product['justificativa_ia'] = result['justificativa']
+                            
+                            origem = "cache" if "Memorizado" in result['justificativa'] else ("regra" if "cadastrado" in result['justificativa'].lower() else "ia")
+                            
+                            file_conversions.append({
+                                'produto': product.get('descricao', ''),
+                                'codigo': product.get('codigo', ''),
+                                'cfop_original': cfop_original,
+                                'cfop_convertido': cfop_novo,
+                                'categoria': result['categoria'],
+                                'motivo': result['justificativa'],
+                                'origem': origem
+                            })
+                        else:
+                            # FALLBACK COM IA: Usar categoria padrão por tipo de atividade
+                            cfop_original = product.get('cfop', '')
+                            cst = product.get('cst', '')
+                            cfops_st_originais = ['5403', '5405', '5408', '5409', '5410', '5411', '5412', '5413', '5414', '5415',
+                                                  '6403', '6404', '6405', '6408', '6409', '6410', '6411', '6412', '6413', '6414', '6415']
+                            is_st_by_cfop = cfop_original in cfops_st_originais
+                            is_st = is_st_by_cfop or cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+                            cfop_prefix = '2' if (emitente_uf and emitente_uf != uf_empresa) else '1'
+                            
+                            # Usar categoria padrão baseada no tipo de atividade
+                            tipo_atividade = company.get('tipo_atividade', 'comercio')
+                            categoria_padrao, cfop_sufixo_normal, cfop_sufixo_st = obter_categoria_padrao_por_atividade(tipo_atividade)
+                            cfop_novo = cfop_prefix + (cfop_sufixo_st if is_st else cfop_sufixo_normal)
+                            
+                            product['cfop_original'] = cfop_original
+                            product['cfop'] = cfop_novo
+                            product['cfop_sugerido'] = cfop_novo
+                            product['categoria_classificada'] = categoria_padrao
+                            product['justificativa_ia'] = f'Classificação padrão: {categoria_padrao.upper()} (tipo atividade: {tipo_atividade})'
+                            
+                            file_conversions.append({
+                                'produto': product.get('descricao', ''),
+                                'codigo': product.get('codigo', ''),
+                                'cfop_original': cfop_original,
+                                'cfop_convertido': cfop_novo,
+                                'categoria': categoria_padrao,
+                                'motivo': f'Classificação padrão ({categoria_padrao.upper()})',
+                                'origem': 'fallback'
+                            })
+                else:
+                    # MODO SEM IA (RÁPIDO): Aplicar classificação padrão baseada no tipo de atividade
+                    progress["current_step"] = f"Classificando produtos de {file.filename} (modo rápido)..."
+                    tipo_atividade = company.get('tipo_atividade', 'comercio')
+                    categoria_padrao, cfop_sufixo_normal, cfop_sufixo_st = obter_categoria_padrao_por_atividade(tipo_atividade)
+                    
+                    for product in produtos_para_classificar:
                         cfop_original = product.get('cfop', '')
                         cst = product.get('cst', '')
-                        # IMPORTANTE: Verificar ST tanto pelo CST quanto pelo CFOP original
                         cfops_st_originais = ['5403', '5405', '5408', '5409', '5410', '5411', '5412', '5413', '5414', '5415',
                                               '6403', '6404', '6405', '6408', '6409', '6410', '6411', '6412', '6413', '6414', '6415']
                         is_st_by_cfop = cfop_original in cfops_st_originais
                         is_st = is_st_by_cfop or cst in ['10', '30', '60', '70', '201', '202', '203', '500']
                         cfop_prefix = '2' if (emitente_uf and emitente_uf != uf_empresa) else '1'
-                        cfop_novo = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
+                        cfop_novo = cfop_prefix + (cfop_sufixo_st if is_st else cfop_sufixo_normal)
                         
                         product['cfop_original'] = cfop_original
                         product['cfop'] = cfop_novo
                         product['cfop_sugerido'] = cfop_novo
-                        product['categoria_classificada'] = 'revenda'
-                        product['justificativa_ia'] = 'Classificação padrão: REVENDA'
+                        product['categoria_classificada'] = categoria_padrao
+                        product['justificativa_ia'] = f'Classificação padrão: {categoria_padrao.upper()} (modo rápido, tipo atividade: {tipo_atividade})'
                         
                         file_conversions.append({
                             'produto': product.get('descricao', ''),
                             'codigo': product.get('codigo', ''),
                             'cfop_original': cfop_original,
                             'cfop_convertido': cfop_novo,
-                            'categoria': 'revenda',
-                            'motivo': 'Classificação padrão (REVENDA)',
-                            'origem': 'fallback'
+                            'categoria': categoria_padrao,
+                            'motivo': f'Classificação padrão ({categoria_padrao.upper()} - modo rápido)',
+                            'origem': 'fallback_rapido'
                         })
+                        total_stats["total"] += 1
             
             if file_alertas_cfop:
                 alertas_cfop.append({
