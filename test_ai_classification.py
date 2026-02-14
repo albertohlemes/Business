@@ -145,7 +145,7 @@ def test_api_endpoint_availability():
     print("\n🔍 Testing API endpoint availability...")
     
     try:
-        response = requests.get("https://closing-wizard-dev.preview.emergentagent.com/api", timeout=10)
+        response = requests.get("https://query-heavy.preview.emergentagent.com/api", timeout=10)
         if response.status_code == 200:
             print("✅ API endpoint is accessible")
             return True
