@@ -21417,6 +21417,11 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
         "_total_docs": total_docs,
         "_alerta": f"Apuração simplificada: {total_docs} documentos processados via agregação"
     }
+    
+    # Salvar no cache antes de retornar
+    aggregation_cache.set("icms", company_id, competencia, resultado, config_key)
+    
+    return resultado
 
 @api_router.get("/apuracao-icms/{company_id}")
 async def apurar_icms(
