@@ -2133,7 +2133,7 @@ def parse_xml_nfce(xml_content: str) -> Dict[str, Any]:
             'emitente_endereco': emitente_endereco,
             # Dados do destinatário
             'destinatario_cnpj': dest.get('CNPJ', '') or dest.get('CPF', '') or '',
-            'destinatario_nome': dest.get('xNome', '') or 'CONSUMIDOR',
+            'destinatario_nome': dest.get('xNome', '') or '',  # Manter vazio se não houver - não substituir por genérico
             'destinatario_ie': dest.get('IE', '') if dest else '',
             'destinatario_uf': destinatario_uf,
             'destinatario_endereco': destinatario_endereco,
