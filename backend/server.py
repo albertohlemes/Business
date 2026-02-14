@@ -11470,6 +11470,92 @@ async def apuracao_pis_cofins(
         }
     }
 
+
+async def _get_apuracao_periodo_aggregated(company: dict, company_id: str, competencia: str, query: dict, total_docs: int, regime: str):
+    """
+    Versão otimizada da apuração por período usando agregação do MongoDB.
+    Usada quando há mais de 5000 documentos para evitar timeout.
+    """
+    logger.info(f"APURACAO-PERIODO AGREGADO: Iniciando para {total_docs} documentos")
+    
+    # Pipeline para agrupar por tipo de operação e CFOP
+    pipeline = [
+        {"$match": query},
+        {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
+        {
+            "$group": {
+                "_id": {
+                    "tipo": {"$ifNull": ["$tipo_operacao", {"$ifNull": ["$tipo", "entrada"]}]},
+                    "cfop": {"$ifNull": ["$produtos.cfop", "0000"]}
+                },
+                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                "bc_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.bc_icms", 0]}}},
+                "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_icms", 0]}}},
+                "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_pis", 0]}}},
+                "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_cofins", 0]}}},
+                "valor_ipi": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_ipi", 0]}}},
+                "qtd_produtos": {"$sum": 1}
+            }
+        },
+        {"$sort": {"_id.tipo": 1, "_id.cfop": 1}}
+    ]
+    
+    cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
+    resultados = await cursor.to_list(length=500)
+    
+    entradas_por_cfop = {}
+    saidas_por_cfop = {}
+    totais_entradas = {"valor_total": 0, "bc_icms": 0, "valor_icms": 0, "valor_pis": 0, "valor_cofins": 0, "valor_ipi": 0, "qtd_produtos": 0}
+    totais_saidas = {"valor_total": 0, "bc_icms": 0, "valor_icms": 0, "valor_pis": 0, "valor_cofins": 0, "valor_ipi": 0, "qtd_produtos": 0}
+    
+    for item in resultados:
+        tipo = (item['_id'].get('tipo', '') or '').lower()
+        cfop = str(item['_id'].get('cfop', '0000'))
+        
+        dados_cfop = {
+            "cfop": cfop,
+            "valor_total": round(item['valor_total'], 2),
+            "bc_icms": round(item['bc_icms'], 2),
+            "valor_icms": round(item['valor_icms'], 2),
+            "valor_pis": round(item['valor_pis'], 2),
+            "valor_cofins": round(item['valor_cofins'], 2),
+            "valor_ipi": round(item['valor_ipi'], 2),
+            "qtd_produtos": item['qtd_produtos']
+        }
+        
+        if tipo == 'entrada':
+            entradas_por_cfop[cfop] = dados_cfop
+            for k in totais_entradas:
+                if k != 'qtd_produtos':
+                    totais_entradas[k] += item.get(k.replace('valor_total', 'valor_total'), 0) if k == 'valor_total' else item.get(k, 0)
+                else:
+                    totais_entradas[k] += item.get('qtd_produtos', 0)
+        elif tipo == 'saida':
+            saidas_por_cfop[cfop] = dados_cfop
+            for k in totais_saidas:
+                if k != 'qtd_produtos':
+                    totais_saidas[k] += item.get(k.replace('valor_total', 'valor_total'), 0) if k == 'valor_total' else item.get(k, 0)
+                else:
+                    totais_saidas[k] += item.get('qtd_produtos', 0)
+    
+    return {
+        "empresa": {"razao_social": company.get('razao_social', ''), "cnpj": company.get('cnpj', ''), "regime": regime},
+        "competencia": competencia,
+        "entradas": {
+            "por_cfop": list(entradas_por_cfop.values())[:50],
+            "totais": {k: round(v, 2) if isinstance(v, float) else v for k, v in totais_entradas.items()}
+        },
+        "saidas": {
+            "por_cfop": list(saidas_por_cfop.values())[:50],
+            "totais": {k: round(v, 2) if isinstance(v, float) else v for k, v in totais_saidas.items()}
+        },
+        "alertas": [{"tipo": "INFO", "mensagem": f"Apuração simplificada: {total_docs} documentos via agregação"}],
+        "total_documentos": total_docs,
+        "otimizado": True
+    }
+
+
+
 @api_router.get("/apuracao-periodo/{company_id}")
 async def apuracao_periodo(
     company_id: str,
