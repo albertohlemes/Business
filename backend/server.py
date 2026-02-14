@@ -9450,6 +9450,244 @@ async def _get_simples_nacional_stats(company: dict, company_id: str, competenci
     }
 
 
+
+# ============== FUNÇÃO DE AGREGAÇÃO OTIMIZADA PARA DASHBOARD ==============
+async def _get_dashboard_stats_aggregated(company: dict, company_id: str, competencia: str, base_query: dict, total_docs: int):
+    """
+    Versão otimizada do dashboard usando agregação do MongoDB.
+    Usada quando há mais de 5000 documentos para evitar timeout.
+    """
+    logger.info(f"DASHBOARD AGREGADO: Iniciando para {total_docs} documentos")
+    
+    tipo_atividade = company.get('tipo_atividade', 'comercio')
+    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
+    
+    # Pipeline de agregação para contar e somar por tipo/modelo
+    pipeline_totais = [
+        {"$match": base_query},
+        {
+            "$group": {
+                "_id": {
+                    "tipo": {"$ifNull": ["$tipo", "$tipo_operacao"]},
+                    "modelo": {"$toLower": {"$ifNull": ["$modelo", "nfe"]}}
+                },
+                "count": {"$sum": 1},
+                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$valor_total", 0]}}},
+                "icms_total": {"$sum": {"$toDouble": {"$ifNull": ["$icms_total", 0]}}}
+            }
+        }
+    ]
+    
+    # Executar agregação de totais
+    totais_cursor = db.xml_documents.aggregate(pipeline_totais)
+    totais_raw = await totais_cursor.to_list(length=100)
+    
+    # Processar resultados da agregação
+    qtd_nfe_entrada = 0
+    qtd_nfe_saida = 0
+    qtd_nfce = 0
+    qtd_cte_entrada = 0
+    qtd_cte_saida = 0
+    qtd_nfse_tomados = 0
+    qtd_nfse_prestados = 0
+    qtd_outros_entrada = 0
+    
+    total_nfe_entrada = 0
+    total_nfe_saida = 0
+    total_nfce = 0
+    total_cte_entrada = 0
+    total_cte_saida = 0
+    total_nfse_tomados = 0
+    total_nfse_prestados = 0
+    total_outros_entrada = 0
+    
+    debito_icms = 0
+    credito_icms = 0
+    
+    MODELOS_NFE = ['nfe', 'nf-e', '55', '', 'none']
+    MODELOS_NFCE = ['nfce', 'nfc-e', '65']
+    MODELOS_CTE = ['cte', 'ct-e', '57']
+    MODELOS_NFSE = ['nfse', 'nfs-e']
+    
+    for item in totais_raw:
+        tipo = item['_id'].get('tipo', '') or ''
+        modelo = item['_id'].get('modelo', '') or 'nfe'
+        count = item['count']
+        valor = item['valor_total']
+        icms = item['icms_total']
+        
+        if tipo == 'entrada':
+            if modelo in MODELOS_NFE:
+                qtd_nfe_entrada += count
+                total_nfe_entrada += valor
+                credito_icms += icms
+            elif modelo in MODELOS_CTE:
+                qtd_cte_entrada += count
+                total_cte_entrada += valor
+            elif modelo in MODELOS_NFSE:
+                qtd_nfse_tomados += count
+                total_nfse_tomados += valor
+            else:
+                qtd_outros_entrada += count
+                total_outros_entrada += valor
+        elif tipo == 'saida':
+            if modelo in MODELOS_NFE:
+                qtd_nfe_saida += count
+                total_nfe_saida += valor
+                debito_icms += icms
+            elif modelo in MODELOS_NFCE:
+                qtd_nfce += count
+                total_nfce += valor
+                debito_icms += icms
+            elif modelo in MODELOS_CTE:
+                qtd_cte_saida += count
+                total_cte_saida += valor
+            elif modelo in MODELOS_NFSE:
+                qtd_nfse_prestados += count
+                total_nfse_prestados += valor
+    
+    # Calcular totais
+    total_entradas = total_nfe_entrada + total_cte_entrada + total_nfse_tomados + total_outros_entrada
+    
+    # Faturamento por tipo de atividade
+    if tipo_atividade == 'comercio':
+        faturamento_total = total_nfe_saida + total_nfce
+    elif tipo_atividade == 'servicos':
+        faturamento_total = total_nfse_prestados
+    elif tipo_atividade == 'industria':
+        faturamento_total = total_nfe_saida + total_nfce
+    elif tipo_atividade == 'transporte':
+        faturamento_total = total_cte_saida
+    else:  # mista
+        faturamento_total = total_nfe_saida + total_nfce + total_nfse_prestados + total_cte_saida
+    
+    # Impostos a pagar (simplificado para agregação)
+    icms_pagar = max(0, debito_icms - credito_icms)
+    
+    # Markup
+    markup_percentual = 0
+    if total_entradas > 0:
+        markup_percentual = ((faturamento_total - total_entradas) / total_entradas) * 100
+    
+    logger.info(f"DASHBOARD AGREGADO: Concluído - Faturamento={faturamento_total}, Entradas={total_entradas}")
+    
+    return {
+        "empresa": {
+            "id": company['id'],
+            "razao_social": company['razao_social'],
+            "cnpj": company['cnpj'],
+            "regime_tributario": regime_tributario,
+            "tipo_atividade": tipo_atividade,
+            "equiparado_industria": company.get('equiparado_industria', False),
+            "apura_icms": company.get('apura_icms', False),
+            "apura_icms_st": company.get('apura_icms_st', False),
+            "desconsiderar_icms_despesas": company.get('desconsiderar_icms_despesas', False),
+            "desconsiderar_icms_st": company.get('desconsiderar_icms_st', False)
+        },
+        "competencia": competencia,
+        "quantidades": {
+            "nfe_entrada": qtd_nfe_entrada,
+            "cte_entrada": qtd_cte_entrada,
+            "nfse_tomados": qtd_nfse_tomados,
+            "outros_entrada": qtd_outros_entrada,
+            "total_entradas": qtd_nfe_entrada + qtd_cte_entrada + qtd_nfse_tomados + qtd_outros_entrada,
+            "nfe_saida": qtd_nfe_saida,
+            "nfce": qtd_nfce,
+            "cte_saida": qtd_cte_saida,
+            "nfse_prestados": qtd_nfse_prestados,
+            "total_saidas": qtd_nfe_saida + qtd_nfce + qtd_cte_saida + qtd_nfse_prestados,
+            "nfse": qtd_nfse_prestados,
+            "total_documentos": total_docs
+        },
+        "validacao": {
+            "notas_validadas": 0,  # Agregação simplificada
+            "notas_pendentes": total_docs,
+            "produtos_total": 0,
+            "produtos_validados": 0
+        },
+        "valores": {
+            "entradas": {
+                "nfe": round(total_nfe_entrada, 2),
+                "cte": round(total_cte_entrada, 2),
+                "servicos_tomados": round(total_nfse_tomados, 2),
+                "outros": round(total_outros_entrada, 2),
+                "total": round(total_entradas, 2)
+            },
+            "saidas": {
+                "nfe": round(total_nfe_saida, 2),
+                "nfce": round(total_nfce, 2),
+                "cte": round(total_cte_saida, 2),
+                "servicos_prestados": round(total_nfse_prestados, 2),
+                "total": round(total_nfe_saida + total_nfce + total_cte_saida + total_nfse_prestados, 2)
+            },
+            "compras": {
+                "brutas": round(total_entradas, 2),
+                "devolucoes": 0,
+                "liquidas": round(total_entradas, 2)
+            },
+            "vendas_liquidas": {
+                "brutas": round(faturamento_total, 2),
+                "devolucoes": 0,
+                "liquidas": round(faturamento_total, 2)
+            },
+            "markup": round(markup_percentual, 2),
+            "total_entradas": round(total_entradas, 2),
+            "total_vendas": round(total_nfe_saida, 2),
+            "total_cupons": round(total_nfce, 2),
+            "total_servicos": round(total_nfse_prestados, 2),
+            "faturamento_total": round(faturamento_total, 2)
+        },
+        "creditos": {
+            "icms": round(credito_icms, 2),
+            "icms_st_desconsiderado": 0,
+            "icms_despesa_desconsiderado": 0,
+            "icms_beneficio_desconsiderado": 0,
+            "icms_total_desconsiderado": 0,
+            "produtos_beneficio_excluidos": [],
+            "total_produtos_beneficio_excluidos": 0,
+            "pis": 0,
+            "cofins": 0,
+            "base_credito": 0,
+            "total": round(credito_icms, 2)
+        },
+        "debitos": {
+            "icms": round(debito_icms, 2),
+            "pis": 0,
+            "cofins": 0,
+            "iss": 0,
+            "total": round(debito_icms, 2),
+            "base_tributada": 0,
+            "aliquota_zero": 0,
+            "monofasico": 0,
+            "cfop_sem_incidencia": 0,
+            "divergencias": None
+        },
+        "impostos_pagar": {
+            "icms": round(icms_pagar, 2),
+            "pis": 0,
+            "cofins": 0,
+            "iss": 0,
+            "total": round(icms_pagar, 2)
+        },
+        "indicadores": {
+            "markup_percentual": round(markup_percentual, 2),
+            "perc_icms_faturamento": round((icms_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+            "perc_pis_faturamento": 0,
+            "perc_cofins_faturamento": 0,
+            "perc_iss_faturamento": 0,
+            "perc_total_impostos_faturamento": round((icms_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+            "perc_icms_vendas": 0,
+            "perc_pis_vendas": 0,
+            "perc_cofins_vendas": 0
+        },
+        "analise_comparativa": None,
+        "simples": None,
+        "_modo_agregado": True,  # Flag para indicar que foi usado modo agregado
+        "_total_documentos_processados": total_docs
+    }
+
+
+
 @api_router.get("/dashboard/stats/{company_id}")
 async def get_dashboard_stats(
     company_id: str,
