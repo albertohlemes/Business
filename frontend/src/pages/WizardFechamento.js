@@ -654,6 +654,35 @@ const WizardFechamento = ({ user, onLogout }) => {
             )}
             
             <div className="space-y-2">
+              {/* Botão para classificar em lote com padrão da empresa */}
+              {(data.total_pendentes || 0) > 0 && (
+                <button
+                  onClick={async () => {
+                    setProcessing(true);
+                    try {
+                      const res = await axios.post(
+                        `${API}/wizard-fechamento/classificar-pendentes/${selectedCompany.id}?competencia=${competencia}`,
+                        {},
+                        { headers: { Authorization: `Bearer ${token}` } }
+                      );
+                      if (res.data.success) {
+                        toast.success(`${res.data.total_produtos_classificados} produtos classificados como ${res.data.categoria_aplicada.toUpperCase()}`);
+                        loadStepData(currentStep);
+                      }
+                    } catch (err) {
+                      toast.error('Erro ao classificar produtos');
+                    } finally {
+                      setProcessing(false);
+                    }
+                  }}
+                  disabled={processing}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-[#2A2A2A] text-white py-3 rounded-lg flex items-center justify-center gap-2"
+                >
+                  {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
+                  Classificar Todos com Padrão da Empresa (Rápido)
+                </button>
+              )}
+              
               <button
                 onClick={() => completeStep({ classificar_produtos: true })}
                 disabled={processing}
