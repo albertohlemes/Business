@@ -31499,33 +31499,35 @@ def generate_wizard_report_pdf(data: Dict[str, Any]) -> io.BytesIO:
     elements.append(Spacer(1, 5*mm))
     
     # Etapa 1 - Notas Canceladas
-    if data.get('etapa_1'):
-        elements.append(Paragraph("ETAPA 1 - NOTAS CANCELADAS", section_style))
-        etapa1 = data['etapa_1']
-        elements.append(Paragraph(f"Total de notas confirmadas como canceladas: {etapa1.get('total', 0)}", normal_style))
+    elements.append(Paragraph("ETAPA 1 - NOTAS CANCELADAS", section_style))
+    etapa1 = data.get('etapa_1', {})
+    total_canceladas = etapa1.get('total', 0)
+    elements.append(Paragraph(f"Total de notas confirmadas como canceladas: {total_canceladas}", normal_style))
+    
+    if etapa1.get('notas'):
+        table_data = [["NF", "Emitente", "Valor", "Data", "Ação"]]
+        for nota in etapa1['notas'][:50]:  # Limitar a 50
+            table_data.append([
+                str(nota.get('numero_nfe', '-')),
+                str(nota.get('emitente_nome', '-'))[:35],
+                f"R$ {float(nota.get('valor_total', 0) or 0):,.2f}",
+                str(nota.get('data_emissao', '-'))[:10],
+                "Confirmada Cancelada"
+            ])
         
-        if etapa1.get('notas'):
-            table_data = [["NF", "Emitente", "Valor", "Data", "Ação"]]
-            for nota in etapa1['notas'][:50]:  # Limitar a 50
-                table_data.append([
-                    nota.get('numero_nfe', '-'),
-                    nota.get('emitente_nome', '-')[:35],
-                    f"R$ {nota.get('valor_total', 0):,.2f}",
-                    nota.get('data_emissao', '-')[:10],
-                    "Confirmada Cancelada"
-                ])
-            
-            t = Table(table_data, colWidths=[50, 180, 80, 70, 100])
-            t.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('ALIGN', (2, 1), (2, -1), 'RIGHT'),
-            ]))
-            elements.append(t)
-        elements.append(Spacer(1, 3*mm))
+        t = Table(table_data, colWidths=[50, 180, 80, 70, 100])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (2, 1), (2, -1), 'RIGHT'),
+        ]))
+        elements.append(t)
+    elif total_canceladas == 0:
+        elements.append(Paragraph("Nenhuma nota cancelada encontrada.", small_style))
+    elements.append(Spacer(1, 3*mm))
     
     # Etapa 2 - Devoluções
     if data.get('etapa_2'):
