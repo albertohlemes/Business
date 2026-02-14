@@ -11903,9 +11903,25 @@ async def analise_aliquotas_saida(
         ncm_4 = ncm[:4] if ncm else ''
         return ncm_4 in NCM_ALIQ_ZERO
     
-    # Buscar apenas documentos de saída
+    # Buscar apenas documentos de saída - COM OTIMIZAÇÃO
     query = {"company_id": company_id, "competencia": competencia, "tipo": "saida"}
-    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100000)
+    query.update(get_filtro_notas_ativas())
+    
+    total_docs = await db.xml_documents.count_documents(query)
+    logger.info(f"ANALISE-ALIQUOTAS-SAIDA: Total documentos = {total_docs}")
+    
+    if total_docs > 10000:
+        return {
+            "empresa": company.get('razao_social', ''),
+            "competencia": competencia,
+            "alertas": [{"tipo": "WARNING", "mensagem": f"Volume muito grande ({total_docs} documentos). Dados limitados."}],
+            "resumo": {},
+            "por_aliquota_icms": [],
+            "por_aliquota_pis": [],
+            "por_aliquota_cofins": []
+        }
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
     alertas = []
     produtos_analisados = []
