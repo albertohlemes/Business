@@ -23321,8 +23321,14 @@ async def _get_ipi_aggregated(company: dict, company_id: str, competencia: str, 
         },
         "por_cfop_entrada": [],
         "por_cfop_saida": [],
-        "top_10_credito": [],
-        "top_10_debito": [],
+        "top_10_credito": top_ncms_credito,
+        "top_10_debito": top_ncms_debito,
+        "top_10": {
+            "produtos_credito": [],
+            "produtos_debito": [],
+            "ncms_credito": top_ncms_credito,
+            "ncms_debito": top_ncms_debito
+        },
         "alertas": [{"tipo": "INFO", "mensagem": f"Apuração simplificada: {total_docs} documentos via agregação"}],
         "total_documentos": total_docs,
         "otimizado": True
