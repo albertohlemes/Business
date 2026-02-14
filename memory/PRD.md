@@ -240,6 +240,27 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 
 ## Changelog
 
+### Fevereiro/2026 (Sessão 14/02 - ALERTAS DE VARIAÇÃO)
+- ✅ **NOVA FUNCIONALIDADE - Alertas de Variação no Dashboard**:
+  - **Descrição**: Sistema de alertas que detecta variações significativas em compras, vendas e impostos comparando com a média dos últimos 12 meses
+  - **Métricas Monitoradas**:
+    - Compras (total de entradas)
+    - Vendas (faturamento)
+    - ICMS (débito - crédito)
+    - PIS/COFINS (débito - crédito)
+  - **Configurações**:
+    - Limite de variação configurável por empresa (padrão: 20%)
+    - Novo campo `limite_alerta_variacao` no cadastro da empresa
+  - **Exibição**:
+    - Cards coloridos no Dashboard com ícones de tendência (↑/↓)
+    - Vermelho: variação negativa preocupante
+    - Âmbar: variação positiva que pode indicar anomalia
+    - Verde: valores dentro da média
+    - Azul: histórico insuficiente para análise
+  - **Backend**: Função `calcular_alertas_variacao()` em `server.py`
+  - **Frontend**: Componente de alertas em `Dashboard.js`
+  - **Requisitos**: Mínimo de 3 meses de histórico para ativar análise
+
 ### Fevereiro/2026 (Sessão 14/02 - CACHE INTELIGENTE DE AGREGAÇÕES)
 - ✅ **NOVA FUNCIONALIDADE - Cache de Agregações**:
   - **Descrição**: Sistema de cache inteligente para resultados de agregações pesadas
