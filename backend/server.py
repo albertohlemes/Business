@@ -11493,7 +11493,16 @@ async def apuracao_periodo(
         "competencia": competencia
     }
     query.update(get_filtro_notas_ativas())
-    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(None)
+    
+    # ============== OTIMIZAÇÃO PARA GRANDES VOLUMES ==============
+    total_docs = await db.xml_documents.count_documents(query)
+    logger.info(f"APURACAO-PERIODO: Total documentos = {total_docs}")
+    
+    if total_docs > 5000:
+        logger.info(f"APURACAO-PERIODO: Usando agregação otimizada para {total_docs} documentos")
+        return await _get_apuracao_periodo_aggregated(company, company_id, competencia, query, total_docs, regime)
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
     
     # CFOPs de Substituição Tributária (não dão direito a crédito de ICMS)
     CFOPS_ST = ['1403', '1409', '2403', '2409', '5403', '5405', '5409', '6403', '6404', '6409']
@@ -20453,11 +20462,21 @@ async def apuracao_movimento(
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Buscar documentos do período
-    docs = await db.xml_documents.find({
+    query = {
         "company_id": company_id,
         "competencia": competencia,
         **get_filtro_notas_ativas()
-    }, {"_id": 0}).to_list(None)
+    }
+    
+    # ============== OTIMIZAÇÃO PARA GRANDES VOLUMES ==============
+    total_docs = await db.xml_documents.count_documents(query)
+    logger.info(f"APURACAO-MOVIMENTO: Total documentos = {total_docs}")
+    
+    if total_docs > 5000:
+        logger.info(f"APURACAO-MOVIMENTO: Usando agregação otimizada para {total_docs} documentos")
+        return await _get_apuracao_movimento_aggregated(company, company_id, competencia, query, total_docs)
+    
+    docs = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
     
     # Agrupar por CFOP
     entradas_por_cfop = {}
