@@ -31576,61 +31576,143 @@ async def get_wizard_step_data(
                 aliquota_ibs=Decimal(str(config_doc.get('aliquota_ibs', 17.70))) if config_doc else Decimal('17.70')
             )
             
-            # Buscar documentos de entrada
-            docs_entrada = await db.xml_documents.find({
+            # ============== OTIMIZAÇÃO PARA GRANDES VOLUMES ==============
+            base_query = {
                 "company_id": company_id,
                 "competencia": competencia,
-                "tipo": "entrada",
                 "desconsiderada_devolucao": {"$ne": True}
-            }).to_list(length=100000)
-            
-            # Buscar documentos de saída
-            docs_saida = await db.xml_documents.find({
-                "company_id": company_id,
-                "competencia": competencia,
-                "tipo": "saida",
-                "desconsiderada_devolucao": {"$ne": True}
-            }).to_list(length=100000)
-            
-            # Classificar entradas
-            creditos = []
-            for doc in docs_entrada:
-                produtos = doc.get('produtos', [])
-                for prod in produtos:
-                    cfop = prod.get('cfop', '') or prod.get('cfop_original_emissor', '')
-                    ncm = prod.get('ncm', '')
-                    valor = Decimal(str(prod.get('valor_total', 0) or 0))
-                    
-                    if valor > 0:
-                        resultado = classificar_entrada(cfop, ncm, valor, config)
-                        creditos.append(resultado)
-            
-            # Classificar saídas
-            debitos = []
-            for doc in docs_saida:
-                produtos = doc.get('produtos', [])
-                for prod in produtos:
-                    cfop = prod.get('cfop', '') or prod.get('cfop_original_emissor', '')
-                    ncm = prod.get('ncm', '')
-                    valor = Decimal(str(prod.get('valor_total', 0) or 0))
-                    
-                    if valor > 0:
-                        resultado = classificar_saida(cfop, ncm, valor, config)
-                        debitos.append(resultado)
-            
-            # Calcular apuração
-            apuracao = calcular_apuracao(creditos, debitos)
-            
-            result["data"] = {
-                "apuracao": apuracao,
-                "config": {
-                    "aliquota_cbs": float(config.aliquota_cbs),
-                    "aliquota_ibs": float(config.aliquota_ibs),
-                    "aliquota_total": float(config.aliquota_total)
-                },
-                "total_entradas": len(docs_entrada),
-                "total_saidas": len(docs_saida)
             }
+            
+            total_docs = await db.xml_documents.count_documents(base_query)
+            logger.info(f"WIZARD REFORMA TRIBUTÁRIA: Total documentos = {total_docs}")
+            
+            if total_docs > 10000:
+                # Usar agregação para grandes volumes
+                logger.info(f"WIZARD REFORMA TRIBUTÁRIA: Usando agregação otimizada para {total_docs} documentos")
+                
+                pipeline = [
+                    {"$match": base_query},
+                    {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
+                    {
+                        "$group": {
+                            "_id": "$tipo",
+                            "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                            "qtd_docs": {"$addToSet": "$id"},
+                            "qtd_produtos": {"$sum": 1}
+                        }
+                    }
+                ]
+                
+                cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
+                resultados = await cursor.to_list(length=10)
+                
+                total_entradas_valor = 0
+                total_saidas_valor = 0
+                total_entradas_docs = 0
+                total_saidas_docs = 0
+                
+                for item in resultados:
+                    tipo = item['_id'] or ''
+                    if tipo == 'entrada':
+                        total_entradas_valor = item['valor_total']
+                        total_entradas_docs = len(item['qtd_docs']) if isinstance(item['qtd_docs'], list) else item['qtd_docs']
+                    elif tipo == 'saida':
+                        total_saidas_valor = item['valor_total']
+                        total_saidas_docs = len(item['qtd_docs']) if isinstance(item['qtd_docs'], list) else item['qtd_docs']
+                
+                # Calcular apuração simplificada
+                aliquota_cbs = float(config.aliquota_cbs) / 100
+                aliquota_ibs = float(config.aliquota_ibs) / 100
+                
+                credito_cbs = total_entradas_valor * aliquota_cbs
+                credito_ibs = total_entradas_valor * aliquota_ibs
+                debito_cbs = total_saidas_valor * aliquota_cbs
+                debito_ibs = total_saidas_valor * aliquota_ibs
+                
+                saldo_cbs = debito_cbs - credito_cbs
+                saldo_ibs = debito_ibs - credito_ibs
+                saldo_total = saldo_cbs + saldo_ibs
+                
+                result["data"] = {
+                    "apuracao": {
+                        "creditos": {
+                            "cbs": round(credito_cbs, 2),
+                            "ibs": round(credito_ibs, 2),
+                            "total": round(credito_cbs + credito_ibs, 2)
+                        },
+                        "debitos": {
+                            "cbs": round(debito_cbs, 2),
+                            "ibs": round(debito_ibs, 2),
+                            "total": round(debito_cbs + debito_ibs, 2)
+                        },
+                        "saldo": {
+                            "cbs": round(saldo_cbs, 2),
+                            "ibs": round(saldo_ibs, 2),
+                            "total": round(saldo_total, 2),
+                            "situacao": "A_PAGAR" if saldo_total > 0 else "A_RECUPERAR" if saldo_total < 0 else "ZERADO"
+                        }
+                    },
+                    "config": {
+                        "aliquota_cbs": float(config.aliquota_cbs),
+                        "aliquota_ibs": float(config.aliquota_ibs),
+                        "aliquota_total": float(config.aliquota_total)
+                    },
+                    "total_entradas": total_entradas_docs,
+                    "total_saidas": total_saidas_docs,
+                    "_agregado": True,
+                    "_alerta": f"Apuração simplificada: {total_docs} documentos processados via agregação"
+                }
+            else:
+                # Lógica normal para volumes menores
+                docs_entrada = await db.xml_documents.find({
+                    **base_query,
+                    "tipo": "entrada"
+                }, {"_id": 0, "xml_content": 0}).to_list(length=15000)
+                
+                docs_saida = await db.xml_documents.find({
+                    **base_query,
+                    "tipo": "saida"
+                }, {"_id": 0, "xml_content": 0}).to_list(length=15000)
+                
+                # Classificar entradas
+                creditos = []
+                for doc in docs_entrada:
+                    produtos = doc.get('produtos', [])
+                    for prod in produtos:
+                        cfop = prod.get('cfop', '') or prod.get('cfop_original_emissor', '')
+                        ncm = prod.get('ncm', '')
+                        valor = Decimal(str(prod.get('valor_total', 0) or 0))
+                        
+                        if valor > 0:
+                            resultado = classificar_entrada(cfop, ncm, valor, config)
+                            creditos.append(resultado)
+                
+                # Classificar saídas
+                debitos = []
+                for doc in docs_saida:
+                    produtos = doc.get('produtos', [])
+                    for prod in produtos:
+                        cfop = prod.get('cfop', '') or prod.get('cfop_original_emissor', '')
+                        ncm = prod.get('ncm', '')
+                        valor = Decimal(str(prod.get('valor_total', 0) or 0))
+                        
+                        if valor > 0:
+                            resultado = classificar_saida(cfop, ncm, valor, config)
+                            debitos.append(resultado)
+                
+                # Calcular apuração
+                apuracao = calcular_apuracao(creditos, debitos)
+                
+                result["data"] = {
+                    "apuracao": apuracao,
+                    "config": {
+                        "aliquota_cbs": float(config.aliquota_cbs),
+                        "aliquota_ibs": float(config.aliquota_ibs),
+                        "aliquota_total": float(config.aliquota_total)
+                    },
+                    "total_entradas": len(docs_entrada),
+                    "total_saidas": len(docs_saida)
+                }
         except Exception as e:
             import traceback
             result["data"] = {"error": str(e), "traceback": traceback.format_exc()}
