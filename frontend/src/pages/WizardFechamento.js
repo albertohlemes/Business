@@ -166,6 +166,7 @@ const WizardFechamento = ({ user, onLogout }) => {
   const [downloadingReport, setDownloadingReport] = useState(null);  // 'pdf' ou 'excel'
   const [cfopSelections, setCfopSelections] = useState({});  // { cfop: { acao: 'manter'|'converter'|'manual', cfop_destino: '...' } }
   const [manualCfopInputs, setManualCfopInputs] = useState({});  // { cfop: '1234' } - valores dos inputs manuais
+  const [showConfirmModal, setShowConfirmModal] = useState(false);  // Modal de confirmação para reclassificação IA
 
   // Função para baixar relatório do wizard
   const downloadReport = async (formato) => {
