@@ -4828,7 +4828,8 @@ async def delete_documents_by_competencia(
     status: str = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Apagar notas da competência da empresa, opcionalmente filtrando por tipo e status"""
+    """Apagar notas da competência da empresa, opcionalmente filtrando por tipo e status.
+    Processa em lotes para evitar timeout com grandes volumes."""
     
     print(f"DELETE /documents request: company={company_id}, competencia={competencia}, type={tipo}, status={status}, user={current_user.email}")
     # Verificar se a empresa existe
@@ -4855,14 +4856,35 @@ async def delete_documents_by_competencia(
     if status:
         filter_query["status_validacao"] = status
     
-    result = await db.xml_documents.delete_many(filter_query)
+    BATCH_SIZE = 500
+    total_deleted = 0
+    
+    # Buscar IDs dos documentos a serem excluídos
+    cursor = db.xml_documents.find(filter_query, {"id": 1, "_id": 0})
+    all_ids = [doc["id"] async for doc in cursor]
+    
+    # Processar exclusão em lotes
+    for i in range(0, len(all_ids), BATCH_SIZE):
+        batch_ids = all_ids[i:i + BATCH_SIZE]
+        try:
+            result = await db.xml_documents.delete_many({
+                "id": {"$in": batch_ids},
+                "company_id": company_id
+            })
+            total_deleted += result.deleted_count
+        except Exception as e:
+            print(f"Erro ao excluir lote {i // BATCH_SIZE + 1}: {str(e)}")
+            continue
+    
+    # Invalidar cache após exclusão
+    invalidate_company_cache(company_id, competencia)
     
     tipo_label = f" do tipo {tipo.upper()}" if tipo else ""
     status_label = f" com status {status.upper()}" if status else ""
     
     return {
-        "message": f"{result.deleted_count} documento(s){tipo_label}{status_label} apagado(s) da competência {competencia}",
-        "deleted_count": result.deleted_count
+        "message": f"{total_deleted} documento(s){tipo_label}{status_label} apagado(s) da competência {competencia}",
+        "deleted_count": total_deleted
     }
 
 @api_router.delete("/documents/{document_id}")
@@ -21525,6 +21547,7 @@ async def delete_documents_bulk(
     """
     Exclui documentos em massa com base nos filtros.
     Requer confirmação prévia via preview-delete.
+    Processa em lotes para evitar timeout com grandes volumes.
     """
     company = await db.companies.find_one({"id": filters.company_id}, {"_id": 0})
     if not company:
@@ -21533,38 +21556,48 @@ async def delete_documents_bulk(
     if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
+    BATCH_SIZE = 500  # Processar em lotes de 500 documentos
+    total_deleted = 0
+    competencia_for_cache = filters.competencia
+    
     # Se IDs específicos foram fornecidos, usar eles diretamente
     if filters.document_ids and len(filters.document_ids) > 0:
-        result = await db.xml_documents.delete_many({
-            "id": {"$in": filters.document_ids},
-            "company_id": filters.company_id
-        })
-        return {
-            "success": True,
-            "deleted_count": result.deleted_count,
-            "message": f"{result.deleted_count} documento(s) excluído(s) com sucesso"
-        }
+        ids_to_delete = filters.document_ids
+    else:
+        # Buscar preview para obter IDs
+        preview = await preview_delete_documents(filters, current_user)
+        
+        if preview["total_documentos"] == 0:
+            return {
+                "success": True,
+                "deleted_count": 0,
+                "message": "Nenhum documento encontrado com os filtros especificados"
+            }
+        
+        ids_to_delete = preview["ids_para_excluir"]
     
-    # Caso contrário, buscar preview e excluir
-    preview = await preview_delete_documents(filters, current_user)
+    # Processar exclusão em lotes para evitar timeout
+    for i in range(0, len(ids_to_delete), BATCH_SIZE):
+        batch_ids = ids_to_delete[i:i + BATCH_SIZE]
+        try:
+            result = await db.xml_documents.delete_many({
+                "id": {"$in": batch_ids},
+                "company_id": filters.company_id
+            })
+            total_deleted += result.deleted_count
+        except Exception as e:
+            print(f"Erro ao excluir lote {i // BATCH_SIZE + 1}: {str(e)}")
+            # Continua com o próximo lote mesmo se houver erro
+            continue
     
-    if preview["total_documentos"] == 0:
-        return {
-            "success": True,
-            "deleted_count": 0,
-            "message": "Nenhum documento encontrado com os filtros especificados"
-        }
-    
-    # Excluir pelos IDs
-    result = await db.xml_documents.delete_many({
-        "id": {"$in": preview["ids_para_excluir"]},
-        "company_id": filters.company_id
-    })
+    # Invalidar cache após exclusão em massa
+    if competencia_for_cache:
+        invalidate_company_cache(filters.company_id, competencia_for_cache)
     
     return {
         "success": True,
-        "deleted_count": result.deleted_count,
-        "message": f"{result.deleted_count} documento(s) excluído(s) com sucesso"
+        "deleted_count": total_deleted,
+        "message": f"{total_deleted} documento(s) excluído(s) com sucesso"
     }
 
 
