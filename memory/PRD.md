@@ -3,6 +3,27 @@
 ## Problema Original
 Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributários (Simples Nacional, Lucro Real, Lucro Presumido). Inclui importação de XMLs de NF-e, SPED, PGDAS e geração de relatórios fiscais.
 
+## Última Atualização: 14/02/2026
+
+### Lógica de Classificação com IA (Hierarquia de 6 Regras)
+A classificação de produtos segue uma hierarquia estrita:
+1. **CFOP de Devolução** - Automático para CFOPs de devolução
+2. **Regras Aprendidas (learned_rules)** - Cache de classificações anteriores (manuais ou IA)
+3. **NCM de Vendas** - Match com produtos vendidos pelo mesmo NCM
+4. **Palavras-chave de Vendas** - Match com descrições de produtos vendidos
+5. **Palavras-chave da Empresa** - Cadastradas no perfil da empresa
+6. **IA Gemini** - Último recurso, usa LLM para classificar
+
+**IMPORTANTE**: Classificações manuais SEMPRE sobrepõem regras anteriores e são salvas em `learned_rules` para uso futuro.
+
+### Paleta de Cores
+- **Azul** - Entradas/Compras
+- **Verde/Emerald** - Saídas/Créditos
+- **Amber/Orange** - Alertas/Pendências
+- **Cyan/Teal** - Devoluções, Jobs em Background
+- **Slate** - Contribuições (CSLL, PIS, COFINS)
+- **Vermelho** - Valores a Pagar/Erros
+
 ## Diretriz Principal do Wizard de Fechamento
 O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação com IA**:
 - **Se importou SEM IA**: O Wizard faz o trabalho que a IA faria manualmente
