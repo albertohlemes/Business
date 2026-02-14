@@ -818,6 +818,8 @@ class CompanyCreate(BaseModel):
     percentual_presuncao_servicos_csll: float = 32.0
     # Logo da empresa (base64 data URL)
     logo_url: Optional[str] = None
+    # Alertas de variação
+    limite_alerta_variacao: int = 20  # Padrão 20%
 
 class CompanyUpdate(BaseModel):
     """Modelo para atualização de empresa"""
