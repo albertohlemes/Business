@@ -31556,67 +31556,74 @@ def generate_wizard_report_pdf(data: Dict[str, Any]) -> io.BytesIO:
                 ('ALIGN', (2, 1), (2, -1), 'RIGHT'),
             ]))
             elements.append(t)
-        elements.append(Spacer(1, 3*mm))
+    elif total_devolucoes == 0:
+        elements.append(Paragraph("Nenhuma devolução de terceiros encontrada.", small_style))
+    elements.append(Spacer(1, 3*mm))
     
     # Etapa 3 - Alertas CFOP
-    if data.get('etapa_3'):
-        elements.append(Paragraph("ETAPA 3 - ALERTAS DE CFOP", section_style))
-        etapa3 = data['etapa_3']
-        elements.append(Paragraph(f"Total de CFOPs revisados: {etapa3.get('total', 0)}", normal_style))
+    elements.append(Paragraph("ETAPA 3 - ALERTAS DE CFOP", section_style))
+    etapa3 = data.get('etapa_3', {})
+    total_cfops = etapa3.get('total', 0)
+    elements.append(Paragraph(f"Total de CFOPs revisados: {total_cfops}", normal_style))
+    
+    if etapa3.get('alteracoes'):
+        table_data = [["CFOP Original", "CFOP Novo", "Qtd Produtos", "Ação Aplicada"]]
+        for alt in etapa3['alteracoes'][:30]:
+            table_data.append([
+                str(alt.get('cfop_original', '-')),
+                str(alt.get('cfop_novo', '-')),
+                str(alt.get('qtd_produtos', 0)),
+                str(alt.get('acao', '-'))
+            ])
         
-        if etapa3.get('alteracoes'):
-            table_data = [["CFOP Original", "CFOP Novo", "Qtd Produtos", "Ação Aplicada"]]
-            for alt in etapa3['alteracoes'][:30]:
-                table_data.append([
-                    alt.get('cfop_original', '-'),
-                    alt.get('cfop_novo', '-'),
-                    str(alt.get('qtd_produtos', 0)),
-                    alt.get('acao', '-')
-                ])
-            
-            t = Table(table_data, colWidths=[100, 100, 80, 180])
-            t.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('ALIGN', (2, 1), (2, -1), 'CENTER'),
-            ]))
-            elements.append(t)
-        elements.append(Spacer(1, 3*mm))
+        t = Table(table_data, colWidths=[100, 100, 80, 180])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+        ]))
+        elements.append(t)
+    elif total_cfops == 0:
+        elements.append(Paragraph("Nenhum alerta de CFOP encontrado.", small_style))
+    elements.append(Spacer(1, 3*mm))
     
     # Etapa 4 - Classificação
-    if data.get('etapa_4'):
-        elements.append(Paragraph("ETAPA 4 - CLASSIFICAÇÃO DE PRODUTOS", section_style))
-        etapa4 = data['etapa_4']
-        elements.append(Paragraph(f"Total de produtos classificados: {etapa4.get('total', 0)}", normal_style))
+    elements.append(Paragraph("ETAPA 4 - CLASSIFICAÇÃO DE PRODUTOS", section_style))
+    etapa4 = data.get('etapa_4', {})
+    total_classificados = etapa4.get('total', 0)
+    elements.append(Paragraph(f"Total de produtos classificados: {total_classificados}", normal_style))
+    if etapa4.get('classificou_ia'):
+        elements.append(Paragraph("Classificação com IA: Sim", small_style))
+    
+    # Resumo por categoria
+    if etapa4.get('resumo_categorias'):
+        table_data = [["Categoria", "Quantidade", "Valor Total"]]
+        for cat, dados in etapa4['resumo_categorias'].items():
+            table_data.append([
+                str(cat).upper(),
+                str(dados.get('qtd', 0)),
+                f"R$ {float(dados.get('valor', 0) or 0):,.2f}"
+            ])
         
-        # Resumo por categoria
-        if etapa4.get('resumo_categorias'):
-            table_data = [["Categoria", "Quantidade", "Valor Total"]]
-            for cat, dados in etapa4['resumo_categorias'].items():
-                table_data.append([
-                    cat.upper(),
-                    str(dados.get('qtd', 0)),
-                    f"R$ {dados.get('valor', 0):,.2f}"
-                ])
-            
-            t = Table(table_data, colWidths=[180, 100, 150])
-            t.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
-            ]))
-            elements.append(t)
-        elements.append(Spacer(1, 3*mm))
+        t = Table(table_data, colWidths=[180, 100, 150])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f7a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+        ]))
+        elements.append(t)
+    elif total_classificados == 0:
+        elements.append(Paragraph("Nenhum produto classificado.", small_style))
+    elements.append(Spacer(1, 3*mm))
     
     # Etapa 5/6 - PIS/COFINS
-    if data.get('etapa_5') or data.get('etapa_6'):
-        elements.append(Paragraph("ETAPAS 5/6 - CST PIS/COFINS", section_style))
+    elements.append(Paragraph("ETAPAS 5/6 - CST PIS/COFINS", section_style))
         
         total_correcoes = (data.get('etapa_5', {}).get('total', 0) + data.get('etapa_6', {}).get('total', 0))
         elements.append(Paragraph(f"Total de CSTs corrigidos: {total_correcoes}", normal_style))
