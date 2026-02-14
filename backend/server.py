@@ -15782,11 +15782,16 @@ async def export_sped(
     
     company_obj = Company(**company)
     
+    # Log para depuração das flags recebidas
+    logger.info(f"[SPED EXPORT] company_id={company_id}, competencia={competencia}")
+    logger.info(f"[SPED EXPORT] excluir_creditos_despesa_st={excluir_creditos_despesa_st}, aplicar_beneficio_fiscal={aplicar_beneficio_fiscal}")
+    
     # Se não foi explicitamente passado, usar o valor do cadastro da empresa
     usar_beneficio_fiscal = aplicar_beneficio_fiscal or company.get('beneficio_fiscal_icms', False)
     
     # Usar competência para gerar o período correto
     periodo = competencia or "01/2024"
+    logger.info(f"[SPED EXPORT] Gerando SPED com periodo={periodo}, excluir_creditos={excluir_creditos_despesa_st}, beneficio_fiscal={usar_beneficio_fiscal}")
     sped_content = generate_sped_fiscal(company_obj, xml_docs, periodo, excluir_creditos_despesa_st, usar_beneficio_fiscal)
     
     return {
