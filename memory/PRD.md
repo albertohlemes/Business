@@ -192,6 +192,12 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
   - Agora usam campo `tipo` do documento em vez de inferir por CFOP
 - ✅ Flags de ICMS agora persistem ao trocar de tela (lazy initialization no useState)
 - ✅ Menu ICMS ST exibe mensagem informativa quando não há dados
+- ✅ **NOVA FUNCIONALIDADE**: Classificação em lote baseada no tipo de atividade da empresa
+  - Endpoint: `POST /api/wizard-fechamento/classificar-pendentes/{company_id}`
+  - Regras: Indústria→INSUMO, Comércio→REVENDA, Serviços→DESPESA
+  - Adicionado botão "Classificar Todos com Padrão da Empresa" no Wizard etapa 4
+- ✅ **CORREÇÃO**: Importação sem IA agora aplica classificação padrão (antes ficava sem categoria)
+- ✅ Função utilitária `obter_categoria_padrao_por_atividade()` criada para centralizar regras
 
 ### Dezembro/2025 (Sessão Anterior)
 - ✅ Sincronização Wizard ↔ Classificação Inteligente
