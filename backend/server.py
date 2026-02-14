@@ -1928,8 +1928,9 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             'emitente_uf': emitente_uf,
             'emitente_crt': emit.get('CRT', ''),  # Código de Regime Tributário (1=Simples, 2=SN Exc, 3=Normal)
             'emitente_endereco': emitente_endereco,
-            # Dados do destinatário
-            'destinatario_cnpj': dest.get('CNPJ', ''),
+            # Dados do destinatário - CPF para pessoa física, CNPJ para pessoa jurídica
+            'destinatario_cnpj': dest.get('CNPJ', '') or dest.get('CPF', '') or '',
+            'destinatario_cpf': dest.get('CPF', ''),  # CPF separado para pessoa física
             'destinatario_nome': dest.get('xNome', ''),
             'destinatario_ie': dest.get('IE', ''),
             'destinatario_uf': destinatario_uf,
