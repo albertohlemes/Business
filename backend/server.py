@@ -7477,8 +7477,8 @@ async def upload_xml_with_progress(
         # Garantir que o progress_store seja atualizado imediatamente
         upload_progress_store[upload_id] = progress
         
-        # Atualizar MongoDB a cada 50 arquivos (reduzido para melhor performance)
-        if file_idx == 0 or file_idx - last_db_update >= 50:
+        # Atualizar MongoDB a cada 10 arquivos para melhor sincronização em multi-instância
+        if file_idx == 0 or file_idx - last_db_update >= 10:
             await save_upload_session(upload_id, progress)
             last_db_update = file_idx
         
