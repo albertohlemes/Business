@@ -7147,23 +7147,34 @@ async def get_upload_status(upload_id: str, current_user: User = Depends(get_cur
     progress = await get_upload_session(upload_id)
     
     if progress is None:
-        return {"error": "Upload não encontrado", "completed": False}
+        return {"error": "Upload não encontrado", "completed": False, "status": "not_found"}
+    
+    # Determinar status de forma mais robusta
+    is_completed = progress.get("completed", False)
+    has_results = progress.get("results") is not None
+    status = progress.get("status", "unknown")
+    
+    # Se tem results mas completed não está True, corrigir
+    if has_results and not is_completed:
+        is_completed = True
+        status = "completed"
     
     response_data = {
-        "status": progress.get("status", "unknown"),
+        "status": "completed" if is_completed else status,
         "total_files": progress.get("total_files", 0),
         "processed_files": progress.get("processed_files", 0),
         "current_file": progress.get("current_file", ""),
         "current_step": progress.get("current_step", ""),
-        "progress_percent": progress.get("progress_percent", 0),
-        "completed": progress.get("completed", False)
+        "progress_percent": 100 if is_completed else progress.get("progress_percent", 0),
+        "completed": is_completed
     }
     
-    if progress.get("completed") and progress.get("results"):
+    if is_completed and progress.get("results"):
         response_data["results"] = progress["results"]
     
     if progress.get("error"):
         response_data["error"] = progress["error"]
+        response_data["status"] = "error"
     
     return response_data
 
