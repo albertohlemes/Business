@@ -13799,6 +13799,7 @@ CFOPS_OPERACOES_DISTINTAS_GLOBAL = {
     '5923': {'descricao': 'Remessa de mercadoria por conta e ordem', 'sugestao_entrada': '1923'},
     '5924': {'descricao': 'Remessa para industrialização por conta e ordem', 'sugestao_entrada': '1924'},
     '5925': {'descricao': 'Retorno de mercadoria depositada em depósito fechado/armazém', 'sugestao_entrada': '1925'},
+    '5929': {'descricao': 'Lançamento relativo a operação registrada em ECF', 'sugestao_entrada': '1929'},
     '5949': {'descricao': 'Outra saída não especificada', 'sugestao_entrada': '1949'},
     # Devoluções
     '5201': {'descricao': 'Devolução de compra - indústria', 'sugestao_entrada': '1201'},
