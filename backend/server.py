@@ -13794,6 +13794,11 @@ async def analise_pis_cofins_completa(
 
 # CFOPs de operações distintas de venda (saída do emissor que virou entrada para nós)
 CFOPS_OPERACOES_DISTINTAS_GLOBAL = {
+    # Vendas que não transitam pelo estabelecimento
+    '5106': {'descricao': 'Venda de mercadoria que não transita pelo estabelecimento', 'sugestao_entrada': '1106'},
+    # Retornos de depósito
+    '5906': {'descricao': 'Retorno de mercadoria depositada em depósito fechado/armazém', 'sugestao_entrada': '1906'},
+    '5907': {'descricao': 'Retorno simbólico de mercadoria depositada', 'sugestao_entrada': '1907'},
     # Remessas
     '5910': {'descricao': 'Remessa em bonificação', 'sugestao_entrada': '1910'},
     '5911': {'descricao': 'Remessa de amostra grátis', 'sugestao_entrada': '1911'},
@@ -13822,6 +13827,9 @@ CFOPS_OPERACOES_DISTINTAS_GLOBAL = {
     '5122': {'descricao': 'Venda com entrega futura', 'sugestao_entrada': '1102', 'sugestao_compra': '1102'},
     '5123': {'descricao': 'Venda de mercadoria remetida anteriormente em consignação mercantil', 'sugestao_entrada': '1102', 'sugestao_compra': '1102'},
     # Remessas interestaduais (6xxx)
+    '6106': {'descricao': 'Venda de mercadoria que não transita pelo estabelecimento', 'sugestao_entrada': '2106'},
+    '6906': {'descricao': 'Retorno de mercadoria depositada em depósito', 'sugestao_entrada': '2906'},
+    '6907': {'descricao': 'Retorno simbólico de mercadoria depositada', 'sugestao_entrada': '2907'},
     '6910': {'descricao': 'Remessa em bonificação', 'sugestao_entrada': '2910'},
     '6911': {'descricao': 'Remessa de amostra grátis', 'sugestao_entrada': '2911'},
     '6912': {'descricao': 'Remessa de mercadoria para demonstração', 'sugestao_entrada': '2912'},
