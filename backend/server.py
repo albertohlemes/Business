@@ -23251,7 +23251,61 @@ async def _get_ipi_aggregated(company: dict, company_id: str, competencia: str, 
     debito_ipi = totais_saidas["valor_ipi"]
     saldo_ipi = debito_ipi - credito_ipi
     
-    return {
+    # ============== CALCULAR TOP 10 NCMs (agregação separada) ==============
+    top_ncms_credito = []
+    top_ncms_debito = []
+    
+    try:
+        # Pipeline para Top NCMs por tipo
+        top_ncm_pipeline = [
+            {"$match": query},
+            {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": False}},
+            {
+                "$group": {
+                    "_id": {
+                        "tipo": {"$ifNull": ["$tipo", "$tipo_operacao"]},
+                        "ncm": {"$substr": [{"$toString": {"$ifNull": ["$produtos.ncm", "00000000"]}}, 0, 8]}
+                    },
+                    "valor_ipi": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_ipi", {"$ifNull": ["$produtos.valor_ipi", 0]}]}}},
+                    "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                    "descricao": {"$first": "$produtos.descricao"},
+                    "qtd": {"$sum": 1}
+                }
+            },
+            {"$match": {"valor_ipi": {"$gt": 0}}},
+            {"$sort": {"valor_ipi": -1}},
+            {"$limit": 50}
+        ]
+        
+        top_cursor = db.xml_documents.aggregate(top_ncm_pipeline, allowDiskUse=True)
+        top_results = await top_cursor.to_list(length=50)
+        
+        for item in top_results:
+            tipo = item['_id'].get('tipo', '') or ''
+            ncm_data = {
+                "ncm": item['_id'].get('ncm', '00000000'),
+                "descricao": (item.get('descricao', '') or '')[:50],
+                "valor_ipi": round(item.get('valor_ipi', 0), 2),
+                "valor_total": round(item.get('valor_total', 0), 2),
+                "quantidade": item.get('qtd', 0),
+                "produtos": []
+            }
+            
+            if tipo == 'entrada':
+                top_ncms_credito.append(ncm_data)
+            else:
+                top_ncms_debito.append(ncm_data)
+        
+        # Já está ordenado, pegar top 10
+        top_ncms_credito = top_ncms_credito[:10]
+        top_ncms_debito = top_ncms_debito[:10]
+        
+        logger.info(f"IPI AGREGADO: Top NCMs calculados - Crédito: {len(top_ncms_credito)}, Débito: {len(top_ncms_debito)}")
+        
+    except Exception as e:
+        logger.warning(f"IPI AGREGADO: Erro ao calcular Top NCMs: {e}")
+    
+    resultado = {
         "empresa": {"razao_social": company.get('razao_social', ''), "cnpj": company.get('cnpj', '')},
         "competencia": competencia,
         "totais": {
