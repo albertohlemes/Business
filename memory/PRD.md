@@ -237,6 +237,32 @@ O **Wizard de Fechamento** é uma **réplica manual exata** da **Importação co
 
 ## Changelog
 
+### Fevereiro/2026 (Sessão 14/02 - Melhorias Wizard)
+- ✅ **NOVA FUNCIONALIDADE - CFOP Individual por Produto (Step 3)**:
+  - Ao expandir a listagem de produtos no Alertas de CFOP, cada produto agora possui input para CFOP individual
+  - Permite definir CFOP específico para cada produto, sobrepondo a ação em lote
+  - Estado gerenciado via `cfopsPorProduto` no componente
+  - Backend processa `cfops_individuais` no formato `cfop_docId_prodIdx`
+  - Arquivos: `WizardFechamento.js` (lines 907-1010), `server.py` (lines 31597-31652)
+
+- ✅ **NOVA FUNCIONALIDADE - Alerta de Divergência em Devoluções (Step 2)**:
+  - Quando uma nota de devolução tem valor diferente da nota original referenciada, exibe alerta visual
+  - Alerta mostra: Valor Devolução vs Valor Original vs Diferença
+  - Botões "Manter Original" e "Excluir Original" para decisão do usuário
+  - Estado gerenciado via `decisoesOriginais` no componente
+  - Arquivo: `WizardFechamento.js` (lines 497-690)
+
+- ✅ **NOVA FUNCIONALIDADE - Clareza em Notas Canceladas (Step 1)**:
+  - Notas canceladas agora são separadas visualmente em "ENTRADAS" e "SAÍDAS"
+  - Entradas: borda azul (`border-l-4 border-blue-500`) + badge azul
+  - Saídas: borda verde (`border-l-4 border-emerald-500`) + badge verde
+  - Contadores separados no topo da tela
+  - Arquivo: `WizardFechamento.js` (lines 397-495)
+
+- ✅ **VERIFICADO - Classificação IA com Hierarquia de 6 Regras**:
+  - Hierarquia confirmada funcionando: CFOP Devolução → Learned Rules → NCM Vendas → Palavras-Chave Vendas → Palavras-Chave Empresa → IA Gemini
+  - Código verificado em `server.py` (lines 31655-31750)
+
 ### Fevereiro/2026 (Sessão 14/02 - P0 Bugs Fix)
 - ✅ **CORREÇÃO P0 - Relatório do Wizard**: Corrigida geração de dados para incluir TODAS as etapas (1-7)
   - Corrigido step_name de 'classificacao' para 'classificacao_cfop' na busca de dados da Etapa 4
