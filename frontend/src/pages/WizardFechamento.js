@@ -596,7 +596,7 @@ const WizardFechamento = ({ user, onLogout }) => {
                         </div>
                         
                         {/* ALERTA DE DIFERENÇA DE VALOR */}
-                        {temDiferenca && nota.nota_original_encontrada && !nota.desconsiderada && (
+                        {temDiferenca && nota.nota_original_encontrada && (
                           <div className="mt-3 bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-2">
                               <AlertTriangle className="w-5 h-5 text-red-400" />
@@ -632,7 +632,7 @@ const WizardFechamento = ({ user, onLogout }) => {
                                 data-testid={`devolucao-manter-${nota.id}`}
                               >
                                 <CheckCircle className="w-4 h-4 inline mr-1" />
-                                Manter Original
+                                MANTER Original
                               </button>
                               <button
                                 onClick={() => setDecisoesOriginais(prev => ({ ...prev, [nota.id]: 'excluir' }))}
@@ -644,7 +644,7 @@ const WizardFechamento = ({ user, onLogout }) => {
                                 data-testid={`devolucao-excluir-${nota.id}`}
                               >
                                 <XCircle className="w-4 h-4 inline mr-1" />
-                                Excluir Original
+                                EXCLUIR Original
                               </button>
                             </div>
                           </div>
