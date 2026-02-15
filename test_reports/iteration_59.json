@@ -1,0 +1,79 @@
+{
+  "summary": "Tested dashboard stats tax calculation fix. The bug was that ICMS, PIS, COFINS were showing as zero in the Dashboard even with R$ 969k+ in NFCe sales. The fix adds a separate aggregation pipeline in _get_dashboard_stats_aggregated to calculate taxes at PRODUCT level (produtos.v_icms, produtos.v_pis, produtos.v_cofins) instead of using non-existent icms_total field. All 15 tests passed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_dashboard_taxes_fix.py",
+    "/app/test_reports/pytest/pytest_dashboard_taxes_fix.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "FIX VERIFIED: pipeline_impostos correctly uses $unwind on produtos[] and sums v_icms, v_pis, v_cofins",
+    "The fix uses $ifNull to check for both v_icms and valor_icms (fallback) field names",
+    "Aggregation pipeline correctly groups by tipo (entrada/saida) for debit/credit calculation",
+    "Normal version (<5000 docs) already calculated taxes correctly at product level in Python loop",
+    "Both versions now produce consistent results: ICMS is >0 when there are products with v_icms",
+    "For NFCe, PIS and COFINS are typically 0 in the XML (tributação monofásica) - this is expected behavior"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_dashboard_taxes_fix.py"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 tests passed)",
+    "frontend": "N/A - Backend only testing requested"
+  },
+  "test_credentials": {
+    "email": "alberto.lemes@businessconta.com.br",
+    "password": "Business@2026"
+  },
+  "seed_data_creation": "None - Used existing test data (test-company-dashboard and Republic company)",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Dashboard tax calculation fix verified. Key scenarios tested: 1) Normal version (<5000 docs) with test-company-dashboard, 2) Aggregated version (>5000 docs) with Republic (14,700 docs). Both correctly return ICMS > 0 when products have v_icms values. For NFCe, PIS/COFINS are typically 0 in XML (tributação monofásica).",
+  "features_verified": {
+    "dashboard_stats_normal_version": {
+      "status": "PASS",
+      "endpoint": "GET /api/dashboard/stats/{company_id}?competencia={competencia}",
+      "test_company": "test-company-dashboard",
+      "documents": 10,
+      "results": {
+        "debitos.icms": "R$ 12,000.00",
+        "debitos.pis": "R$ 650.00",
+        "debitos.cofins": "R$ 3,000.00",
+        "faturamento": "R$ 100,000.00"
+      }
+    },
+    "dashboard_stats_aggregated_version": {
+      "status": "PASS",
+      "endpoint": "GET /api/dashboard/stats/{company_id}?competencia={competencia}",
+      "test_company": "Republic (2bde03ac-7314-40b3-94cc-eb7827bccd55)",
+      "documents": 14700,
+      "results": {
+        "debitos.icms": "R$ 30,670.24",
+        "debitos.pis": "R$ 0.00 (expected for NFCe)",
+        "debitos.cofins": "R$ 0.00 (expected for NFCe)",
+        "faturamento": "R$ 971,882.10"
+      }
+    },
+    "impostos_pagar_calculation": {
+      "status": "PASS",
+      "formula": "impostos_pagar = max(0, debitos - creditos)",
+      "verified_for": ["ICMS", "PIS", "COFINS"]
+    }
+  },
+  "bug_fix_verification": {
+    "original_bug": "ICMS, PIS, COFINS were showing as zero in Dashboard even with R$ 969k+ in NFCe sales",
+    "root_cause": "_get_dashboard_stats_aggregated used 'icms_total' field which doesn't exist. Should sum produtos[].v_icms instead.",
+    "fix_implemented": "Added pipeline_impostos aggregation with $unwind on produtos[] to sum v_icms, v_pis, v_cofins at product level",
+    "fix_location": "server.py:10005-10100 (_get_dashboard_stats_aggregated function)",
+    "fix_verified": "YES - Both normal and aggregated versions now correctly calculate taxes from product-level fields"
+  },
+  "rca_of_the_issue": "The aggregated version of dashboard stats was using 'icms_total' from document level which doesn't exist or is zero. The correct approach is to $unwind the produtos array and sum the v_icms, v_pis, v_cofins fields from each product. The fix adds a separate pipeline (pipeline_impostos) that does exactly this, ensuring consistent tax calculations for large document sets."
+}
