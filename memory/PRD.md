@@ -16,6 +16,9 @@ Sistema de classificação fiscal inteligente para notas fiscais eletrônicas, c
 - Layout compacto de uma linha para alertas
 - Botão "Manter Natureza" 
 - Backend da "Memória IA" funcional
+- **NOVO (15/12)**: Otimização do endpoint RET/Inteligência Tributária para alto volume de documentos (15000+)
+  - ICMS: Usa agregação MongoDB ao invés de carregar todos docs em memória
+  - PIS/COFINS: Processa em batches de 500 docs para evitar estouro de memória
 
 ### Bugs Críticos Pendentes (P0)
 1. **Bug: Exceções de CFOP salvas com código errado** - Investigação iniciada, lógica do frontend parece correta. Necessário debug do payload enviado ao backend.
@@ -35,6 +38,7 @@ Sistema de classificação fiscal inteligente para notas fiscais eletrônicas, c
 ## Arquivos Principais
 - `/app/frontend/src/pages/ClassificacaoInteligente.js`
 - `/app/frontend/src/pages/WizardFechamento.js`
+- `/app/frontend/src/pages/RET.js`
 - `/app/backend/server.py`
 
 ## Credenciais de Teste
