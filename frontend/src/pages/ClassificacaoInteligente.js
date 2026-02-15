@@ -1725,10 +1725,10 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-xs text-[#666]">Categoria atual:</span>
-                    <span className={`text-xs px-2 py-0.5 rounded ${
+                    <span className={`text-xs px-2 py-0.5 rounded uppercase ${
                       editingProduct.categoria === 'pendente' ? 'bg-gray-500/20 text-gray-400' : 'bg-[#C8A951]/20 text-[#C8A951]'
                     }`}>
-                      {categoriasConfig[editingProduct.categoria]?.label || editingProduct.categoria}
+                      {(categoriasConfig[editingProduct.categoria]?.label || editingProduct.categoria).toUpperCase()}
                     </span>
                   </div>
                   {editingProduct.prod?.ocorrencias && (
