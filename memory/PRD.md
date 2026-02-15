@@ -152,29 +152,23 @@ Sistema de fechamento fiscal automatizado com classificação inteligente de pro
 
 ---
 
-## Fluxo de Edição de CFOP (Novo)
+## Fluxo de Edição de CFOP (Layout Compacto)
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  CARD HEADER                                                    │
-│  ┌──────────────┐     ┌─────────────────────────────────────┐   │
-│  │ CFOP Original│     │ [ CFOP Destino ] [CATEGORIA▼]       │   │
-│  │    5929      │  →  │ [ 1102         ] [ REVENDA  ▼]      │   │
-│  │  (amarelo)   │     │                                     │   │
-│  └──────────────┘     │ [1102 COMPRA PARA REVENDA]          │   │
-│                       └─────────────────────────────────────┘   │
-│  "Remessa p/ conserto" - 2 produtos • R$ 1.500,00   [CONFIRMAR] │
-├─────────────────────────────────────────────────────────────────┤
-│  LISTA DE PRODUTOS (expandida)                                  │
-│  ┌─────────┬────────────────────┬───────────┬────────┬────────┐ │
-│  │ NF      │ PRODUTO            │ CFOP ORIG │ CFOP   │ VALOR  │ │
-│  ├─────────┼────────────────────┼───────────┼────────┼────────┤ │
-│  │ 12345   │ Peça Motor ABC     │   5929    │ [1102] │ R$800  │ │
-│  │ 12345   │ Filtro XYZ         │   5929    │ [1551] │ R$700  │ │ ← Exceção
-│  └─────────┴────────────────────┴───────────┴────────┴────────┘ │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [5106] Venda mercadoria... 18 prod • R$23k → [1106 MANTER] [1102 COMPRA] [____] [v] [OK] │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│ (expandido)                                                                         │
+│ NF     PRODUTO               ORIG.   DESTINO   NCM        VALOR                     │
+│ 12345  Peça Motor ABC        5106    [1102]    84011010   R$ 800                    │
+│ 12345  Filtro XYZ (EXC)      5106    [1551]    84138100   R$ 700  ← Exceção         │
+└─────────────────────────────────────────────────────────────────────────────────────┘
 
-Ao clicar em CONFIRMAR:
-- Peça Motor ABC → Regra: 5929 → 1102 (REVENDA)
-- Filtro XYZ     → Exceção: 5929 → 1551 (ATIVO IMOBILIZADO)
+Legenda:
+- [5106]         = CFOP Original (amarelo)
+- [1106 MANTER]  = Botão azul - Converte para entrada mantendo natureza
+- [1102 COMPRA]  = Botão verde - Converte para compra
+- [____]         = Input para CFOP manual
+- [v]            = Dropdown de categoria
+- [OK]           = Botão confirmar (dourado quando habilitado)
 ```
