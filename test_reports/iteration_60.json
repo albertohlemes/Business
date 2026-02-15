@@ -1,0 +1,76 @@
+{
+  "summary": "Backend-only testing for ICMS Apuração bug fixes: 1) Top 10 Produtos/NCM not showing in aggregated version - FIXED, 2) CFOPs de despesa/ST (1403, 1551, 1556) not marked with desconsiderado - FIXED. All 19 tests passed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_icms_apuracao_cfop_styling.py",
+    "/app/test_reports/pytest/pytest_icms_cfop_styling.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "VERIFIED: server.py line ~21840-21853 adds is_despesa, is_st, desconsiderado to CFOPs in aggregated version",
+    "VERIFIED: server.py line ~21890-21992 adds top_produtos_credito and top_produtos_debito calculation in aggregated version",
+    "Both normal (<10000 docs) and aggregated (>10000 docs) versions return consistent CFOP styling fields",
+    "Both versions return top_10.produtos_credito, top_10.produtos_debito with 'qtd' field",
+    "Desconsiderados logic correctly excludes ICMS from ST (1403) and despesa (1551, 1556) CFOPs when flags are active"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_icms_apuracao_cfop_styling.py"
+  ],
+  "success_rate": {
+    "backend": "100% (19/19 tests passed)",
+    "frontend": "N/A - Backend only testing requested"
+  },
+  "test_credentials": {
+    "email": "alberto.lemes@businessconta.com.br",
+    "password": "Business@2026"
+  },
+  "seed_data_creation": "Used existing test company 'test-company-icms-cfop' with competencia 2026-01",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "ICMS apuração CFOP styling and Top 10 Produtos/NCM fixes verified. Test company 'test-company-icms-cfop' has 4 entrada CFOPs (1102, 1403, 1551, 1556) and 1 saida (5102). Aggregated version (>10000 docs) tested with Republic company (14700 docs) - top_10 working correctly.",
+  "features_verified": {
+    "endpoint_tested": "GET /api/apuracao-icms/{company_id}?competencia={competencia}",
+    "top_10_produtos_credito": {
+      "status": "PASS",
+      "test_data": "MERCADORIA NORMAL 1102 - R$ 1200 ICMS",
+      "fields_verified": ["codigo", "descricao", "ncm", "valor_icms", "qtd"]
+    },
+    "top_10_produtos_debito": {
+      "status": "PASS",
+      "test_data": "VENDA MERCADORIA 5102 - R$ 1800 ICMS",
+      "fields_verified": ["codigo", "descricao", "ncm", "valor_icms", "qtd"]
+    },
+    "cfop_styling_fields": {
+      "status": "PASS",
+      "fields_verified": ["is_despesa", "is_st", "desconsiderado"],
+      "cfop_tests": {
+        "1403_ST": {"is_st": true, "desconsiderado": true, "valor_icms": 600},
+        "1551_DESPESA": {"is_despesa": true, "desconsiderado": true, "valor_icms": 360},
+        "1556_DESPESA": {"is_despesa": true, "desconsiderado": true, "valor_icms": 240},
+        "1102_NORMAL": {"is_despesa": false, "is_st": false, "desconsiderado": false, "valor_icms": 1200}
+      }
+    },
+    "desconsiderados_totals": {
+      "status": "PASS",
+      "despesas_valor_icms": 600,
+      "st_valor_icms": 600,
+      "total_icms_desconsiderado": 1200
+    },
+    "aggregated_version": {
+      "status": "PASS",
+      "tested_company": "Republic (2bde03ac-7314-40b3-94cc-eb7827bccd55)",
+      "documents": 14700,
+      "top_10_produtos_debito_count": 10,
+      "cfop_styling_fields_present": true
+    }
+  },
+  "rca_of_the_issue": "Bug 1: Aggregated version (_get_icms_aggregated) was missing the pipeline for top_produtos_credito and top_produtos_debito. Fix added pipeline at line 21945-21992. Bug 2: CFOPs were not being marked with is_despesa, is_st, desconsiderado in the aggregated version. Fix added these fields at line 21840-21853 when building cfop_data."
+}
