@@ -16180,6 +16180,236 @@ async def get_classification_suggestions(
         "sugestoes": sugestoes
     }
 
+
+@api_router.get("/classification/suggestions-v2/{company_id}")
+async def get_classification_suggestions_v2(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Versão melhorada que separa produtos em:
+    - novos: Primeira vez que aparecem (nunca foram classificados antes)
+    - ja_classificados: Produtos que já tinham classificação de competências/importações anteriores
+    - todos: Todos os produtos do mês para revisão final
+    
+    Identificação por: NCM + descrição similar (normalizada)
+    Aplica automaticamente classificações anteriores em produtos similares.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # 1. Buscar histórico de classificações da empresa (todas as competências anteriores)
+    # Construir um cache de classificações: { "ncm_descricao_normalizada": { "categoria", "cfop", "fonte" } }
+    historico_classificacoes = {}
+    
+    # Buscar de regras aprendidas (learned_rules)
+    learned_rules = await db.learned_rules.find({"company_id": company_id}, {"_id": 0}).to_list(10000)
+    for rule in learned_rules:
+        ncm = str(rule.get('ncm', '') or '').strip()
+        descricao = _normalizar_descricao(rule.get('descricao_produto', '') or rule.get('produto_descricao', '') or rule.get('padrao', ''))
+        chave = f"{ncm}_{descricao}"
+        if chave and len(chave) > 2:
+            historico_classificacoes[chave] = {
+                "categoria": rule.get('categoria_correta', '') or rule.get('categoria', ''),
+                "cfop": rule.get('cfop_correto', '') or rule.get('cfop', ''),
+                "fonte": "regra_aprendida"
+            }
+    
+    # Buscar de documentos de competências anteriores já classificados
+    outras_competencias = await db.xml_documents.find(
+        {
+            "company_id": company_id,
+            "competencia": {"$ne": competencia},
+            "tipo": "entrada",
+            "produtos.categoria_classificada": {"$exists": True, "$ne": "", "$nin": ["pendente", "pendente_classificacao"]}
+        },
+        {"_id": 0, "produtos": 1}
+    ).to_list(5000)
+    
+    for doc in outras_competencias:
+        for prod in doc.get('produtos', []):
+            categoria = prod.get('categoria_classificada', '')
+            if categoria and categoria not in ['', 'pendente', 'pendente_classificacao']:
+                ncm = str(prod.get('ncm', '') or '').strip()
+                descricao = _normalizar_descricao(prod.get('descricao', ''))
+                chave = f"{ncm}_{descricao}"
+                if chave not in historico_classificacoes and len(chave) > 2:
+                    historico_classificacoes[chave] = {
+                        "categoria": categoria,
+                        "cfop": prod.get('cfop', ''),
+                        "fonte": "competencia_anterior"
+                    }
+    
+    logger.info(f"CLASSIFICACAO V2: {len(historico_classificacoes)} classificações no histórico da empresa")
+    
+    # 2. Buscar documentos da competência atual
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada",
+        **get_filtro_notas_ativas()
+    }
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
+    
+    # 3. Processar produtos e separar em novos vs já classificados
+    produtos_novos = defaultdict(lambda: {
+        'codigo': '', 'descricao': '', 'ncm': '', 'cfop_atual': '',
+        'categoria_atual': 'pendente', 'quantidade': 0, 'valor_total': 0,
+        'ocorrencias': [], 'classificado': False, 'is_novo': True
+    })
+    
+    produtos_ja_classificados = defaultdict(lambda: {
+        'codigo': '', 'descricao': '', 'ncm': '', 'cfop_atual': '',
+        'categoria_atual': '', 'quantidade': 0, 'valor_total': 0,
+        'ocorrencias': [], 'classificado': True, 'is_novo': False,
+        'classificacao_automatica': False, 'fonte_classificacao': ''
+    })
+    
+    docs_para_atualizar = []  # Documentos que precisam ter classificação aplicada automaticamente
+    
+    for doc in documents:
+        doc_modificado = False
+        for produto_idx, prod in enumerate(doc.get('produtos', [])):
+            codigo = prod.get('codigo', '') or 'SEM_CODIGO'
+            descricao_original = prod.get('descricao', '')
+            ncm = str(prod.get('ncm', '') or '').strip()
+            descricao_norm = _normalizar_descricao(descricao_original)
+            chave_atual = f"{codigo}_{descricao_original[:50]}"
+            chave_historico = f"{ncm}_{descricao_norm}"
+            
+            # Verificar se já tem classificação no documento atual
+            categoria_atual = prod.get('categoria_classificada', '')
+            ja_classificado_no_doc = categoria_atual and categoria_atual not in ['', 'pendente', 'pendente_classificacao']
+            
+            # Verificar se existe no histórico
+            historico = historico_classificacoes.get(chave_historico)
+            
+            if ja_classificado_no_doc:
+                # Produto já foi classificado manualmente nesta competência
+                grupo = produtos_ja_classificados[chave_atual]
+                grupo['codigo'] = codigo
+                grupo['descricao'] = descricao_original
+                grupo['ncm'] = ncm
+                grupo['cfop_atual'] = prod.get('cfop', '')
+                grupo['categoria_atual'] = categoria_atual
+                grupo['quantidade'] += prod.get('quantidade', 0)
+                grupo['valor_total'] += prod.get('valor_total', 0)
+                grupo['ocorrencias'].append({
+                    'doc_id': doc['id'],
+                    'numero_nfe': doc.get('numero_nfe', ''),
+                    'nf': doc.get('numero_nfe', ''),
+                    'produto_idx': produto_idx
+                })
+                grupo['fonte_classificacao'] = 'manual'
+                
+            elif historico:
+                # Produto existe no histórico - aplicar classificação automaticamente!
+                grupo = produtos_ja_classificados[chave_atual]
+                grupo['codigo'] = codigo
+                grupo['descricao'] = descricao_original
+                grupo['ncm'] = ncm
+                grupo['cfop_atual'] = prod.get('cfop', '')
+                grupo['categoria_atual'] = historico['categoria']
+                grupo['quantidade'] += prod.get('quantidade', 0)
+                grupo['valor_total'] += prod.get('valor_total', 0)
+                grupo['ocorrencias'].append({
+                    'doc_id': doc['id'],
+                    'numero_nfe': doc.get('numero_nfe', ''),
+                    'nf': doc.get('numero_nfe', ''),
+                    'produto_idx': produto_idx
+                })
+                grupo['classificacao_automatica'] = True
+                grupo['fonte_classificacao'] = historico['fonte']
+                
+                # Marcar para atualizar no banco (aplicar classificação automaticamente)
+                prod['categoria_classificada'] = historico['categoria']
+                prod['classificacao_automatica'] = True
+                prod['fonte_classificacao'] = historico['fonte']
+                doc_modificado = True
+                
+            else:
+                # Produto NOVO - nunca foi classificado antes
+                grupo = produtos_novos[chave_atual]
+                grupo['codigo'] = codigo
+                grupo['descricao'] = descricao_original
+                grupo['ncm'] = ncm
+                grupo['cfop_atual'] = prod.get('cfop', '')
+                grupo['quantidade'] += prod.get('quantidade', 0)
+                grupo['valor_total'] += prod.get('valor_total', 0)
+                grupo['ocorrencias'].append({
+                    'doc_id': doc['id'],
+                    'numero_nfe': doc.get('numero_nfe', ''),
+                    'nf': doc.get('numero_nfe', ''),
+                    'produto_idx': produto_idx
+                })
+        
+        if doc_modificado:
+            docs_para_atualizar.append(doc)
+    
+    # 4. Aplicar classificações automáticas no banco de dados
+    classificacoes_aplicadas = 0
+    for doc in docs_para_atualizar:
+        await db.xml_documents.update_one(
+            {"id": doc['id']},
+            {"$set": {"produtos": doc['produtos']}}
+        )
+        classificacoes_aplicadas += 1
+    
+    if classificacoes_aplicadas > 0:
+        logger.info(f"CLASSIFICACAO V2: Aplicadas {classificacoes_aplicadas} classificações automáticas")
+    
+    # 5. Converter para listas e ordenar por valor
+    lista_novos = list(produtos_novos.values())
+    lista_novos.sort(key=lambda x: x['valor_total'], reverse=True)
+    
+    lista_ja_classificados = list(produtos_ja_classificados.values())
+    lista_ja_classificados.sort(key=lambda x: x['valor_total'], reverse=True)
+    
+    # Lista combinada para revisão final
+    lista_todos = lista_novos + lista_ja_classificados
+    lista_todos.sort(key=lambda x: x['valor_total'], reverse=True)
+    
+    return {
+        "empresa": company.get('razao_social', ''),
+        "competencia": competencia,
+        "resumo": {
+            "total_produtos": len(lista_todos),
+            "novos": len(lista_novos),
+            "ja_classificados": len(lista_ja_classificados),
+            "classificacoes_aplicadas_automaticamente": classificacoes_aplicadas,
+            "valor_total_novos": sum(s['valor_total'] for s in lista_novos),
+            "valor_total_classificados": sum(s['valor_total'] for s in lista_ja_classificados)
+        },
+        "produtos_novos": lista_novos,
+        "produtos_ja_classificados": lista_ja_classificados,
+        "todos": lista_todos
+    }
+
+
+def _normalizar_descricao(descricao: str) -> str:
+    """
+    Normaliza a descrição do produto para comparação.
+    Remove caracteres especiais, números, espaços extras e converte para minúsculas.
+    """
+    if not descricao:
+        return ""
+    
+    import re
+    # Converter para minúsculas
+    texto = descricao.lower()
+    # Remover caracteres especiais mantendo apenas letras
+    texto = re.sub(r'[^a-záàâãéèêíïóôõöúüç\s]', '', texto)
+    # Remover espaços extras
+    texto = ' '.join(texto.split())
+    # Remover palavras muito curtas (menos de 3 caracteres)
+    palavras = [p for p in texto.split() if len(p) >= 3]
+    # Retornar as primeiras 5 palavras mais significativas
+    return ' '.join(palavras[:5])
+
+
 @api_router.post("/products/classify-single")
 async def classificar_produto_individual(
     document_id: str = Body(...),
