@@ -1237,47 +1237,43 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
             </div>
           </div>
           
-          <div className="p-4">
-            {/* Barra de Ações em Lote */}
+          <div className="p-3">
+            {/* Barra de Ações em Lote - Compacta */}
             {showBatchActions && selectedProducts.size > 0 && (
-              <div className="mb-4 p-4 bg-[#C8A951]/10 border border-[#C8A951]/30 rounded-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[#C8A951] font-medium">
-                      {selectedProducts.size} produto(s) selecionado(s)
-                    </span>
-                    <button
-                      onClick={clearSelection}
-                      className="text-[#A1A1AA] hover:text-white text-sm underline"
-                    >
-                      Limpar seleção
-                    </button>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[#A1A1AA] text-sm mr-2">Reclassificar como:</span>
+              <div className="mb-3 p-2 bg-[#C8A951]/10 border border-[#C8A951]/30 rounded-lg">
+                <div className="flex items-center flex-wrap gap-2">
+                  <span className="text-[#C8A951] text-sm font-medium">
+                    {selectedProducts.size} selecionado(s)
+                  </span>
+                  <button
+                    onClick={clearSelection}
+                    className="text-[#A1A1AA] hover:text-white text-xs underline"
+                  >
+                    Limpar
+                  </button>
+                  <span className="text-[#666]">|</span>
+                  <span className="text-[#A1A1AA] text-xs">Reclassificar:</span>
                   {[
-                    { key: 'revenda', label: 'Revenda', cfop: 'X102', icon: '🛒', color: 'blue' },
-                    { key: 'insumo', label: 'Insumo', cfop: 'X101', icon: '⚙️', color: 'green' },
-                    { key: 'despesa', label: 'Despesa', cfop: 'X556', icon: '📋', color: 'red' },
-                    { key: 'ativo_imobilizado', label: 'Ativo', cfop: 'X551', icon: '🏭', color: 'amber' },
-                    { key: 'combustivel', label: 'Combustível', cfop: 'X653', icon: '⛽', color: 'purple' },
-                    { key: 'servico_aplicacao', label: 'Aplicação Serviço', cfop: 'X128', icon: '🛠️', color: 'cyan' }
+                    { key: 'revenda', label: 'Revenda', icon: '🛒' },
+                    { key: 'insumo', label: 'Insumo', icon: '⚙️' },
+                    { key: 'despesa', label: 'Despesa', icon: '📋' },
+                    { key: 'ativo_imobilizado', label: 'Ativo', icon: '🏭' },
+                    { key: 'combustivel', label: 'Combust.', icon: '⛽' },
+                    { key: 'servico_aplicacao', label: 'Serviço', icon: '🛠️' }
                   ].map(cat => (
                     <button
                       key={cat.key}
                       onClick={() => reclassificarEmLote(cat.key)}
                       disabled={processandoIA}
-                      className={`px-3 py-2 bg-[#2A2A2A] hover:bg-[#333] text-white text-sm rounded-lg transition-colors flex flex-col items-center gap-0.5 disabled:opacity-50 border border-${cat.color}-500/30 hover:border-${cat.color}-500/50`}
+                      className="px-2 py-1 bg-[#2A2A2A] hover:bg-[#333] text-white text-xs rounded transition-colors flex items-center gap-1 disabled:opacity-50"
                     >
-                      <span className="flex items-center gap-1">
-                        <span>{cat.icon}</span>
-                        <span className="font-medium">{cat.label}</span>
-                      </span>
-                      <span className="text-xs text-[#666]">CFOP {cat.cfop}</span>
+                      <span>{cat.icon}</span>
+                      <span>{cat.label}</span>
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
                 <div className="mt-2 text-xs text-[#666]">
                   * X = prefixo do CFOP original (1=estadual, 2=interestadual, 3=exterior)
                 </div>
