@@ -69,6 +69,15 @@ Sistema de fechamento fiscal automatizado com classificação inteligente de pro
    - Endpoint: `/api/alertas-cfop/resolver-individual` (POST)
    - Campos da regra: produto_descricao, produto_codigo, ncm, cfop_correto, categoria_correta
 
+7. **UI de Edição de CFOP Melhorada** ✅ (15/02/2026)
+   - **Tags de categoria em MAIÚSCULAS** por padrão em toda a aplicação
+   - **Coluna CFOP ORIG.** mostra o CFOP original da NF de saída (sem conversão) - ex: 5929
+   - **Coluna CFOP editável**: mostra o CFOP de destino selecionado no header do card
+     - Clicando na coluna CFOP abre um input para edição
+     - Botões de confirmar (Enter) e cancelar (Esc)
+     - Ao confirmar, salva automaticamente na Memória IA
+   - Header da tabela: NF | PRODUTO | CFOP ORIG. | CFOP | NCM | VALOR
+
 ---
 
 ## Arquitetura
