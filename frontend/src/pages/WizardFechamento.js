@@ -170,6 +170,8 @@ const WizardFechamento = ({ user, onLogout }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);  // Modal de confirmação para reclassificação IA
   const [decisoesOriginais, setDecisoesOriginais] = useState({});  // { nota_id: 'manter'|'excluir' } - decisões para devoluções com divergência
   const [cfopsPorProduto, setCfopsPorProduto] = useState({});  // { `${cfop}_${docId}_${prodIdx}`: 'cfop_destino' } - CFOP individual por produto
+  const [wizardClassificacaoTab, setWizardClassificacaoTab] = useState('novos');  // Estado da aba no step 4
+  const [showClassifConfirmModal, setShowClassifConfirmModal] = useState(false);  // Modal de confirmação para classificação
 
   // Função para baixar relatório do wizard
   const downloadReport = async (formato) => {
