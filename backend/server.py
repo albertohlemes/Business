@@ -15529,12 +15529,30 @@ async def alertas_cfop_agrupado_por_cfop(
     grupos_cfop = {}
     total_pendentes = 0
     
+    # Mapeamento de CFOP saída para entrada (para dados antigos que ainda tem CFOP de saída)
+    CFOP_SAIDA_PARA_ENTRADA_ALERTAS = {
+        '5106': '1106', '5910': '1910', '5911': '1911', '5912': '1912', '5913': '1913',
+        '5914': '1914', '5915': '1915', '5916': '1916', '5917': '1917', '5918': '1918',
+        '5919': '1919', '5920': '1920', '5921': '1921', '5922': '1922', '5923': '1923',
+        '5924': '1924', '5925': '1925', '5929': '1929', '5949': '1949',
+        '5201': '1201', '5202': '1202', '5208': '1208', '5209': '1209', '5210': '1210',
+        '6106': '2106', '6910': '2910', '6911': '2911', '6912': '2912', '6929': '2929', '6949': '2949',
+        '6201': '2201', '6202': '2202',
+    }
+    
     for doc in documents:
         for idx, prod in enumerate(doc.get('produtos', [])):
             if prod.get('pendente_revisao_cfop'):
-                cfop_atual = str(prod.get('cfop', ''))
-                cfop_original = str(prod.get('cfop_original_emissor', ''))
+                cfop_raw = str(prod.get('cfop', ''))
+                cfop_original = str(prod.get('cfop_original_emissor', '') or cfop_raw)
                 natureza = prod.get('natureza_operacao_original', '')
+                
+                # CORREÇÃO: Se o CFOP armazenado ainda é de saída, converter para entrada
+                if cfop_raw.startswith('5') or cfop_raw.startswith('6'):
+                    cfop_atual = CFOP_SAIDA_PARA_ENTRADA_ALERTAS.get(cfop_raw, cfop_raw.replace('5', '1', 1).replace('6', '2', 1))
+                    cfop_original = cfop_raw  # O original é o de saída
+                else:
+                    cfop_atual = cfop_raw
                 
                 # Sugestões de conversão - RESPEITANDO ST
                 cfop_compra = cfop_atual.replace('9', '0') if '9' in cfop_atual else cfop_atual[:2] + '02'
