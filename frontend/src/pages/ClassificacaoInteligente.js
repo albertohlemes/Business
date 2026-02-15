@@ -1041,8 +1041,8 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                             >
                               <ArrowRight className="w-3 h-3" />
                               → {grupo.sugestao_compra.cfop}
-                              <span className="px-1 bg-green-500/30 rounded text-[10px]">
-                                {grupo.sugestao_compra.categoria_nome || 'Revenda'}
+                              <span className="px-1 bg-green-500/30 rounded text-[10px] uppercase">
+                                {(grupo.sugestao_compra.categoria_nome || 'Revenda').toUpperCase()}
                               </span>
                             </button>
                             
