@@ -1364,9 +1364,9 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                   <span className="text-[#666]">|</span>
                   <span className="text-[#A1A1AA] text-xs">Reclassificar:</span>
                   {[
-                    { key: 'revenda', label: 'Revenda', icon: '🛒' },
-                    { key: 'insumo', label: 'Insumo', icon: '⚙️' },
-                    { key: 'despesa', label: 'Despesa', icon: '📋' },
+                    { key: 'revenda', label: 'REVENDA', icon: '🛒' },
+                    { key: 'insumo', label: 'INSUMO', icon: '⚙️' },
+                    { key: 'despesa', label: 'DESPESA', icon: '📋' },
                     { key: 'ativo_imobilizado', label: 'ATIVO', icon: '🏭' },
                     { key: 'combustivel', label: 'COMBUST.', icon: '⛽' },
                     { key: 'servico_aplicacao', label: 'SERVIÇO', icon: '🛠️' }
