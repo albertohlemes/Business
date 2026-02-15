@@ -1129,10 +1129,14 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
             ) : alertasError ? (
               <div className="text-center py-4 text-red-400 text-sm">{alertasError}</div>
             ) : alertasData?.grupos?.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {alertasData.grupos.map((grupo, idx) => {
                   // CFOP ORIGINAL da NF de saída (5910, 5949, 6106, etc.)
                   const cfopOriginal = grupo.cfop_original || grupo.cfop;
+                  
+                  // CFOP de entrada equivalente (manter natureza): 5106 → 1106, 5910 → 1910
+                  const cfopEntradaEquivalente = grupo.sugestao_manter?.cfop || 
+                    cfopOriginal.replace(/^5/, '1').replace(/^6/, '2');
                   
                   // Verificar se já tem CFOP destino selecionado no header
                   const grupoSelecionado = cfopDestinoGrupo[cfopOriginal];
@@ -1151,122 +1155,110 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                       key={cfopOriginal || idx}
                       className="bg-[#141414] border border-[#2A2A2A] rounded-lg overflow-hidden"
                     >
-                      {/* ========== HEADER DO CARD ========== */}
-                      <div className="p-3 px-4 bg-gradient-to-r from-amber-900/20 to-amber-950/10">
-                        <div className="flex items-center justify-between gap-3 flex-wrap">
-                          {/* LADO ESQUERDO: CFOP Original (amarelo) */}
-                          <div className="flex items-center gap-4">
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-amber-400/80 uppercase font-medium">CFOP Original</span>
-                              <span className="text-xl font-bold font-mono text-amber-400 bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/30">
-                                {cfopOriginal}
-                              </span>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-white text-sm font-medium">{grupo.descricao}</span>
-                              <span className="text-xs text-[#666]">
-                                {grupo.quantidade} produto{grupo.quantidade > 1 ? 's' : ''} • {formatCurrency(grupo.valor_total)}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          {/* LADO DIREITO: Seletor de CFOP Destino + Categoria + Confirmar */}
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {/* Seta de conversão */}
-                            <span className="text-2xl text-[#666]">→</span>
-                            
-                            {/* CFOP DESTINO (input ou botões rápidos) */}
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="text"
-                                placeholder="CFOP"
-                                maxLength={4}
-                                value={cfopDestinoHeader}
-                                onChange={(e) => selecionarCfopDestinoGrupo(cfopOriginal, e.target.value.replace(/\D/g, ''), categoriaHeader)}
-                                className="w-20 px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white font-mono text-center text-lg focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]/50 outline-none"
-                              />
-                              
-                              {/* Botões rápidos de CFOP sugerido */}
-                              {!cfopDestinoHeader && (
-                                <div className="flex gap-1">
-                                  <button
-                                    onClick={() => selecionarCfopDestinoGrupo(cfopOriginal, grupo.sugestao_compra?.cfop, grupo.sugestao_compra?.categoria)}
-                                    className="px-2 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded text-xs font-medium hover:bg-green-500/30 flex items-center gap-1"
-                                    title={`Converter para ${grupo.sugestao_compra?.cfop}`}
-                                  >
-                                    {grupo.sugestao_compra?.cfop}
-                                    <span className="text-[9px] uppercase bg-green-500/30 px-1 rounded">
-                                      {(grupo.sugestao_compra?.categoria_nome || 'Compra').toUpperCase()}
-                                    </span>
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Categoria (select) */}
-                            <select
-                              value={categoriaHeader}
-                              onChange={(e) => selecionarCfopDestinoGrupo(cfopOriginal, cfopDestinoHeader, e.target.value)}
-                              className="px-2 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white text-xs focus:border-[#C8A951] outline-none"
-                            >
-                              <option value="">Auto</option>
-                              <option value="revenda">REVENDA</option>
-                              <option value="insumo">INSUMO</option>
-                              <option value="despesa">DESPESA</option>
-                              <option value="ativo_imobilizado">ATIVO IMOBILIZADO</option>
-                              <option value="combustivel">COMBUSTÍVEL</option>
-                              <option value="bonificacao">BONIFICAÇÃO</option>
-                            </select>
-                            
-                            {/* Expandir para ver/editar produtos */}
-                            <button
-                              onClick={() => toggleAlert(cfopOriginal)}
-                              className="p-2 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded-lg hover:bg-[#333] hover:text-white transition-colors"
-                              title={expandedAlerts[cfopOriginal] ? 'Recolher produtos' : 'Ver produtos'}
-                            >
-                              {expandedAlerts[cfopOriginal] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                            </button>
-                            
-                            {/* BOTÃO CONFIRMAR */}
-                            <button
-                              onClick={() => confirmarGrupoCompleto(grupo)}
-                              disabled={!podeConfirmar || savingGroup === cfopOriginal}
-                              className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${
-                                podeConfirmar 
-                                  ? 'bg-[#C8A951] hover:bg-[#D4B962] text-black' 
-                                  : 'bg-[#2A2A2A] text-[#666] cursor-not-allowed'
-                              }`}
-                            >
-                              {savingGroup === cfopOriginal ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                  Salvando...
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCheck className="w-4 h-4" />
-                                  Confirmar
-                                  {numExcecoes > 0 && (
-                                    <span className="text-[10px] bg-black/20 px-1.5 py-0.5 rounded">
-                                      {numExcecoes} exceção
-                                    </span>
-                                  )}
-                                </>
-                              )}
-                            </button>
-                          </div>
+                      {/* ========== HEADER COMPACTO (LINHA ÚNICA) ========== */}
+                      <div className="px-3 py-2 flex items-center gap-3 flex-wrap">
+                        {/* CFOP Original (amarelo) + Descrição + Info */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-base font-bold font-mono text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30 shrink-0">
+                            {cfopOriginal}
+                          </span>
+                          <span className="text-white text-xs font-medium truncate max-w-[180px]" title={grupo.descricao}>
+                            {grupo.descricao}
+                          </span>
+                          <span className="text-[10px] text-[#666] shrink-0">
+                            {grupo.quantidade} prod • {formatCurrency(grupo.valor_total)}
+                          </span>
                         </div>
                         
-                        {/* Info quando tem exceções */}
-                        {numExcecoes > 0 && (
-                          <div className="mt-2 flex items-center gap-2 text-xs text-purple-400 bg-purple-500/10 px-3 py-1.5 rounded-lg">
-                            <Info className="w-4 h-4" />
-                            <span>
-                              {numExcecoes} produto(s) com CFOP diferente. 
-                              Ao confirmar, será salva a regra geral ({cfopDestinoHeader}) e as exceções individuais.
+                        {/* Seta + Ações */}
+                        <div className="flex items-center gap-1.5 ml-auto">
+                          <span className="text-lg text-[#444]">→</span>
+                          
+                          {/* Botão MANTER NATUREZA (CFOP entrada equivalente) */}
+                          <button
+                            onClick={() => selecionarCfopDestinoGrupo(cfopOriginal, cfopEntradaEquivalente, grupo.sugestao_manter?.categoria)}
+                            className={`px-2 py-1 rounded text-[10px] font-medium transition-all flex items-center gap-1 ${
+                              cfopDestinoHeader === cfopEntradaEquivalente
+                                ? 'bg-blue-500/30 text-blue-300 border border-blue-500'
+                                : 'bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20'
+                            }`}
+                            title={`Manter natureza: ${cfopOriginal} → ${cfopEntradaEquivalente}`}
+                          >
+                            {cfopEntradaEquivalente}
+                            <span className="text-[8px] uppercase opacity-70">MANTER</span>
+                          </button>
+                          
+                          {/* Botão COMPRA (sugestão de conversão) */}
+                          <button
+                            onClick={() => selecionarCfopDestinoGrupo(cfopOriginal, grupo.sugestao_compra?.cfop, grupo.sugestao_compra?.categoria)}
+                            className={`px-2 py-1 rounded text-[10px] font-medium transition-all flex items-center gap-1 ${
+                              cfopDestinoHeader === grupo.sugestao_compra?.cfop
+                                ? 'bg-green-500/30 text-green-300 border border-green-500'
+                                : 'bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20'
+                            }`}
+                            title={`Converter para compra: ${grupo.sugestao_compra?.cfop}`}
+                          >
+                            {grupo.sugestao_compra?.cfop}
+                            <span className="text-[8px] uppercase opacity-70">
+                              {(grupo.sugestao_compra?.categoria_nome || 'COMPRA').substring(0, 7).toUpperCase()}
                             </span>
-                          </div>
-                        )}
+                          </button>
+                          
+                          {/* Input CFOP manual */}
+                          <input
+                            type="text"
+                            placeholder="CFOP"
+                            maxLength={4}
+                            value={cfopDestinoHeader}
+                            onChange={(e) => selecionarCfopDestinoGrupo(cfopOriginal, e.target.value.replace(/\D/g, ''), categoriaHeader)}
+                            className="w-14 px-1.5 py-1 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white font-mono text-center text-xs focus:border-[#C8A951] outline-none"
+                          />
+                          
+                          {/* Categoria dropdown */}
+                          <select
+                            value={categoriaHeader}
+                            onChange={(e) => selecionarCfopDestinoGrupo(cfopOriginal, cfopDestinoHeader, e.target.value)}
+                            className="px-1.5 py-1 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white text-[10px] focus:border-[#C8A951] outline-none"
+                          >
+                            <option value="">Auto</option>
+                            <option value="revenda">REVENDA</option>
+                            <option value="insumo">INSUMO</option>
+                            <option value="despesa">DESPESA</option>
+                            <option value="ativo_imobilizado">ATIVO</option>
+                            <option value="combustivel">COMBUST.</option>
+                            <option value="bonificacao">BONIF.</option>
+                          </select>
+                          
+                          {/* Expandir */}
+                          <button
+                            onClick={() => toggleAlert(cfopOriginal)}
+                            className="p-1 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded hover:bg-[#333] hover:text-white transition-colors"
+                            title={expandedAlerts[cfopOriginal] ? 'Recolher' : 'Ver produtos'}
+                          >
+                            {expandedAlerts[cfopOriginal] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                          </button>
+                          
+                          {/* CONFIRMAR */}
+                          <button
+                            onClick={() => confirmarGrupoCompleto(grupo)}
+                            disabled={!podeConfirmar || savingGroup === cfopOriginal}
+                            className={`px-2.5 py-1 rounded text-[10px] font-semibold flex items-center gap-1 transition-all ${
+                              podeConfirmar 
+                                ? 'bg-[#C8A951] hover:bg-[#D4B962] text-black' 
+                                : 'bg-[#2A2A2A] text-[#555] cursor-not-allowed'
+                            }`}
+                          >
+                            {savingGroup === cfopOriginal ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <>
+                                <CheckCheck className="w-3 h-3" />
+                                OK
+                                {numExcecoes > 0 && <span className="text-[8px] bg-black/20 px-1 rounded">{numExcecoes}</span>}
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     
                       {/* ========== LISTA DE PRODUTOS (expandida) ========== */}
