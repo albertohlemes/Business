@@ -1129,247 +1129,296 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
             ) : alertasError ? (
               <div className="text-center py-4 text-red-400 text-sm">{alertasError}</div>
             ) : alertasData?.grupos?.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {alertasData.grupos.map((grupo, idx) => {
-                  // Verificar se é CFOP de SAÍDA (original do emissor) - estes não têm "manter"
-                  const cfopOriginal = grupo.cfop_original || '';
-                  const isCfopSaida = cfopOriginal.startsWith('5') || cfopOriginal.startsWith('6') || cfopOriginal.startsWith('7');
+                  // CFOP ORIGINAL da NF de saída (5910, 5949, 6106, etc.)
+                  const cfopOriginal = grupo.cfop_original || grupo.cfop;
                   
-                  // Flag do backend indica se o CFOP de entrada equivalente é inválido
-                  const cfopManterInvalido = grupo.sugestao_manter?.cfop_invalido === true;
+                  // Verificar se já tem CFOP destino selecionado no header
+                  const grupoSelecionado = cfopDestinoGrupo[cfopOriginal];
+                  const cfopDestinoHeader = grupoSelecionado?.cfopDestino || '';
+                  const categoriaHeader = grupoSelecionado?.categoria || '';
                   
-                  // O CFOP atual já é de entrada (1xxx, 2xxx) - pode ser mantido SE for válido
-                  const cfopAtual = grupo.cfop || '';
-                  // Apenas 1929/2929 (ECF) são inválidos como entrada - 1949/2949 EXISTEM e são válidos
-                  const isEntradaValida = (cfopAtual.startsWith('1') || cfopAtual.startsWith('2')) && 
-                                          !['1929', '2929'].includes(cfopAtual) && 
-                                          !cfopManterInvalido;
+                  // Exceções individuais deste grupo
+                  const excecoesGrupo = cfopExcecoes[cfopOriginal] || {};
+                  const numExcecoes = Object.keys(excecoesGrupo).length;
                   
-                  // Mostrar botão "Manter" APENAS se:
-                  // 1. O CFOP atual é de entrada válido (1xxx, 2xxx que não seja genérico demais)
-                  // 2. O backend não marcou como inválido
-                  const mostrarBotaoManter = isEntradaValida;
+                  // Determinar se pode confirmar (tem CFOP destino selecionado)
+                  const podeConfirmar = cfopDestinoHeader && /^\d{4}$/.test(cfopDestinoHeader);
                   
                   return (
                     <div 
-                      key={grupo.cfop || idx}
+                      key={cfopOriginal || idx}
                       className="bg-[#141414] border border-[#2A2A2A] rounded-lg overflow-hidden"
                     >
-                      {/* Header compacto do grupo CFOP */}
-                      <div className="p-2 px-3">
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <div className="flex items-center gap-3">
-                            <span className="text-lg font-bold font-mono text-amber-400 bg-amber-500/20 px-2 py-1 rounded">{grupo.cfop}</span>
+                      {/* ========== HEADER DO CARD ========== */}
+                      <div className="p-3 px-4 bg-gradient-to-r from-amber-900/20 to-amber-950/10">
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                          {/* LADO ESQUERDO: CFOP Original (amarelo) */}
+                          <div className="flex items-center gap-4">
+                            <div className="flex flex-col items-center">
+                              <span className="text-[10px] text-amber-400/80 uppercase font-medium">CFOP Original</span>
+                              <span className="text-xl font-bold font-mono text-amber-400 bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/30">
+                                {cfopOriginal}
+                              </span>
+                            </div>
                             <div className="flex flex-col">
                               <span className="text-white text-sm font-medium">{grupo.descricao}</span>
                               <span className="text-xs text-[#666]">
-                                {grupo.quantidade} prod. • {formatCurrency(grupo.valor_total)}
+                                {grupo.quantidade} produto{grupo.quantidade > 1 ? 's' : ''} • {formatCurrency(grupo.valor_total)}
                               </span>
                             </div>
                           </div>
                           
-                          {/* Botões de ação compactos */}
-                          <div className="flex items-center gap-1.5">
-                            {/* Botão "Manter Natureza" - só se CFOP de entrada for válido */}
-                            {mostrarBotaoManter && (
-                              <button
-                                onClick={() => resolverGrupoCfop(grupo.cfop, grupo.sugestao_manter.cfop, true)}
-                                disabled={resolvingGroup === grupo.cfop}
-                                className="px-2 py-1.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded text-xs font-medium flex items-center gap-1 hover:bg-blue-500/30 disabled:opacity-50"
-                              >
-                                {resolvingGroup === grupo.cfop ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRight className="w-3 h-3" />}
-                                → {grupo.sugestao_manter.cfop}
-                              </button>
-                            )}
+                          {/* LADO DIREITO: Seletor de CFOP Destino + Categoria + Confirmar */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {/* Seta de conversão */}
+                            <span className="text-2xl text-[#666]">→</span>
                             
-                            {/* Botão Converter para Compra */}
-                            <button
-                              onClick={() => resolverGrupoCfop(grupo.cfop, grupo.sugestao_compra.cfop, true)}
-                              disabled={resolvingGroup === grupo.cfop}
-                              className="px-2 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded text-xs font-medium flex items-center gap-1 hover:bg-green-500/30 disabled:opacity-50"
+                            {/* CFOP DESTINO (input ou botões rápidos) */}
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                placeholder="CFOP"
+                                maxLength={4}
+                                value={cfopDestinoHeader}
+                                onChange={(e) => selecionarCfopDestinoGrupo(cfopOriginal, e.target.value.replace(/\D/g, ''), categoriaHeader)}
+                                className="w-20 px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white font-mono text-center text-lg focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]/50 outline-none"
+                              />
+                              
+                              {/* Botões rápidos de CFOP sugerido */}
+                              {!cfopDestinoHeader && (
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => selecionarCfopDestinoGrupo(cfopOriginal, grupo.sugestao_compra?.cfop, grupo.sugestao_compra?.categoria)}
+                                    className="px-2 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded text-xs font-medium hover:bg-green-500/30 flex items-center gap-1"
+                                    title={`Converter para ${grupo.sugestao_compra?.cfop}`}
+                                  >
+                                    {grupo.sugestao_compra?.cfop}
+                                    <span className="text-[9px] uppercase bg-green-500/30 px-1 rounded">
+                                      {(grupo.sugestao_compra?.categoria_nome || 'Compra').toUpperCase()}
+                                    </span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Categoria (select) */}
+                            <select
+                              value={categoriaHeader}
+                              onChange={(e) => selecionarCfopDestinoGrupo(cfopOriginal, cfopDestinoHeader, e.target.value)}
+                              className="px-2 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white text-xs focus:border-[#C8A951] outline-none"
                             >
-                              <ArrowRight className="w-3 h-3" />
-                              → {grupo.sugestao_compra.cfop}
-                              <span className="px-1 bg-green-500/30 rounded text-[10px] uppercase">
-                                {(grupo.sugestao_compra.categoria_nome || 'Revenda').toUpperCase()}
-                              </span>
+                              <option value="">Auto</option>
+                              <option value="revenda">REVENDA</option>
+                              <option value="insumo">INSUMO</option>
+                              <option value="despesa">DESPESA</option>
+                              <option value="ativo_imobilizado">ATIVO IMOBILIZADO</option>
+                              <option value="combustivel">COMBUSTÍVEL</option>
+                              <option value="bonificacao">BONIFICAÇÃO</option>
+                            </select>
+                            
+                            {/* Expandir para ver/editar produtos */}
+                            <button
+                              onClick={() => toggleAlert(cfopOriginal)}
+                              className="p-2 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded-lg hover:bg-[#333] hover:text-white transition-colors"
+                              title={expandedAlerts[cfopOriginal] ? 'Recolher produtos' : 'Ver produtos'}
+                            >
+                              {expandedAlerts[cfopOriginal] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                             </button>
                             
-                            {/* Botão Outro CFOP */}
+                            {/* BOTÃO CONFIRMAR */}
                             <button
-                              onClick={() => setEditingCfop(prev => ({ ...prev, [grupo.cfop]: !prev[grupo.cfop] }))}
-                              className="px-2 py-1.5 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded text-xs hover:bg-[#333] hover:text-white"
+                              onClick={() => confirmarGrupoCompleto(grupo)}
+                              disabled={!podeConfirmar || savingGroup === cfopOriginal}
+                              className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${
+                                podeConfirmar 
+                                  ? 'bg-[#C8A951] hover:bg-[#D4B962] text-black' 
+                                  : 'bg-[#2A2A2A] text-[#666] cursor-not-allowed'
+                              }`}
                             >
-                              <Edit3 className="w-3 h-3" />
-                            </button>
-                            
-                            {/* Expandir */}
-                            <button
-                              onClick={() => toggleAlert(grupo.cfop)}
-                              className="p-1.5 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded hover:bg-[#333] hover:text-white"
-                            >
-                              {expandedAlerts[grupo.cfop] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                              {savingGroup === cfopOriginal ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Salvando...
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCheck className="w-4 h-4" />
+                                  Confirmar
+                                  {numExcecoes > 0 && (
+                                    <span className="text-[10px] bg-black/20 px-1.5 py-0.5 rounded">
+                                      {numExcecoes} exceção
+                                    </span>
+                                  )}
+                                </>
+                              )}
                             </button>
                           </div>
                         </div>
                         
-                        {/* Aviso para CFOP de saída sem entrada equivalente */}
-                        {isCfopSaida && !mostrarBotaoManter && (
-                          <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-amber-400 bg-amber-500/10 px-2 py-1 rounded">
-                            <AlertTriangle className="w-3 h-3" />
-                            <span>CFOP de saída sem entrada equivalente. Escolha um CFOP de entrada válido.</span>
-                          </div>
-                        )}
-                        
-                        {/* Campo de edição manual compacto */}
-                        {editingCfop[grupo.cfop] && (
-                          <div className="mt-2 p-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded flex items-center gap-2 flex-wrap">
-                            <input
-                              type="text"
-                              id={`cfop-manual-${grupo.cfop}`}
-                              placeholder="CFOP"
-                              maxLength={4}
-                              className="w-16 px-2 py-1 bg-[#141414] border border-[#2A2A2A] rounded text-white font-mono text-center text-sm focus:border-[#C8A951] outline-none"
-                            />
-                            <select
-                              id={`categoria-manual-${grupo.cfop}`}
-                              className="px-2 py-1 bg-[#141414] border border-[#2A2A2A] rounded text-white text-xs focus:border-[#C8A951] outline-none"
-                            >
-                              <option value="">Auto</option>
-                              <option value="revenda">Revenda</option>
-                              <option value="insumo">Insumo</option>
-                              <option value="despesa">Despesa</option>
-                              <option value="ativo_imobilizado">Ativo</option>
-                              <option value="combustivel">Combustível</option>
-                              <option value="bonificacao">Bonificação</option>
-                            </select>
-                            <button
-                              onClick={() => {
-                                const inputCfop = document.getElementById(`cfop-manual-${grupo.cfop}`);
-                                const selectCategoria = document.getElementById(`categoria-manual-${grupo.cfop}`);
-                                const novoCfop = inputCfop?.value?.trim();
-                                const categoria = selectCategoria?.value || null;
-                                if (novoCfop && /^\d{4}$/.test(novoCfop)) {
-                                  resolverGrupoCfop(grupo.cfop, novoCfop, true, categoria);
-                                } else {
-                                  toast.error('CFOP deve ter 4 dígitos');
-                                }
-                              }}
-                              disabled={resolvingGroup === grupo.cfop}
-                              className="px-2 py-1 bg-[#C8A951]/20 text-[#C8A951] border border-[#C8A951]/30 rounded text-xs hover:bg-[#C8A951]/30 disabled:opacity-50"
-                            >
-                              Aplicar
-                            </button>
+                        {/* Info quando tem exceções */}
+                        {numExcecoes > 0 && (
+                          <div className="mt-2 flex items-center gap-2 text-xs text-purple-400 bg-purple-500/10 px-3 py-1.5 rounded-lg">
+                            <Info className="w-4 h-4" />
+                            <span>
+                              {numExcecoes} produto(s) com CFOP diferente. 
+                              Ao confirmar, será salva a regra geral ({cfopDestinoHeader}) e as exceções individuais.
+                            </span>
                           </div>
                         )}
                       </div>
                     
-                    {/* Lista de produtos (expandida) - Com coluna CFOP EDITÁVEL e CFOP ORIGINAL */}
-                    {expandedAlerts[grupo.cfop] && grupo.produtos && (
-                      <div className="border-t border-[#2A2A2A]">
-                        {/* Header da tabela */}
-                        <div className="flex items-center gap-2 px-3 py-2 text-[10px] text-[#666] border-b border-[#2A2A2A] bg-[#0C0C0C] font-medium uppercase">
-                          <span className="w-16 shrink-0">NF</span>
-                          <span className="flex-1 min-w-0">PRODUTO</span>
-                          <span className="w-20 shrink-0 text-center">CFOP ORIG.</span>
-                          <span className="w-20 shrink-0 text-center">CFOP</span>
-                          <span className="w-20 shrink-0 text-center">NCM</span>
-                          <span className="w-20 shrink-0 text-right">VALOR</span>
-                        </div>
-                        <div className="max-h-[250px] overflow-y-auto">
-                          {grupo.produtos.map((prod, prodIdx) => {
-                            const prodKey = `${grupo.cfop}_${prod.documento_id}_${prod.produto_idx}`;
-                            const editState = editingCfopProduto[prodKey] || {};
-                            const isEditing = editState.cfop !== undefined;
-                            
-                            // CFOP de destino: usa o editado individualmente, ou o selecionado no header, ou o sugerido
-                            const cfopDestinoSelecionado = editState.cfopFinal || 
-                              grupo.sugestao_compra?.cfop || 
-                              grupo.sugestao_manter?.cfop || 
-                              '1102';
-                            
-                            return (
-                              <div 
-                                key={prodIdx}
-                                className="flex items-center gap-2 px-3 py-2 text-xs border-b border-[#1A1A1A] hover:bg-[#1A1A1A] group"
-                              >
-                                <span className="font-mono text-amber-400 shrink-0 w-16">{prod.numero_nfe}</span>
-                                <span className="text-[#A1A1AA] truncate flex-1 min-w-0" title={prod.produto_descricao}>{prod.produto_descricao}</span>
-                                {/* CFOP ORIGINAL (da NF de saída, sem conversão) */}
-                                <span className="w-20 shrink-0 text-center">
-                                  <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded font-mono text-[10px]">
-                                    {prod.cfop_original_emissor || grupo.cfop_original || grupo.cfop}
+                      {/* ========== LISTA DE PRODUTOS (expandida) ========== */}
+                      {expandedAlerts[cfopOriginal] && grupo.produtos && (
+                        <div className="border-t border-[#2A2A2A]">
+                          {/* Header da tabela */}
+                          <div className="flex items-center gap-2 px-4 py-2 text-[10px] text-[#666] border-b border-[#2A2A2A] bg-[#0C0C0C] font-medium uppercase">
+                            <span className="w-16 shrink-0">NF</span>
+                            <span className="flex-1 min-w-0">PRODUTO</span>
+                            <span className="w-20 shrink-0 text-center">CFOP ORIG.</span>
+                            <span className="w-24 shrink-0 text-center">CFOP DESTINO</span>
+                            <span className="w-20 shrink-0 text-center">NCM</span>
+                            <span className="w-20 shrink-0 text-right">VALOR</span>
+                          </div>
+                          <div className="max-h-[300px] overflow-y-auto">
+                            {grupo.produtos.map((prod, prodIdx) => {
+                              const prodKey = `${prod.documento_id}_${prod.produto_idx}`;
+                              const excecao = excecoesGrupo[prodKey];
+                              const isExcecao = !!excecao;
+                              
+                              // CFOP efetivo para este produto
+                              const cfopEfetivo = excecao?.cfop || cfopDestinoHeader || grupo.sugestao_compra?.cfop || '----';
+                              
+                              // Estado de edição inline
+                              const editKey = `${cfopOriginal}_${prodKey}`;
+                              const editState = editingCfopProduto[editKey] || {};
+                              const isEditing = editState.editing === true;
+                              
+                              return (
+                                <div 
+                                  key={prodIdx}
+                                  className={`flex items-center gap-2 px-4 py-2 text-xs border-b border-[#1A1A1A] hover:bg-[#1A1A1A] group transition-colors ${
+                                    isExcecao ? 'bg-purple-500/5' : ''
+                                  }`}
+                                >
+                                  <span className="font-mono text-amber-400 shrink-0 w-16">{prod.numero_nfe}</span>
+                                  <span className="text-[#A1A1AA] truncate flex-1 min-w-0" title={prod.produto_descricao}>
+                                    {prod.produto_descricao}
+                                    {isExcecao && (
+                                      <span className="ml-2 text-[9px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded uppercase">
+                                        Exceção
+                                      </span>
+                                    )}
                                   </span>
-                                </span>
-                                {/* CFOP DESTINO (editável) - Mostra o CFOP selecionado no header ou permite edição */}
-                                <div className="w-20 shrink-0 flex items-center justify-center">
-                                  {isEditing ? (
-                                    <div className="flex items-center gap-1">
-                                      <input
-                                        type="text"
-                                        placeholder="CFOP"
-                                        maxLength={4}
-                                        autoFocus
-                                        value={editState.cfop || ''}
-                                        onChange={(e) => setEditingCfopProduto(prev => ({
+                                  
+                                  {/* CFOP ORIGINAL (da NF de saída) */}
+                                  <span className="w-20 shrink-0 text-center">
+                                    <span className="px-2 py-1 bg-amber-500/20 text-amber-400 rounded font-mono text-[10px] font-semibold">
+                                      {prod.cfop_original_emissor || cfopOriginal}
+                                    </span>
+                                  </span>
+                                  
+                                  {/* CFOP DESTINO (editável individualmente) */}
+                                  <div className="w-24 shrink-0 flex items-center justify-center">
+                                    {isEditing ? (
+                                      <div className="flex items-center gap-1">
+                                        <input
+                                          type="text"
+                                          placeholder="CFOP"
+                                          maxLength={4}
+                                          autoFocus
+                                          value={editState.cfop || ''}
+                                          onChange={(e) => setEditingCfopProduto(prev => ({
+                                            ...prev,
+                                            [editKey]: { ...prev[editKey], cfop: e.target.value.replace(/\D/g, '') }
+                                          }))}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && editState.cfop?.length === 4) {
+                                              // Marcar como exceção (não salva ainda, só prepara)
+                                              if (editState.cfop !== cfopDestinoHeader) {
+                                                marcarExcecaoProduto(cfopOriginal, prod.documento_id, prod.produto_idx, editState.cfop);
+                                              } else {
+                                                // Se voltou ao CFOP do header, remover exceção
+                                                removerExcecaoProduto(cfopOriginal, prod.documento_id, prod.produto_idx);
+                                              }
+                                              setEditingCfopProduto(prev => {
+                                                const newState = { ...prev };
+                                                delete newState[editKey];
+                                                return newState;
+                                              });
+                                            } else if (e.key === 'Escape') {
+                                              setEditingCfopProduto(prev => {
+                                                const newState = { ...prev };
+                                                delete newState[editKey];
+                                                return newState;
+                                              });
+                                            }
+                                          }}
+                                          className="w-14 px-1 py-1 bg-[#0C0C0C] border border-[#C8A951] rounded text-white font-mono text-[11px] text-center focus:outline-none"
+                                        />
+                                        <button
+                                          onClick={() => {
+                                            if (editState.cfop?.length === 4) {
+                                              if (editState.cfop !== cfopDestinoHeader) {
+                                                marcarExcecaoProduto(cfopOriginal, prod.documento_id, prod.produto_idx, editState.cfop);
+                                              } else {
+                                                removerExcecaoProduto(cfopOriginal, prod.documento_id, prod.produto_idx);
+                                              }
+                                              setEditingCfopProduto(prev => {
+                                                const newState = { ...prev };
+                                                delete newState[editKey];
+                                                return newState;
+                                              });
+                                            }
+                                          }}
+                                          disabled={!editState.cfop || editState.cfop.length !== 4}
+                                          className="p-1 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30 disabled:opacity-50"
+                                          title="Confirmar (Enter)"
+                                        >
+                                          <Check className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          onClick={() => setEditingCfopProduto(prev => {
+                                            const newState = { ...prev };
+                                            delete newState[editKey];
+                                            return newState;
+                                          })}
+                                          className="p-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30"
+                                          title="Cancelar (Esc)"
+                                        >
+                                          <X className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => setEditingCfopProduto(prev => ({
                                           ...prev,
-                                          [prodKey]: { ...prev[prodKey], cfop: e.target.value.replace(/\D/g, '') }
+                                          [editKey]: { editing: true, cfop: cfopEfetivo === '----' ? '' : cfopEfetivo }
                                         }))}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter' && editState.cfop?.length === 4) {
-                                            resolverCfopProdutoIndividual(grupo.cfop, prod, editState.cfop);
-                                          } else if (e.key === 'Escape') {
-                                            setEditingCfopProduto(prev => {
-                                              const newState = { ...prev };
-                                              delete newState[prodKey];
-                                              return newState;
-                                            });
-                                          }
-                                        }}
-                                        className="w-14 px-1 py-0.5 bg-[#0C0C0C] border border-[#C8A951] rounded text-white font-mono text-[10px] text-center focus:outline-none"
-                                      />
-                                      <button
-                                        onClick={() => resolverCfopProdutoIndividual(grupo.cfop, prod, editState.cfop)}
-                                        disabled={editState.saving || !editState.cfop || editState.cfop.length !== 4}
-                                        className="p-0.5 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30 disabled:opacity-50"
-                                        title="Confirmar (Enter)"
+                                        className={`px-2 py-1 rounded font-mono text-[11px] transition-colors cursor-pointer border ${
+                                          isExcecao 
+                                            ? 'bg-purple-500/20 text-purple-400 border-purple-500/30 hover:bg-purple-500/30' 
+                                            : cfopDestinoHeader 
+                                              ? 'bg-green-500/20 text-green-400 border-transparent hover:border-green-500/50 hover:bg-green-500/30'
+                                              : 'bg-[#2A2A2A] text-[#666] border-[#333] hover:bg-[#333] hover:text-white'
+                                        }`}
+                                        title="Clique para editar (exceção)"
                                       >
-                                        {editState.saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                        {cfopEfetivo}
                                       </button>
-                                      <button
-                                        onClick={() => setEditingCfopProduto(prev => {
-                                          const newState = { ...prev };
-                                          delete newState[prodKey];
-                                          return newState;
-                                        })}
-                                        className="p-0.5 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30"
-                                        title="Cancelar (Esc)"
-                                      >
-                                        <X className="w-3 h-3" />
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      onClick={() => setEditingCfopProduto(prev => ({
-                                        ...prev,
-                                        [prodKey]: { cfop: cfopDestinoSelecionado, saving: false }
-                                      }))}
-                                      className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded font-mono text-[10px] hover:bg-green-500/30 transition-colors cursor-pointer border border-transparent hover:border-green-500/50"
-                                      title="Clique para editar o CFOP deste produto"
-                                    >
-                                      {editState.cfopFinal || cfopDestinoSelecionado}
-                                    </button>
-                                  )}
+                                    )}
+                                  </div>
+                                  
+                                  <span className="text-[#666] font-mono w-20 shrink-0 text-center">{prod.ncm}</span>
+                                  <span className="text-[#C8A951] font-medium w-20 shrink-0 text-right">{formatCurrency(prod.valor)}</span>
                                 </div>
-                                <span className="text-[#666] font-mono w-20 shrink-0 text-center">{prod.ncm}</span>
-                                <span className="text-[#C8A951] w-20 shrink-0 text-right">{formatCurrency(prod.valor)}</span>
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
