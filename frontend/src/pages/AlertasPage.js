@@ -11,24 +11,26 @@ import { useAppContext } from '../context/AppContext';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-// Ícones para cada etapa
+// Ícones para cada etapa - SINCRONIZADO COM BACKEND (WIZARD_STEPS)
 const STEP_ICONS = {
-  1: FileX,
-  2: RotateCcw,
-  3: Package,
-  4: Receipt,
-  5: Receipt,
-  6: Calculator,
-  7: Flag
+  1: FileX,           // Notas Canceladas
+  2: RotateCcw,       // Devoluções
+  3: AlertTriangle,   // Alertas de CFOP
+  4: Package,         // Classificação CFOPs
+  5: Receipt,         // PIS/COFINS Entradas
+  6: Receipt,         // PIS/COFINS Saídas
+  7: Calculator       // Reforma Tributária
 };
 
+// IMPORTANTE: Nomes sincronizados com WIZARD_STEPS do backend
 const STEP_NAMES = {
   1: 'Notas Canceladas',
   2: 'Devoluções',
-  3: 'Classificação CFOPs',
-  4: 'PIS/COFINS Entradas',
-  5: 'PIS/COFINS Saídas',
-  6: 'Reforma Tributária'
+  3: 'Alertas CFOP',
+  4: 'Classif. Produtos',
+  5: 'PIS/COFINS Entradas',
+  6: 'PIS/COFINS Saídas',
+  7: 'Reforma Tributária'
 };
 
 const AlertasPage = ({ user, onLogout }) => {
