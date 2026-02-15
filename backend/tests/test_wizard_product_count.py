@@ -85,7 +85,7 @@ class TestWizardProductCountSync:
         
         # Get all wizard steps data
         response = requests.get(
-            f"{BASE_URL}/api/wizard-fechamento/{self.sungroup_id}/status?competencia={competencia}",
+            f"{BASE_URL}/api/wizard-fechamento/status/{self.sungroup_id}?competencia={competencia}",
             headers=self.headers
         )
         assert response.status_code == 200, f"Wizard status failed: {response.text}"
