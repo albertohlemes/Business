@@ -960,8 +960,8 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                           
                           {/* Botões de ação compactos */}
                           <div className="flex items-center gap-1.5">
-                            {/* Só mostrar "Manter" se houver CFOP de entrada válido */}
-                            {cfopEntradaExiste && (
+                            {/* Botão "Manter Natureza" - só se CFOP de entrada for válido */}
+                            {mostrarBotaoManter && (
                               <button
                                 onClick={() => resolverGrupoCfop(grupo.cfop, grupo.sugestao_manter.cfop, true)}
                                 disabled={resolvingGroup === grupo.cfop}
