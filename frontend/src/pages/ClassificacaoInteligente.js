@@ -1367,15 +1367,15 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                     { key: 'revenda', label: 'Revenda', icon: '🛒' },
                     { key: 'insumo', label: 'Insumo', icon: '⚙️' },
                     { key: 'despesa', label: 'Despesa', icon: '📋' },
-                    { key: 'ativo_imobilizado', label: 'Ativo', icon: '🏭' },
-                    { key: 'combustivel', label: 'Combust.', icon: '⛽' },
-                    { key: 'servico_aplicacao', label: 'Serviço', icon: '🛠️' }
+                    { key: 'ativo_imobilizado', label: 'ATIVO', icon: '🏭' },
+                    { key: 'combustivel', label: 'COMBUST.', icon: '⛽' },
+                    { key: 'servico_aplicacao', label: 'SERVIÇO', icon: '🛠️' }
                   ].map(cat => (
                     <button
                       key={cat.key}
                       onClick={() => reclassificarEmLote(cat.key)}
                       disabled={processandoIA}
-                      className="px-2 py-1 bg-[#2A2A2A] hover:bg-[#333] text-white text-xs rounded transition-colors flex items-center gap-1 disabled:opacity-50"
+                      className="px-2 py-1 bg-[#2A2A2A] hover:bg-[#333] text-white text-xs rounded transition-colors flex items-center gap-1 disabled:opacity-50 uppercase"
                     >
                       <span>{cat.icon}</span>
                       <span>{cat.label}</span>
