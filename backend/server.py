@@ -7550,6 +7550,7 @@ async def upload_xml_with_progress(
         # Devoluções e Remessas Interestaduais
         '6201': '2201', '6202': '2202',
         '6910': '2910', '6911': '2911', '6912': '2912', '6913': '2913',
+        '6929': '2929',  # Lançamento ECF interestadual
         '6949': '2949',
     }
     
