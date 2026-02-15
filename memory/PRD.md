@@ -5,9 +5,32 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 
 ## Última Atualização: 16/12/2025
 
+### Nova Funcionalidade Implementada Nesta Sessão
+
+#### 0. Classificação Inteligente com Separação Novos vs Já Classificados
+
+**Funcionalidade implementada:**
+- **Sistema de Abas** na tela de Classificação Inteligente:
+  - **"Novos Produtos"**: Produtos que nunca foram classificados antes (foco principal)
+  - **"Já Classificados"**: Produtos com classificação de importações/competências anteriores
+  - **"Todos do Mês"**: Visão completa para revisão final
+
+**Como funciona:**
+- Identificação por **NCM + descrição similar** (normalizada para comparação)
+- **Classificação por empresa** (cada empresa tem seu histórico)
+- **Aplicação automática**: Quando um produto similar já foi classificado antes, a classificação é aplicada automaticamente
+
+**Endpoints criados:**
+- `GET /api/classification/suggestions-v2/{company_id}?competencia={competencia}`
+  - Retorna: `produtos_novos`, `produtos_ja_classificados`, `todos`
+  - Campo `fonte_classificacao`: "regra_aprendida" ou "competencia_anterior"
+  - Campo `classificacao_automatica`: true quando aplicada automaticamente
+
+**Status**: ✅ IMPLEMENTADO E TESTADO (backend e frontend)
+
 ### Correções Aplicadas Nesta Sessão
 
-#### 0. Bug Corrigido: Top 10 Produtos/NCM e CFOPs Desconsiderados na Apuração ICMS
+#### 1. Bug Corrigido: Top 10 Produtos/NCM e CFOPs Desconsiderados na Apuração ICMS
 
 **Problema Identificado:**
 1. Top 10 Produtos - Crédito/Débito mostravam "Nenhum registro encontrado" na versão agregada (>10.000 docs)
