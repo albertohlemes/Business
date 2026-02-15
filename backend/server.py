@@ -15740,6 +15740,11 @@ async def resolver_alerta_cfop_individual(
     Resolve um alerta de CFOP individual.
     Também classifica automaticamente o produto baseado no CFOP.
     
+    *** MEMÓRIA IA ***
+    SEMPRE cria ou atualiza uma regra permanente na coleção learned_rules.
+    Esta regra será usada para classificar automaticamente o mesmo produto
+    em futuras importações.
+    
     Body:
     - company_id: ID da empresa
     - competencia: Competência (MM/YYYY)
@@ -15747,13 +15752,11 @@ async def resolver_alerta_cfop_individual(
     - produto_idx: Índice do produto no array
     - novo_cfop: Novo CFOP a ser aplicado
     - categoria_destino: Categoria opcional (se não informado, será inferida)
-    - salvar_regra: Se deve salvar como regra (default: False)
     """
     documento_id = data.get('documento_id')
     produto_idx = data.get('produto_idx')
     novo_cfop = data.get('novo_cfop')
     categoria = data.get('categoria_destino')
-    salvar_regra = data.get('salvar_regra', False)
     
     if not documento_id or produto_idx is None or not novo_cfop:
         raise HTTPException(status_code=400, detail="documento_id, produto_idx e novo_cfop são obrigatórios")
@@ -15762,17 +15765,22 @@ async def resolver_alerta_cfop_individual(
     if not doc:
         raise HTTPException(status_code=404, detail="Documento não encontrado")
     
+    company_id = doc.get('company_id')
     produtos = doc.get('produtos', [])
     if produto_idx >= len(produtos):
         raise HTTPException(status_code=404, detail="Produto não encontrado")
     
     produto = produtos[produto_idx]
     cfop_anterior = produto.get('cfop', '')
+    produto_codigo = produto.get('codigo', '')
+    produto_descricao = produto.get('descricao', '')
+    produto_ncm = produto.get('ncm', '')
+    cfop_original_emissor = produto.get('cfop_original_emissor', cfop_anterior)
     
     # Determinar categoria baseada no CFOP se não foi informada
     categoria_final = categoria or obter_categoria_por_cfop(novo_cfop)
     
-    # Atualizar CFOP
+    # Atualizar CFOP no documento
     produtos[produto_idx]['cfop'] = novo_cfop
     produtos[produto_idx]['pendente_revisao_cfop'] = False
     produtos[produto_idx]['cfop_revisado_por'] = current_user.id
@@ -15781,8 +15789,8 @@ async def resolver_alerta_cfop_individual(
     # CLASSIFICAR AUTOMATICAMENTE baseado no CFOP
     if categoria_final:
         produtos[produto_idx]['categoria'] = categoria_final
-        produtos[produto_idx]['categoria_classificada'] = categoria_final  # Campo correto para classificação
-        produtos[produto_idx]['categoria_origem'] = 'cfop_auto'
+        produtos[produto_idx]['categoria_classificada'] = categoria_final
+        produtos[produto_idx]['categoria_origem'] = 'memoria_ia_manual'
         produtos[produto_idx]['categoria_classificada_em'] = datetime.now(timezone.utc).isoformat()
     
     await db.xml_documents.update_one(
@@ -15790,28 +15798,81 @@ async def resolver_alerta_cfop_individual(
         {"$set": {"produtos": produtos}}
     )
     
-    # Salvar regra se solicitado
-    if salvar_regra:
-        await db.learned_rules.insert_one({
+    # ============ MEMÓRIA IA - SEMPRE SALVAR/ATUALIZAR REGRA ============
+    # Verificar se já existe uma regra para este produto (por código OU descrição)
+    regra_existente = None
+    regra_msg = ""
+    
+    # Primeiro tenta encontrar por código (mais preciso)
+    if produto_codigo:
+        regra_existente = await db.learned_rules.find_one({
+            "company_id": company_id,
+            "produto_codigo": produto_codigo
+        })
+    
+    # Se não encontrou por código, tenta por descrição (fuzzy match)
+    if not regra_existente and produto_descricao:
+        # Normalizar descrição para comparação
+        descricao_normalizada = produto_descricao.strip().upper()
+        regra_existente = await db.learned_rules.find_one({
+            "company_id": company_id,
+            "$expr": {
+                "$eq": [
+                    {"$toUpper": {"$trim": {"input": "$produto_descricao"}}},
+                    descricao_normalizada
+                ]
+            }
+        })
+    
+    now = datetime.now(timezone.utc)
+    
+    if regra_existente:
+        # ATUALIZAR regra existente
+        await db.learned_rules.update_one(
+            {"id": regra_existente.get('id')},
+            {"$set": {
+                "cfop_correto": novo_cfop,
+                "categoria_correta": categoria_final or "conversao_cfop",
+                "ncm": produto_ncm or regra_existente.get('ncm', ''),
+                "cfop_original": cfop_original_emissor,
+                "motivo": f"Atualização manual: {cfop_anterior} → {novo_cfop}" + (f" ({categoria_final})" if categoria_final else ""),
+                "aprendido_de": "user_correction",
+                "updated_by": current_user.id,
+                "updated_at": now
+            }}
+        )
+        regra_msg = "Regra atualizada na Memória IA"
+        logger.info(f"MEMÓRIA IA: Regra ATUALIZADA para produto '{produto_descricao}' → CFOP {novo_cfop}")
+    else:
+        # CRIAR nova regra
+        nova_regra = {
             "id": str(uuid.uuid4()),
-            "company_id": doc.get('company_id'),
-            "produto_descricao": produto.get('descricao', ''),
-            "produto_codigo": produto.get('codigo', ''),
-            "ncm": produto.get('ncm', ''),
-            "cfop_original": produto.get('cfop_original_emissor', cfop_anterior),
+            "company_id": company_id,
+            "produto_descricao": produto_descricao,
+            "produto_codigo": produto_codigo,
+            "ncm": produto_ncm,
+            "cfop_original": cfop_original_emissor,
             "cfop_correto": novo_cfop,
             "categoria_correta": categoria_final or "conversao_cfop",
-            "motivo": f"Conversão manual de {cfop_anterior} para {novo_cfop}" + (f" → {categoria_final}" if categoria_final else ""),
+            "motivo": f"Correção manual: {cfop_anterior} → {novo_cfop}" + (f" ({categoria_final})" if categoria_final else ""),
             "aprendido_de": "user_correction",
             "created_by": current_user.id,
-            "created_at": datetime.now(timezone.utc)
-        })
+            "created_at": now
+        }
+        await db.learned_rules.insert_one(nova_regra)
+        regra_msg = "Nova regra criada na Memória IA"
+        logger.info(f"MEMÓRIA IA: Nova regra CRIADA para produto '{produto_descricao}' → CFOP {novo_cfop}")
+    
+    # Invalidar cache para a empresa/competência
+    invalidate_company_cache(company_id, doc.get('competencia'))
     
     categoria_msg = f" e classificado como '{categoria_final}'" if categoria_final else ""
     return {
         "success": True, 
-        "message": f"CFOP alterado de {cfop_anterior} para {novo_cfop}{categoria_msg}",
-        "categoria_atribuida": categoria_final
+        "message": f"CFOP alterado de {cfop_anterior} para {novo_cfop}{categoria_msg}. {regra_msg}.",
+        "categoria_atribuida": categoria_final,
+        "regra_salva": True,
+        "regra_atualizada": regra_existente is not None
     }
 
 @api_router.post("/alertas-cfop/resolver-lote")
