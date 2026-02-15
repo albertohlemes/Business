@@ -22063,8 +22063,16 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
             "cfops_st": cfops_st
         },
         "desconsiderados": {
-            "despesas": {"bc_icms": 0, "valor_icms": round(icms_despesa_desc, 2), "qtd_itens": 0},
-            "st": {"bc_icms": 0, "valor_icms": round(icms_st_desc, 2), "qtd_itens": 0},
+            "despesas": {
+                "bc_icms": round(sum(c.get('bc_icms', 0) for c in entradas_por_cfop.values() if c.get('is_despesa') and c.get('desconsiderado')), 2),
+                "valor_icms": round(icms_despesa_desc, 2),
+                "qtd_itens": sum(c.get('qtd_itens', 0) for c in entradas_por_cfop.values() if c.get('is_despesa') and c.get('desconsiderado'))
+            },
+            "st": {
+                "bc_icms": round(sum(c.get('bc_icms', 0) for c in entradas_por_cfop.values() if c.get('is_st') and c.get('desconsiderado')), 2),
+                "valor_icms": round(icms_st_desc, 2),
+                "qtd_itens": sum(c.get('qtd_itens', 0) for c in entradas_por_cfop.values() if c.get('is_st') and c.get('desconsiderado'))
+            },
             "beneficio_fiscal": {"bc_icms": 0, "valor_icms": 0, "qtd_itens": 0, "produtos": []},
             "total_icms_desconsiderado": round(icms_despesa_desc + icms_st_desc, 2)
         },
