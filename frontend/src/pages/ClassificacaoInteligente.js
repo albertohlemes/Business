@@ -1264,16 +1264,16 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                       {/* ========== LISTA DE PRODUTOS (expandida) ========== */}
                       {expandedAlerts[cfopOriginal] && grupo.produtos && (
                         <div className="border-t border-[#2A2A2A]">
-                          {/* Header da tabela */}
-                          <div className="flex items-center gap-2 px-4 py-2 text-[10px] text-[#666] border-b border-[#2A2A2A] bg-[#0C0C0C] font-medium uppercase">
-                            <span className="w-16 shrink-0">NF</span>
+                          {/* Header da tabela compacto */}
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] text-[#555] border-b border-[#2A2A2A] bg-[#0C0C0C] font-medium uppercase">
+                            <span className="w-14 shrink-0">NF</span>
                             <span className="flex-1 min-w-0">PRODUTO</span>
-                            <span className="w-20 shrink-0 text-center">CFOP ORIG.</span>
-                            <span className="w-24 shrink-0 text-center">CFOP DESTINO</span>
-                            <span className="w-20 shrink-0 text-center">NCM</span>
-                            <span className="w-20 shrink-0 text-right">VALOR</span>
+                            <span className="w-16 shrink-0 text-center">ORIG.</span>
+                            <span className="w-20 shrink-0 text-center">DESTINO</span>
+                            <span className="w-16 shrink-0 text-center">NCM</span>
+                            <span className="w-16 shrink-0 text-right">VALOR</span>
                           </div>
-                          <div className="max-h-[300px] overflow-y-auto">
+                          <div className="max-h-[200px] overflow-y-auto">
                             {grupo.produtos.map((prod, prodIdx) => {
                               const prodKey = `${prod.documento_id}_${prod.produto_idx}`;
                               const excecao = excecoesGrupo[prodKey];
@@ -1290,31 +1290,29 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                               return (
                                 <div 
                                   key={prodIdx}
-                                  className={`flex items-center gap-2 px-4 py-2 text-xs border-b border-[#1A1A1A] hover:bg-[#1A1A1A] group transition-colors ${
+                                  className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] border-b border-[#1A1A1A] hover:bg-[#1A1A1A] group transition-colors ${
                                     isExcecao ? 'bg-purple-500/5' : ''
                                   }`}
                                 >
-                                  <span className="font-mono text-amber-400 shrink-0 w-16">{prod.numero_nfe}</span>
+                                  <span className="font-mono text-amber-400 shrink-0 w-14 text-[9px]">{prod.numero_nfe}</span>
                                   <span className="text-[#A1A1AA] truncate flex-1 min-w-0" title={prod.produto_descricao}>
                                     {prod.produto_descricao}
                                     {isExcecao && (
-                                      <span className="ml-2 text-[9px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded uppercase">
-                                        Exceção
-                                      </span>
+                                      <span className="ml-1 text-[8px] bg-purple-500/20 text-purple-400 px-1 py-0.5 rounded uppercase">EXC</span>
                                     )}
                                   </span>
                                   
                                   {/* CFOP ORIGINAL (da NF de saída) */}
-                                  <span className="w-20 shrink-0 text-center">
-                                    <span className="px-2 py-1 bg-amber-500/20 text-amber-400 rounded font-mono text-[10px] font-semibold">
+                                  <span className="w-16 shrink-0 text-center">
+                                    <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded font-mono text-[9px] font-semibold">
                                       {prod.cfop_original_emissor || cfopOriginal}
                                     </span>
                                   </span>
                                   
                                   {/* CFOP DESTINO (editável individualmente) */}
-                                  <div className="w-24 shrink-0 flex items-center justify-center">
+                                  <div className="w-20 shrink-0 flex items-center justify-center">
                                     {isEditing ? (
-                                      <div className="flex items-center gap-1">
+                                      <div className="flex items-center gap-0.5">
                                         <input
                                           type="text"
                                           placeholder="CFOP"
@@ -1327,11 +1325,9 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                           }))}
                                           onKeyDown={(e) => {
                                             if (e.key === 'Enter' && editState.cfop?.length === 4) {
-                                              // Marcar como exceção (não salva ainda, só prepara)
                                               if (editState.cfop !== cfopDestinoHeader) {
                                                 marcarExcecaoProduto(cfopOriginal, prod.documento_id, prod.produto_idx, editState.cfop);
                                               } else {
-                                                // Se voltou ao CFOP do header, remover exceção
                                                 removerExcecaoProduto(cfopOriginal, prod.documento_id, prod.produto_idx);
                                               }
                                               setEditingCfopProduto(prev => {
@@ -1347,7 +1343,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                               });
                                             }
                                           }}
-                                          className="w-14 px-1 py-1 bg-[#0C0C0C] border border-[#C8A951] rounded text-white font-mono text-[11px] text-center focus:outline-none"
+                                          className="w-11 px-1 py-0.5 bg-[#0C0C0C] border border-[#C8A951] rounded text-white font-mono text-[9px] text-center focus:outline-none"
                                         />
                                         <button
                                           onClick={() => {
@@ -1365,10 +1361,10 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                             }
                                           }}
                                           disabled={!editState.cfop || editState.cfop.length !== 4}
-                                          className="p-1 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30 disabled:opacity-50"
-                                          title="Confirmar (Enter)"
+                                          className="p-0.5 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30 disabled:opacity-50"
+                                          title="OK"
                                         >
-                                          <Check className="w-3 h-3" />
+                                          <Check className="w-2.5 h-2.5" />
                                         </button>
                                         <button
                                           onClick={() => setEditingCfopProduto(prev => {
@@ -1376,10 +1372,10 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                             delete newState[editKey];
                                             return newState;
                                           })}
-                                          className="p-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30"
-                                          title="Cancelar (Esc)"
+                                          className="p-0.5 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30"
+                                          title="X"
                                         >
-                                          <X className="w-3 h-3" />
+                                          <X className="w-2.5 h-2.5" />
                                         </button>
                                       </div>
                                     ) : (
@@ -1388,22 +1384,22 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                           ...prev,
                                           [editKey]: { editing: true, cfop: cfopEfetivo === '----' ? '' : cfopEfetivo }
                                         }))}
-                                        className={`px-2 py-1 rounded font-mono text-[11px] transition-colors cursor-pointer border ${
+                                        className={`px-1.5 py-0.5 rounded font-mono text-[9px] transition-colors cursor-pointer border ${
                                           isExcecao 
                                             ? 'bg-purple-500/20 text-purple-400 border-purple-500/30 hover:bg-purple-500/30' 
                                             : cfopDestinoHeader 
                                               ? 'bg-green-500/20 text-green-400 border-transparent hover:border-green-500/50 hover:bg-green-500/30'
                                               : 'bg-[#2A2A2A] text-[#666] border-[#333] hover:bg-[#333] hover:text-white'
                                         }`}
-                                        title="Clique para editar (exceção)"
+                                        title="Editar"
                                       >
                                         {cfopEfetivo}
                                       </button>
                                     )}
                                   </div>
                                   
-                                  <span className="text-[#666] font-mono w-20 shrink-0 text-center">{prod.ncm}</span>
-                                  <span className="text-[#C8A951] font-medium w-20 shrink-0 text-right">{formatCurrency(prod.valor)}</span>
+                                  <span className="text-[#666] font-mono w-16 shrink-0 text-center text-[9px]">{prod.ncm}</span>
+                                  <span className="text-[#C8A951] font-medium w-16 shrink-0 text-right text-[9px]">{formatCurrency(prod.valor)}</span>
                                 </div>
                               );
                             })}
