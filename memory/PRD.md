@@ -96,6 +96,7 @@ Sistema de fechamento fiscal automatizado com classificação inteligente de pro
 - [x] Sincronização de contagem de produtos entre Wizard e Classificação Inteligente
 - [x] Navegação do menu do Wizard
 - [x] Edição manual de CFOP por produto
+- [x] **Memória IA** - Edição manual cria/atualiza regra permanente automaticamente
 - [ ] Refatoração do monolito server.py
 
 ### P1 (Alta Prioridade)
