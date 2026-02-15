@@ -7,7 +7,7 @@ import uuid
 from pymongo import MongoClient
 
 class FiscalSystemAPITester:
-    def __init__(self, base_url="https://document-cleanup-2.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://produtos-novos.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.admin_token = None
         self.client_token = None
