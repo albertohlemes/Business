@@ -922,11 +922,23 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
             ) : alertasData?.grupos?.length > 0 ? (
               <div className="space-y-2">
                 {alertasData.grupos.map((grupo, idx) => {
-                  // Verificar se é um CFOP de saída sem equivalente de entrada válido
-                  const isCfopSaidaSemEntrada = grupo.sugestao_manter?.cfop_invalido || 
-                    (grupo.cfop?.startsWith('5') || grupo.cfop?.startsWith('6') || grupo.cfop?.startsWith('7'));
-                  const cfopEntradaEquivalente = grupo.sugestao_manter?.cfop;
-                  const cfopEntradaExiste = cfopEntradaEquivalente && !['1929', '2929', '1949', '2949'].includes(cfopEntradaEquivalente);
+                  // Verificar se é CFOP de SAÍDA (original do emissor) - estes não têm "manter"
+                  const cfopOriginal = grupo.cfop_original || '';
+                  const isCfopSaida = cfopOriginal.startsWith('5') || cfopOriginal.startsWith('6') || cfopOriginal.startsWith('7');
+                  
+                  // Flag do backend indica se o CFOP de entrada equivalente é inválido
+                  const cfopManterInvalido = grupo.sugestao_manter?.cfop_invalido === true;
+                  
+                  // O CFOP atual já é de entrada (1xxx, 2xxx) - pode ser mantido SE for válido
+                  const cfopAtual = grupo.cfop || '';
+                  const isEntradaValida = (cfopAtual.startsWith('1') || cfopAtual.startsWith('2')) && 
+                                          !['1929', '2929'].includes(cfopAtual) && // ECF não existe
+                                          !cfopManterInvalido;
+                  
+                  // Mostrar botão "Manter" APENAS se:
+                  // 1. O CFOP atual é de entrada válido (1xxx, 2xxx que não seja genérico demais)
+                  // 2. O backend não marcou como inválido
+                  const mostrarBotaoManter = isEntradaValida;
                   
                   return (
                     <div 
