@@ -60,6 +60,15 @@ Sistema de fechamento fiscal automatizado com classificação inteligente de pro
      - Frontend: `/app/frontend/src/pages/ClassificacaoInteligente.js`
      - Backend: `/app/backend/server.py` (endpoint `/api/alertas-cfop/resolver-individual`)
 
+6. **Memória IA - Regras Permanentes** ✅ (15/02/2026)
+   - **Toda edição manual de CFOP agora cria ou atualiza automaticamente uma regra na "Memória IA"**
+   - A regra é salva na coleção `learned_rules` do MongoDB
+   - Se já existir uma regra para o produto (por código ou descrição), ela é **atualizada** ao invés de duplicada
+   - Regras são usadas para classificação automática em futuras importações
+   - Frontend exibe feedback: "Nova regra criada" ou "Regra atualizada"
+   - Endpoint: `/api/alertas-cfop/resolver-individual` (POST)
+   - Campos da regra: produto_descricao, produto_codigo, ncm, cfop_correto, categoria_correta
+
 ---
 
 ## Arquitetura
