@@ -10006,6 +10006,7 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     """
     Versão otimizada do dashboard usando agregação do MongoDB.
     Usada quando há mais de 5000 documentos para evitar timeout.
+    Calcula impostos a nível de PRODUTO (não do documento).
     """
     logger.info(f"DASHBOARD AGREGADO: Iniciando para {total_docs} documentos")
     
@@ -10022,17 +10023,83 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
                     "modelo": {"$toLower": {"$ifNull": ["$modelo", "nfe"]}}
                 },
                 "count": {"$sum": 1},
-                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$valor_total", 0]}}},
-                "icms_total": {"$sum": {"$toDouble": {"$ifNull": ["$icms_total", 0]}}}
+                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$valor_total", 0]}}}
             }
         }
     ]
     
-    # Executar agregação de totais
-    totais_cursor = db.xml_documents.aggregate(pipeline_totais)
+    # Pipeline SEPARADO para calcular impostos a nível de PRODUTO
+    # Os impostos estão dentro de produtos.v_icms, produtos.v_pis, produtos.v_cofins
+    pipeline_impostos = [
+        {"$match": base_query},
+        {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
+        {
+            "$group": {
+                "_id": {"$ifNull": ["$tipo", "$tipo_operacao"]},
+                "total_icms": {
+                    "$sum": {
+                        "$toDouble": {
+                            "$ifNull": [
+                                "$produtos.v_icms",
+                                {"$ifNull": ["$produtos.valor_icms", 0]}
+                            ]
+                        }
+                    }
+                },
+                "total_pis": {
+                    "$sum": {
+                        "$toDouble": {
+                            "$ifNull": [
+                                "$produtos.v_pis",
+                                {"$ifNull": ["$produtos.valor_pis", 0]}
+                            ]
+                        }
+                    }
+                },
+                "total_cofins": {
+                    "$sum": {
+                        "$toDouble": {
+                            "$ifNull": [
+                                "$produtos.v_cofins",
+                                {"$ifNull": ["$produtos.valor_cofins", 0]}
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    ]
+    
+    # Executar ambas as agregações
+    totais_cursor = db.xml_documents.aggregate(pipeline_totais, allowDiskUse=True)
     totais_raw = await totais_cursor.to_list(length=100)
     
-    # Processar resultados da agregação
+    impostos_cursor = db.xml_documents.aggregate(pipeline_impostos, allowDiskUse=True)
+    impostos_raw = await impostos_cursor.to_list(length=10)
+    
+    # Processar impostos por tipo (entrada/saida)
+    debito_icms = 0
+    debito_pis = 0
+    debito_cofins = 0
+    credito_icms = 0
+    credito_pis = 0
+    credito_cofins = 0
+    
+    for item in impostos_raw:
+        tipo = item.get('_id', '') or ''
+        if tipo == 'entrada':
+            credito_icms = item.get('total_icms', 0) or 0
+            credito_pis = item.get('total_pis', 0) or 0
+            credito_cofins = item.get('total_cofins', 0) or 0
+        elif tipo == 'saida':
+            debito_icms = item.get('total_icms', 0) or 0
+            debito_pis = item.get('total_pis', 0) or 0
+            debito_cofins = item.get('total_cofins', 0) or 0
+    
+    logger.info(f"DASHBOARD AGREGADO IMPOSTOS: Débito ICMS={debito_icms}, PIS={debito_pis}, COFINS={debito_cofins}")
+    logger.info(f"DASHBOARD AGREGADO IMPOSTOS: Crédito ICMS={credito_icms}, PIS={credito_pis}, COFINS={credito_cofins}")
+    
+    # Processar resultados da agregação de totais
     qtd_nfe_entrada = 0
     qtd_nfe_saida = 0
     qtd_nfce = 0
@@ -10051,9 +10118,6 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     total_nfse_prestados = 0
     total_outros_entrada = 0
     
-    debito_icms = 0
-    credito_icms = 0
-    
     MODELOS_NFE = ['nfe', 'nf-e', '55', '', 'none']
     MODELOS_NFCE = ['nfce', 'nfc-e', '65']
     MODELOS_CTE = ['cte', 'ct-e', '57']
@@ -10064,13 +10128,11 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         modelo = item['_id'].get('modelo', '') or 'nfe'
         count = item['count']
         valor = item['valor_total']
-        icms = item['icms_total']
         
         if tipo == 'entrada':
             if modelo in MODELOS_NFE:
                 qtd_nfe_entrada += count
                 total_nfe_entrada += valor
-                credito_icms += icms
             elif modelo in MODELOS_CTE:
                 qtd_cte_entrada += count
                 total_cte_entrada += valor
@@ -10084,11 +10146,9 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
             if modelo in MODELOS_NFE:
                 qtd_nfe_saida += count
                 total_nfe_saida += valor
-                debito_icms += icms
             elif modelo in MODELOS_NFCE:
                 qtd_nfce += count
                 total_nfce += valor
-                debito_icms += icms
             elif modelo in MODELOS_CTE:
                 qtd_cte_saida += count
                 total_cte_saida += valor
@@ -10111,8 +10171,11 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     else:  # mista
         faturamento_total = total_nfe_saida + total_nfce + total_nfse_prestados + total_cte_saida
     
-    # Impostos a pagar (simplificado para agregação)
+    # Impostos a pagar
     icms_pagar = max(0, debito_icms - credito_icms)
+    pis_pagar = max(0, debito_pis - credito_pis)
+    cofins_pagar = max(0, debito_cofins - credito_cofins)
+    total_impostos_pagar = icms_pagar + pis_pagar + cofins_pagar
     
     # Markup
     markup_percentual = 0
