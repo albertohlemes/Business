@@ -92,6 +92,9 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [savingProduct, setSavingProduct] = useState(false);
   
+  // NOVO: Estado para edição de CFOP individual por produto
+  const [editingCfopProduto, setEditingCfopProduto] = useState({}); // { `${cfop}_${docId}_${prodIdx}`: { cfop: '', saving: false } }
+  
   // Estados para Memória IA
   const [showMemoriaIA, setShowMemoriaIA] = useState(false);
   const [memoriaData, setMemoriaData] = useState([]);
