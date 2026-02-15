@@ -70,6 +70,9 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortOrder, setSortOrder] = useState('desc');
   
+  // NOVO: Aba de classificação (novos, classificados, todos)
+  const [classificacaoTab, setClassificacaoTab] = useState('novos'); // 'novos', 'classificados', 'todos'
+  
   // NOVO: Estados para ordenação por coluna
   const [sortColumn, setSortColumn] = useState('descricao'); // descricao, ncm, cfop, valor, quantidade
   const [sortDirection, setSortDirection] = useState('asc');
