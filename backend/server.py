@@ -15733,17 +15733,31 @@ async def resolver_alerta_cfop_por_grupo(
 
 @api_router.post("/alertas-cfop/resolver-individual")
 async def resolver_alerta_cfop_individual(
-    documento_id: str,
-    produto_idx: int,
-    novo_cfop: str,
-    categoria: str = None,  # Se não informado, será inferida pelo CFOP
-    salvar_regra: bool = False,
+    data: Dict[str, Any] = Body(...),
     current_user: User = Depends(get_current_user)
 ):
     """
     Resolve um alerta de CFOP individual.
     Também classifica automaticamente o produto baseado no CFOP.
+    
+    Body:
+    - company_id: ID da empresa
+    - competencia: Competência (MM/YYYY)
+    - documento_id: ID do documento
+    - produto_idx: Índice do produto no array
+    - novo_cfop: Novo CFOP a ser aplicado
+    - categoria_destino: Categoria opcional (se não informado, será inferida)
+    - salvar_regra: Se deve salvar como regra (default: False)
     """
+    documento_id = data.get('documento_id')
+    produto_idx = data.get('produto_idx')
+    novo_cfop = data.get('novo_cfop')
+    categoria = data.get('categoria_destino')
+    salvar_regra = data.get('salvar_regra', False)
+    
+    if not documento_id or produto_idx is None or not novo_cfop:
+        raise HTTPException(status_code=400, detail="documento_id, produto_idx e novo_cfop são obrigatórios")
+    
     doc = await db.xml_documents.find_one({"id": documento_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Documento não encontrado")
