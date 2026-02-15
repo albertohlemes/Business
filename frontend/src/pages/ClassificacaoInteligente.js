@@ -850,12 +850,12 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
           
           {/* Barra de progresso detalhada quando IA está processando */}
           {processandoIA && (
-            <div className="mt-4 p-4 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
-              <div className="flex items-center gap-3 mb-2">
-                <Loader2 className="w-5 h-5 text-[#C8A951] animate-spin" />
-                <span className="text-white font-medium">Analisando produtos com IA...</span>
+            <div className="mt-2 p-2 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
+              <div className="flex items-center gap-2 mb-1">
+                <Loader2 className="w-4 h-4 text-[#C8A951] animate-spin" />
+                <span className="text-white text-sm">Analisando produtos...</span>
               </div>
-              <div className="w-full bg-[#0C0C0C] rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-[#0C0C0C] rounded-full h-1.5 overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B962] rounded-full transition-all duration-300"
                   style={{ 
@@ -864,9 +864,6 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                   }}
                 />
               </div>
-              <p className="text-xs text-[#A1A1AA] mt-2">
-                A IA está analisando os produtos e aplicando a classificação. Isso pode levar alguns segundos...
-              </p>
               <style>{`
                 @keyframes progressWave {
                   0% { transform: translateX(-100%); }
@@ -880,32 +877,22 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
             </div>
           )}
           
-          <div className="flex flex-wrap gap-2 mt-3">
+          <div className="flex flex-wrap items-center gap-1.5 mt-2">
             <span className="text-xs text-[#666]">Sugestões:</span>
-            <button 
-              onClick={() => setComandoIA('classificar todos produtos de limpeza como despesa')}
-              className="text-xs px-2 py-1 bg-[#1A1A1A] text-[#A1A1AA] rounded hover:bg-[#2A2A2A] hover:text-white transition-colors"
-            >
-              limpeza → despesa
-            </button>
-            <button 
-              onClick={() => setComandoIA('todo etanol, gasolina e diesel são combustível')}
-              className="text-xs px-2 py-1 bg-[#1A1A1A] text-[#A1A1AA] rounded hover:bg-[#2A2A2A] hover:text-white transition-colors"
-            >
-              combustíveis
-            </button>
-            <button 
-              onClick={() => setComandoIA('classificar embalagens e caixas como insumo')}
-              className="text-xs px-2 py-1 bg-[#1A1A1A] text-[#A1A1AA] rounded hover:bg-[#2A2A2A] hover:text-white transition-colors"
-            >
-              embalagens → insumo
-            </button>
-            <button 
-              onClick={() => setComandoIA('papel, caneta e material de escritório são despesa')}
-              className="text-xs px-2 py-1 bg-[#1A1A1A] text-[#A1A1AA] rounded hover:bg-[#2A2A2A] hover:text-white transition-colors"
-            >
-              escritório → despesa
-            </button>
+            {[
+              { cmd: 'classificar todos produtos de limpeza como despesa', label: 'limpeza → despesa' },
+              { cmd: 'todo etanol, gasolina e diesel são combustível', label: 'combustíveis' },
+              { cmd: 'classificar embalagens e caixas como insumo', label: 'embalagens → insumo' },
+              { cmd: 'papel, caneta e material de escritório são despesa', label: 'escritório → despesa' }
+            ].map((s, i) => (
+              <button 
+                key={i}
+                onClick={() => setComandoIA(s.cmd)}
+                className="text-xs px-2 py-0.5 bg-[#1A1A1A] text-[#A1A1AA] rounded hover:bg-[#2A2A2A] hover:text-white transition-colors"
+              >
+                {s.label}
+              </button>
+            ))}
           </div>
         </div>
 
