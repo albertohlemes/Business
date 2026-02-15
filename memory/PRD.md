@@ -143,6 +143,8 @@ O endpoint `/api/viloes-oportunidades/{company_id}` fazia `.to_list(15000)` duas
 ## Issues Pendentes
 
 ### P0 (Alta Prioridade)
+- [x] Top 10 Produtos/NCM não aparecendo na Apuração ICMS - CORRIGIDO 16/12/2025
+- [x] CFOPs desconsiderados não sublinhados em vermelho - CORRIGIDO 16/12/2025
 - [x] Impostos zerados no Dashboard (ICMS, PIS, COFINS) - CORRIGIDO 16/12/2025
 - [x] Exclusão em massa travando o sistema (~14.000 docs) - CORRIGIDO 16/12/2025
 - [x] Top 10 NCMs zerados na versão agregada - CORRIGIDO
