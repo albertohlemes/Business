@@ -25642,45 +25642,84 @@ async def inteligencia_tributaria(
     pres_csll = float(company.get('percentual_presuncao_csll', 12))
     
     # ============ BUSCAR VALORES REAIS DAS APURAÇÕES (LUCRO REAL) ============
-    # Buscar apuração ICMS
+    # Buscar apuração ICMS - OTIMIZADO COM AGREGAÇÃO para suportar alto volume
     icms_real = 0
     try:
-        query_icms = {
-            "company_id": company_id,
-            "competencia": competencia if tipo == "periodo" else {"$regex": f"/{ano}$"},
-            **get_filtro_notas_ativas()
-        }
-        
-        # Pipeline para calcular ICMS igual ao endpoint de apuração
-        docs_icms = await db.xml_documents.find(query_icms, {"produtos": 1, "tipo": 1}).to_list(15000)
-        
-        debito_icms = 0
-        credito_icms = 0
-        
-        CFOPS_SEM_CREDITO = ['1407', '2407', '1556', '2556', '1551', '2551', '1653', '2653', '1128', '2128', '1126', '2126',
-                            '1403', '2403', '1409', '2409']  # Incluindo ST
         desconsiderar_despesas = company.get('desconsiderar_icms_despesas', False)
         desconsiderar_st = company.get('desconsiderar_icms_st', False)
         
-        for doc in docs_icms:
-            for prod in doc.get('produtos', []):
-                cfop = str(prod.get('cfop', ''))
-                valor_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
-                
-                cfop_primeiro = cfop[0] if cfop else ''
-                if cfop_primeiro in ['5', '6', '7']:
-                    debito_icms += valor_icms
-                elif cfop_primeiro in ['1', '2', '3']:
-                    # Verificar se desconsiderar
-                    if desconsiderar_despesas and cfop in ['1407', '2407', '1556', '2556', '1551', '2551', '1653', '2653', '1128', '2128', '1126', '2126']:
-                        continue
-                    if desconsiderar_st and cfop in ['1403', '2403', '1409', '2409']:
-                        continue
-                    credito_icms += valor_icms
+        CFOPS_DESPESAS = ['1407', '2407', '1556', '2556', '1551', '2551', '1653', '2653', '1128', '2128', '1126', '2126']
+        CFOPS_ST = ['1403', '2403', '1409', '2409']
+        
+        # Pipeline de agregação para calcular ICMS de forma eficiente
+        pipeline_icms = [
+            {"$match": {
+                "company_id": company_id,
+                "competencia": competencia if tipo == "periodo" else {"$regex": f"/{ano}$"},
+                **get_filtro_notas_ativas()
+            }},
+            {"$unwind": "$produtos"},
+            {"$project": {
+                "cfop": {"$toString": {"$ifNull": ["$produtos.cfop", ""]}},
+                "valor_icms": {"$toDouble": {"$ifNull": [
+                    {"$ifNull": ["$produtos.v_icms", "$produtos.valor_icms"]}, 0
+                ]}}
+            }},
+            {"$addFields": {
+                "cfop_primeiro": {"$substr": ["$cfop", 0, 1]},
+                "tipo_icms": {
+                    "$switch": {
+                        "branches": [
+                            {"case": {"$in": ["$cfop_primeiro", ["5", "6", "7"]]}, "then": "debito"},
+                            {"case": {"$in": ["$cfop_primeiro", ["1", "2", "3"]]}, "then": "credito"}
+                        ],
+                        "default": "ignorar"
+                    }
+                }
+            }},
+            {"$match": {
+                "tipo_icms": {"$ne": "ignorar"},
+                # Filtrar CFOPs de despesas e ST se configurado
+                **({} if not desconsiderar_despesas else {"cfop": {"$nin": CFOPS_DESPESAS}}),
+            }},
+            {"$group": {
+                "_id": "$tipo_icms",
+                "total": {"$sum": "$valor_icms"}
+            }}
+        ]
+        
+        icms_por_tipo = {}
+        async for doc in db.xml_documents.aggregate(pipeline_icms, allowDiskUse=True):
+            icms_por_tipo[doc["_id"]] = doc["total"]
+        
+        debito_icms = icms_por_tipo.get("debito", 0)
+        credito_icms = icms_por_tipo.get("credito", 0)
+        
+        # Se desconsiderar ST, fazer query separada para subtrair
+        if desconsiderar_st and credito_icms > 0:
+            pipeline_st = [
+                {"$match": {
+                    "company_id": company_id,
+                    "competencia": competencia if tipo == "periodo" else {"$regex": f"/{ano}$"},
+                    **get_filtro_notas_ativas()
+                }},
+                {"$unwind": "$produtos"},
+                {"$match": {"produtos.cfop": {"$in": CFOPS_ST}}},
+                {"$group": {
+                    "_id": None,
+                    "total": {"$sum": {"$toDouble": {"$ifNull": [
+                        {"$ifNull": ["$produtos.v_icms", "$produtos.valor_icms"]}, 0
+                    ]}}}
+                }}
+            ]
+            async for doc in db.xml_documents.aggregate(pipeline_st, allowDiskUse=True):
+                credito_icms -= doc.get("total", 0)
         
         icms_real = max(0, debito_icms - credito_icms)
     except Exception as e:
         print(f"Erro ao calcular ICMS: {e}")
+        import traceback
+        traceback.print_exc()
     
     # Buscar apuração PIS/COFINS do regime atual
     # Usar mesma lógica completa do endpoint /pis-cofins/apuracao
