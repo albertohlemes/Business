@@ -3,7 +3,22 @@
 ## Problema Original
 Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributários (Simples Nacional, Lucro Real, Lucro Presumido). Inclui importação de XMLs de NF-e, SPED, PGDAS e geração de relatórios fiscais.
 
-## Última Atualização: 16/12/2025
+## Última Atualização: 15/02/2026
+
+### Ajuste de Layout: Classificação Inteligente (15/02/2026)
+
+**Solicitação do Usuário:**
+Reduzir o espaço ocupado pelas seções de ações para dar mais ênfase à lista de produtos na tela de Classificação Inteligente.
+
+**Alterações Implementadas:**
+1. **Barra de Comando IA**: Compactada de layout em bloco para layout inline (título + input + botão em uma linha)
+2. **Sugestões de IA**: Convertidas para botões menores em linha única
+3. **Cards de Resumo**: Substituídos de 4 cards grandes verticais para uma barra horizontal compacta (Total | Classificados | Pendentes | Valor)
+4. **Barra de Ações em Lote**: Compactada para uma única linha horizontal com botões menores
+
+**Status**: ✅ IMPLEMENTADO (15/02/2026)
+
+---
 
 ### Nova Funcionalidade Implementada Nesta Sessão
 
