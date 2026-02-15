@@ -15578,12 +15578,10 @@ async def alertas_cfop_agrupado_por_cfop(
                     categoria_compra = obter_categoria_por_cfop(cfop_compra)
                     
                     # Verificar se é CFOP de saída sem equivalente de entrada válido
-                    # Ex: 5929 não tem 1929 válido (é operação interna de ECF)
+                    # APENAS 5929/6929 (ECF) não têm entrada equivalente válida
+                    # 5949/6949 convertem para 1949/2949 que SÃO válidos
                     cfops_saida_sem_entrada_valida = [
-                        '5929', '6929',  # Lançamento ECF - não existe entrada equivalente
-                        '5949', '6949',  # Outras saídas - entrada genérica demais
-                        '5922', '6922',  # Faturamento - não faz sentido em entrada
-                        '5106', '6106',  # Venda triangular - entrada é do fornecedor
+                        '5929', '6929',  # Lançamento ECF - 1929/2929 não existem
                     ]
                     cfop_manter_invalido = cfop_original in cfops_saida_sem_entrada_valida
                     
