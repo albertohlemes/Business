@@ -314,11 +314,20 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     
     try {
       const token = localStorage.getItem('token');
+      // Usar endpoint V2 que separa novos vs já classificados
       const response = await axios.get(
-        `${API}/classification/suggestions/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
+        `${API}/classification/suggestions-v2/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setValidacaoData(response.data);
+      
+      // Se houve classificações automáticas, notificar o usuário
+      if (response.data?.resumo?.classificacoes_aplicadas_automaticamente > 0) {
+        toast.success(
+          `${response.data.resumo.classificacoes_aplicadas_automaticamente} classificações aplicadas automaticamente!`,
+          { duration: 5000 }
+        );
+      }
     } catch (err) {
       console.error('Erro ao carregar validação:', err);
       setValidacaoError('Erro ao carregar validação');
