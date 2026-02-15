@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   CheckCircle, XCircle, AlertTriangle, Loader2, ArrowRight, ArrowLeft,
   FileX, RotateCcw, Package, Receipt, Calculator, Flag, RefreshCw,
-  ChevronDown, ChevronUp, AlertOctagon, Download, FileText, FileSpreadsheet, Zap, Home
+  ChevronDown, ChevronUp, AlertOctagon, Download, FileText, FileSpreadsheet, Zap, Home,
+  Sparkles, CheckCheck, Layers
 } from 'lucide-react';
 import axios from 'axios';
 import Layout from '../components/Layout';
