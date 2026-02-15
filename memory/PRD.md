@@ -33,37 +33,40 @@ Sistema de fechamento fiscal automatizado com classificação inteligente de pro
 
 **Implementação completa do fluxo de edição de CFOP conforme solicitação do usuário:**
 
-1. **CFOP Original no Header (Amarelo)** ✅
-   - O card de alerta agora exibe o CFOP **original da NF de saída** (5910, 5949, 6106, etc.) em destaque amarelo
-   - Label "CFOP Original" sobre o badge
-   - Exibe também descrição da operação, quantidade de produtos e valor total
+1. **Layout Compacto (Uma Linha)** ✅
+   - Cards de alerta em layout compacto com todos os elementos na mesma linha
+   - CFOP Original + Descrição + Info produtos + Botões de ação + Input + Dropdown + Confirmar
 
-2. **Seletor de CFOP Destino no Header** ✅
-   - Input para digitar ou colar o CFOP de destino (4 dígitos)
-   - Botões rápidos com CFOPs sugeridos (ex: 1102 - COMPRA PARA REVENDA)
-   - Dropdown para selecionar categoria manualmente (Auto, REVENDA, INSUMO, DESPESA, etc.)
-   - Seta visual "→" indicando a conversão
+2. **CFOP Original no Header (Amarelo)** ✅
+   - Exibe o CFOP **original da NF de saída** (5910, 5949, 6106, etc.) em destaque amarelo
+   - Descrição da operação truncada para caber na linha
+   - Info de quantidade de produtos e valor total
 
-3. **Coluna CFOP Editável nos Produtos** ✅
-   - Ao selecionar CFOP destino no header, todos os produtos herdam automaticamente
+3. **Botão "MANTER NATUREZA" (Azul)** ✅
+   - Converte o CFOP de saída para o equivalente de entrada (5106→1106, 5910→1910, 5949→1949)
+   - Destacado em azul quando selecionado
+   - Label "MANTER" junto ao CFOP
+
+4. **Botão "COMPRA" (Verde)** ✅
+   - CFOP sugerido para compra (ex: 1102)
+   - Destacado em verde quando selecionado
+   - Label com categoria abreviada
+
+5. **Seletor de CFOP Destino Manual** ✅
+   - Input para digitar CFOP de destino (4 dígitos)
+   - Dropdown para selecionar categoria (Auto, REVENDA, INSUMO, etc.)
+
+6. **Coluna CFOP Editável nos Produtos** ✅
    - Cada produto pode ter seu CFOP editado individualmente (exceções)
-   - Clique no CFOP abre modo de edição inline com input + botões confirmar/cancelar
-   - Exceções são destacadas em roxo com tag "Exceção"
+   - Layout compacto da tabela de produtos
+   - Exceções destacadas com tag "EXC"
 
-4. **Botão "Confirmar" com Processamento Completo** ✅
-   - Só habilitado quando há CFOP destino válido (4 dígitos)
-   - Ao confirmar:
-     - Salva regra geral para todos os produtos
-     - Salva exceções individuais, sobrepondo a regra geral
-     - Todas as regras são persistidas na "Memória IA" (`learned_rules`)
-   - Feedback visual com contador de exceções
-
-5. **Tags de Categoria em MAIÚSCULAS** ✅
-   - Todas as tags de categoria exibidas em uppercase em toda a aplicação
-   - Ex: "REVENDA", "INSUMO", "DESPESA", "ATIVO IMOBILIZADO"
+7. **Botão "OK" com Processamento Completo** ✅
+   - Compacto, só habilitado quando há CFOP destino válido
+   - Salva regra geral + exceções na "Memória IA"
 
 **Arquivos modificados:**
-- `/app/frontend/src/pages/ClassificacaoInteligente.js` - UI completa refatorada
+- `/app/frontend/src/pages/ClassificacaoInteligente.js` - UI refatorada para layout compacto
 
 **Testado com:**
 - testing_agent_v3_fork - 7/7 features verificadas
