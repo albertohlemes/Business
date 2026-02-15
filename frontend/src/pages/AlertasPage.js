@@ -186,7 +186,7 @@ const AlertasPage = ({ user, onLogout }) => {
             <div className="mt-4 pt-4 border-t border-[#2A2A2A] flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <span className="text-sm text-[#A1A1AA]">
-                  Progresso: <span className="text-white font-bold">{wizardSummary.steps_completed}/{wizardSummary.total_steps}</span> etapas
+                  Progresso: <span className="text-white font-bold">{wizardSummary.steps_completed}/{7}</span> etapas
                 </span>
                 {wizardSummary.status === 'completed' && (
                   <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-1 rounded-full">
