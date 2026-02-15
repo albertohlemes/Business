@@ -15555,6 +15555,16 @@ async def alertas_cfop_agrupado_por_cfop(
                     categoria_manter = obter_categoria_por_cfop(cfop_atual)
                     categoria_compra = obter_categoria_por_cfop(cfop_compra)
                     
+                    # Verificar se é CFOP de saída sem equivalente de entrada válido
+                    # Ex: 5929 não tem 1929 válido (é operação interna de ECF)
+                    cfops_saida_sem_entrada_valida = [
+                        '5929', '6929',  # Lançamento ECF - não existe entrada equivalente
+                        '5949', '6949',  # Outras saídas - entrada genérica demais
+                        '5922', '6922',  # Faturamento - não faz sentido em entrada
+                        '5106', '6106',  # Venda triangular - entrada é do fornecedor
+                    ]
+                    cfop_manter_invalido = cfop_original in cfops_saida_sem_entrada_valida
+                    
                     grupos_cfop[cfop_atual] = {
                         'cfop': cfop_atual,
                         'cfop_original': cfop_original,
@@ -15567,7 +15577,8 @@ async def alertas_cfop_agrupado_por_cfop(
                             'cfop': cfop_atual,
                             'descricao': f'Manter {cfop_atual} - {descricao_cfop}',
                             'categoria': categoria_manter,
-                            'categoria_nome': obter_nome_categoria(categoria_manter)
+                            'categoria_nome': obter_nome_categoria(categoria_manter),
+                            'cfop_invalido': cfop_manter_invalido  # Flag para o frontend
                         },
                         'sugestao_compra': {
                             'cfop': cfop_compra,
