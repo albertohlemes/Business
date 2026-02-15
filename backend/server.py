@@ -10258,17 +10258,17 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
             "icms_total_desconsiderado": 0,
             "produtos_beneficio_excluidos": [],
             "total_produtos_beneficio_excluidos": 0,
-            "pis": 0,
-            "cofins": 0,
+            "pis": round(credito_pis, 2),
+            "cofins": round(credito_cofins, 2),
             "base_credito": 0,
-            "total": round(credito_icms, 2)
+            "total": round(credito_icms + credito_pis + credito_cofins, 2)
         },
         "debitos": {
             "icms": round(debito_icms, 2),
-            "pis": 0,
-            "cofins": 0,
+            "pis": round(debito_pis, 2),
+            "cofins": round(debito_cofins, 2),
             "iss": 0,
-            "total": round(debito_icms, 2),
+            "total": round(debito_icms + debito_pis + debito_cofins, 2),
             "base_tributada": 0,
             "aliquota_zero": 0,
             "monofasico": 0,
@@ -10277,7 +10277,7 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         },
         "impostos_pagar": {
             "icms": round(icms_pagar, 2),
-            "pis": 0,
+            "pis": round(pis_pagar, 2),
             "cofins": 0,
             "iss": 0,
             "total": round(icms_pagar, 2)
