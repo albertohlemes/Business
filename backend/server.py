@@ -15663,12 +15663,30 @@ async def resolver_alerta_cfop_por_grupo(
     
     total_resolvidos = 0
     
+    # Mapeamento de CFOP de entrada para saída (reverso) para encontrar dados antigos
+    CFOP_ENTRADA_PARA_SAIDA = {
+        '1106': '5106', '1910': '5910', '1911': '5911', '1912': '5912', '1913': '5913',
+        '1914': '5914', '1915': '5915', '1916': '5916', '1917': '5917', '1918': '5918',
+        '1919': '5919', '1920': '5920', '1921': '5921', '1922': '5922', '1923': '5923',
+        '1924': '5924', '1925': '5925', '1929': '5929', '1949': '5949',
+        '1201': '5201', '1202': '5202', '1208': '5208', '1209': '5209', '1210': '5210',
+        '2106': '6106', '2910': '6910', '2911': '6911', '2912': '6912', '2929': '6929', '2949': '6949',
+        '2201': '6201', '2202': '6202',
+    }
+    
+    # CFOPs a buscar: o informado + equivalente de saída (para dados antigos)
+    cfops_buscar = [cfop_atual]
+    if cfop_atual in CFOP_ENTRADA_PARA_SAIDA:
+        cfops_buscar.append(CFOP_ENTRADA_PARA_SAIDA[cfop_atual])
+    
     for doc in documents:
         produtos = doc.get('produtos', [])
         atualizado = False
         
         for idx, prod in enumerate(produtos):
-            if prod.get('pendente_revisao_cfop') and str(prod.get('cfop', '')) == cfop_atual:
+            cfop_prod = str(prod.get('cfop', ''))
+            # Buscar tanto o CFOP de entrada quanto o de saída correspondente
+            if prod.get('pendente_revisao_cfop') and cfop_prod in cfops_buscar:
                 cfop_anterior = prod.get('cfop', '')
                 
                 # Atualizar CFOP
