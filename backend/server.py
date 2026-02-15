@@ -21836,13 +21836,21 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
         bc_icms = item.get('bc_icms', 0) or 0
         qtd = item.get('qtd_itens', 0) or 0
         
+        # Verificar se CFOP é de despesa ou ST
+        is_despesa = cfop in cfops_despesa
+        is_st = cfop in cfops_st
+        is_desconsiderado = (is_despesa and desconsiderar_despesas) or (is_st and desconsiderar_st)
+        
         cfop_data = {
             "cfop": cfop,
             "valor_total": round(valor_total, 2),
             "bc_icms": round(bc_icms, 2),
             "valor_icms": round(valor_icms, 2),
             "valor_icms_st": round(valor_icms_st, 2),
-            "qtd_itens": qtd
+            "qtd_itens": qtd,
+            "is_despesa": is_despesa,
+            "is_st": is_st,
+            "desconsiderado": is_desconsiderado
         }
         
         if tipo == 'entrada':
