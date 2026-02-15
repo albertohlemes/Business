@@ -423,6 +423,58 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     }
   };
 
+  // NOVO: Função para resolver CFOP de produto individual
+  const resolverCfopProdutoIndividual = async (cfopGrupo, prod, novoCfop, categoria = null) => {
+    const prodKey = `${cfopGrupo}_${prod.documento_id}_${prod.produto_idx}`;
+    
+    // Validar CFOP
+    if (!novoCfop || !/^\d{4}$/.test(novoCfop)) {
+      toast.error('CFOP deve ter 4 dígitos');
+      return;
+    }
+    
+    setEditingCfopProduto(prev => ({
+      ...prev,
+      [prodKey]: { ...prev[prodKey], saving: true }
+    }));
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API}/alertas-cfop/resolver-individual`,
+        {
+          company_id: selectedCompany.id,
+          competencia: selectedCompetencia,
+          documento_id: prod.documento_id,
+          produto_idx: prod.produto_idx,
+          novo_cfop: novoCfop,
+          categoria_destino: categoria
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        toast.success(`Produto atualizado para CFOP ${novoCfop}`);
+        fetchAlertas();
+        setEditingCfopProduto(prev => {
+          const newState = { ...prev };
+          delete newState[prodKey];
+          return newState;
+        });
+      } else {
+        toast.error(response.data.message || 'Erro ao atualizar produto');
+      }
+    } catch (err) {
+      console.error('Erro ao resolver CFOP individual:', err);
+      toast.error('Erro ao atualizar CFOP do produto');
+    } finally {
+      setEditingCfopProduto(prev => ({
+        ...prev,
+        [prodKey]: { ...prev[prodKey], saving: false }
+      }));
+    }
+  };
+
   // Função para enviar comando de IA
   const enviarComandoIA = async () => {
     if (!comandoIA.trim() || processandoIA) return;
