@@ -100,6 +100,7 @@ Sistema de fechamento fiscal automatizado com classificação inteligente de pro
 - [ ] Refatoração do monolito server.py
 
 ### P1 (Alta Prioridade)
+- [ ] Replicar UI de edição manual de CFOP no WizardFechamento.js
 - [ ] Visualização agrupada por dia na página de documentos
 - [ ] Relatórios por email para importação em lote
 - [ ] NF de fevereiro aparecendo em janeiro (bug)
