@@ -21879,9 +21879,11 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
     
     saldo = debito_icms - credito_icms
     
-    # ============== CALCULAR TOP 10 NCMs (agregação separada) ==============
+    # ============== CALCULAR TOP 10 NCMs E PRODUTOS (agregação separada) ==============
     top_ncms_credito = []
     top_ncms_debito = []
+    top_produtos_credito = []
+    top_produtos_debito = []
     
     try:
         # Pipeline para Top NCMs por tipo
@@ -21902,7 +21904,7 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
             },
             {"$match": {"valor_icms": {"$gt": 0}}},
             {"$sort": {"valor_icms": -1}},
-            {"$limit": 100}  # Pegar 100 para separar entrada/saida
+            {"$limit": 100}
         ]
         
         top_cursor = db.xml_documents.aggregate(top_ncm_pipeline, allowDiskUse=True)
@@ -21927,11 +21929,59 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
             else:
                 ncms_saida.append(ncm_data)
         
-        # Ordenar e pegar top 10
         top_ncms_credito = sorted(ncms_entrada, key=lambda x: x['valor_icms'], reverse=True)[:10]
         top_ncms_debito = sorted(ncms_saida, key=lambda x: x['valor_icms'], reverse=True)[:10]
         
         logger.info(f"ICMS AGREGADO: Top NCMs calculados - Crédito: {len(top_ncms_credito)}, Débito: {len(top_ncms_debito)}")
+        
+        # ============== Pipeline para Top PRODUTOS por tipo ==============
+        top_prod_pipeline = [
+            {"$match": query},
+            {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": False}},
+            {
+                "$group": {
+                    "_id": {
+                        "tipo": {"$ifNull": ["$tipo", "$tipo_operacao"]},
+                        "codigo": {"$ifNull": ["$produtos.codigo", "$produtos.c_prod"]},
+                        "descricao": "$produtos.descricao"
+                    },
+                    "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms", {"$ifNull": ["$produtos.valor_icms", 0]}]}}},
+                    "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                    "ncm": {"$first": "$produtos.ncm"},
+                    "qtd": {"$sum": 1}
+                }
+            },
+            {"$match": {"valor_icms": {"$gt": 0}}},
+            {"$sort": {"valor_icms": -1}},
+            {"$limit": 100}
+        ]
+        
+        prod_cursor = db.xml_documents.aggregate(top_prod_pipeline, allowDiskUse=True)
+        prod_results = await prod_cursor.to_list(length=100)
+        
+        produtos_entrada = []
+        produtos_saida = []
+        
+        for item in prod_results:
+            tipo = item['_id'].get('tipo', '') or ''
+            prod_data = {
+                "codigo": item['_id'].get('codigo', '') or '',
+                "descricao": (item['_id'].get('descricao', '') or '')[:60],
+                "ncm": item.get('ncm', ''),
+                "valor_icms": round(item.get('valor_icms', 0), 2),
+                "valor_total": round(item.get('valor_total', 0), 2),
+                "qtd": item.get('qtd', 0)
+            }
+            
+            if tipo == 'entrada':
+                produtos_entrada.append(prod_data)
+            else:
+                produtos_saida.append(prod_data)
+        
+        top_produtos_credito = sorted(produtos_entrada, key=lambda x: x['valor_icms'], reverse=True)[:10]
+        top_produtos_debito = sorted(produtos_saida, key=lambda x: x['valor_icms'], reverse=True)[:10]
+        
+        logger.info(f"ICMS AGREGADO: Top Produtos calculados - Crédito: {len(top_produtos_credito)}, Débito: {len(top_produtos_debito)}")
         
     except Exception as e:
         logger.warning(f"ICMS AGREGADO: Erro ao calcular Top NCMs: {e}")
