@@ -13,7 +13,7 @@ from datetime import datetime
 from pymongo import MongoClient
 
 class SingleDocumentDeleteTester:
-    def __init__(self, base_url="https://produto-memory.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://classificacao-beta.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.admin_token = None
         self.test_document_id = None

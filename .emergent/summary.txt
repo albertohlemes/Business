@@ -1,79 +1,60 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou um fluxo de trabalho complexo e específico para a edição de CFOP (Código Fiscal de Operações e Prestações), juntamente com correções de bugs e melhorias de UI.
+O usuário solicitou um fluxo de trabalho complexo para a edição de CFOP (Código Fiscal de Operações e Prestações), incluindo uma funcionalidade de Memória IA para salvar as escolhas do usuário, melhorias de UI, e a correção de bugs. O requisito mais recente e crítico é corrigir um bug onde as exceções de CFOP são salvas com o código errado e garantir que a interface do usuário seja idêntica entre as páginas Classificação Inteligente e Wizard de Fechamento.
 
 PRODUCT REQUIREMENTS:
-1.  **Memória IA para Edições Manuais (Core Feature)**: Toda edição manual de um CFOP para um produto, seja na Classificação Inteligente ou no Wizard de Fechamento, deve criar ou atualizar uma regra permanente (Memória IA) na coleção . Esta regra deve ser usada para classificar automaticamente o mesmo produto em futuras importações.
-2.  **Fluxo de Edição Específico (Solicitação mais recente)**:
-    *   O CFOP destacado no cabeçalho do card (amarelo) deve ser o **CFOP original da nota fiscal de saída**.
-    *   Ao selecionar um CFOP de destino no cabeçalho, a coluna CFOP na lista de produtos abaixo deve ser preenchida automaticamente com essa sugestão.
-    *   A coluna CFOP na lista de produtos deve ser **editável individualmente**, permitindo ao usuário criar exceções à regra geral do card.
-    *   Ao confirmar, o sistema deve salvar a regra geral para todos os produtos e, simultaneamente, salvar as exceções individuais, sobrepondo a regra geral para aqueles produtos específicos na Memória IA.
-3.  **UI - Tags em Maiúsculas**: Todas as tags de categoria de produtos (ex: insumo, despesa) devem ser exibidas em letras maiúsculas em toda a aplicação.
-4.  **Consistência de UI**: O fluxo de edição (Requisito 2) deve funcionar de forma idêntica tanto na página  quanto no .
-5.  **Bugs Anteriores**:
-    *   Contagem de produtos inconsistente entre o Wizard e a Classificação Inteligente (Resolvido).
-    *   Menu do Wizard de Fechamento desconfigurado (Resolvido).
+1.  **Memória IA para Edições Manuais**: Edições manuais de CFOP devem criar/atualizar uma regra permanente na coleção  para automação futura.
+2.  **Fluxo de Edição Específico**:
+    *   O CFOP original da nota deve aparecer no cabeçalho do card.
+    *   A seleção de um CFOP de destino no cabeçalho deve preencher a coluna CFOP para todos os produtos abaixo.
+    *   A coluna CFOP deve ser editável individualmente para permitir exceções.
+    *   Ao confirmar, o sistema deve salvar tanto a regra geral quanto as exceções individuais.
+3.  **UI - Tags em Maiúsculas**: Todas as tags de categoria de produtos devem ser exibidas em letras maiúsculas.
+4.  **Consistência de UI**: O fluxo de edição (Requisito 2) e o layout devem ser idênticos nas páginas  e .
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-O backend para a Memória IA foi implementado com sucesso. Agora, as edições de CFOP feitas tanto na página de Classificação Inteligente quanto no Wizard de Fechamento salvam/atualizam uma regra permanente na coleção  no MongoDB. A lógica verifica se uma regra para um produto já existe (usando código do produto ou descrição) e a atualiza para evitar duplicatas. O agente anterior testou essa lógica de backend com  e confirmou que ela funciona para criar e atualizar regras.
+O agente implementou com sucesso o novo fluxo de edição de CFOP na página . Isso inclui um layout compacto de uma linha para os alertas, a exibição do CFOP original, uma lista de produtos editável para exceções e um novo botão Manter Natureza. O backend para a Memória IA está funcional.
 
-No entanto, a implementação do frontend não atende aos requisitos mais recentes do usuário. O agente tentou implementar as mudanças de UI (tags em maiúsculas, coluna de CFOP editável), mas enfrentou dificuldades com testes visuais automatizados devido a problemas de sessão e estado da aplicação, não conseguindo validar completamente as alterações.
+No entanto, a implementação tem dois problemas críticos:
+1.  Um bug onde as exceções de CFOP editadas individualmente são salvas no banco de dados com o CFOP da regra geral, em vez do CFOP da exceção.
+2.  A nova interface e funcionalidades foram aplicadas apenas à , deixando o  com a aparência antiga e inconsistente.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava começando a implementar o fluxo de edição de CFOP detalhado e refinado pelo usuário na mensagem #236. A tarefa envolve modificar o frontend () para que o CFOP original apareça no header, a coluna CFOP dos produtos reflita a sugestão do header, e permita edições individuais (exceções) que são salvas junto com a regra geral na confirmação.
+-   **Last item agent was working**: O agente acabou de receber feedback do usuário (mensagem #121) sobre o bug crítico das exceções e a inconsistência da UI. O agente estava se preparando para iniciar a investigação do bug e alinhar a UI do Wizard.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: N (Para o novo fluxo de UI. O teste de backend para a Memória IA foi feito).
--   **Which testing method agent to use?**: testing_agent_v3_fork. Devido aos problemas de sessão persistentes com o , é crucial usar o testing agent para fazer uma verificação E2E completa do novo fluxo de UI no frontend, após a sua implementação.
--   **User Testing Done**: N
+-   **Agent Testing Done**: N (Para a correção do novo bug e o alinhamento da UI).
+-   **Which testing method agent to use?**: testing_agent_v3_fork. É crucial para realizar um teste E2E completo, validando a lógica de salvamento da exceção no backend e a consistência da UI entre as páginas  e .
+-   **User Testing Done**: Y (O usuário encontrou o bug).
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Implementar o fluxo de UI de edição de CFOP conforme especificação do usuário (P0).
--   **Issue 2**: Garantir que todas as tags de categoria de produto estejam em maiúsculas (P1).
--   **Issue 3**: Alinhar a UI do Wizard de Fechamento com o novo fluxo de edição (P1).
+-   **Issue 1**: Bug: Exceções de CFOP são salvas com o CFOP incorreto (P0).
+-   **Issue 2**: A UI do  está inconsistente com a da  (P0).
+-   **Issue 3**: Garantir que todas as tags de categoria de produto estejam em maiúsculas em toda a aplicação (P2).
 
 **Issues Detail**:
--   **Issue 1: Implementar o fluxo de UI de edição de CFOP (P0)**
-    -   **Attempted fixes**: O agente anterior entendeu o requisito, mas não iniciou a implementação da nova lógica de UI. A implementação atual é mais simples e não corresponde ao fluxo desejado.
+-   **Issue 1: Bug: Exceções de CFOP são salvas com o CFOP incorreto (P0)**
+    -   **Attempted fixes**: Nenhum. O agente estava prestes a iniciar a investigação.
     -   **Next debug checklist**:
-        1.  Modificar .
-        2.  Fazer com que o card header (CFOP amarelo) exiba o .
-        3.  Adicionar um estado no React para armazenar as edições individuais de CFOP dos produtos ().
-        4.  Quando o usuário seleciona um CFOP de destino no header, atualize o estado para refletir essa sugestão para todos os produtos na lista.
-        5.  Renderize a coluna CFOP na tabela de produtos com base nesse estado, tornando-a um campo de input editável.
-        6.  Ao confirmar, envie para o backend tanto a regra geral quanto as exceções individuais para que a Memória IA seja atualizada corretamente.
-    -   **Why fix this issue and what will be achieved with the fix?**: É o requisito principal do usuário para tornar o sistema útil e eficiente, alinhando o software com seu processo de trabalho.
+        1.  No , inspecionar a função  para verificar o payload enviado ao backend. Confirmar que o produto com a exceção tem o  correto no array .
+        2.  No , depurar o endpoint . Rastrear como o loop sobre a lista  recebida está tratando os itens individuais ao salvar na coleção . A lógica provavelmente está aplicando o CFOP da regra geral a todos os itens sem distinção.
+    -   **Why fix this issue and what will be achieved with the fix?**: Este é um bug crítico que invalida a funcionalidade principal da Memória IA. A correção garantirá que as edições do usuário sejam persistidas corretamente, tornando o sistema confiável.
     -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y (O usuário refinou este requisito porque a implementação anterior não era suficiente).
+    -   **Is recurring issue?**: Y (É um bug em uma funcionalidade recém-desenvolvida).
     -   **Should Test frontend/backend/both after fix?**: both
     -   **Blocked on other issue**: Não.
 
--   **Issue 2: Garantir que todas as tags de categoria de produto estejam em maiúsculas (P1)**
-    -   **Attempted fixes**: O agente aplicou  e  em vários locais no arquivo , mas não conseguiu verificar visualmente se todas as instâncias foram corrigidas.
+-   **Issue 2: A UI do  está inconsistente (P0)**
+    -   **Attempted fixes**: Nenhum. O agente implementou a nova UI apenas na .
     -   **Next debug checklist**:
-        1.  Revisar  para encontrar todos os locais onde as tags de categoria são renderizadas.
-        2.  Consolidar a estilização, preferencialmente com uma classe CSS global ou aplicando consistentemente  nos dados antes da renderização.
-        3.  Verificar outros componentes que possam exibir tags (ex: ).
-        4.  Usar o  para validação visual.
-    -   **Why fix this issue and what will be achieved with the fix?**: Atende a um requisito de padronização visual solicitado pelo usuário.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: N
+        1.  Revisar a nova estrutura JSX e as classes CSS do layout compacto em .
+        2.  Localizar a seção correspondente em .
+        3.  Refatorar o componente  para replicar o layout de alerta compacto de uma linha e incluir a lógica do botão Manter Natureza presente na .
+    -   **Why fix this issue and what will be achieved with the fix?**: Para fornecer uma experiência de usuário consistente nas duas principais interfaces de classificação, conforme solicitado explicitamente pelo usuário.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y (O usuário pediu explicitamente que ambas as páginas fossem idênticas).
     -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: Não.
-
--   **Issue 3: Alinhar a UI do Wizard de Fechamento com o novo fluxo de edição (P1)**
-    -   **Attempted fixes**: O agente anterior garantiu que o backend do Wizard salvasse na Memória IA, mas não atualizou a UI para corresponder ao novo fluxo detalhado pelo usuário.
-    -   **Next debug checklist**:
-        1.  Após implementar o novo fluxo de UI no  (Issue 1), replicar a mesma lógica de componente e estado no .
-    -   **Why fix this issue and what will be achieved with the fix?**: Garante uma experiência de usuário consistente entre as duas principais telas de classificação.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on other issue**: Issue 1.
-
-**In progress Task List**:
-Nenhum.
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
@@ -81,13 +62,17 @@ Nenhum.
     *   **(P1)** Implementar relatórios por email para a importação em lote.
 *   **Future Tasks (Refatoração Crítica):**
     *   **(P0)** Refatoração do monolito .
-    *   **(P1)** Refatoração dos componentes  e  para usar componentes compartilhados para a lista de produtos.
+    *   **(P1)** Refatoração dos componentes  e  para usar componentes compartilhados.
 *   **Future Tasks (Novas Funcionalidades):**
     *   **(P1)** Integração de CT-e (Conhecimento de Transporte Eletrônico).
     *   **(P2)** Implementação de testes automatizados.
 
 **Completed work in this session**
--   **Backend da Memória IA Implementado**: A lógica para salvar/atualizar regras permanentes () ao editar um CFOP foi adicionada e verificada nos endpoints de  e  no arquivo .
+-   **Nova UI de Edição de CFOP**: Reimplementada a UI em  para corresponder ao fluxo de trabalho detalhado do usuário.
+-   **Layout Compacto**: Refatorados os cards de alerta de CFOP para um design de uma única linha.
+-   **Botão Manter Natureza**: Adicionado um novo botão de ação para conversão rápida de CFOP.
+-   **Teste de UI**: Utilizado o  com sucesso para validar a nova UI na  antes de o usuário descobrir o bug de backend.
+-   **Atualização do PRD**: O arquivo  foi atualizado.
 
 **Earlier issues found/mentioned but not fixed**
 -   NF de fevereiro continua aparecendo nas entradas de janeiro (P1).
@@ -96,65 +81,61 @@ Nenhum.
 -   Inconsistência na lógica de devoluções com valor divergente (P0).
 
 **Known issue recurrence from previous fork**
--   ** monolítico**: O arquivo continua a crescer, aumentando a dívida técnica e a dificuldade de manutenção. A lógica da Memória IA foi adicionada a ele nesta sessão.
+-   ** monolítico**: O arquivo continua sendo uma fonte de débito técnico. Toda a nova lógica de backend foi adicionada a ele.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend Rule Engine**: A lógica no  que usa a coleção  para persistir as decisões do usuário, com lógica  e  para evitar duplicatas.
--   **Complex Frontend State Management**: O novo fluxo de UI exige um gerenciamento de estado cuidadoso no React para lidar com a regra geral do card, as sugestões e as exceções individuais dos produtos.
--   **API Debugging**: Utilização de  e logs temporários para depurar e validar o comportamento do endpoint do backend.
--   **Database Connection Issues**: Foi identificado e corrigido um problema onde scripts locais e o servidor estavam usando bancos de dados diferentes ( vs. ).
+-   **Gerenciamento de Estado Complexo no Frontend**:  utiliza o estado do React para gerenciar uma regra geral, uma lista de produtos e exceções individuais para os CFOPs.
+-   **Motor de Regras no Backend**: A lógica no  que persiste as decisões do usuário na coleção . Esta lógica contém o bug que precisa ser corrigido.
+-   **Consistência de UI/UX**: Um requisito chave é garantir funcionalidade e aparência idênticas entre  e .
 
 **key DB schema**
 -   **learned_rules**: 
 
 **All files of reference**
--   
--   
--   
+-    (Fonte da nova UI e da parte do frontend do bug)
+-    (Precisa de atualização da UI)
+-    (Contém a lógica de backend para o bug)
 
 **Areas that need refactoring**:
--   ** (CRÍTICO)**: Deve ser dividido em rotas, modelos e serviços para melhorar a manutenibilidade.
--   ** / **: A lógica da tabela de produtos, incluindo o novo fluxo de edição, deve ser extraída para um componente React reutilizável.
+-   ****: Deve ser atualizado para corresponder à nova UI/UX do . Esta é agora uma tarefa de alta prioridade.
+-   **Duplicação de Componentes**: A lógica e o JSX para a lista de produtos e edição de CFOP devem ser extraídos para um componente reutilizável para evitar futuras inconsistências.
+-   ** (CRÍTICO)**: Continua sendo um monolito.
 
 **key api endpoints**
--   : Endpoint que salva a edição manual na Classificação Inteligente e agora implementa a Memória IA.
--   : O processamento do Passo 3 deste endpoint foi modificado para também salvar as edições individuais do Wizard na Memória IA.
+-   : O endpoint responsável por salvar as regras e exceções de CFOP. É aqui que o bug provavelmente reside.
 
 **Critical Info for New Agent**
--   **FOCO TOTAL no Requisito do Usuário #236**: A prioridade absoluta é descartar a UI de edição atual e implementar o novo fluxo de trabalho que o usuário detalhou. O backend está pronto para receber os dados, mas o frontend precisa ser completamente refeito para corresponder a essa nova lógica de interação.
--   **Evite o  para Testes de UI**: O agente anterior enfrentou problemas persistentes de perda de sessão/estado com a ferramenta de captura de tela. Use o  para validar o fluxo de ponta a ponta após a implementação, pois ele é mais robusto para cenários complexos de UI.
--   **Comece pela **: Implemente o novo fluxo de UI primeiro nesta página. Depois de validado, replique a mesma lógica/componente no .
+-   **PRIORIDADE #1: CORRIGIR O BUG DAS EXCEÇÕES (P0)**: O usuário reportou que ao criar uma exceção (ex: editar um produto para ATIVO), a regra é salva com o CFOP errado (ex: 1106 da regra geral em vez de 1551 da exceção). Investigue o payload enviado pelo frontend () e a lógica de salvamento no backend ( em ).
+-   **PRIORIDADE #2: ALINHAR A UI DO WIZARD (P0)**: Após corrigir o bug, o usuário exigiu que a UI do  seja **exatamente igual** à nova UI da  (layout compacto, botão Manter Natureza, etc.).
+-   **Valide com o **: Após corrigir o bug e alinhar a UI, use o testing agent para fazer um teste E2E completo, verificando o salvamento de exceções e a consistência visual entre as duas páginas.
 
 **documents and test reports created in this job**
 -   
--    (foi atualizado pelo agente anterior)
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
--    (message #237): Entendi perfeitamente! Deixe-me resumir o fluxo... - Agente confirmando o entendimento do novo requisito complexo. (Status: **EM ANDAMENTO**)
--    (message #236): O Cfop amarelo quero que venha o original... - **Mensagem Crítica**. O usuário detalha um novo fluxo de trabalho complexo para a edição de CFOP, tornando a implementação anterior obsoleta. (Status: **NÃO INICIADO**)
--    (message #131, #100): Continua, tenha como padrao as tags todas maiusculas... - Usuário solicitando que as tags de categoria sejam em maiúsculas e apontando inconsistências na implementação anterior da edição de CFOP. (Status: **EM ANDAMENTO**)
--    (message #60): ESTA FUNCIONANDO TANTO NA CLASSIFICACAO INTELIGENTE QUANTO NO WIZARD? - Usuário questionando a consistência da funcionalidade entre as duas telas. (Status: **Resolvido no backend, pendente na UI**)
--    (message #5): SEGUE COM 1 - Usuário aprovando o plano inicial de focar na Memória IA. (Status: **Concluído**)
+-    (message #121): **CRÍTICO**: CERTIFIQUE-SE QUE FOI MUDADO TANTO NA CLASSIFICACAO INTELIGENTE QUANTO NO WIZARD, ELES PRECISAM SER EXATAMENTE IGUAIS. POR FAVOR, INVESTIGUE AS EXCECOES, APARENTEMENTE ELE MIGRAM PARA A CLASSIFICACAO CORRETO MAS COM O CFOP ERRADO. **Status: NOT STARTED**. Esta é a tarefa de maior prioridade.
+-    (message #90): Usuário fornece feedback sobre a nova UI. Gosta, mas aponta problemas de layout e pede um novo botão Manter Natureza. **Status: RESOLVIDO** (mas levou ao bug reportado na mensagem #121).
 
 **Project Health Check:**
--   **Broken**: Sim. A funcionalidade principal de edição de CFOP não se comporta da maneira específica e detalhada que o usuário solicitou por último. Embora o backend tenha a lógica de persistência, a UI está incorreta.
+-   **Broken**: Sim. Um bug crítico foi introduzido na funcionalidade principal (Memória IA), onde as exceções não são salvas corretamente. A aplicação também está inconsistente entre páginas chave.
 
 **3rd Party Integrations**
 -   Gemini (para classificação de produtos)
 -   
 
 **Testing status**
--   **Testing agent used after significant changes**: YES (mas para uma implementação de UI que agora está desatualizada).
+-   **Testing agent used after significant changes**: YES. O agente validou com sucesso a nova UI no . No entanto, essa validação não detectou o bug sutil no backend relacionado ao salvamento de exceções, que foi posteriormente encontrado pelo usuário.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: A UI de edição de CFOP não corresponde ao fluxo de trabalho mais recente solicitado pelo usuário.
+-   **Known regressions**: A funcionalidade Memória IA para exceções está agora quebrada; ela salva o CFOP incorreto.
 
 **Credentials to test flow:**
 -   **Super Admin**:  / 
 
 **What agent forgot to execute**
--   O agente não implementou o fluxo de trabalho de UI final e detalhado que o usuário especificou nas suas últimas mensagens (#100, #236). Ele implementou uma versão mais simples, entendeu o novo requisito, mas não teve tempo de refazer a UI.
--   O agente não conseguiu validar conclusivamente a tarefa de colocar todas as tags em maiúsculas devido a falhas no teste de UI.</analysis>
+-   O agente não aplicou as novas alterações de UI (layout compacto, botão Manter Natureza) ao , deixando as duas páginas principais inconsistentes.
+-   A implementação do tratamento de exceções pelo agente introduziu um bug crítico onde o CFOP incorreto é persistido. O agente estava prestes a começar a depurar isso quando a sessão terminou.</analysis>
