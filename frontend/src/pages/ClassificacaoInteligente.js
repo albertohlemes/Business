@@ -1292,34 +1292,37 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
               <div className="text-center py-8 text-red-400">{validacaoError}</div>
             ) : Object.keys(produtosAgrupados).length > 0 ? (
               <div className="space-y-3">
-                {/* Resumo */}
-                <div className="grid grid-cols-4 gap-4 mb-6">
-                  <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
-                    <div className="text-2xl font-bold text-white">{validacaoData?.resumo?.total_produtos || 0}</div>
-                    <div className="text-sm text-[#A1A1AA]">Total de Produtos</div>
+                {/* Resumo - Compacto em linha */}
+                <div className="flex flex-wrap items-center gap-3 mb-3 p-2 bg-[#141414] rounded-lg border border-[#2A2A2A]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-white">{validacaoData?.resumo?.total_produtos || 0}</span>
+                    <span className="text-xs text-[#A1A1AA]">Total</span>
                   </div>
-                  <div className="bg-[#141414] rounded-lg p-4 border border-green-500/30">
-                    <div className="text-2xl font-bold text-green-400">{validacaoData?.resumo?.validados || 0}</div>
-                    <div className="text-sm text-[#A1A1AA]">Classificados</div>
+                  <div className="w-px h-6 bg-[#2A2A2A]"></div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-green-400">{validacaoData?.resumo?.validados || 0}</span>
+                    <span className="text-xs text-[#A1A1AA]">Classificados</span>
                   </div>
-                  <div className="bg-[#141414] rounded-lg p-4 border border-amber-500/30">
-                    <div className="text-2xl font-bold text-amber-400">{validacaoData?.resumo?.pendentes || 0}</div>
-                    <div className="text-sm text-[#A1A1AA]">Pendentes</div>
+                  <div className="w-px h-6 bg-[#2A2A2A]"></div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-amber-400">{validacaoData?.resumo?.pendentes || 0}</span>
+                    <span className="text-xs text-[#A1A1AA]">Pendentes</span>
                     {validacaoData?.resumo?.pendentes > 0 && (
                       <button
                         onClick={() => {
                           setComandoIA('classificar todos os produtos pendentes como compra para revenda');
                           setTimeout(() => document.querySelector('#btn-processar-comando')?.click(), 100);
                         }}
-                        className="mt-2 text-xs px-2 py-1 bg-amber-500/20 text-amber-400 rounded hover:bg-amber-500/30 transition-colors w-full"
+                        className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded hover:bg-amber-500/30 transition-colors"
                       >
-                        Resolver todos
+                        Resolver
                       </button>
                     )}
                   </div>
-                  <div className="bg-[#141414] rounded-lg p-4 border border-[#C8A951]/30">
-                    <div className="text-2xl font-bold text-[#C8A951]">{formatCurrency(validacaoData?.resumo?.valor_total)}</div>
-                    <div className="text-sm text-[#A1A1AA]">Valor Total</div>
+                  <div className="w-px h-6 bg-[#2A2A2A]"></div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-[#C8A951]">{formatCurrency(validacaoData?.resumo?.valor_total)}</span>
+                    <span className="text-xs text-[#A1A1AA]">Valor Total</span>
                   </div>
                 </div>
 
