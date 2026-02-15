@@ -10278,17 +10278,17 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         "impostos_pagar": {
             "icms": round(icms_pagar, 2),
             "pis": round(pis_pagar, 2),
-            "cofins": 0,
+            "cofins": round(cofins_pagar, 2),
             "iss": 0,
-            "total": round(icms_pagar, 2)
+            "total": round(total_impostos_pagar, 2)
         },
         "indicadores": {
             "markup_percentual": round(markup_percentual, 2),
             "perc_icms_faturamento": round((icms_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
-            "perc_pis_faturamento": 0,
-            "perc_cofins_faturamento": 0,
+            "perc_pis_faturamento": round((pis_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+            "perc_cofins_faturamento": round((cofins_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
             "perc_iss_faturamento": 0,
-            "perc_total_impostos_faturamento": round((icms_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+            "perc_total_impostos_faturamento": round((total_impostos_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
             "perc_icms_vendas": 0,
             "perc_pis_vendas": 0,
             "perc_cofins_vendas": 0
@@ -10306,7 +10306,7 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
                 "compras": total_entradas,
                 "vendas": faturamento_total,
                 "icms": icms_pagar,
-                "pis_cofins": 0  # Não calculado na versão agregada simplificada
+                "pis_cofins": pis_pagar + cofins_pagar
             }
         )
     }
