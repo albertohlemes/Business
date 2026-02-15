@@ -1184,6 +1184,74 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                 </button>
               </div>
             </div>
+            
+            {/* Abas: Novos | Já Classificados | Todos */}
+            <div className="mt-4 flex items-center gap-1 border-b border-[#2A2A2A]">
+              <button
+                onClick={() => setClassificacaoTab('novos')}
+                className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all flex items-center gap-2 ${
+                  classificacaoTab === 'novos'
+                    ? 'bg-[#C8A951]/20 text-[#C8A951] border-b-2 border-[#C8A951]'
+                    : 'text-[#A1A1AA] hover:text-white hover:bg-[#1A1A1A]'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                Novos Produtos
+                {validacaoData?.resumo?.novos > 0 && (
+                  <span className={`px-2 py-0.5 text-xs rounded-full ${
+                    classificacaoTab === 'novos' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA]'
+                  }`}>
+                    {validacaoData.resumo.novos}
+                  </span>
+                )}
+              </button>
+              
+              <button
+                onClick={() => setClassificacaoTab('classificados')}
+                className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all flex items-center gap-2 ${
+                  classificacaoTab === 'classificados'
+                    ? 'bg-green-500/20 text-green-400 border-b-2 border-green-400'
+                    : 'text-[#A1A1AA] hover:text-white hover:bg-[#1A1A1A]'
+                }`}
+              >
+                <CheckCircle className="w-4 h-4" />
+                Já Classificados
+                {validacaoData?.resumo?.ja_classificados > 0 && (
+                  <span className={`px-2 py-0.5 text-xs rounded-full ${
+                    classificacaoTab === 'classificados' ? 'bg-green-500 text-black' : 'bg-[#2A2A2A] text-[#A1A1AA]'
+                  }`}>
+                    {validacaoData.resumo.ja_classificados}
+                  </span>
+                )}
+              </button>
+              
+              <button
+                onClick={() => setClassificacaoTab('todos')}
+                className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all flex items-center gap-2 ${
+                  classificacaoTab === 'todos'
+                    ? 'bg-blue-500/20 text-blue-400 border-b-2 border-blue-400'
+                    : 'text-[#A1A1AA] hover:text-white hover:bg-[#1A1A1A]'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                Todos do Mês
+                {validacaoData?.resumo?.total_produtos > 0 && (
+                  <span className={`px-2 py-0.5 text-xs rounded-full ${
+                    classificacaoTab === 'todos' ? 'bg-blue-500 text-black' : 'bg-[#2A2A2A] text-[#A1A1AA]'
+                  }`}>
+                    {validacaoData.resumo.total_produtos}
+                  </span>
+                )}
+              </button>
+              
+              {/* Info sobre classificações automáticas */}
+              {validacaoData?.resumo?.classificacoes_aplicadas_automaticamente > 0 && (
+                <div className="ml-auto flex items-center gap-2 text-xs text-green-400 bg-green-500/10 px-3 py-1.5 rounded-lg">
+                  <CheckCheck className="w-4 h-4" />
+                  <span>{validacaoData.resumo.classificacoes_aplicadas_automaticamente} classificações aplicadas automaticamente</span>
+                </div>
+              )}
+            </div>
           </div>
           
           <div className="p-4">
