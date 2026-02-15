@@ -1,89 +1,80 @@
 <analysis>**original_problem_statement:**
-O usuário relatou que a implementação anterior da lógica de sugestão de CFOP estava completamente errada (VOCE BAGUNCOU TUDO). Ele detalhou o comportamento esperado:
-1.  Manter a natureza do CFOP ao converter de saída para entrada (ex: 5910 -> 1910).
-2.  Oferecer uma opção de Converter para Compra para Revenda (ex: -> 1102).
-3.  Para CFOPs de saída sem um equivalente de entrada direto (como 5929), o sistema NÃO deve oferecer a opção de manter, forçando o usuário a escolher uma conversão válida.
-4.  A seleção de uma opção de conversão deve ser aplicada a todos os produtos dentro do mesmo grupo de CFOP.
+O usuário relatou uma série de bugs e solicitações de funcionalidades para melhorar o fluxo de trabalho de classificação fiscal (CFOP).
 
-Adicionalmente, o usuário reportou um novo conjunto de bugs críticos:
-1.  **Lógica Incorreta**: O sistema estava tratando o CFOP 1949 como inválido, mas ele é um código válido e deve ser permitido.
-2.  **Bugs no Wizard**:
-    *   **Navegação Quebrada**: Os menus do wizard estão desconfigurados (clica em um menu, abre outro).
-    *   **Tela Preta**: Clicar nas abas de filtro (Todos do mês, Já classificados) no passo de classificação do wizard resulta em uma tela preta.
-    *   **Contagem Inconsistente**: A quantidade de produtos exibida no wizard não corresponde à quantidade na tela de Classificação Inteligente.
+Requisitos do Usuário:
+1.  **Contagem de Produtos Inconsistente**: O Wizard de Fechamento mostrava o dobro de produtos em comparação com a tela de Classificação Inteligente.
+2.  **Menu do Wizard Desconfigurado**: Na Central de Fechamento, clicar em um item de menu (ex: Devolução) abria o passo errado (ex: Cancelamento).
+3.  **Exibição do CFOP Original**: A coluna de CFOP na listagem de produtos deve exibir o CFOP original da nota fiscal, sem conversões automáticas.
+4.  **Melhorias na Edição de CFOP**:
+    *   Adicionar uma coluna CFOP na tabela de produtos expandida.
+    *   Permitir a edição manual do CFOP para cada produto individualmente.
+    *   Replicar essa mesma funcionalidade de edição no Wizard de Fechamento.
+5.  **Memória IA para Edições Manuais**: A edição manual de um CFOP para um produto deve **criar ou atualizar uma regra permanente** (Memória IA). Essa regra deve ser usada para classificar automaticamente o mesmo produto em futuras importações.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-O agente corrigiu a lógica de CFOP e os bugs de UI no Wizard de Fechamento.
-1.  **Correção de Lógica CFOP**:
-    *   O CFOP 1949 foi validado ao ser removido das listas de exclusão em  e .
-    *   O mapeamento de CFOPs de saída para entrada em  foi atualizado para incluir , garantindo que o sistema agora sugere a conversão correta.
-    *   A API de alertas () foi ajustada para converter CFOPs de saída para entrada on-the-fly, lidando com dados que foram importados incorretamente no passado.
-2.  **Correção de Bugs no Wizard**:
-    *   O bug da tela preta e das abas que não funcionavam no  foi resolvido. A causa era um anti-padrão do React, onde um componente era definido dentro do método de renderização, fazendo com que seu estado fosse perdido a cada atualização. A correção envolveu levantar o estado (state hoisting) para o componente pai e reescrever a lógica de renderização das abas.
-
-O problema da contagem de produtos inconsistente foi investigado, e o agente descobriu que as duas telas usam endpoints diferentes com lógicas de agregação distintas, mas não unificou o comportamento.
+O agente implementou correções e funcionalidades significativas, deixando a aplicação em um estado muito melhor.
+-   **Contagem de Produtos Corrigida**: A lógica no backend () foi unificada. Agora, tanto o Wizard (Passo 4) quanto a Classificação Inteligente usam o mesmo método de agregação, garantindo que as contagens de produtos sejam consistentes.
+-   **Menu da Central de Fechamento Corrigido**: O mapeamento dos passos em  foi corrigido, e a interface agora exibe corretamente as 7 etapas do fechamento.
+-   **Navegação do Wizard Corrigida**: O  validou que a navegação entre os passos (stepper) dentro do  está funcionando como esperado.
+-   **UI de Edição Manual Implementada**: Na página , a lista de produtos expandida agora possui uma coluna de CFOP e um botão de edição () que permite a edição manual do CFOP para cada produto, com botões para salvar ou cancelar. O backend foi ajustado para receber essa edição individual.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava investigando a inconsistência na contagem de produtos entre o Wizard de Fechamento e a Classificação Inteligente. Ele identificou que as telas usam endpoints diferentes ( vs. ) com lógicas de agregação de produtos distintas. Uma correção de bug foi feita em um dos endpoints, mas a causa raiz da discrepância (as diferentes lógicas) não foi resolvida.
+-   **Last item agent was working**: O agente estava prestes a implementar a lógica de backend para a Memória IA. Após finalizar a UI para edição manual do CFOP, o usuário enviou um requisito crucial: a edição deve criar/atualizar uma regra permanente para futuras importações. O agente reconheceu este requisito, mas ainda não iniciou a sua implementação no backend.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: Y (Para a correção da tela preta e das abas no Wizard, via screenshot)
--   **Which testing method agent to use?**: testing_agent_v3_fork. É necessário um teste integrado para validar que: 1) A contagem de produtos agora é consistente entre o Wizard e a Classificação Inteligente. 2) A navegação do menu do Wizard (clica em um, abre outro) está funcionando corretamente.
+-   **Agent Testing Done**: Y (Para a UI de edição, contagem de produtos e correções de navegação, via )
+-   **Which testing method agent to use?**: backend testing agent. É necessário implementar a lógica de salvamento da regra no  e depois testar o endpoint  com  para verificar se a regra foi criada/atualizada corretamente no banco de dados.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: A contagem de produtos no Wizard de Fechamento não bate com a da Classificação Inteligente (P0).
--   **Issue 2**: A navegação do menu no Wizard está quebrada (clica em um menu, abre outro) (P0).
--   **Issue 3**: Validação do usuário para a lógica de CFOP corrigida (1949 é válido, 5929 força conversão) (P1).
--   **Issue 4**: Validação do usuário para a correção da UI do Wizard (abas funcionando sem tela preta) (P1).
+-   **Issue 1**: Implementar a lógica da Memória IA no backend (P0).
+-   **Issue 2**: Replicar a nova UI de edição manual de CFOP no Wizard de Fechamento (P1).
 
 **Issues Detail**:
--   **Issue 1: Contagem de produtos inconsistente (P0)**
-    -   **Attempted fixes**: O agente descobriu que a  agrupa produtos (usando ), enquanto o  os lista individualmente (usando ). Um bug que retornava  em vez do  foi corrigido, mas a diferença fundamental na lógica de agregação permanece.
+-   **Issue 1: Implementar a lógica da Memória IA no backend (P0)**
+    -   **Attempted fixes**: Nenhum. A UI frontend foi criada, mas a lógica do backend ainda não foi abordada.
     -   **Next debug checklist**:
-        1.  Confirmar com o usuário qual comportamento é o desejado: contagem de produtos agrupados ou individuais?
-        2.  Com base na resposta, unificar a lógica no backend (). Provavelmente, o endpoint do wizard () deverá ser modificado para usar a mesma lógica de agrupamento de .
-        3.  Validar se ambas as telas (, ) exibem a mesma quantidade.
-    -   **Why fix this issue and what will be achieved with the fix?**: Para eliminar a confusão do usuário e garantir consistência de dados em toda a aplicação.
-    -   **Status**: IN PROGRESS
+        1.  No arquivo , localize o endpoint que salva a edição individual do CFOP (provavelmente ).
+        2.  Dentro desse endpoint, adicione a lógica para criar um novo documento ou atualizar um existente na coleção de regras da Memória IA (ex: ). A regra deve mapear o produto (usando seu ID ou uma combinação de descrição/código) para o novo CFOP inserido pelo usuário.
+        3.  Garanta que a regra tenha prioridade sobre outras lógicas de sugestão em futuras importações.
+    -   **Why fix this issue and what will be achieved with the fix?**: Esta é a funcionalidade principal solicitada pelo usuário para automatizar e corrigir permanentemente as classificações, economizando tempo em fechamentos futuros.
+    -   **Status**: NOT STARTED
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Should Test frontend/backend/both after fix?**: backend
     -   **Blocked on other issue**: Não.
 
--   **Issue 2: Navegação do menu do Wizard quebrada (P0)**
-    -   **Attempted fixes**: O agente investigou a função  em  mas se concentrou na correção da tela preta. Não houve uma correção ou verificação explícita para o bug do menu.
+-   **Issue 2: Replicar a nova UI de edição manual de CFOP no Wizard de Fechamento (P1)**
+    -   **Attempted fixes**: O agente anterior verificou o  e concluiu que ele já possuía uma funcionalidade de edição. No entanto, não confirmou se era a *mesma estrutura recém-implementada* na .
     -   **Next debug checklist**:
-        1.  Reproduzir o bug clicando nos itens do menu lateral e no stepper do wizard.
-        2.  Analisar o gerenciamento do estado  e a lógica em  no arquivo  em busca de erros (ex: off-by-one, atualização incorreta do estado).
-    -   **Why fix this issue and what will be achieved with the fix?**: A navegação é uma funcionalidade essencial do wizard; sem ela, o fluxo do usuário é bloqueado.
+        1.  Analise o componente de Alertas de CFOP (Passo 3) dentro de .
+        2.  Compare sua UI e lógica com a da .
+        3.  Se a funcionalidade for diferente, copie a nova estrutura (coluna de CFOP, botão de edição, inputs, chamada à API) para o componente do wizard para garantir consistência.
+    -   **Why fix this issue and what will be achieved with the fix?**: Para fornecer uma experiência de usuário consistente e permitir que as correções sejam feitas em qualquer uma das duas interfaces.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: Não.
 
 **In progress Task List**:
--   **Task 1: Unificar a lógica de contagem de produtos (P0)**
-    -   **Where to resume**: Em , comparar as funções  e a lógica de produtos do  para o passo 4.
-    -   **What will be achieved with this?**: Consistência de dados entre as telas de classificação de produtos.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on something**: Requer clarificação do usuário sobre o comportamento esperado (agrupado vs. individual).
+Nenhum, pois o trabalho pendente está categorizado como issues.
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
     *   **(P1)** Implementar visualização agrupada por dia na página de documentos.
     *   **(P1)** Implementar relatórios por email para a importação em lote.
 *   **Future Tasks (Refatoração Crítica):**
-    *   **(P0)** Refatoração do monolito . A complexidade deste arquivo continua sendo a causa raiz de bugs recorrentes.
-    *   **(P1)** Refatoração dos componentes  e  em componentes menores.
+    *   **(P0)** Refatoração do monolito .
+    *   **(P1)** Refatoração dos componentes  e  para usar componentes compartilhados para a lista de produtos.
 *   **Future Tasks (Novas Funcionalidades):**
     *   **(P1)** Integração de CT-e (Conhecimento de Transporte Eletrônico).
     *   **(P2)** Implementação de testes automatizados.
 
 **Completed work in this session**
--   **Correção de Lógica (CFOP)**: O CFOP 1949 agora é tratado como válido, e a conversão para CFOPs de saída como o 5929 foi corrigida em .
--   **Correção de UI/UX (Wizard)**: Resolvido o bug crítico da tela preta e o mau funcionamento das abas no passo 4 do  ao refatorar a maneira como o estado do componente era gerenciado.
+-   **Contagem de Produtos Unificada**: A contagem de produtos no Wizard (Passo 4) e na Classificação Inteligente agora é consistente.
+-   **Menu Corrigido**: A Central de Fechamento agora exibe 7 etapas corretamente mapeadas.
+-   **Navegação do Wizard Corrigida**: A navegação entre os passos dentro do wizard foi validada e está funcionando.
+-   **UI de Edição Manual de CFOP**: Implementada a interface na  para editar o CFOP de cada produto individualmente.
 
 **Earlier issues found/mentioned but not fixed**
 -   NF de fevereiro continua aparecendo nas entradas de janeiro (P1).
@@ -92,56 +83,54 @@ O problema da contagem de produtos inconsistente foi investigado, e o agente des
 -   Inconsistência na lógica de devoluções com valor divergente (P0).
 
 **Known issue recurrence from previous fork**
--   **Código Monolítico ()**: A complexidade deste arquivo continua sendo a principal fonte de instabilidade. As correções recentes, embora necessárias, adicionaram ainda mais código a este arquivo massivo.
+-   ** monolítico**: O arquivo continua crescendo, tornando a manutenção e a depuração cada vez mais difíceis. As correções desta sessão adicionaram mais lógica a ele.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **React State Hoisting**: A correção do bug da tela preta foi alcançada levantando o estado das abas () para o componente pai (), evitando que o estado fosse resetado em cada re-renderização.
--   **Backend Data Transformation**: O backend agora converte CFOPs de saída para entrada no momento da consulta () para lidar com dados legados incorretos e garantir consistência na exibição.
--   **Defensive Programming**: A lógica do backend foi ajustada para buscar produtos usando tanto o CFOP de entrada correto quanto o CFOP de saída (potencialmente incorreto) que pode estar no banco de dados, tornando o sistema mais robusto.
+-   **Unificação de Lógica no Backend**: Utilizar a mesma função de agregação de dados para diferentes endpoints que servem a propósitos similares para garantir consistência na UI.
+-   **Stateful UI para Edição**: Gerenciamento do estado no React para controlar o modo de edição de itens individuais em uma lista.
 
 **key DB schema**
--   Nenhuma alteração no esquema do banco de dados nesta sessão.
+-   **regras_cfop** (ou nome similar): Coleção que será usada para armazenar as regras da Memória IA criadas a partir das edições manuais dos usuários.
 
 **All files of reference**
--   : Modificado extensivamente para corrigir a lógica de CFOP e os dados do wizard.
--   : Refatorado para corrigir bugs críticos de UI (tela preta, abas).
--   : Modificado para validar o CFOP 1949.
+-   
+-   
+-   
+-   
 
 **Areas that need refactoring**:
--   ** (CRÍTICO)**: A prioridade máxima de refatoração para garantir a manutenibilidade do projeto.
--   ****: Apesar da correção do bug, o componente continua grande e complexo. A lógica de cada passo do wizard deve ser extraída para componentes menores.
--   **Lógica de Busca de Dados**: É necessário unificar a forma como os produtos para classificação são buscados e agregados no backend para evitar inconsistências entre diferentes telas.
+-   ** (CRÍTICO)**: A refatoração deste arquivo é a prioridade máxima para a saúde do projeto a longo prazo.
+-   **Componentes de Classificação**: A lógica e a UI da lista de produtos expandida devem ser extraídas para um componente reutilizável a ser usado tanto em  quanto em  para evitar duplicação de código.
 
 **key api endpoints**
--   : Lógica interna modificada para conversão de CFOP.
--   : Lógica interna modificada; precisa de mais trabalho para alinhar com outros endpoints.
--   : Endpoint usado pela Classificação Inteligente, cuja lógica de agregação precisa ser reconciliada com a do wizard.
+-   : Endpoint para salvar a edição manual do CFOP. **Precisa ser modificado para implementar a lógica da Memória IA**.
+-   : Lógica modificada para o passo 4 para unificar a contagem de produtos.
 
 **Critical Info for New Agent**
--   **Foco Imediato nos Bugs do Usuário**: A prioridade absoluta é resolver os bugs pendentes relatados pelo usuário, que está frustrado. Aborde a **inconsistência na contagem de produtos** e a **navegação quebrada do menu do wizard** antes de qualquer outra tarefa.
--   **Discrepância na Contagem de Produtos**: Este não é um bug simples, mas uma falha de design. Você precisa perguntar ao usuário qual comportamento é o correto (produtos agrupados ou individuais?) antes de implementar a solução para unificar a lógica no backend.
--   **Validação Completa do Wizard**: Não presuma que a correção da tela preta resolveu todos os problemas do wizard. O bug clica em um menu, abre outro precisa ser reproduzido e corrigido explicitamente.
--   **Comunicação Proativa**: Comece apresentando um plano claro para corrigir os bugs restantes. Mostre ao usuário que você entendeu os problemas relatados por ele.
+-   **Prioridade Máxima**: A tarefa mais importante é implementar a lógica de backend para a **Memória IA**, conforme o último pedido do usuário. A UI está pronta, mas a funcionalidade principal de salvar a regra permanentemente está ausente.
+-   **Consistência da UI**: Após implementar a Memória IA, verifique e, se necessário, replique a nova interface de edição manual de CFOP no  para garantir uma experiência de usuário uniforme.
+-   **Comunicação**: Inicie o trabalho confirmando o plano de implementar a Memória IA e depois alinhar a UI do Wizard. Isso mostrará ao usuário que seu último feedback foi compreendido.
 
 **documents and test reports created in this job**
--   Nenhum.
+-   
+-    (foi atualizado pelo agente anterior)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  : CFOP 1949 EXISTE... WIZARD ESTA COM OS BOTOES DESCONFIGURADOS... TELA PRETA... QUANTIDADE NAO BATE - Relatou 4 bugs específicos e críticos. (Status: **IN PROGRESS**)
-2.  : VOCE BAGUNCOU TUDO... - Expressou frustração e explicou em detalhes a lógica de negócio correta para o CFOP. (Status: **RESOLVED, USER VERIFICATION PENDING**)
+-   : precisa ver pq no wizard aparece o dobro de produtos... - Relatou múltiplos problemas de uma vez: contagem de produtos, menu desconfigurado e novos requisitos para edição de CFOP. (Status: **Maioria resolvida, pendente Memória IA**).
+-   : ...TEM QUE CRIAR A REGRA SE NAO HOUVER OU SOBREPOR CASO TENHA, SENDO A REGRA CORRETA A PARTIR DE ENTAO... - Esclareceu o requisito fundamental para a edição manual: ela deve criar/atualizar uma regra permanente na Memória IA. (Status: **NOT STARTED**).
 
 **Project Health Check:**
--   **Broken**: Sim. Embora um bug crítico (tela preta) tenha sido corrigido, a aplicação ainda tem bugs ativos relatados pelo usuário que afetam a consistência dos dados e a navegação principal, tornando-a não confiável.
+-   **Broken**: Sim. Embora grandes avanços tenham sido feitos e bloqueadores tenham sido removidos, a funcionalidade central solicitada pelo usuário (edição manual com persistência de regra) está incompleta.
 
 **3rd Party Integrations**
 -   Gemini (para classificação de produtos)
 -   
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
+-   **Testing agent used after significant changes**: YES
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
 -   **Known regressions**: Nenhuma identificada.
@@ -150,5 +139,4 @@ O problema da contagem de produtos inconsistente foi investigado, e o agente des
 -   **Super Admin**:  / 
 
 **What agent forgot to execute**
--   O agente não resolveu a causa raiz da inconsistência na contagem de produtos (lógicas diferentes de agregação), apenas corrigiu um bug secundário no endpoint.
--   O agente não verificou nem corrigiu explicitamente o bug de navegação do menu do wizard (clica em um menu, abre outro), pois o foco foi desviado para o problema da tela preta.</analysis>
+-   O agente implementou a UI para a edição manual de CFOP, mas não implementou a lógica de backend mais importante solicitada pelo usuário no final: fazer com que essa edição crie ou atualize uma regra permanente na Memória IA para uso futuro.</analysis>
