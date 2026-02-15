@@ -7,7 +7,26 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 
 ### Correções Aplicadas Nesta Sessão
 
-#### 0. Bug Corrigido: Impostos zerados no Dashboard (ICMS, PIS, COFINS)
+#### 0. Bug Corrigido: Top 10 Produtos/NCM e CFOPs Desconsiderados na Apuração ICMS
+
+**Problema Identificado:**
+1. Top 10 Produtos - Crédito/Débito mostravam "Nenhum registro encontrado" na versão agregada (>10.000 docs)
+2. CFOPs de despesa/ST (1403, 1551, 1556) não estavam sendo sublinhados em vermelho quando desconsiderados
+
+**Correção Aplicada:**
+- **Top 10 Produtos**: Adicionado pipeline de agregação separado em `_get_icms_aggregated` para calcular `top_produtos_credito` e `top_produtos_debito` com todos os campos necessários (codigo, descricao, ncm, valor_icms, qtd)
+- **Campos de Status nos CFOPs**: Adicionados campos `is_despesa`, `is_st`, `desconsiderado` em cada CFOP na versão agregada
+- **Desconsiderados com contagem**: Campo `desconsiderados.despesas.qtd_itens` e `desconsiderados.st.qtd_itens` agora calculados corretamente
+
+**Status**: ✅ TESTADO E VALIDADO (19/19 testes passaram)
+
+**Resultado Validado**:
+- CFOP 1403 (ST): desconsiderado=true, valor_icms=R$ 600
+- CFOP 1551 (Despesa): desconsiderado=true, valor_icms=R$ 360
+- CFOP 1556 (Despesa): desconsiderado=true, valor_icms=R$ 240
+- CFOP 1102 (Normal): desconsiderado=false, valor_icms=R$ 1.200 (gera crédito)
+
+#### 1. Bug Corrigido: Impostos zerados no Dashboard (ICMS, PIS, COFINS)
 
 **Problema Identificado:**
 Os impostos no Dashboard principal estavam aparecendo zerados mesmo com vendas de R$ 969.649,80. A causa raiz foi na função `_get_dashboard_stats_aggregated` (usada quando há mais de 5.000 documentos) que tentava ler o campo `icms_total` do documento, mas os impostos estão armazenados a nível de **PRODUTO** nos campos `v_icms`, `v_pis`, `v_cofins`.
