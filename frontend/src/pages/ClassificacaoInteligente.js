@@ -454,8 +454,13 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
       );
       
       if (response.data.success) {
-        toast.success(`Produto atualizado para CFOP ${novoCfop}`);
+        // Mostrar mensagem de sucesso com informação sobre a regra
+        const regraInfo = response.data.regra_atualizada 
+          ? '📝 Regra atualizada na Memória IA'
+          : '✨ Nova regra criada na Memória IA';
+        toast.success(`CFOP ${novoCfop} aplicado. ${regraInfo}`);
         fetchAlertas();
+        fetchMemoriaIA(); // Atualizar lista de regras
         setEditingCfopProduto(prev => {
           const newState = { ...prev };
           delete newState[prodKey];
