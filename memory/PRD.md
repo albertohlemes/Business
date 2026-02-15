@@ -5,7 +5,44 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 
 ## Última Atualização: 15/02/2026
 
-### Ajuste de Layout: Classificação Inteligente (15/02/2026)
+### Melhorias de UI/UX Implementadas (15/02/2026)
+
+**Solicitações do Usuário:**
+1. Compactar seção de Alertas de CFOP
+2. CFOP de saída sem entrada equivalente (ex: 5929) não deve sugerir "Manter"
+3. Wizard de Fechamento - Step 4 deve ter abas como na Classificação Inteligente
+
+**Alterações Implementadas:**
+
+1. **Seção de Alertas de CFOP - Compactada:**
+   - Header reduzido (padding e tamanho de fonte menores)
+   - Cards de CFOP mais compactos (tudo em uma linha)
+   - Botões de ação menores (px-2 py-1.5)
+   - Lista expandida de produtos mais enxuta
+   - Mensagem "Sem alertas" em linha única
+
+2. **CFOP de Saída sem Entrada Equivalente:**
+   - Backend agora marca `cfop_invalido: true` para CFOPs como 5929, 6929, 5949, 6949
+   - Frontend esconde botão "Manter" quando CFOP não tem entrada válida
+   - Exibe aviso: "CFOP de saída sem entrada equivalente. Escolha um CFOP de entrada válido."
+
+3. **Wizard de Fechamento - Step 4 (Classificação):**
+   - Implementadas abas: "Novos", "Classificados", "Todos"
+   - Resumo em linha horizontal (Total | Classificados | Pendentes)
+   - Lista de produtos por aba selecionada
+   - Hierarquia de classificação compacta
+   - Botões de ação mais enxutos
+
+**Arquivos Modificados:**
+- `/app/frontend/src/pages/ClassificacaoInteligente.js` - Seção de alertas compactada
+- `/app/frontend/src/pages/WizardFechamento.js` - Step 4 com abas
+- `/app/backend/server.py` - Flag `cfop_invalido` para CFOPs de saída
+
+**Status**: ✅ IMPLEMENTADO E TESTADO (15/02/2026)
+
+---
+
+### Ajuste de Layout Anterior: Classificação Inteligente (15/02/2026)
 
 **Solicitação do Usuário:**
 Reduzir o espaço ocupado pelas seções de ações para dar mais ênfase à lista de produtos na tela de Classificação Inteligente.
