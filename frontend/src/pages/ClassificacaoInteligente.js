@@ -931,8 +931,9 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                   
                   // O CFOP atual já é de entrada (1xxx, 2xxx) - pode ser mantido SE for válido
                   const cfopAtual = grupo.cfop || '';
+                  // Apenas 1929/2929 (ECF) são inválidos como entrada - 1949/2949 EXISTEM e são válidos
                   const isEntradaValida = (cfopAtual.startsWith('1') || cfopAtual.startsWith('2')) && 
-                                          !['1929', '2929'].includes(cfopAtual) && // ECF não existe
+                                          !['1929', '2929'].includes(cfopAtual) && 
                                           !cfopManterInvalido;
                   
                   // Mostrar botão "Manter" APENAS se:
