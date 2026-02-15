@@ -1463,8 +1463,8 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                             )}
                             <span className="text-xl">{config.icon}</span>
                             <div className="text-left">
-                              <span className={`font-semibold ${headerColor.split(' ')[2]}`}>
-                                {config.label}
+                              <span className={`font-semibold uppercase ${headerColor.split(' ')[2]}`}>
+                                {config.label.toUpperCase()}
                               </span>
                               <span className="text-[#A1A1AA] text-sm ml-2">
                                 ({grupo.quantidade} {grupo.quantidade === 1 ? 'produto' : 'produtos'})
