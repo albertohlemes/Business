@@ -896,149 +896,130 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
           </div>
         </div>
 
-        {/* ========== SEÇÃO DE ALERTAS ========== */}
+        {/* ========== SEÇÃO DE ALERTAS - COMPACTA ========== */}
         <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl overflow-hidden">
-          <div className="p-4 border-b border-[#2A2A2A] bg-gradient-to-r from-amber-900/20 to-amber-950/10">
+          <div className="p-3 border-b border-[#2A2A2A] bg-gradient-to-r from-amber-900/20 to-amber-950/10">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-6 h-6 text-amber-400" />
-                <div>
-                  <h2 className="text-lg font-semibold text-white">Alertas de CFOP</h2>
-                  <p className="text-sm text-[#A1A1AA]">CFOPs agrupados para ação em lote</p>
-                </div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-400" />
+                <h2 className="text-base font-semibold text-white">Alertas de CFOP</h2>
+                {alertasData?.total_produtos_pendentes > 0 && (
+                  <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full text-xs font-medium">
+                    {alertasData.total_produtos_pendentes}
+                  </span>
+                )}
               </div>
-              {alertasData?.total_produtos_pendentes > 0 && (
-                <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-full text-sm font-medium">
-                  {alertasData.total_produtos_pendentes} pendente(s)
-                </span>
-              )}
             </div>
           </div>
           
-          <div className="p-4">
+          <div className="p-2">
             {alertasLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 text-[#C8A951] animate-spin" />
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 text-[#C8A951] animate-spin" />
               </div>
             ) : alertasError ? (
-              <div className="text-center py-8 text-red-400">{alertasError}</div>
+              <div className="text-center py-4 text-red-400 text-sm">{alertasError}</div>
             ) : alertasData?.grupos?.length > 0 ? (
-              <div className="space-y-4">
-                {alertasData.grupos.map((grupo, idx) => (
-                  <div 
-                    key={grupo.cfop || idx}
-                    className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden"
-                  >
-                    {/* Header do grupo CFOP */}
-                    <div className="p-4 bg-gradient-to-r from-[#1A1A1A] to-[#141414]">
-                      <div className="flex items-center justify-between flex-wrap gap-4">
-                        <div className="flex items-center gap-4">
-                          <div className="px-4 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg">
-                            <span className="text-2xl font-bold font-mono text-amber-400">{grupo.cfop}</span>
+              <div className="space-y-2">
+                {alertasData.grupos.map((grupo, idx) => {
+                  // Verificar se é um CFOP de saída sem equivalente de entrada válido
+                  const isCfopSaidaSemEntrada = grupo.sugestao_manter?.cfop_invalido || 
+                    (grupo.cfop?.startsWith('5') || grupo.cfop?.startsWith('6') || grupo.cfop?.startsWith('7'));
+                  const cfopEntradaEquivalente = grupo.sugestao_manter?.cfop;
+                  const cfopEntradaExiste = cfopEntradaEquivalente && !['1929', '2929', '1949', '2949'].includes(cfopEntradaEquivalente);
+                  
+                  return (
+                    <div 
+                      key={grupo.cfop || idx}
+                      className="bg-[#141414] border border-[#2A2A2A] rounded-lg overflow-hidden"
+                    >
+                      {/* Header compacto do grupo CFOP */}
+                      <div className="p-2 px-3">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg font-bold font-mono text-amber-400 bg-amber-500/20 px-2 py-1 rounded">{grupo.cfop}</span>
+                            <div className="flex flex-col">
+                              <span className="text-white text-sm font-medium">{grupo.descricao}</span>
+                              <span className="text-xs text-[#666]">
+                                {grupo.quantidade} prod. • {formatCurrency(grupo.valor_total)}
+                              </span>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-white font-semibold">{grupo.descricao}</p>
-                            <p className="text-sm text-[#A1A1AA]">
-                              <span className="text-amber-400 font-medium">{grupo.quantidade}</span> produto(s) • 
-                              <span className="text-[#C8A951] ml-1">{formatCurrency(grupo.valor_total)}</span>
-                            </p>
+                          
+                          {/* Botões de ação compactos */}
+                          <div className="flex items-center gap-1.5">
+                            {/* Só mostrar "Manter" se houver CFOP de entrada válido */}
+                            {cfopEntradaExiste && (
+                              <button
+                                onClick={() => resolverGrupoCfop(grupo.cfop, grupo.sugestao_manter.cfop, true)}
+                                disabled={resolvingGroup === grupo.cfop}
+                                className="px-2 py-1.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded text-xs font-medium flex items-center gap-1 hover:bg-blue-500/30 disabled:opacity-50"
+                              >
+                                {resolvingGroup === grupo.cfop ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRight className="w-3 h-3" />}
+                                → {grupo.sugestao_manter.cfop}
+                              </button>
+                            )}
+                            
+                            {/* Botão Converter para Compra */}
+                            <button
+                              onClick={() => resolverGrupoCfop(grupo.cfop, grupo.sugestao_compra.cfop, true)}
+                              disabled={resolvingGroup === grupo.cfop}
+                              className="px-2 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded text-xs font-medium flex items-center gap-1 hover:bg-green-500/30 disabled:opacity-50"
+                            >
+                              <ArrowRight className="w-3 h-3" />
+                              → {grupo.sugestao_compra.cfop}
+                              <span className="px-1 bg-green-500/30 rounded text-[10px]">
+                                {grupo.sugestao_compra.categoria_nome || 'Revenda'}
+                              </span>
+                            </button>
+                            
+                            {/* Botão Outro CFOP */}
+                            <button
+                              onClick={() => setEditingCfop(prev => ({ ...prev, [grupo.cfop]: !prev[grupo.cfop] }))}
+                              className="px-2 py-1.5 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded text-xs hover:bg-[#333] hover:text-white"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                            
+                            {/* Expandir */}
+                            <button
+                              onClick={() => toggleAlert(grupo.cfop)}
+                              className="p-1.5 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded hover:bg-[#333] hover:text-white"
+                            >
+                              {expandedAlerts[grupo.cfop] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            </button>
                           </div>
                         </div>
                         
-                        {/* Botões de ação em lote */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {/* Botão Manter */}
-                          <button
-                            onClick={() => resolverGrupoCfop(grupo.cfop, grupo.sugestao_manter.cfop, true)}
-                            disabled={resolvingGroup === grupo.cfop}
-                            className="px-4 py-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-500/30 disabled:opacity-50 text-sm font-medium flex items-center gap-2 transition-colors"
-                          >
-                            {resolvingGroup === grupo.cfop ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <CheckCircle2 className="w-4 h-4" />
-                            )}
-                            Manter {grupo.cfop}
-                          </button>
-                          
-                          {/* Botão Converter para Compra */}
-                          <button
-                            onClick={() => resolverGrupoCfop(grupo.cfop, grupo.sugestao_compra.cfop, true)}
-                            disabled={resolvingGroup === grupo.cfop}
-                            className="px-4 py-2 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg hover:bg-green-500/30 disabled:opacity-50 text-sm font-medium flex items-center gap-2 transition-colors"
-                          >
-                            <ArrowRight className="w-4 h-4" />
-                            Converter → {grupo.sugestao_compra.cfop}
-                            {grupo.sugestao_compra.categoria_nome && (
-                              <span className="px-2 py-0.5 bg-green-500/30 rounded text-xs">
-                                {grupo.sugestao_compra.categoria_nome}
-                              </span>
-                            )}
-                          </button>
-                          
-                          {/* Botão Editar Manualmente */}
-                          <button
-                            onClick={() => setEditingCfop(prev => ({ ...prev, [grupo.cfop]: !prev[grupo.cfop] }))}
-                            className="px-4 py-2 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded-lg hover:bg-[#333] hover:text-white text-sm font-medium flex items-center gap-2 transition-colors"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                            Outro CFOP
-                          </button>
-                          
-                          {/* Botão Expandir/Recolher */}
-                          <button
-                            onClick={() => toggleAlert(grupo.cfop)}
-                            className="p-2 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded-lg hover:bg-[#333] hover:text-white transition-colors"
-                          >
-                            {expandedAlerts[grupo.cfop] ? (
-                              <ChevronUp className="w-5 h-5" />
-                            ) : (
-                              <ChevronDown className="w-5 h-5" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {/* Info de categoria que será atribuída */}
-                      <div className="mt-2 flex items-center gap-2 text-xs text-[#666]">
-                        <Info className="w-3 h-3" />
-                        <span>
-                          Ao resolver, os produtos serão classificados automaticamente como: 
-                          <span className="text-[#C8A951] ml-1">
-                            {grupo.sugestao_manter.categoria_nome || 'Pendente'} (manter) 
-                          </span>
-                          ou
-                          <span className="text-green-400 ml-1">
-                            {grupo.sugestao_compra.categoria_nome || 'Produto'} (converter)
-                          </span>
-                        </span>
-                      </div>
-                      
-                      {/* Campo de edição manual */}
-                      {editingCfop[grupo.cfop] && (
-                        <div className="mt-4 p-3 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <label className="text-sm text-[#A1A1AA]">CFOP personalizado:</label>
+                        {/* Aviso para CFOP de saída sem entrada equivalente */}
+                        {isCfopSaidaSemEntrada && !cfopEntradaExiste && (
+                          <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-amber-400 bg-amber-500/10 px-2 py-1 rounded">
+                            <AlertTriangle className="w-3 h-3" />
+                            <span>CFOP de saída sem entrada equivalente. Escolha um CFOP de entrada válido.</span>
+                          </div>
+                        )}
+                        
+                        {/* Campo de edição manual compacto */}
+                        {editingCfop[grupo.cfop] && (
+                          <div className="mt-2 p-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded flex items-center gap-2 flex-wrap">
                             <input
                               type="text"
                               id={`cfop-manual-${grupo.cfop}`}
-                              placeholder="Ex: 1102"
+                              placeholder="CFOP"
                               maxLength={4}
-                              className="w-24 px-3 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white font-mono text-center focus:border-[#C8A951] outline-none"
+                              className="w-16 px-2 py-1 bg-[#141414] border border-[#2A2A2A] rounded text-white font-mono text-center text-sm focus:border-[#C8A951] outline-none"
                             />
                             <select
                               id={`categoria-manual-${grupo.cfop}`}
-                              className="px-3 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white text-sm focus:border-[#C8A951] outline-none"
+                              className="px-2 py-1 bg-[#141414] border border-[#2A2A2A] rounded text-white text-xs focus:border-[#C8A951] outline-none"
                             >
-                              <option value="">Categoria automática</option>
-                              <option value="revenda">Revenda/Produto</option>
+                              <option value="">Auto</option>
+                              <option value="revenda">Revenda</option>
                               <option value="insumo">Insumo</option>
                               <option value="despesa">Despesa</option>
-                              <option value="ativo_imobilizado">Ativo Imobilizado</option>
+                              <option value="ativo_imobilizado">Ativo</option>
                               <option value="combustivel">Combustível</option>
-                              <option value="servico_aplicacao">Aplicação em Serviços</option>
                               <option value="bonificacao">Bonificação</option>
-                              <option value="outras_entradas">Outras Entradas</option>
                             </select>
                             <button
                               onClick={() => {
@@ -1053,14 +1034,13 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                 }
                               }}
                               disabled={resolvingGroup === grupo.cfop}
-                              className="px-4 py-2 bg-[#C8A951]/20 text-[#C8A951] border border-[#C8A951]/30 rounded hover:bg-[#C8A951]/30 disabled:opacity-50 text-sm font-medium transition-colors"
+                              className="px-2 py-1 bg-[#C8A951]/20 text-[#C8A951] border border-[#C8A951]/30 rounded text-xs hover:bg-[#C8A951]/30 disabled:opacity-50"
                             >
-                              Aplicar a todos
+                              Aplicar
                             </button>
                           </div>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
                     
                     {/* Lista de produtos (expandida) */}
                     {expandedAlerts[grupo.cfop] && grupo.produtos && (
