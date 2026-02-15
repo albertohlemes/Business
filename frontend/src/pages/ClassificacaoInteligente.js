@@ -1765,7 +1765,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                         >
                           <span className="flex items-center gap-2">
                             <span>{config.icon}</span>
-                            <span className="text-sm font-medium">{config.label}</span>
+                            <span className="text-sm font-medium uppercase">{config.label.toUpperCase()}</span>
                           </span>
                           <span className="text-xs font-mono opacity-60">CFOP {cat.cfop}</span>
                         </button>
