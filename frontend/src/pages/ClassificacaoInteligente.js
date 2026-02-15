@@ -95,6 +95,17 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
   // NOVO: Estado para edição de CFOP individual por produto
   const [editingCfopProduto, setEditingCfopProduto] = useState({}); // { `${cfop}_${docId}_${prodIdx}`: { cfop: '', saving: false } }
   
+  // NOVO: Estado para seleção de CFOP destino por grupo (header do card)
+  // { [cfopOriginal]: { cfopDestino: '1102', categoria: 'revenda' } }
+  const [cfopDestinoGrupo, setCfopDestinoGrupo] = useState({});
+  
+  // NOVO: Estado para CFOPs individuais modificados (exceções)
+  // { [cfopOriginal]: { [`${docId}_${prodIdx}`]: { cfop: '1551', categoria: 'ativo_imobilizado' } } }
+  const [cfopExcecoes, setCfopExcecoes] = useState({});
+  
+  // NOVO: Estado para controle de salvamento do grupo
+  const [savingGroup, setSavingGroup] = useState(null);
+  
   // Estados para Memória IA
   const [showMemoriaIA, setShowMemoriaIA] = useState(false);
   const [memoriaData, setMemoriaData] = useState([]);
