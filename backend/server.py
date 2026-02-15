@@ -33943,12 +33943,17 @@ async def complete_wizard_step(
                             produtos = doc.get("produtos", [])
                             if 0 <= prod_idx < len(produtos):
                                 produto = produtos[prod_idx]
+                                cfop_anterior = produto.get("cfop", cfop_original)
+                                produto_codigo = produto.get("codigo", "")
+                                produto_descricao = produto.get("descricao", "")
+                                produto_ncm = produto.get("ncm", "")
+                                cfop_original_emissor = produto.get("cfop_original_emissor", cfop_anterior)
                                 
                                 # Determinar categoria baseada no novo CFOP
                                 categoria_cfop = obter_categoria_por_cfop(cfop_destino)
                                 
                                 # Atualizar produto
-                                produto["cfop_original_distinto"] = produto.get("cfop", cfop_original)
+                                produto["cfop_original_distinto"] = cfop_anterior
                                 produto["cfop"] = cfop_destino
                                 produto["pendente_revisao_cfop"] = False
                                 produto["cfop_individual_wizard"] = True
@@ -33957,7 +33962,7 @@ async def complete_wizard_step(
                                 if categoria_cfop:
                                     produto["categoria"] = categoria_cfop
                                     produto["categoria_classificada"] = categoria_cfop
-                                    produto["categoria_origem"] = "wizard_individual"
+                                    produto["categoria_origem"] = "wizard_individual_memoria_ia"
                                     produto["categoria_classificada_em"] = datetime.now(timezone.utc).isoformat()
                                 
                                 produtos[prod_idx] = produto
@@ -33969,11 +33974,73 @@ async def complete_wizard_step(
                                     {"id": doc_id},
                                     {"$set": {"produtos": produtos}}
                                 )
+                                
+                                # ============ MEMÓRIA IA - SALVAR/ATUALIZAR REGRA ============
+                                # Mesmo comportamento do endpoint resolver-individual
+                                regra_existente = None
+                                
+                                # Primeiro tenta encontrar por código (mais preciso)
+                                if produto_codigo:
+                                    regra_existente = await db.learned_rules.find_one({
+                                        "company_id": company_id,
+                                        "produto_codigo": produto_codigo
+                                    })
+                                
+                                # Se não encontrou por código, tenta por descrição
+                                if not regra_existente and produto_descricao:
+                                    descricao_normalizada = produto_descricao.strip().upper()
+                                    regra_existente = await db.learned_rules.find_one({
+                                        "company_id": company_id,
+                                        "$expr": {
+                                            "$eq": [
+                                                {"$toUpper": {"$trim": {"input": "$produto_descricao"}}},
+                                                descricao_normalizada
+                                            ]
+                                        }
+                                    })
+                                
+                                now = datetime.now(timezone.utc)
+                                
+                                if regra_existente:
+                                    # ATUALIZAR regra existente
+                                    await db.learned_rules.update_one(
+                                        {"id": regra_existente.get("id")},
+                                        {"$set": {
+                                            "cfop_correto": cfop_destino,
+                                            "categoria_correta": categoria_cfop or "conversao_cfop",
+                                            "ncm": produto_ncm or regra_existente.get("ncm", ""),
+                                            "cfop_original": cfop_original_emissor,
+                                            "motivo": f"Wizard: {cfop_anterior} → {cfop_destino}" + (f" ({categoria_cfop})" if categoria_cfop else ""),
+                                            "aprendido_de": "wizard_individual",
+                                            "updated_by": current_user.id,
+                                            "updated_at": now
+                                        }}
+                                    )
+                                    logger.info(f"[WIZARD-MEMORIA-IA] Regra ATUALIZADA: {produto_descricao[:30]}... → CFOP {cfop_destino}")
+                                else:
+                                    # CRIAR nova regra
+                                    nova_regra = {
+                                        "id": str(uuid.uuid4()),
+                                        "company_id": company_id,
+                                        "produto_descricao": produto_descricao,
+                                        "produto_codigo": produto_codigo,
+                                        "ncm": produto_ncm,
+                                        "cfop_original": cfop_original_emissor,
+                                        "cfop_correto": cfop_destino,
+                                        "categoria_correta": categoria_cfop or "conversao_cfop",
+                                        "motivo": f"Wizard: {cfop_anterior} → {cfop_destino}" + (f" ({categoria_cfop})" if categoria_cfop else ""),
+                                        "aprendido_de": "wizard_individual",
+                                        "created_by": current_user.id,
+                                        "created_at": now
+                                    }
+                                    await db.learned_rules.insert_one(nova_regra)
+                                    logger.info(f"[WIZARD-MEMORIA-IA] Nova regra CRIADA: {produto_descricao[:30]}... → CFOP {cfop_destino}")
+                                
                     except (ValueError, IndexError) as e:
                         logger.warning(f"[WIZARD] Erro ao processar CFOP individual {key}: {e}")
             
             if total_individuais > 0:
-                actions_taken.append(f"CFOPs individuais: {total_individuais} produtos com CFOP personalizado")
+                actions_taken.append(f"CFOPs individuais: {total_individuais} produtos com CFOP personalizado (+ Memória IA)")
     
     
     elif step_id == 4:  # Classificação de CFOPs (antigo step 3)
