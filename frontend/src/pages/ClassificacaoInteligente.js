@@ -803,22 +803,18 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
         </div>
 
         {/* ========== BARRA DE COMANDO IA ========== */}
-        <div className="bg-gradient-to-r from-[#C8A951]/10 to-purple-500/10 border border-[#C8A951]/30 rounded-xl p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <Wand2 className="w-5 h-5 text-[#C8A951]" />
-            <span className="text-white font-medium">Comando de IA</span>
-            <span className="text-xs text-[#A1A1AA]">Digite qualquer instrução em linguagem natural</span>
-          </div>
-          
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
+        <div className="bg-gradient-to-r from-[#C8A951]/10 to-purple-500/10 border border-[#C8A951]/30 rounded-xl p-3">
+          <div className="flex items-center gap-2">
+            <Wand2 className="w-4 h-4 text-[#C8A951]" />
+            <span className="text-white text-sm font-medium">Comando de IA</span>
+            <div className="flex-1 relative ml-2">
               <input
                 type="text"
                 value={comandoIA}
                 onChange={(e) => setComandoIA(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && enviarComandoIA()}
-                placeholder="Ex: classificar etanol e gasolina como combustível, todos produtos limpeza são despesa..."
-                className="w-full px-4 py-3 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white placeholder-[#666] focus:border-[#C8A951] focus:outline-none focus:ring-1 focus:ring-[#C8A951]/50"
+                placeholder="Ex: classificar etanol e gasolina como combustível..."
+                className="w-full px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white text-sm placeholder-[#666] focus:border-[#C8A951] focus:outline-none focus:ring-1 focus:ring-[#C8A951]/50"
                 disabled={processandoIA}
               />
               {processandoIA && (
@@ -836,17 +832,17 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
               id="btn-processar-comando"
               onClick={enviarComandoIA}
               disabled={!comandoIA.trim() || processandoIA}
-              className="px-6 py-3 bg-[#C8A951] hover:bg-[#D4B962] text-black font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 bg-[#C8A951] hover:bg-[#D4B962] text-black text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {processandoIA ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Processando...
+                  <span className="hidden sm:inline">Processando...</span>
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  Executar
+                  <span className="hidden sm:inline">Executar</span>
                 </>
               )}
             </button>
