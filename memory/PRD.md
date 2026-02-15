@@ -29,54 +29,61 @@ Sistema de fechamento fiscal automatizado com classificação inteligente de pro
 
 ## Changelog
 
-### 15/02/2026 - Correção de Bugs Críticos
-**Correções implementadas:**
+### 15/02/2026 - NOVO FLUXO DE EDIÇÃO DE CFOP ✅
 
-1. **Sincronização de Contagem de Produtos** ✅
-   - Wizard step 4 agora usa mesma lógica de agrupamento da Classificação Inteligente
-   - Produtos são agrupados por código e descrição, não listados individualmente
-   - Arquivo: `/app/backend/server.py` (linha ~33154)
+**Implementação completa do fluxo de edição de CFOP conforme solicitação do usuário:**
 
-2. **Central de Fechamento com 7 Etapas** ✅
-   - Corrigido mapeamento de steps na AlertasPage.js
-   - Nomes sincronizados com backend: Notas Canceladas, Devoluções, Alertas CFOP, Classif.Produtos, PIS/COFINS Entradas, PIS/COFINS Saídas, Reforma Tributária
-   - Arquivo: `/app/frontend/src/pages/AlertasPage.js`
+1. **CFOP Original no Header (Amarelo)** ✅
+   - O card de alerta agora exibe o CFOP **original da NF de saída** (5910, 5949, 6106, etc.) em destaque amarelo
+   - Label "CFOP Original" sobre o badge
+   - Exibe também descrição da operação, quantidade de produtos e valor total
 
-3. **Navegação do Wizard** ✅
-   - Stepper navigation funciona corretamente
-   - Função `goToStep` atualiza o step atual
+2. **Seletor de CFOP Destino no Header** ✅
+   - Input para digitar ou colar o CFOP de destino (4 dígitos)
+   - Botões rápidos com CFOPs sugeridos (ex: 1102 - COMPRA PARA REVENDA)
+   - Dropdown para selecionar categoria manualmente (Auto, REVENDA, INSUMO, DESPESA, etc.)
+   - Seta visual "→" indicando a conversão
 
-4. **Coluna CFOP Original na Listagem Expandida** ✅
-   - Adicionada coluna "CFOP Orig." com o CFOP original do emissor
-   - Exibe cfop_original_emissor de cada produto
-   - Arquivo: `/app/frontend/src/pages/ClassificacaoInteligente.js`
+3. **Coluna CFOP Editável nos Produtos** ✅
+   - Ao selecionar CFOP destino no header, todos os produtos herdam automaticamente
+   - Cada produto pode ter seu CFOP editado individualmente (exceções)
+   - Clique no CFOP abre modo de edição inline com input + botões confirmar/cancelar
+   - Exceções são destacadas em roxo com tag "Exceção"
 
-5. **Edição Manual de CFOP por Produto** ✅
-   - Botão de edição (ícone lápis) aparece ao passar o mouse sobre cada produto
-   - Input para digitar novo CFOP (4 dígitos)
-   - Botões de confirmar e cancelar
-   - Endpoint atualizado para aceitar JSON body
-   - Arquivos: 
-     - Frontend: `/app/frontend/src/pages/ClassificacaoInteligente.js`
-     - Backend: `/app/backend/server.py` (endpoint `/api/alertas-cfop/resolver-individual`)
+4. **Botão "Confirmar" com Processamento Completo** ✅
+   - Só habilitado quando há CFOP destino válido (4 dígitos)
+   - Ao confirmar:
+     - Salva regra geral para todos os produtos
+     - Salva exceções individuais, sobrepondo a regra geral
+     - Todas as regras são persistidas na "Memória IA" (`learned_rules`)
+   - Feedback visual com contador de exceções
 
-6. **Memória IA - Regras Permanentes** ✅ (15/02/2026)
-   - **Toda edição manual de CFOP agora cria ou atualiza automaticamente uma regra na "Memória IA"**
-   - A regra é salva na coleção `learned_rules` do MongoDB
-   - Se já existir uma regra para o produto (por código ou descrição), ela é **atualizada** ao invés de duplicada
-   - Regras são usadas para classificação automática em futuras importações
+5. **Tags de Categoria em MAIÚSCULAS** ✅
+   - Todas as tags de categoria exibidas em uppercase em toda a aplicação
+   - Ex: "REVENDA", "INSUMO", "DESPESA", "ATIVO IMOBILIZADO"
+
+**Arquivos modificados:**
+- `/app/frontend/src/pages/ClassificacaoInteligente.js` - UI completa refatorada
+
+**Testado com:**
+- testing_agent_v3_fork - 7/7 features verificadas
+- Empresa: M & A DE MORAES (#6388), Competência: 01/2026
+- 2 alertas CFOP (5929) pendentes, 283 regras na Memória IA
+
+---
+
+### 15/02/2026 - Backend da "Memória IA" ✅ (Sessão Anterior)
+
+1. **Memória IA - Regras Permanentes** ✅
+   - Toda edição manual de CFOP cria ou atualiza regra na `learned_rules`
+   - Regra é usada para classificação automática em futuras importações
+   - Lógica de `upsert` evita duplicatas (busca por código ou descrição)
    - Frontend exibe feedback: "Nova regra criada" ou "Regra atualizada"
-   - Endpoint: `/api/alertas-cfop/resolver-individual` (POST)
-   - Campos da regra: produto_descricao, produto_codigo, ncm, cfop_correto, categoria_correta
 
-7. **UI de Edição de CFOP Melhorada** ✅ (15/02/2026)
-   - **Tags de categoria em MAIÚSCULAS** por padrão em toda a aplicação
-   - **Coluna CFOP ORIG.** mostra o CFOP original da NF de saída (sem conversão) - ex: 5929
-   - **Coluna CFOP editável**: mostra o CFOP de destino selecionado no header do card
-     - Clicando na coluna CFOP abre um input para edição
-     - Botões de confirmar (Enter) e cancelar (Esc)
-     - Ao confirmar, salva automaticamente na Memória IA
-   - Header da tabela: NF | PRODUTO | CFOP ORIG. | CFOP | NCM | VALOR
+2. **Endpoints Implementados:**
+   - `POST /api/alertas-cfop/resolver-individual` - Salva CFOP + Memória IA
+   - `GET /api/alertas-cfop/{company_id}/agrupado` - Retorna alertas agrupados
+   - `GET /api/learned-rules/{company_id}` - Lista regras aprendidas
 
 ---
 
@@ -97,19 +104,25 @@ Sistema de fechamento fiscal automatizado com classificação inteligente de pro
   - `/app/frontend/src/pages/ClassificacaoInteligente.js`
   - `/app/frontend/src/pages/AlertasPage.js`
 
+### Coleções MongoDB
+- `xml_documents` - Documentos fiscais (NF-e, NFC-e)
+- `companies` - Empresas cadastradas
+- `learned_rules` - Regras aprendidas pela Memória IA
+- `users` - Usuários do sistema
+
 ---
 
 ## Roadmap
 
-### P0 (Crítico)
+### P0 (Concluído) ✅
 - [x] Sincronização de contagem de produtos entre Wizard e Classificação Inteligente
 - [x] Navegação do menu do Wizard
 - [x] Edição manual de CFOP por produto
 - [x] **Memória IA** - Edição manual cria/atualiza regra permanente automaticamente
-- [ ] Refatoração do monolito server.py
+- [x] **NOVO FLUXO DE EDIÇÃO DE CFOP** - CFOP original no header, seletor de destino, exceções individuais
 
 ### P1 (Alta Prioridade)
-- [ ] Replicar UI de edição manual de CFOP no WizardFechamento.js
+- [ ] Replicar novo fluxo de UI no WizardFechamento.js (consistência)
 - [ ] Visualização agrupada por dia na página de documentos
 - [ ] Relatórios por email para importação em lote
 - [ ] NF de fevereiro aparecendo em janeiro (bug)
@@ -119,9 +132,10 @@ Sistema de fechamento fiscal automatizado com classificação inteligente de pro
 - [ ] Discrepância entre Dashboard e SPED
 - [ ] Botão de Login travado em "Processando..."
 - [ ] Integração de CT-e
+- [ ] Refatoração do monolito server.py (dividir em rotas/modelos)
 
 ### P3 (Baixa Prioridade)
-- [ ] Testes automatizados
+- [ ] Testes automatizados (pytest)
 - [ ] Refatoração de componentes grandes (WizardFechamento, ClassificacaoInteligente)
 
 ---
@@ -130,5 +144,34 @@ Sistema de fechamento fiscal automatizado com classificação inteligente de pro
 - **Super Admin**: alberto.lemes@businessconta.com.br / Business@2026
 
 ## Empresas de Teste
-- **SUNGROUP ENERGIA** (0760) - Usada para validação de contagem
-- **M & A DE MORAES** (6388) - Tem 3 produtos pendentes para teste de CFOP (competência 01/2026)
+- **M & A DE MORAES** (#6388) - 2 alertas CFOP (5929), 283 regras na Memória IA (competência 01/2026)
+- **SUNGROUP ENERGIA** (#0760) - Usada para validação de contagem
+
+---
+
+## Fluxo de Edição de CFOP (Novo)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  CARD HEADER                                                    │
+│  ┌──────────────┐     ┌─────────────────────────────────────┐   │
+│  │ CFOP Original│     │ [ CFOP Destino ] [CATEGORIA▼]       │   │
+│  │    5929      │  →  │ [ 1102         ] [ REVENDA  ▼]      │   │
+│  │  (amarelo)   │     │                                     │   │
+│  └──────────────┘     │ [1102 COMPRA PARA REVENDA]          │   │
+│                       └─────────────────────────────────────┘   │
+│  "Remessa p/ conserto" - 2 produtos • R$ 1.500,00   [CONFIRMAR] │
+├─────────────────────────────────────────────────────────────────┤
+│  LISTA DE PRODUTOS (expandida)                                  │
+│  ┌─────────┬────────────────────┬───────────┬────────┬────────┐ │
+│  │ NF      │ PRODUTO            │ CFOP ORIG │ CFOP   │ VALOR  │ │
+│  ├─────────┼────────────────────┼───────────┼────────┼────────┤ │
+│  │ 12345   │ Peça Motor ABC     │   5929    │ [1102] │ R$800  │ │
+│  │ 12345   │ Filtro XYZ         │   5929    │ [1551] │ R$700  │ │ ← Exceção
+│  └─────────┴────────────────────┴───────────┴────────┴────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+
+Ao clicar em CONFIRMAR:
+- Peça Motor ABC → Regra: 5929 → 1102 (REVENDA)
+- Filtro XYZ     → Exceção: 5929 → 1551 (ATIVO IMOBILIZADO)
+```
