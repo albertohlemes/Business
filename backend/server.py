@@ -33152,42 +33152,60 @@ async def get_wizard_step_data(
         }
     
     elif step_id == 4:  # Classificação de CFOPs (antigo step 3)
-        # Buscar produtos sem classificação ou pendentes - SEM LIMITE para contar corretamente
+        # MESMA LÓGICA DA CLASSIFICAÇÃO INTELIGENTE - Agrupar produtos por código/descrição
         docs_entrada = await db.xml_documents.find({
             **base_filter,
             "tipo": "entrada",
             "modelo": "nfe"
         }, {"_id": 0, "id": 1, "numero_nfe": 1, "emitente_nome": 1, "produtos": 1}).to_list(length=None)
         
-        produtos_pendentes = []
-        produtos_classificados = []
+        # Agrupar produtos (mesma lógica de get_classification_suggestions_v2)
+        produtos_agrupados_pendentes = defaultdict(lambda: {
+            'codigo': '', 'descricao': '', 'ncm': '', 'cfop': '',
+            'categoria': 'pendente', 'quantidade': 0, 'valor_total': 0,
+            'ocorrencias': []
+        })
+        
+        produtos_agrupados_classificados = defaultdict(lambda: {
+            'codigo': '', 'descricao': '', 'ncm': '', 'cfop': '',
+            'categoria': '', 'quantidade': 0, 'valor_total': 0,
+            'ocorrencias': []
+        })
         
         for doc in docs_entrada:
-            for p in doc.get("produtos", []):
-                produto_info = {
+            for idx, p in enumerate(doc.get("produtos", [])):
+                codigo = p.get("codigo", "") or "SEM_CODIGO"
+                descricao = p.get("descricao", "")
+                chave = f"{codigo}_{descricao[:50]}"
+                categoria = p.get("categoria_classificada", "")
+                is_pendente = p.get("pendente_revisao_cfop") or not categoria or categoria in ['', 'pendente', 'pendente_classificacao']
+                
+                grupo = produtos_agrupados_pendentes if is_pendente else produtos_agrupados_classificados
+                grupo[chave]['codigo'] = codigo
+                grupo[chave]['descricao'] = descricao
+                grupo[chave]['ncm'] = p.get("ncm", "")
+                grupo[chave]['cfop'] = p.get("cfop", "")
+                grupo[chave]['categoria'] = categoria if not is_pendente else 'pendente'
+                grupo[chave]['quantidade'] += p.get("quantidade", 0)
+                grupo[chave]['valor_total'] += p.get("valor_total", 0)
+                grupo[chave]['ocorrencias'].append({
                     "doc_id": doc["id"],
                     "nfe": doc.get("numero_nfe", ""),
                     "emitente": doc.get("emitente_nome", ""),
-                    "descricao": p.get("descricao", ""),
-                    "codigo": p.get("codigo", ""),
-                    "ncm": p.get("ncm", ""),
-                    "cfop": p.get("cfop", ""),
-                    "cfop_original": p.get("cfop_original", p.get("cfop_original_emissor", "")),
-                    "categoria": p.get("categoria_classificada", ""),
-                    "valor": p.get("valor_total", 0)
-                }
-                
-                # Usar MESMA lógica da Central de Inteligência: pendente_revisao_cfop
-                if p.get("pendente_revisao_cfop") or not p.get("categoria_classificada"):
-                    produtos_pendentes.append(produto_info)
-                else:
-                    produtos_classificados.append(produto_info)
+                    "produto_idx": idx
+                })
+        
+        # Converter para listas
+        lista_pendentes = list(produtos_agrupados_pendentes.values())
+        lista_classificados = list(produtos_agrupados_classificados.values())
+        lista_pendentes.sort(key=lambda x: x['valor_total'], reverse=True)
+        lista_classificados.sort(key=lambda x: x['valor_total'], reverse=True)
         
         result["data"] = {
-            "produtos_pendentes": produtos_pendentes[:100],
-            "produtos_classificados": produtos_classificados[:100],  # Retornar lista também
-            "total_pendentes": len(produtos_pendentes),
-            "total_classificados": len(produtos_classificados)
+            "produtos_pendentes": lista_pendentes[:100],
+            "produtos_classificados": lista_classificados[:100],
+            "total_pendentes": len(lista_pendentes),  # Agora conta PRODUTOS ÚNICOS, não ocorrências
+            "total_classificados": len(lista_classificados)
         }
     
     elif step_id == 5:  # PIS/COFINS Entradas
