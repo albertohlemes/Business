@@ -118,57 +118,62 @@ const AlertasPage = ({ user, onLogout }) => {
               <p className="text-amber-400">Selecione uma empresa e competência para ver o status do fechamento</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {[1, 2, 3, 4, 5, 6].map((stepId) => {
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              {[1, 2, 3, 4, 5, 6, 7].map((stepId) => {
                 const stepSummary = wizardSummary?.steps_summary?.find(s => s.step_id === stepId);
                 const isCompleted = stepSummary?.completed || false;
                 const lastRun = stepSummary?.completed_at;
-                const Icon = STEP_ICONS[stepId];
+                const Icon = STEP_ICONS[stepId] || Calculator;
                 
                 return (
                   <div 
                     key={stepId}
-                    className={`bg-[#0C0C0C] rounded-xl p-4 border ${
+                    className={`bg-[#0C0C0C] rounded-xl p-3 border cursor-pointer hover:bg-[#1A1A1A] transition-colors ${
                       isCompleted ? 'border-emerald-500/30' : 'border-[#2A2A2A]'
                     }`}
+                    onClick={() => navigate(`/wizard-fechamento?step=${stepId}`)}
+                    data-testid={`wizard-step-${stepId}`}
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
                         isCompleted ? 'bg-emerald-500/20' : 'bg-[#1A1A1A]'
                       }`}>
                         {isCompleted ? (
-                          <CheckCircle className="w-4 h-4 text-emerald-400" />
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
                         ) : (
-                          <Icon className="w-4 h-4 text-[#666]" />
+                          <Icon className="w-3.5 h-3.5 text-[#666]" />
                         )}
                       </div>
-                      <span className={`text-xs font-bold ${isCompleted ? 'text-emerald-400' : 'text-[#666]'}`}>
-                        {stepId}/6
+                      <span className={`text-[10px] font-bold ${isCompleted ? 'text-emerald-400' : 'text-[#666]'}`}>
+                        {stepId}/7
                       </span>
                     </div>
                     
-                    <h3 className={`text-sm font-medium mb-1 ${isCompleted ? 'text-white' : 'text-[#A1A1AA]'}`}>
+                    <h3 className={`text-xs font-medium mb-1 leading-tight ${isCompleted ? 'text-white' : 'text-[#A1A1AA]'}`}>
                       {STEP_NAMES[stepId]}
                     </h3>
                     
-                    <div className="flex items-center gap-1 text-xs mb-3">
-                      <Clock className="w-3 h-3 text-[#666]" />
+                    <div className="flex items-center gap-1 text-[10px] mb-2">
+                      <Clock className="w-2.5 h-2.5 text-[#666]" />
                       <span className="text-[#666] truncate">
-                        {lastRun ? formatDate(lastRun) : 'Não processado'}
+                        {lastRun ? formatDate(lastRun) : 'Pendente'}
                       </span>
                     </div>
                     
                     {/* Botão Processar */}
                     <button
-                      onClick={() => navigate(`/wizard-fechamento?step=${stepId}`)}
-                      className={`w-full py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-colors ${
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/wizard-fechamento?step=${stepId}`);
+                      }}
+                      className={`w-full py-1.5 rounded-lg text-[10px] font-medium flex items-center justify-center gap-1 transition-colors ${
                         isCompleted 
                           ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                           : 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30'
                       }`}
                     >
-                      <Play className="w-3 h-3" />
-                      {isCompleted ? 'Reprocessar' : 'Processar'}
+                      <Play className="w-2.5 h-2.5" />
+                      {isCompleted ? 'Revisar' : 'Processar'}
                     </button>
                   </div>
                 );
