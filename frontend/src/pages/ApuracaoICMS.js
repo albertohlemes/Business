@@ -565,7 +565,7 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                       <p className={`font-bold ${isCredito ? 'text-green-400' : 'text-red-400'}`}>
                         {formatCurrency(item.valor_icms)}
                       </p>
-                      <p className="text-xs text-[#666]">{item.qtd} ocorrência(s)</p>
+                      <p className="text-xs text-[#666]">{item.qtd || item.quantidade || 0} ocorrência(s)</p>
                     </div>
                   </div>
                 ))}
