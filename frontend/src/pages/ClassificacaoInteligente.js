@@ -1042,48 +1042,22 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                         )}
                       </div>
                     
-                    {/* Lista de produtos (expandida) */}
+                    {/* Lista de produtos (expandida) - Compacta */}
                     {expandedAlerts[grupo.cfop] && grupo.produtos && (
                       <div className="border-t border-[#2A2A2A]">
-                        <div className="p-2 bg-[#0C0C0C] text-xs text-[#666] border-b border-[#2A2A2A]">
-                          <div className="grid grid-cols-12 gap-2 px-2 font-medium">
-                            <div className="col-span-1">NF-e</div>
-                            <div className="col-span-3">Fornecedor</div>
-                            <div className="col-span-3">Produto</div>
-                            <div className="col-span-1">NCM</div>
-                            <div className="col-span-2 text-center">CFOP (Original → Atual)</div>
-                            <div className="col-span-1 text-right">Valor</div>
-                            <div className="col-span-1 text-center">Ação</div>
-                          </div>
-                        </div>
-                        <div className="max-h-[300px] overflow-y-auto">
+                        <div className="max-h-[200px] overflow-y-auto">
                           {grupo.produtos.map((prod, prodIdx) => (
                             <div 
                               key={prodIdx}
-                              className="grid grid-cols-12 gap-2 p-2 px-4 text-sm border-b border-[#1A1A1A] hover:bg-[#1A1A1A] transition-colors items-center"
+                              className="flex items-center justify-between gap-2 px-3 py-1.5 text-xs border-b border-[#1A1A1A] hover:bg-[#1A1A1A]"
                             >
-                              <div className="col-span-1 font-mono text-amber-400">{prod.numero_nfe}</div>
-                              <div className="col-span-3 text-white truncate" title={prod.emitente}>{prod.emitente}</div>
-                              <div className="col-span-3 text-[#A1A1AA] truncate" title={prod.produto_descricao}>{prod.produto_descricao}</div>
-                              <div className="col-span-1 text-[#666] font-mono text-xs">{prod.ncm}</div>
-                              <div className="col-span-2 text-center flex items-center justify-center gap-1">
-                                <span className="px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded text-xs font-mono">
-                                  {prod.cfop_original_emissor}
-                                </span>
-                                <span className="text-[#666]">→</span>
-                                <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 rounded text-xs font-mono">
-                                  {prod.cfop || grupo.cfop}
-                                </span>
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <span className="font-mono text-amber-400 shrink-0">{prod.numero_nfe}</span>
+                                <span className="text-[#A1A1AA] truncate">{prod.produto_descricao}</span>
                               </div>
-                              <div className="col-span-1 text-right text-[#C8A951]">{formatCurrency(prod.valor)}</div>
-                              <div className="col-span-1 text-center">
-                                <button
-                                  onClick={() => resolverAlertaIndividual(prod.documento_id, prod.produto_idx, grupo.sugestao_compra.cfop)}
-                                  className="p-1 text-[#666] hover:text-green-400 transition-colors"
-                                  title="Converter individualmente"
-                                >
-                                  <CheckCircle2 className="w-4 h-4" />
-                                </button>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[#666] font-mono">{prod.ncm}</span>
+                                <span className="text-[#C8A951]">{formatCurrency(prod.valor)}</span>
                               </div>
                             </div>
                           ))}
@@ -1091,13 +1065,13 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-[#A1A1AA]">
-                <CheckCircle2 className="w-12 h-12 text-green-500 mb-3" />
-                <p className="font-medium">Nenhum alerta encontrado</p>
-                <p className="text-sm">Todos os CFOPs estão corretos</p>
+              <div className="flex items-center justify-center py-6 text-[#A1A1AA]">
+                <CheckCircle2 className="w-5 h-5 text-green-500 mr-2" />
+                <span className="text-sm">Nenhum alerta - CFOPs corretos</span>
               </div>
             )}
           </div>
