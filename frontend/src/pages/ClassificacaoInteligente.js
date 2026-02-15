@@ -633,11 +633,27 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     pendente: { label: 'Pendente de Classificação', color: 'gray', icon: '❓' }
   };
 
+  // Determinar qual lista usar baseado na aba selecionada
+  const produtosAtuais = useMemo(() => {
+    if (!validacaoData) return [];
+    
+    switch (classificacaoTab) {
+      case 'novos':
+        return validacaoData.produtos_novos || [];
+      case 'classificados':
+        return validacaoData.produtos_ja_classificados || [];
+      case 'todos':
+        return validacaoData.todos || [];
+      default:
+        return validacaoData.produtos_novos || [];
+    }
+  }, [validacaoData, classificacaoTab]);
+
   // Agrupar produtos por classificação
   const produtosAgrupados = useMemo(() => {
-    if (!validacaoData?.sugestoes) return {};
+    if (!produtosAtuais || produtosAtuais.length === 0) return {};
     
-    let filtered = validacaoData.sugestoes;
+    let filtered = produtosAtuais;
     
     // Filtrar por termo de busca
     if (searchTerm) {
@@ -662,7 +678,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     const grupos = {};
     filtered.forEach(prod => {
       // IMPORTANTE: Normalizar categoria para minúsculas (backend pode enviar em maiúsculas)
-      const categoriaRaw = prod.categoria_atual || 'revenda';
+      const categoriaRaw = prod.categoria_atual || 'pendente';
       const categoria = categoriaRaw.toLowerCase();
       if (!grupos[categoria]) {
         grupos[categoria] = {
@@ -686,7 +702,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     });
     
     return grupos;
-  }, [validacaoData, searchTerm, filterStatus, sortOrder]);
+  }, [produtosAtuais, searchTerm, filterStatus, sortOrder]);
 
   // Ordem de exibição das categorias (com as novas categorias)
   const ordemCategorias = [
