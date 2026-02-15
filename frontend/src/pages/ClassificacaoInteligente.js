@@ -1110,25 +1110,88 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                         )}
                       </div>
                     
-                    {/* Lista de produtos (expandida) - Compacta */}
+                    {/* Lista de produtos (expandida) - Com coluna CFOP e edição individual */}
                     {expandedAlerts[grupo.cfop] && grupo.produtos && (
                       <div className="border-t border-[#2A2A2A]">
-                        <div className="max-h-[200px] overflow-y-auto">
-                          {grupo.produtos.map((prod, prodIdx) => (
-                            <div 
-                              key={prodIdx}
-                              className="flex items-center justify-between gap-2 px-3 py-1.5 text-xs border-b border-[#1A1A1A] hover:bg-[#1A1A1A]"
-                            >
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <span className="font-mono text-amber-400 shrink-0">{prod.numero_nfe}</span>
-                                <span className="text-[#A1A1AA] truncate">{prod.produto_descricao}</span>
+                        {/* Header da tabela */}
+                        <div className="flex items-center gap-2 px-3 py-2 text-[10px] text-[#666] border-b border-[#2A2A2A] bg-[#0C0C0C] font-medium uppercase">
+                          <span className="w-16 shrink-0">NF</span>
+                          <span className="flex-1 min-w-0">Produto</span>
+                          <span className="w-20 shrink-0 text-center">CFOP Orig.</span>
+                          <span className="w-20 shrink-0 text-center">NCM</span>
+                          <span className="w-20 shrink-0 text-right">Valor</span>
+                          <span className="w-24 shrink-0 text-center">Ação</span>
+                        </div>
+                        <div className="max-h-[250px] overflow-y-auto">
+                          {grupo.produtos.map((prod, prodIdx) => {
+                            const prodKey = `${grupo.cfop}_${prod.documento_id}_${prod.produto_idx}`;
+                            const editState = editingCfopProduto[prodKey] || {};
+                            const isEditing = editState.cfop !== undefined;
+                            
+                            return (
+                              <div 
+                                key={prodIdx}
+                                className="flex items-center gap-2 px-3 py-2 text-xs border-b border-[#1A1A1A] hover:bg-[#1A1A1A] group"
+                              >
+                                <span className="font-mono text-amber-400 shrink-0 w-16">{prod.numero_nfe}</span>
+                                <span className="text-[#A1A1AA] truncate flex-1 min-w-0" title={prod.produto_descricao}>{prod.produto_descricao}</span>
+                                <span className="w-20 shrink-0 text-center">
+                                  <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded font-mono text-[10px]">
+                                    {prod.cfop_original_emissor || grupo.cfop_original || grupo.cfop}
+                                  </span>
+                                </span>
+                                <span className="text-[#666] font-mono w-20 shrink-0 text-center">{prod.ncm}</span>
+                                <span className="text-[#C8A951] w-20 shrink-0 text-right">{formatCurrency(prod.valor)}</span>
+                                <div className="w-24 shrink-0 flex items-center justify-center gap-1">
+                                  {isEditing ? (
+                                    <>
+                                      <input
+                                        type="text"
+                                        placeholder="CFOP"
+                                        maxLength={4}
+                                        value={editState.cfop || ''}
+                                        onChange={(e) => setEditingCfopProduto(prev => ({
+                                          ...prev,
+                                          [prodKey]: { ...prev[prodKey], cfop: e.target.value.replace(/\D/g, '') }
+                                        }))}
+                                        className="w-12 px-1 py-0.5 bg-[#0C0C0C] border border-[#333] rounded text-white font-mono text-[10px] text-center focus:border-[#C8A951] outline-none"
+                                      />
+                                      <button
+                                        onClick={() => resolverCfopProdutoIndividual(grupo.cfop, prod, editState.cfop)}
+                                        disabled={editState.saving || !editState.cfop || editState.cfop.length !== 4}
+                                        className="p-1 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30 disabled:opacity-50"
+                                        title="Aplicar"
+                                      >
+                                        {editState.saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                      </button>
+                                      <button
+                                        onClick={() => setEditingCfopProduto(prev => {
+                                          const newState = { ...prev };
+                                          delete newState[prodKey];
+                                          return newState;
+                                        })}
+                                        className="p-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30"
+                                        title="Cancelar"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      onClick={() => setEditingCfopProduto(prev => ({
+                                        ...prev,
+                                        [prodKey]: { cfop: '', saving: false }
+                                      }))}
+                                      className="p-1 bg-[#2A2A2A] text-[#A1A1AA] rounded hover:bg-[#333] hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                      title="Digitar CFOP manualmente"
+                                    >
+                                      <Edit3 className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span className="text-[#666] font-mono">{prod.ncm}</span>
-                                <span className="text-[#C8A951]">{formatCurrency(prod.valor)}</span>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )}
