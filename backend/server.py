@@ -15525,6 +15525,8 @@ async def alertas_cfop_agrupado_por_cfop(
         ]
     }, {"_id": 0}).to_list(15000)
     
+    logger.info(f"[ALERTAS-CFOP] Company={company_id[:8]}..., Comp={competencia}, Docs encontrados={len(documents)}")
+    
     # Agrupar por CFOP atual
     grupos_cfop = {}
     total_pendentes = 0
