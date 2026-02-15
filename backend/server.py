@@ -33185,7 +33185,7 @@ async def get_wizard_step_data(
         
         result["data"] = {
             "produtos_pendentes": produtos_pendentes[:100],
-            "produtos_classificados": len(produtos_classificados),
+            "produtos_classificados": produtos_classificados[:100],  # Retornar lista também
             "total_pendentes": len(produtos_pendentes),
             "total_classificados": len(produtos_classificados)
         }
