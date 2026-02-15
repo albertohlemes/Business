@@ -434,6 +434,144 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     }
   };
 
+  // ============================================================
+  // NOVO FLUXO DE EDIÇÃO DE CFOP (Conforme solicitação do usuário)
+  // ============================================================
+  
+  // Função para definir o CFOP destino do grupo inteiro (header)
+  const selecionarCfopDestinoGrupo = (cfopOriginal, cfopDestino, categoria = null) => {
+    setCfopDestinoGrupo(prev => ({
+      ...prev,
+      [cfopOriginal]: { cfopDestino, categoria }
+    }));
+    // Limpar exceções quando mudar o CFOP do grupo
+    setCfopExcecoes(prev => ({
+      ...prev,
+      [cfopOriginal]: {}
+    }));
+  };
+  
+  // Função para marcar uma exceção individual (produto específico com CFOP diferente)
+  const marcarExcecaoProduto = (cfopOriginal, docId, prodIdx, cfopExcecao, categoria = null) => {
+    setCfopExcecoes(prev => ({
+      ...prev,
+      [cfopOriginal]: {
+        ...(prev[cfopOriginal] || {}),
+        [`${docId}_${prodIdx}`]: { cfop: cfopExcecao, categoria }
+      }
+    }));
+  };
+  
+  // Função para remover uma exceção (produto volta ao CFOP do grupo)
+  const removerExcecaoProduto = (cfopOriginal, docId, prodIdx) => {
+    setCfopExcecoes(prev => {
+      const newExcecoes = { ...(prev[cfopOriginal] || {}) };
+      delete newExcecoes[`${docId}_${prodIdx}`];
+      return {
+        ...prev,
+        [cfopOriginal]: newExcecoes
+      };
+    });
+  };
+  
+  // Função para obter o CFOP efetivo de um produto (considerando exceções)
+  const getCfopEfetivoProduto = (cfopOriginal, docId, prodIdx, cfopPadrao) => {
+    // Primeiro verificar se há exceção individual
+    const excecao = cfopExcecoes[cfopOriginal]?.[`${docId}_${prodIdx}`];
+    if (excecao) return excecao.cfop;
+    
+    // Senão, usar o CFOP do grupo (header)
+    const grupoDestino = cfopDestinoGrupo[cfopOriginal];
+    if (grupoDestino) return grupoDestino.cfopDestino;
+    
+    // Default: CFOP padrão
+    return cfopPadrao;
+  };
+  
+  // Função para confirmar e salvar TODAS as alterações de um grupo (regra geral + exceções)
+  const confirmarGrupoCompleto = async (grupo) => {
+    const cfopOriginal = grupo.cfop_original || grupo.cfop;
+    const cfopGrupoSelecionado = cfopDestinoGrupo[cfopOriginal]?.cfopDestino || grupo.sugestao_compra?.cfop || '1102';
+    const categoriaGrupo = cfopDestinoGrupo[cfopOriginal]?.categoria || null;
+    const excecoes = cfopExcecoes[cfopOriginal] || {};
+    
+    setSavingGroup(cfopOriginal);
+    
+    try {
+      const token = localStorage.getItem('token');
+      let sucessos = 0;
+      let erros = 0;
+      
+      // Processar cada produto do grupo
+      for (const prod of grupo.produtos) {
+        const prodKey = `${prod.documento_id}_${prod.produto_idx}`;
+        const excecao = excecoes[prodKey];
+        
+        // Determinar CFOP e categoria para este produto
+        const cfopFinal = excecao?.cfop || cfopGrupoSelecionado;
+        const categoriaFinal = excecao?.categoria || categoriaGrupo;
+        
+        try {
+          const response = await axios.post(
+            `${API}/alertas-cfop/resolver-individual`,
+            {
+              company_id: selectedCompany.id,
+              competencia: selectedCompetencia,
+              documento_id: prod.documento_id,
+              produto_idx: prod.produto_idx,
+              novo_cfop: cfopFinal,
+              categoria_destino: categoriaFinal
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          
+          if (response.data.success) {
+            sucessos++;
+          } else {
+            erros++;
+          }
+        } catch (err) {
+          console.error(`Erro ao salvar produto ${prod.produto_descricao}:`, err);
+          erros++;
+        }
+      }
+      
+      // Mostrar resultado
+      const numExcecoes = Object.keys(excecoes).length;
+      if (sucessos > 0) {
+        if (numExcecoes > 0) {
+          toast.success(`✅ ${sucessos} produtos salvos! (${numExcecoes} exceção(ões) aplicada(s))`);
+        } else {
+          toast.success(`✅ ${sucessos} produtos salvos com CFOP ${cfopGrupoSelecionado}!`);
+        }
+      }
+      if (erros > 0) {
+        toast.error(`❌ ${erros} produto(s) com erro`);
+      }
+      
+      // Limpar estados do grupo e recarregar dados
+      setCfopDestinoGrupo(prev => {
+        const newState = { ...prev };
+        delete newState[cfopOriginal];
+        return newState;
+      });
+      setCfopExcecoes(prev => {
+        const newState = { ...prev };
+        delete newState[cfopOriginal];
+        return newState;
+      });
+      
+      fetchAlertas();
+      fetchMemoriaIA();
+      
+    } catch (err) {
+      console.error('Erro ao confirmar grupo:', err);
+      toast.error('Erro ao confirmar alterações');
+    } finally {
+      setSavingGroup(null);
+    }
+  };
+
   // NOVO: Função para resolver CFOP de produto individual
   const resolverCfopProdutoIndividual = async (cfopGrupo, prod, novoCfop, categoria = null) => {
     const prodKey = `${cfopGrupo}_${prod.documento_id}_${prod.produto_idx}`;
