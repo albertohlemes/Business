@@ -1004,7 +1004,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                         </div>
                         
                         {/* Aviso para CFOP de saída sem entrada equivalente */}
-                        {isCfopSaidaSemEntrada && !cfopEntradaExiste && (
+                        {isCfopSaida && !mostrarBotaoManter && (
                           <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-amber-400 bg-amber-500/10 px-2 py-1 rounded">
                             <AlertTriangle className="w-3 h-3" />
                             <span>CFOP de saída sem entrada equivalente. Escolha um CFOP de entrada válido.</span>
