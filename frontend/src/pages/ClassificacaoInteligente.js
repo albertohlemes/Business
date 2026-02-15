@@ -1274,11 +1274,6 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                 </div>
               </div>
             )}
-                <div className="mt-2 text-xs text-[#666]">
-                  * X = prefixo do CFOP original (1=estadual, 2=interestadual, 3=exterior)
-                </div>
-              </div>
-            )}
             
             {validacaoLoading ? (
               <div className="flex items-center justify-center py-12">
