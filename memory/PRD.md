@@ -7,7 +7,24 @@ Sistema de fechamento fiscal completo com suporte a múltiplos regimes tributár
 
 ### Correções Aplicadas Nesta Sessão
 
-#### 0. Bug Corrigido: Exclusão em massa travando o sistema (~14.000 documentos)
+#### 0. Bug Corrigido: Impostos zerados no Dashboard (ICMS, PIS, COFINS)
+
+**Problema Identificado:**
+Os impostos no Dashboard principal estavam aparecendo zerados mesmo com vendas de R$ 969.649,80. A causa raiz foi na função `_get_dashboard_stats_aggregated` (usada quando há mais de 5.000 documentos) que tentava ler o campo `icms_total` do documento, mas os impostos estão armazenados a nível de **PRODUTO** nos campos `v_icms`, `v_pis`, `v_cofins`.
+
+**Correção Aplicada:**
+- Adicionado um pipeline de agregação separado (`pipeline_impostos`) que usa `$unwind` para expandir o array de produtos
+- O pipeline agora soma `produtos.v_icms`, `produtos.v_pis`, `produtos.v_cofins` corretamente
+- Usa `$ifNull` para compatibilidade com campos alternativos (`valor_icms`, `valor_pis`, `valor_cofins`)
+- Agrupa por tipo (entrada/saida) para calcular débitos e créditos separadamente
+
+**Status**: ✅ TESTADO E VALIDADO (15/15 testes passaram)
+
+**Resultado**:
+- ICMS da Republic: R$ 30.670,24 (antes: R$ 0,00)
+- PIS/COFINS: R$ 0,00 (esperado para NFCe - tributação monofásica)
+
+#### 1. Bug Corrigido: Exclusão em massa travando o sistema (~14.000 documentos)
 
 **Problema Identificado:**
 Ao excluir grandes volumes de documentos (ex: 14.000 NFCe), o sistema travava porque:
