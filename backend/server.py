@@ -23283,7 +23283,19 @@ async def apurar_icms(
                 totais_desconsiderados["st"]["valor_icms"] + 
                 totais_desconsiderados["beneficio_fiscal"]["valor_icms"], 2
             )
-        }
+        },
+        # NOVO: Compras e Vendas Líquidas (unificado com Dashboard)
+        "compras_liquidas": {
+            "brutas": round(total_compras_brutas, 2),
+            "devolucoes": round(total_devolucao_compras, 2),
+            "liquidas": round(compras_liquidas_calc, 2)
+        },
+        "vendas_liquidas": {
+            "brutas": round(total_vendas_brutas, 2),
+            "devolucoes": round(total_devolucao_vendas, 2),
+            "liquidas": round(vendas_liquidas_calc, 2)
+        },
+        "markup": round(markup_calc, 2)
     }
 
 
