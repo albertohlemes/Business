@@ -553,27 +553,37 @@ const ImpostosRetidos = ({ user, onLogout }) => {
                             expanded={expandedGroups.iss}
                             onToggle={() => toggleGroup('iss')}
                           >
-                            {Object.keys(totais.issPorMunicipio).length > 0 && (
-                              <div className="space-y-2">
-                                <p className="text-sm text-[#A1A1AA] flex items-center gap-2 mb-3">
-                                  <MapPin className="w-4 h-4" />
-                                  Por Município
-                                </p>
-                                {Object.entries(totais.issPorMunicipio)
-                                  .sort((a, b) => b[1].valor - a[1].valor)
-                                  .map(([municipio, dados]) => (
-                                    <div key={municipio} className="flex items-center justify-between bg-blue-500/5 rounded-lg px-4 py-2">
+                            {/* ISS por Município - usa dados do backend */}
+                            {(() => {
+                              const issMunicipios = getIssPorMunicipioBackend('tomados');
+                              if (issMunicipios.length === 0) return null;
+                              return (
+                                <div className="space-y-2">
+                                  <p className="text-sm text-[#A1A1AA] flex items-center gap-2 mb-3">
+                                    <MapPin className="w-4 h-4" />
+                                    Por Município do Prestador (onde recolher)
+                                  </p>
+                                  {issMunicipios.map((item, idx) => (
+                                    <div key={idx} className="flex items-center justify-between bg-blue-500/5 rounded-lg px-4 py-2">
                                       <div className="flex items-center gap-2">
                                         <MapPin className="w-4 h-4 text-blue-400" />
-                                        <span className="text-white">{municipio}</span>
-                                        <span className="text-xs text-[#666]">({dados.qtd} doc{dados.qtd > 1 ? 's' : ''})</span>
+                                        <div>
+                                          <span className="text-white">{item.municipio || 'Não informado'}</span>
+                                          {item.uf && <span className="text-[#666] ml-1">- {item.uf}</span>}
+                                        </div>
+                                        <span className="text-xs text-[#666]">({item.qtd_notas} doc{item.qtd_notas > 1 ? 's' : ''})</span>
                                       </div>
-                                      <span className="text-blue-400 font-bold">{formatCurrency(dados.valor)}</span>
+                                      <div className="text-right">
+                                        <span className="text-blue-400 font-bold">{formatCurrency(item.iss_retido)}</span>
+                                        {item.codigo_municipio && (
+                                          <p className="text-xs text-[#666]">Cód. {item.codigo_municipio}</p>
+                                        )}
+                                      </div>
                                     </div>
-                                  ))
-                                }
-                              </div>
-                            )}
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </GrupoImpostoCard>
                           
                           {/* IR */}
