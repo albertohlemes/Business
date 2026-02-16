@@ -26076,6 +26076,7 @@ async def inteligencia_tributaria(
         
         # Montar lista de CFOPs a excluir baseado nas flags da empresa
         cfops_excluir_credito = []
+        logger.info(f"RET FLAGS: desconsiderar_despesas={desconsiderar_despesas}, desconsiderar_st={desconsiderar_st}")
         if desconsiderar_despesas:
             cfops_excluir_credito.extend([
                 "1407", "2407", "1556", "2556", "1557", "2557", "1128", "2128",
