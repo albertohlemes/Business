@@ -10181,6 +10181,130 @@ async def calcular_alertas_variacao(company_id: str, company: dict, competencia_
 
 
 
+# ============== FUNÇÃO INTERNA PARA CALCULAR ICMS (USADA PELO DASHBOARD E APURACAO) ==============
+async def _calcular_apuracao_icms_interno(company_id: str, competencia: str, company: dict) -> dict:
+    """
+    Calcula os valores de ICMS, Total Entradas/Saídas, Compras/Vendas Líquidas e Markup.
+    Esta função é usada tanto pelo Dashboard quanto pelo endpoint apuracao-icms.
+    GARANTE que os valores sejam EXATAMENTE iguais em ambos os lugares.
+    """
+    # Flags de desconsiderar ICMS
+    desconsiderar_icms_despesas = company.get('desconsiderar_icms_despesas', False)
+    desconsiderar_icms_st = company.get('desconsiderar_icms_st', False)
+    beneficio_fiscal_icms = company.get('beneficio_fiscal_icms', False)
+    
+    # CFOPs de DESPESA
+    CFOPS_DESPESA = [
+        '1407', '2407', '1556', '2556', '1557', '2557', '1128', '2128',
+        '1551', '2551', '1406', '2406', '1653', '2653', '1126', '2126',
+        '1352', '2352', '1353', '2353', '1408', '2408'
+    ]
+    
+    # CFOPs de ST
+    CFOPS_ST = [
+        '1403', '2403', '1409', '2409', '1410', '2410', '1411', '2411',
+        '1414', '2414', '1415', '2415', '1651', '2651', '1652', '2652'
+    ]
+    
+    # CFOPs de Compras e Vendas
+    CFOPS_COMPRAS = ['1102', '2102', '1403', '2403', '1101', '2101', '1201', '2201', '1551', '2551']
+    CFOPS_DEVOLUCAO_COMPRA = ['5201', '5202', '5410', '5411', '6201', '6202', '6410', '6411']
+    CFOPS_VENDA = [
+        '5101', '5102', '5103', '5104', '5105', '5106', '5109', '5110', '5111', '5112', '5113', '5114', '5115', '5116', '5117', '5118', '5119', '5120', '5122', '5123', '5124', '5125',
+        '5401', '5402', '5403', '5405',
+        '6101', '6102', '6103', '6104', '6105', '6106', '6107', '6108', '6109', '6110', '6111', '6112', '6113', '6114', '6115', '6116', '6117', '6118', '6119', '6120', '6122', '6123', '6124', '6125',
+        '6401', '6402', '6403', '6404'
+    ]
+    CFOPS_DEVOLUCAO_VENDA = ['1202', '1410', '1411', '2202', '2410', '2411']
+    
+    # Buscar documentos
+    query = {
+        "company_id": company_id,
+        "competencia": competencia
+    }
+    query.update(get_filtro_notas_ativas_sem_locacao())
+    
+    documentos = await db.xml_documents.find(query).to_list(20000)
+    
+    # Inicializar totais
+    credito_icms = 0
+    debito_icms = 0
+    total_entradas = 0
+    total_saidas = 0
+    total_compras_brutas = 0
+    total_devolucao_compras = 0
+    total_vendas_brutas = 0
+    total_devolucao_vendas = 0
+    
+    for doc in documentos:
+        tipo_doc = doc.get('tipo', 'entrada')
+        produtos = doc.get('produtos', [])
+        
+        for prod in produtos:
+            cfop = str(prod.get('cfop', ''))
+            ncm = str(prod.get('ncm', '')).replace('.', '')
+            descricao = str(prod.get('descricao', ''))[:60]
+            valor_total = float(prod.get('valor_total', 0) or 0)
+            valor_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+            
+            # Determinar tipo pelo CFOP (fonte da verdade)
+            primeiro_digito = cfop[0] if cfop and cfop[0].isdigit() else '0'
+            if primeiro_digito in ['1', '2', '3']:
+                tipo_item = 'entrada'
+            elif primeiro_digito in ['5', '6', '7']:
+                tipo_item = 'saida'
+            else:
+                tipo_item = tipo_doc
+            
+            if tipo_item == 'entrada':
+                total_entradas += valor_total
+                
+                # Verificar se deve desconsiderar crédito
+                is_despesa = cfop in CFOPS_DESPESA
+                is_st = cfop in CFOPS_ST
+                is_beneficio = False
+                if beneficio_fiscal_icms:
+                    is_beneficio = produto_sem_credito_icms_beneficio(ncm, descricao, company)
+                
+                desconsiderar = (is_despesa and desconsiderar_icms_despesas) or (is_st and desconsiderar_icms_st) or is_beneficio
+                
+                if not desconsiderar:
+                    credito_icms += valor_icms
+                    
+            elif tipo_item == 'saida':
+                total_saidas += valor_total
+                debito_icms += valor_icms
+            
+            # Compras e Vendas
+            if cfop in CFOPS_COMPRAS:
+                total_compras_brutas += valor_total
+            if cfop in CFOPS_DEVOLUCAO_COMPRA:
+                total_devolucao_compras += valor_total
+            if cfop in CFOPS_VENDA:
+                total_vendas_brutas += valor_total
+            if cfop in CFOPS_DEVOLUCAO_VENDA:
+                total_devolucao_vendas += valor_total
+    
+    # Calcular valores líquidos
+    compras_liquidas = total_compras_brutas - total_devolucao_compras
+    vendas_liquidas = total_vendas_brutas - total_devolucao_vendas
+    markup = ((vendas_liquidas - compras_liquidas) / compras_liquidas * 100) if compras_liquidas > 0 else 0
+    
+    return {
+        "credito_icms": round(credito_icms, 2),
+        "debito_icms": round(debito_icms, 2),
+        "total_entradas": round(total_entradas, 2),
+        "total_saidas": round(total_saidas, 2),
+        "compras_liquidas": round(compras_liquidas, 2),
+        "vendas_liquidas": round(vendas_liquidas, 2),
+        "markup": round(markup, 2),
+        "compras_brutas": round(total_compras_brutas, 2),
+        "devolucao_compras": round(total_devolucao_compras, 2),
+        "vendas_brutas": round(total_vendas_brutas, 2),
+        "devolucao_vendas": round(total_devolucao_vendas, 2)
+    }
+
+
 # ============== FUNÇÃO DE AGREGAÇÃO OTIMIZADA PARA DASHBOARD ==============
 async def _get_dashboard_stats_aggregated(company: dict, company_id: str, competencia: str, base_query: dict, total_docs: int):
     """
