@@ -26088,6 +26088,17 @@ async def inteligencia_tributaria(
                 "1414", "2414", "1415", "2415", "1651", "2651", "1652", "2652"
             ])
         
+        # Construir a condição de crédito baseado nas flags
+        if cfops_excluir_credito:
+            credito_condition = {
+                "$and": [
+                    {"$eq": ["$tipo_doc", "entrada"]},
+                    {"$not": [{"$in": ["$cfop", cfops_excluir_credito]}]}
+                ]
+            }
+        else:
+            credito_condition = {"$eq": ["$tipo_doc", "entrada"]}
+        
         pipeline_icms = [
             {"$match": {
                 "company_id": company_id,
@@ -26096,7 +26107,7 @@ async def inteligencia_tributaria(
             }},
             {"$unwind": "$produtos"},
             {"$project": {
-                "tipo_doc": "$tipo",  # entrada ou saida (baseado no documento)
+                "tipo_doc": "$tipo",
                 "cfop": {"$toString": {"$ifNull": ["$produtos.cfop", ""]}},
                 "valor_icms": {"$toDouble": {"$ifNull": [
                     {"$ifNull": ["$produtos.v_icms", "$produtos.valor_icms"]}, 0
@@ -26106,21 +26117,14 @@ async def inteligencia_tributaria(
                 "tipo_icms": {
                     "$switch": {
                         "branches": [
-                            # Documentos de SAÍDA geram débito
                             {"case": {"$eq": ["$tipo_doc", "saida"]}, "then": "debito"},
-                            # Documentos de ENTRADA geram crédito, exceto CFOPs de despesa/ST se configurado
-                            {"case": {"$and": [
-                                {"$eq": ["$tipo_doc", "entrada"]},
-                                {"$not": {"$in": ["$cfop", cfops_excluir_credito]}} if cfops_excluir_credito else True
-                            ]}, "then": "credito"}
+                            {"case": credito_condition, "then": "credito"}
                         ],
                         "default": "ignorar"
                     }
                 }
             }},
-            {"$match": {
-                "tipo_icms": {"$ne": "ignorar"}
-            }},
+            {"$match": {"tipo_icms": {"$ne": "ignorar"}}},
             {"$group": {
                 "_id": "$tipo_icms",
                 "total": {"$sum": "$valor_icms"}
