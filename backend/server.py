@@ -26150,6 +26150,7 @@ async def inteligencia_tributaria(
                 credito_icms -= doc.get("total", 0)
         
         icms_real = max(0, debito_icms - credito_icms)
+        logger.info(f"RET ICMS: débito={debito_icms:.2f}, crédito={credito_icms:.2f}, saldo={icms_real:.2f}")
     except Exception as e:
         print(f"Erro ao calcular ICMS: {e}")
         import traceback
