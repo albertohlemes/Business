@@ -35978,6 +35978,7 @@ async def get_apuracao_reforma_tributaria(
     else:
         # Calcular PIS/COFINS e ICMS baseado nos XMLs
         regime_empresa = company.get('regime_tributario', 'lucro_real')
+        logger.info(f"REFORMA TRIBUTÁRIA: Calculando regime_atual para regime={regime_empresa}")
         
         # Alíquotas por regime
         aliquotas = {
@@ -35989,7 +35990,7 @@ async def get_apuracao_reforma_tributaria(
         
         # Calcular débitos de PIS/COFINS das saídas
         total_base_saida = 0
-        total_icms_saida = 0
+        total_icms_saida_calc = 0
         
         for doc in docs_saida:
             for prod in doc.get('produtos', []):
@@ -36001,11 +36002,13 @@ async def get_apuracao_reforma_tributaria(
                     total_base_saida += valor
                 
                 # ICMS do produto
-                total_icms_saida += float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+                total_icms_saida_calc += float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+        
+        logger.info(f"REFORMA TRIBUTÁRIA: Base saída={total_base_saida:.2f}, ICMS saída={total_icms_saida_calc:.2f}")
         
         # Calcular créditos de PIS/COFINS das entradas (Lucro Real)
         total_base_entrada = 0
-        total_icms_entrada = 0
+        total_icms_entrada_calc = 0
         
         if regime_empresa == 'lucro_real':
             for doc in docs_entrada:
@@ -36020,7 +36023,9 @@ async def get_apuracao_reforma_tributaria(
                             total_base_entrada += valor
                     
                     # ICMS entrada
-                    total_icms_entrada += float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+                    total_icms_entrada_calc += float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+        
+        logger.info(f"REFORMA TRIBUTÁRIA: Base entrada={total_base_entrada:.2f}, ICMS entrada={total_icms_entrada_calc:.2f}")
         
         # Calcular PIS/COFINS
         pis_debito = total_base_saida * (aliq['pis'] / 100)
@@ -36031,8 +36036,10 @@ async def get_apuracao_reforma_tributaria(
         regime_atual['pis'] = max(0, pis_debito - pis_credito)
         regime_atual['cofins'] = max(0, cofins_debito - cofins_credito)
         regime_atual['pis_cofins'] = regime_atual['pis'] + regime_atual['cofins']
-        regime_atual['icms'] = max(0, total_icms_saida - total_icms_entrada)
+        regime_atual['icms'] = max(0, total_icms_saida_calc - total_icms_entrada_calc)
         regime_atual['total'] = regime_atual['pis_cofins'] + regime_atual['icms']
+        
+        logger.info(f"REFORMA TRIBUTÁRIA: regime_atual calculado: pis={regime_atual['pis']:.2f}, cofins={regime_atual['cofins']:.2f}, icms={regime_atual['icms']:.2f}")
     
     # Estatísticas por CST
     stats_cst_entrada = {}
