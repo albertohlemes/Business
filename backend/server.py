@@ -21894,9 +21894,13 @@ async def preview_delete_documents(
         "competencia": filters.competencia
     }
     
-    # Filtrar pelo campo 'tipo' (entrada/saida) no MongoDB
+    # Filtrar pelo campo 'tipo' ou 'tipo_operacao' (entrada/saida)
     if filters.tipo_operacao:
-        match_stage["tipo"] = filters.tipo_operacao
+        # Alguns documentos usam 'tipo', outros usam 'tipo_operacao'
+        match_stage["$or"] = [
+            {"tipo": filters.tipo_operacao},
+            {"tipo_operacao": filters.tipo_operacao}
+        ]
     
     # Filtrar por modelo no MongoDB
     if filters.tipo_documento and filters.tipo_documento != 'all':
@@ -21907,6 +21911,8 @@ async def preview_delete_documents(
             'nfse': ['nfse', 'nfse_tomado', 'nfse_prestado'],
             'nfse_tomado': ['nfse', 'nfse_tomado'],
             'nfse_prestado': ['nfse', 'nfse_prestado'],
+            'fatura_recibo': ['fatura_recibo'],  # NOVO: Recibos de locação
+            'faturas_recibos': ['fatura_recibo'],  # Alias
             'outros': ['outros']
         }
         if filters.tipo_documento in modelo_map:
