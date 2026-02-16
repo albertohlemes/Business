@@ -30046,7 +30046,9 @@ async def get_analise_horizontal(
                 
                 # Atualizar dados do mês
                 dados_dict[comp]["compras"] = round(total_compras, 2)
-                dados_dict[comp]["vendas"] = round(total_vendas, 2)
+                dados_dict[comp]["saidas"] = round(total_vendas, 2)  # Total bruto de saídas
+                dados_dict[comp]["vendas"] = round(total_vendas_liquido, 2)  # Saídas - devoluções
+                dados_dict[comp]["devolucoes_cliente"] = round(total_devolucoes_cliente, 2)
                 dados_dict[comp]["icms"] = round(saldo_icms, 2)
                 dados_dict[comp]["icms_st"] = round(total_icms_st, 2)
                 dados_dict[comp]["pis"] = round(saldo_pis, 2)
