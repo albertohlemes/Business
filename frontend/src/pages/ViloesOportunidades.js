@@ -40,7 +40,10 @@ const ViloesOportunidades = ({ user, onLogout }) => {
       const token = localStorage.getItem('token');
       const response = await axios.get(
         `${API}/viloes-oportunidades/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 120000 // 2 minutos para suportar grandes volumes
+        }
       );
       setData(response.data);
     } catch (err) {
