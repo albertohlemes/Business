@@ -36001,7 +36001,7 @@ async def get_apuracao_reforma_tributaria(
                     total_base_saida += valor
                 
                 # ICMS do produto
-                total_icms_saida += float(prod.get('valor_icms', 0) or 0)
+                total_icms_saida += float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
         
         # Calcular créditos de PIS/COFINS das entradas (Lucro Real)
         total_base_entrada = 0
