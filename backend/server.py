@@ -10257,23 +10257,26 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
                 debito_icms = 0
                 total_entradas_cfop = 0
                 total_saidas_cfop = 0
+                compras_liquidas = 0
+                vendas_liquidas = 0
+                markup_calc = 0
+                total_compras_brutas = 0
+                total_devolucao_compras = 0
+                total_vendas_brutas = 0
+                total_devolucao_vendas = 0
     except Exception as e:
         logger.error(f"Erro ao buscar ICMS do endpoint: {e}")
         credito_icms = 0
         debito_icms = 0
         total_entradas_cfop = 0
         total_saidas_cfop = 0
-        
-        # Pegar também compras/vendas líquidas e markup do endpoint
-        compras_liquidas = icms_data.get('compras_liquidas', {}).get('liquidas', 0)
-        vendas_liquidas = icms_data.get('vendas_liquidas', {}).get('liquidas', 0)
-        markup_calc = icms_data.get('markup', 0)
-        total_compras_brutas = icms_data.get('compras_liquidas', {}).get('brutas', 0)
-        total_devolucao_compras = icms_data.get('compras_liquidas', {}).get('devolucoes', 0)
-        total_vendas_brutas = icms_data.get('vendas_liquidas', {}).get('brutas', 0)
-        total_devolucao_vendas = icms_data.get('vendas_liquidas', {}).get('devolucoes', 0)
-        
-        logger.info(f"DASHBOARD (DO ENDPOINT): Compras Líq={compras_liquidas}, Vendas Líq={vendas_liquidas}, Markup={markup_calc}%")
+        compras_liquidas = 0
+        vendas_liquidas = 0
+        markup_calc = 0
+        total_compras_brutas = 0
+        total_devolucao_compras = 0
+        total_vendas_brutas = 0
+        total_devolucao_vendas = 0
     
     # Processar resultados da agregação de totais
     qtd_nfe_entrada = 0
