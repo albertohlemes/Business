@@ -85,15 +85,24 @@
 - **RET travando**: Mesmo que acima
 
 #### P1 - Importantes
-- **RET (ICMS zerado)**: O ICMS aparece como zero porque a empresa tem saldo credor. Seria útil mostrar o débito bruto para comparação, similar à Reforma Tributária.
 - **Vilões e Oportunidades**: Lógica corrigida (usa bases de entrada/saída com alíquotas 1,65%/7,60%). Aguarda validação do usuário.
 
 #### P2 - Menor
 - **Insights IA sem informação**: Não investigado
 - **Pacote On-Premise**: Docker Compose pendente
 
+---
+
+### Issues Resolvidas (Sessão Atual)
+- ✅ **Inconsistência PIS/COFINS entre páginas**: Valores agora consistentes (diferença < 0.01%)
+- ✅ **Base de PIS/COFINS sem exclusão do ICMS**: Corrigido para excluir ICMS da base nas saídas
+- ✅ **Lógica de cálculo não unificada**: Todas as funções agora usam `calcular_pis_cofins_produto()`
+
 ## Arquivos Principais Modificados
-- `/app/backend/server.py` - Correções em múltiplos endpoints
+- `/app/backend/server.py` - Correções em múltiplos endpoints:
+  - `_get_apuracao_pis_cofins_aggregated()` - Linha ~11421
+  - `_get_pis_cofins_aggregated()` - Linha ~24316
+  - `inteligencia-tributaria` endpoint - Linha ~26247
 - `/app/frontend/src/pages/ReformaTributaria.js` - Mostra débito bruto
 
 ## Credenciais de Teste
