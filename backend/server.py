@@ -20393,29 +20393,29 @@ async def internal_analise_tributaria(
                 credito_cofins_aliquota_zero += valor
     
     # ============ ANÁLISE DETALHADA DE SAÍDAS (DÉBITOS/FATURAMENTO) ============
-    # CFOPs de devolução de cliente (saídas que devem ser descontadas das vendas)
+    # CFOPs de devolução de cliente (ENTRADAS que devem ser descontadas das vendas)
+    # Quando o cliente devolve, a empresa recebe uma NF de ENTRADA
     CFOPS_DEVOLUCAO_CLIENTE = [
-        '5201', '5202', '5205', '5206', '5207', '5208', '5209', '5210', '5211',
-        '6201', '6202', '6205', '6206', '6207', '6208', '6209', '6210', '6211'
+        '1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209', '1210', '1211',
+        '1410', '1411',  # Devoluções de vendas com ST
+        '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209', '2210', '2211',
+        '2410', '2411'   # Devoluções de vendas interestaduais com ST
     ]
     
-    total_saidas = 0
+    # Calcular total de devoluções de clientes (das ENTRADAS)
     total_devolucoes_cliente = 0
-    total_servicos = 0
-    
-    for doc in docs_saida:
-        valor_doc = float(doc.get('valor_total', 0) or 0)
-        total_saidas += valor_doc
-        total_servicos += float(doc.get('valor_servicos', 0) or 0)
-        
-        # Verificar se é devolução de cliente
+    for doc in docs_entrada:
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
             if cfop in CFOPS_DEVOLUCAO_CLIENTE:
                 total_devolucoes_cliente += float(prod.get('valor_total', 0) or 0)
     
-    # Vendas líquidas = Total de saídas - Devoluções de clientes - Serviços
-    total_vendas = total_saidas - total_devolucoes_cliente - total_servicos
+    # Total de saídas = soma de todos os CFOPs de saída
+    total_saidas = sum(float(d.get('valor_total', 0) or 0) for d in docs_saida)
+    total_servicos = sum(float(d.get('valor_servicos', 0) or 0) for d in docs_saida)
+    
+    # Vendas líquidas = Total de saídas - Devoluções de clientes (entradas)
+    total_vendas = total_saidas - total_devolucoes_cliente
     
     # Débitos separados por imposto
     debito_icms_tributado = 0
