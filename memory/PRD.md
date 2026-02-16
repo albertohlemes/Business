@@ -24,6 +24,8 @@ Sistema de classificação fiscal inteligente para notas fiscais eletrônicas, c
   - Resumo de totais e valores
   - Tributação correta: PIS, COFINS, IRPJ, CSLL (sem ISS/ICMS)
   - Aparece apenas para empresas com `atividade_locacao: true`
+  - **FIX**: Verificação de duplicidade por número do recibo
+  - **FIX**: Exclusão de recibos de locação das apurações de ICMS/ISS e SPED
 
 ### Bugs Críticos Pendentes (P0)
 1. **Bug: Exceções de CFOP salvas com código errado** - Investigação iniciada
@@ -45,7 +47,7 @@ Sistema de classificação fiscal inteligente para notas fiscais eletrônicas, c
 - `/app/frontend/src/pages/WizardFechamento.js`
 - `/app/frontend/src/pages/RET.js`
 - `/app/frontend/src/pages/Documents.js`
-- `/app/frontend/src/components/RecibosLocacaoList.js` (NOVO)
+- `/app/frontend/src/components/RecibosLocacaoList.js`
 - `/app/backend/server.py`
 - `/app/backend/services/document_ai.py`
 
