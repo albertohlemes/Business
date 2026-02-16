@@ -26073,23 +26073,21 @@ async def inteligencia_tributaria(
                 "cfop": {"$toString": {"$ifNull": ["$produtos.cfop", ""]}},
                 "valor_icms": {"$toDouble": {"$ifNull": [
                     {"$ifNull": ["$produtos.v_icms", "$produtos.valor_icms"]}, 0
-                ]}}
+                ]}},
+                "cfop_primeiro": {"$substr": [{"$toString": {"$ifNull": ["$produtos.cfop", ""]}}, 0, 1]}
             }},
             {"$addFields": {
-                "cfop_primeiro": {"$substr": ["$cfop", 0, 1]},
                 "tipo_icms": {
                     "$switch": {
                         "branches": [
+                            # CFOPs de saída geram débito
                             {"case": {"$in": ["$cfop_primeiro", ["5", "6", "7"]]}, "then": "debito"},
-                            # Só gera crédito se for CFOP de compra para comercialização (1101-1122, 2101-2122, 1251-1253, 2251-2253)
-                            {"case": {"$and": [
-                                {"$in": ["$cfop_primeiro", ["1", "2", "3"]]},
-                                {"$in": ["$cfop", [
-                                    "1101", "1102", "1111", "1113", "1116", "1117", "1118", "1120", "1121", "1122", "1152", "1251", "1252", "1253",
-                                    "2101", "2102", "2111", "2113", "2116", "2117", "2118", "2120", "2121", "2122", "2152", "2251", "2252", "2253",
-                                    "3101", "3102", "3127"
-                                ]]}
-                            ]}, "then": "credito"}
+                            # Só gera crédito se for CFOP de compra para comercialização
+                            {"case": {"$in": ["$cfop", [
+                                "1101", "1102", "1111", "1113", "1116", "1117", "1118", "1120", "1121", "1122", "1152", "1251", "1252", "1253",
+                                "2101", "2102", "2111", "2113", "2116", "2117", "2118", "2120", "2121", "2122", "2152", "2251", "2252", "2253",
+                                "3101", "3102", "3127"
+                            ]]}, "then": "credito"}
                         ],
                         "default": "ignorar"
                     }
