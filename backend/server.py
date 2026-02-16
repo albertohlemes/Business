@@ -10230,81 +10230,39 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     
     # ============================================================
     # BUSCAR ICMS DIRETAMENTE DO ENDPOINT apuracao-icms
-    # Garante 100% consistência com página de Indicadores
+    # NÃO RECALCULA - apenas pega os valores de lá
     # ============================================================
-    logger.info(f"DASHBOARD AGREGADO: Buscando ICMS do endpoint apuracao-icms...")
+    logger.info(f"DASHBOARD AGREGADO: Buscando ICMS direto do apuracao-icms...")
     
-    # Chamar o endpoint apuracao-icms internamente para pegar os valores de ICMS
     try:
-        # Query igual ao endpoint apuracao-icms
-        query_icms = {
-            "company_id": company_id,
-            "competencia": competencia
-        }
-        query_icms.update(get_filtro_notas_ativas_sem_locacao())
-        
-        docs_icms = await db.xml_documents.find(query_icms).to_list(20000)
-        
-        # Totais de ICMS usando a mesma lógica do endpoint apuracao-icms
-        credito_icms = 0
-        debito_icms = 0
-        
-        # CFOPs que NÃO geram crédito de ICMS (mesmos do apuracao-icms)
-        CFOPS_DESPESA = ['1556', '2556', '1407', '2407', '1653', '2653', '1128', '2128', '1126', '2126', '1557', '2557', '1408', '2408']
-        CFOPS_ST = ['1403', '2403', '1409', '2409', '1410', '2410', '1411', '2411', '1414', '2414', '1415', '2415', '1651', '2651', '1652', '2652']
-        
-        # Configurações da empresa
-        desconsiderar_icms_despesas = company.get('desconsiderar_icms_despesas', False)
-        desconsiderar_icms_st = company.get('desconsiderar_icms_st', False)
-        beneficio_fiscal_icms = company.get('beneficio_fiscal_icms', False)
-        
-        for doc in docs_icms:
-            tipo_doc = doc.get('tipo', 'entrada')
-            produtos = doc.get('produtos', [])
-            
-            for prod in produtos:
-                cfop = str(prod.get('cfop', ''))
-                ncm = str(prod.get('ncm', '')).replace('.', '')
-                descricao = str(prod.get('descricao', 'Produto'))[:60]
-                v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
-                
-                # Determinar tipo pelo CFOP
-                primeiro_digito = cfop[0] if cfop and cfop[0].isdigit() else '0'
-                if primeiro_digito in ['1', '2', '3']:
-                    tipo_item = 'entrada'
-                elif primeiro_digito in ['5', '6', '7']:
-                    tipo_item = 'saida'
-                else:
-                    tipo_item = tipo_doc
-                
-                if tipo_item == 'entrada':
-                    is_despesa = cfop in CFOPS_DESPESA
-                    is_st = cfop in CFOPS_ST
-                    
-                    # Verificar se produto deve ter crédito desconsiderado por benefício fiscal
-                    is_sem_credito_beneficio = False
-                    if beneficio_fiscal_icms:
-                        is_sem_credito_beneficio = produto_sem_credito_icms_beneficio(ncm, descricao, company)
-                    
-                    # Desconsiderar crédito conforme configuração da empresa
-                    desconsiderar = False
-                    if is_despesa and desconsiderar_icms_despesas:
-                        desconsiderar = True
-                    if is_st and desconsiderar_icms_st:
-                        desconsiderar = True
-                    if is_sem_credito_beneficio:
-                        desconsiderar = True
-                    
-                    if not desconsiderar:
-                        credito_icms += v_icms
-                elif tipo_item == 'saida':
-                    debito_icms += v_icms
-        
-        logger.info(f"DASHBOARD AGREGADO ICMS: Crédito={credito_icms:.2f}, Débito={debito_icms:.2f}")
+        import httpx
+        # Fazer chamada interna ao endpoint apuracao-icms
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"http://localhost:8001/api/apuracao-icms/{company_id}",
+                params={"competencia": competencia},
+                timeout=60.0
+            )
+            if response.status_code == 200:
+                icms_data = response.json()
+                # Pegar os valores EXATOS do endpoint
+                credito_icms = icms_data.get('entradas', {}).get('totais', {}).get('valor_icms', 0)
+                debito_icms = icms_data.get('saidas', {}).get('totais', {}).get('valor_icms', 0)
+                total_entradas_cfop = icms_data.get('entradas', {}).get('totais', {}).get('valor_total', 0)
+                total_saidas_cfop = icms_data.get('saidas', {}).get('totais', {}).get('valor_total', 0)
+                logger.info(f"DASHBOARD ICMS (DO ENDPOINT): Crédito={credito_icms}, Débito={debito_icms}")
+            else:
+                logger.error(f"Erro ao chamar apuracao-icms: {response.status_code}")
+                credito_icms = 0
+                debito_icms = 0
+                total_entradas_cfop = 0
+                total_saidas_cfop = 0
     except Exception as e:
-        logger.error(f"Erro ao buscar ICMS: {e}")
+        logger.error(f"Erro ao buscar ICMS do endpoint: {e}")
         credito_icms = 0
         debito_icms = 0
+        total_entradas_cfop = 0
+        total_saidas_cfop = 0
     
     # ============================================================
     # Calcular Compras e Vendas Líquidas
