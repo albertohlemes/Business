@@ -30113,13 +30113,51 @@ async def get_analise_horizontal(
                     '1410', '1411', '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209', '2210', '2211', '2410', '2411'
                 ]
                 
+                # CFOPs de COMPRA para revenda e insumos
+                CFOPS_COMPRAS_AH = ['1102', '2102', '1403', '2403', '1101', '2101', '1201', '2201', '1551', '2551']
+                # CFOPs de DEVOLUÇÃO de compra (empresa devolvendo para fornecedor) - SAÍDAS
+                CFOPS_DEVOLUCAO_COMPRA_AH = ['5201', '5202', '5410', '5411', '6201', '6202', '6410', '6411']
+                # CFOPs de VENDA
+                CFOPS_VENDA_AH = [
+                    '5101', '5102', '5103', '5104', '5105', '5106', '5109', '5110', '5111', '5112', '5113', '5114', '5115', '5116', '5117', '5118', '5119', '5120', '5122', '5123', '5124', '5125',
+                    '5401', '5402', '5403', '5405',
+                    '6101', '6102', '6103', '6104', '6105', '6106', '6107', '6108', '6109', '6110', '6111', '6112', '6113', '6114', '6115', '6116', '6117', '6118', '6119', '6120', '6122', '6123', '6124', '6125',
+                    '6401', '6402', '6403', '6404'
+                ]
+                
                 total_devolucoes_cliente = 0
+                total_compras_ah = 0
+                total_devolucao_compras_ah = 0
+                total_vendas_ah = 0
+                
                 for doc in docs_icms:
-                    if doc.get('tipo') == 'entrada':
-                        for prod in doc.get('produtos', []):
-                            cfop = str(prod.get('cfop', ''))
-                            if cfop in CFOPS_DEVOLUCAO_CLIENTE:
-                                total_devolucoes_cliente += float(prod.get('valor_total', 0) or 0)
+                    tipo_doc = doc.get('tipo', 'entrada')
+                    for prod in doc.get('produtos', []):
+                        cfop = str(prod.get('cfop', ''))
+                        valor_prod = float(prod.get('valor_total', 0) or 0)
+                        
+                        # Devolução de cliente (entrada)
+                        if cfop in CFOPS_DEVOLUCAO_CLIENTE:
+                            total_devolucoes_cliente += valor_prod
+                        
+                        # Compras (entrada)
+                        if cfop in CFOPS_COMPRAS_AH:
+                            total_compras_ah += valor_prod
+                        
+                        # Devolução de compra (saída)
+                        if cfop in CFOPS_DEVOLUCAO_COMPRA_AH:
+                            total_devolucao_compras_ah += valor_prod
+                        
+                        # Vendas (saída)
+                        if cfop in CFOPS_VENDA_AH:
+                            total_vendas_ah += valor_prod
+                
+                # Valores líquidos
+                compras_liquidas_ah = total_compras_ah - total_devolucao_compras_ah
+                vendas_liquidas_ah = total_vendas_ah - total_devolucoes_cliente
+                
+                # Markup
+                markup_ah = ((vendas_liquidas_ah - compras_liquidas_ah) / compras_liquidas_ah * 100) if compras_liquidas_ah > 0 else 0
                 
                 total_vendas_liquido = total_vendas - total_devolucoes_cliente
                 
