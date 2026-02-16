@@ -363,8 +363,12 @@ const ViloesOportunidades = ({ user, onLogout }) => {
                 <span className="text-[#444]">|</span>
                 <span className="text-red-400" title="Débito">{formatNumber(item.cofins?.debito || 0)}</span>
               </div>
-              <p className={`text-sm font-semibold ${cofinsImpacto > 0 ? 'text-red-400' : cofinsImpacto < 0 ? 'text-green-400' : 'text-[#666]'}`}>
-                {cofinsImpacto >= 0 ? '+' : ''}{formatNumber(cofinsImpacto)} <span className="text-[10px]">({formatNumber(Math.abs(percCofinsVenda))}%)</span>
+              <p className={`text-sm font-semibold ${
+                isVilao 
+                  ? (cofinsImpacto > 0 ? 'text-red-400' : cofinsImpacto < 0 ? 'text-green-400' : 'text-[#666]')
+                  : (cofinsImpacto > 0 ? 'text-green-400' : cofinsImpacto < 0 ? 'text-red-400' : 'text-[#666]')
+              }`}>
+                {isVilao ? (cofinsImpacto >= 0 ? '+' : '') : (cofinsImpacto > 0 ? '+' : '')}{formatNumber(cofinsImpacto)} <span className="text-[10px]">({formatNumber(Math.abs(percCofinsVenda))}%)</span>
               </p>
             </div>
             
