@@ -11419,26 +11419,35 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
     por_cfop = {}
     
     for item in resultados:
-        tipo = (item['_id'].get('tipo', '') or '').lower()
+        tipo = (item['_id'].get('tipo', '') or '').lower().strip()
         cfop = str(item['_id'].get('cfop', '0000'))
-        valor = item['valor_total']
+        valor = float(item.get('valor_total', 0) or 0)
+        
+        # Determinar se é entrada ou saída
+        is_entrada = tipo in ['entrada', 'entry', 'input']
+        if not tipo or tipo not in ['entrada', 'saida', 'saída', 'entry', 'output', 'exit']:
+            # Fallback: usar CFOP
+            if cfop and cfop[0] in ['1', '2', '3']:
+                is_entrada = True
+            elif cfop and cfop[0] in ['5', '6', '7']:
+                is_entrada = False
         
         # Agrupar por CFOP
         if cfop not in por_cfop:
-            por_cfop[cfop] = {"valor": 0, "pis": 0, "cofins": 0, "qtd": 0, "tipo": tipo}
+            por_cfop[cfop] = {"valor": 0, "pis": 0, "cofins": 0, "qtd": 0, "tipo": 'entrada' if is_entrada else 'saida'}
         por_cfop[cfop]["valor"] += valor
-        por_cfop[cfop]["pis"] += item.get('valor_pis', 0)
-        por_cfop[cfop]["cofins"] += item.get('valor_cofins', 0)
-        por_cfop[cfop]["qtd"] += item.get('qtd_produtos', 0)
+        por_cfop[cfop]["pis"] += float(item.get('valor_pis', 0) or 0)
+        por_cfop[cfop]["cofins"] += float(item.get('valor_cofins', 0) or 0)
+        por_cfop[cfop]["qtd"] += int(item.get('qtd_produtos', 0) or 0)
         
-        # Calcular bases
-        if tipo == 'entrada' and cfop in CFOPS_CREDITO:
+        # Calcular bases - usar is_entrada ao invés de tipo == 'entrada'
+        if is_entrada and cfop in CFOPS_CREDITO:
             base_credito += valor
-        elif tipo == 'saida' and cfop in CFOPS_DEBITO:
+        elif not is_entrada and cfop in CFOPS_DEBITO:
             base_debito += valor
         
-        valor_pis_xml += item.get('valor_pis', 0)
-        valor_cofins_xml += item.get('valor_cofins', 0)
+        valor_pis_xml += float(item.get('valor_pis', 0) or 0)
+        valor_cofins_xml += float(item.get('valor_cofins', 0) or 0)
     
     # Calcular valores de PIS/COFINS baseado no regime
     if regime == 'lucro_real':
