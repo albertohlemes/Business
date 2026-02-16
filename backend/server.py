@@ -22505,12 +22505,12 @@ async def apurar_icms(
         '1652', '2652',  # Compra de combustível ST fora do estado
     ]
     
-    # Buscar documentos da competência (EXCLUIR notas canceladas - mesmo critério do Dashboard)
+    # Buscar documentos da competência (EXCLUIR notas canceladas e recibos de locação)
     query = {
         "company_id": company_id,
         "competencia": competencia
     }
-    query.update(get_filtro_notas_ativas())
+    query.update(get_filtro_notas_ativas_sem_locacao())  # Exclui locação que não tem ICMS
     
     # ============== OTIMIZAÇÃO PARA GRANDES VOLUMES ==============
     total_docs = await db.xml_documents.count_documents(query)
