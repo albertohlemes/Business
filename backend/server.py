@@ -10186,8 +10186,10 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     """
     Versão otimizada do dashboard usando agregação do MongoDB.
     Usada quando há mais de 500 documentos para evitar timeout.
-    CORRIGIDO: Agora calcula PIS/COFINS usando função unificada e Compras/Vendas por CFOP.
+    CORRIGIDO: Agora calcula PIS/COFINS usando a mesma lógica da função unificada.
     """
+    from decimal import Decimal, ROUND_HALF_UP
+    
     logger.info(f"DASHBOARD AGREGADO: Iniciando para {total_docs} documentos")
     
     tipo_atividade = company.get('tipo_atividade', 'comercio')
@@ -10213,51 +10215,30 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     totais_raw = await totais_cursor.to_list(length=100)
     
     # ============================================================
-    # CORREÇÃO: Calcular PIS/COFINS usando função unificada
-    # Em vez de pegar valores do XML, usamos a função centralizada
+    # CORREÇÃO: Calcular PIS/COFINS e valores líquidos
+    # Buscar documentos com campos necessários
     # ============================================================
-    logger.info(f"DASHBOARD AGREGADO: Calculando PIS/COFINS unificado...")
+    logger.info(f"DASHBOARD AGREGADO: Calculando impostos e valores líquidos...")
     
-    # Buscar documentos com campos necessários para cálculo
-    docs_for_pis_cofins = await db.xml_documents.find(
+    docs_for_calc = await db.xml_documents.find(
         base_query, 
-        {"_id": 0, "tipo": 1, "tipo_operacao": 1, "produtos": 1, "company_id": 1}
+        {"_id": 0, "tipo": 1, "tipo_operacao": 1, "produtos": 1}
     ).to_list(20000)
     
-    # Calcular PIS/COFINS usando função unificada
-    credito_pis = 0
-    credito_cofins = 0
-    debito_pis = 0
-    debito_cofins = 0
-    credito_icms = 0
-    debito_icms = 0
+    # Configurações para cálculo de PIS/COFINS
+    perfil_empresa = company.get('perfil_comercial', 'VAREJO') or 'VAREJO'
+    perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
+    perfil = perfis[0] if perfis else 'VAREJO'
     
-    for doc in docs_for_pis_cofins:
-        tipo = doc.get('tipo') or doc.get('tipo_operacao') or ''
-        produtos = doc.get('produtos', [])
-        
-        for prod in produtos:
-            # Calcular PIS/COFINS usando função unificada
-            pis_calc, cofins_calc = calcular_pis_cofins_unificado(prod, tipo, company)
-            
-            # ICMS do produto
-            v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
-            
-            if tipo == 'entrada':
-                credito_pis += pis_calc
-                credito_cofins += cofins_calc
-                credito_icms += v_icms
-            elif tipo == 'saida':
-                debito_pis += pis_calc
-                debito_cofins += cofins_calc
-                debito_icms += v_icms
+    # Inicializar totais
+    credito_pis = Decimal('0')
+    credito_cofins = Decimal('0')
+    debito_pis = Decimal('0')
+    debito_cofins = Decimal('0')
+    credito_icms = Decimal('0')
+    debito_icms = Decimal('0')
     
-    logger.info(f"DASHBOARD AGREGADO IMPOSTOS (UNIFICADO): Débito ICMS={debito_icms:.2f}, PIS={debito_pis:.2f}, COFINS={debito_cofins:.2f}")
-    logger.info(f"DASHBOARD AGREGADO IMPOSTOS (UNIFICADO): Crédito ICMS={credito_icms:.2f}, PIS={credito_pis:.2f}, COFINS={credito_cofins:.2f}")
-    
-    # ============================================================
-    # CORREÇÃO: Calcular Compras e Vendas Líquidas por CFOP
-    # ============================================================
+    # CFOPs e listas para cálculo
     CFOPS_COMPRAS = ['1102', '2102', '1403', '2403', '1101', '2101', '1201', '2201', '1551', '2551']
     CFOPS_DEVOLUCAO_COMPRA = ['5201', '5202', '5410', '5411', '6201', '6202', '6410', '6411']
     CFOPS_VENDA = [
@@ -10267,34 +10248,84 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         '6401', '6402', '6403', '6404'
     ]
     CFOPS_DEVOLUCAO_VENDA = ['1202', '1410', '1411', '2202', '2410', '2411']
+    CFOPS_SEM_INCIDENCIA_SAIDA = ['5401', '5402', '5403', '5405', '5409', '5410', '5411', '5412', '5413', '5414', '5415', '6401', '6402', '6403', '6404', '6409', '6410', '6411', '6412', '6413', '6414', '6415']
     
-    total_compras_brutas = 0
-    total_devolucao_compras = 0
-    total_vendas_brutas = 0
-    total_devolucao_vendas = 0
+    total_compras_brutas = Decimal('0')
+    total_devolucao_compras = Decimal('0')
+    total_vendas_brutas = Decimal('0')
+    total_devolucao_vendas = Decimal('0')
     
-    for doc in docs_for_pis_cofins:
+    for doc in docs_for_calc:
+        tipo = doc.get('tipo') or doc.get('tipo_operacao') or ''
         produtos = doc.get('produtos', [])
+        
         for prod in produtos:
             cfop = str(prod.get('cfop', ''))
-            valor = float(prod.get('valor_total', 0) or 0)
+            valor_total = Decimal(str(prod.get('valor_total', 0) or 0))
+            v_icms = Decimal(str(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0))
+            cst_pis = str(prod.get('cst_pis', '') or '')
+            ncm = str(prod.get('ncm', '') or '')
+            ncm_aliq_zero = prod.get('ncm_aliq_zero', False)
             
+            # ICMS
+            if tipo == 'entrada':
+                credito_icms += v_icms
+            elif tipo == 'saida':
+                debito_icms += v_icms
+            
+            # Compras e Vendas por CFOP
             if cfop in CFOPS_COMPRAS:
-                total_compras_brutas += valor
+                total_compras_brutas += valor_total
             if cfop in CFOPS_DEVOLUCAO_COMPRA:
-                total_devolucao_compras += valor
+                total_devolucao_compras += valor_total
             if cfop in CFOPS_VENDA:
-                total_vendas_brutas += valor
+                total_vendas_brutas += valor_total
             if cfop in CFOPS_DEVOLUCAO_VENDA:
-                total_devolucao_vendas += valor
+                total_devolucao_vendas += valor_total
+            
+            # PIS/COFINS - Mesma lógica da função unificada
+            # Verificar se tem incidência
+            is_monofasico = cst_pis in ['04', '05', '06'] or ncm_aliq_zero
+            is_aliq_zero = cst_pis in ['04', '06', '07', '08', '09']
+            cfop_sem_incidencia = cfop in CFOPS_SEM_INCIDENCIA_SAIDA
+            
+            if is_monofasico or is_aliq_zero or cfop_sem_incidencia:
+                continue  # Sem incidência
+            
+            # Base de cálculo = Valor Total - ICMS (Lei 14.592/2023)
+            base_calc = valor_total - v_icms
+            if base_calc < 0:
+                base_calc = Decimal('0')
+            
+            # Alíquotas (Lucro Real)
+            aliq_pis = Decimal('0.0165')
+            aliq_cofins = Decimal('0.076')
+            
+            pis_calc = (base_calc * aliq_pis).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            cofins_calc = (base_calc * aliq_cofins).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            
+            if tipo == 'entrada':
+                credito_pis += pis_calc
+                credito_cofins += cofins_calc
+            elif tipo == 'saida':
+                debito_pis += pis_calc
+                debito_cofins += cofins_calc
     
-    compras_liquidas = total_compras_brutas - total_devolucao_compras
-    vendas_liquidas = total_vendas_brutas - total_devolucao_vendas
+    # Converter para float
+    credito_pis = float(credito_pis)
+    credito_cofins = float(credito_cofins)
+    debito_pis = float(debito_pis)
+    debito_cofins = float(debito_cofins)
+    credito_icms = float(credito_icms)
+    debito_icms = float(debito_icms)
+    
+    compras_liquidas = float(total_compras_brutas - total_devolucao_compras)
+    vendas_liquidas = float(total_vendas_brutas - total_devolucao_vendas)
     markup_calc = ((vendas_liquidas - compras_liquidas) / compras_liquidas * 100) if compras_liquidas > 0 else 0
     
-    logger.info(f"DASHBOARD AGREGADO: Compras Brutas={total_compras_brutas:.2f}, Devoluções Compra={total_devolucao_compras:.2f}, Compras Líquidas={compras_liquidas:.2f}")
-    logger.info(f"DASHBOARD AGREGADO: Vendas Brutas={total_vendas_brutas:.2f}, Devoluções Venda={total_devolucao_vendas:.2f}, Vendas Líquidas={vendas_liquidas:.2f}")
-    logger.info(f"DASHBOARD AGREGADO: Markup={markup_calc:.2f}%")
+    logger.info(f"DASHBOARD AGREGADO IMPOSTOS: Débito ICMS={debito_icms:.2f}, PIS={debito_pis:.2f}, COFINS={debito_cofins:.2f}")
+    logger.info(f"DASHBOARD AGREGADO IMPOSTOS: Crédito ICMS={credito_icms:.2f}, PIS={credito_pis:.2f}, COFINS={credito_cofins:.2f}")
+    logger.info(f"DASHBOARD AGREGADO: Compras Líquidas={compras_liquidas:.2f}, Vendas Líquidas={vendas_liquidas:.2f}, Markup={markup_calc:.2f}%")
     
     # Processar resultados da agregação de totais
     qtd_nfe_entrada = 0
