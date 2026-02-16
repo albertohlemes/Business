@@ -22204,13 +22204,22 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
     saidas_por_cfop = {}
     
     for item in resultados:
-        tipo = item['_id'].get('tipo', '') or ''
-        cfop = item['_id'].get('cfop', '') or ''
-        valor_icms = item.get('valor_icms', 0) or 0
-        valor_icms_st = item.get('valor_icms_st', 0) or 0
-        valor_total = item.get('valor_total', 0) or 0
-        bc_icms = item.get('bc_icms', 0) or 0
-        qtd = item.get('qtd_itens', 0) or 0
+        tipo = (item['_id'].get('tipo', '') or '').lower().strip()
+        cfop = str(item['_id'].get('cfop', '') or '').strip()
+        valor_icms = float(item.get('valor_icms', 0) or 0)
+        valor_icms_st = float(item.get('valor_icms_st', 0) or 0)
+        valor_total = float(item.get('valor_total', 0) or 0)
+        bc_icms = float(item.get('bc_icms', 0) or 0)
+        qtd = int(item.get('qtd_itens', 0) or 0)
+        
+        # Determinar se é entrada ou saída pelo tipo OU pelo CFOP (fallback)
+        is_entrada = tipo in ['entrada', 'entry', 'input']
+        if not tipo or tipo not in ['entrada', 'saida', 'saída', 'entry', 'output', 'exit']:
+            # Fallback: usar CFOP para determinar (1xxx, 2xxx, 3xxx = entrada, 5xxx, 6xxx, 7xxx = saída)
+            if cfop and cfop[0] in ['1', '2', '3']:
+                is_entrada = True
+            elif cfop and cfop[0] in ['5', '6', '7']:
+                is_entrada = False
         
         # Verificar se CFOP é de despesa ou ST
         is_despesa = cfop in cfops_despesa
