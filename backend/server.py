@@ -10266,6 +10266,8 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         
         for prod in produtos:
             cfop = str(prod.get('cfop', ''))
+            ncm = str(prod.get('ncm', '')).replace('.', '')
+            descricao = str(prod.get('descricao', 'Produto'))[:60]
             v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
             
             # Determinar tipo pelo CFOP
@@ -10281,11 +10283,18 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
                 is_despesa = cfop in CFOPS_DESPESA
                 is_st = cfop in CFOPS_ST
                 
+                # Verificar se produto deve ter crédito desconsiderado por benefício fiscal
+                is_sem_credito_beneficio = False
+                if beneficio_fiscal_icms:
+                    is_sem_credito_beneficio = produto_sem_credito_icms_beneficio(ncm, descricao, company)
+                
                 # Desconsiderar crédito conforme configuração da empresa
                 desconsiderar = False
                 if is_despesa and desconsiderar_icms_despesas:
                     desconsiderar = True
                 if is_st and desconsiderar_icms_st:
+                    desconsiderar = True
+                if is_sem_credito_beneficio:
                     desconsiderar = True
                 
                 if not desconsiderar:
