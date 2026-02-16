@@ -10301,15 +10301,14 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
             else:
                 tipo_item = tipo
             
-            # ICMS - Excluir CFOPs de despesa do crédito (mesma lógica de apuracao-icms)
+            # ICMS - Excluir CFOPs de despesa e ST do crédito (mesma lógica de apuracao-icms)
             is_despesa = cfop in CFOPS_DESPESA
+            is_st = cfop in CFOPS_ST
             
             if tipo_item == 'entrada':
-                # Só soma crédito se NÃO for despesa ou se a empresa não desconsiderar
-                if not (is_despesa and desconsiderar_icms_despesas):
-                    # Na verdade, CFOPs de despesa NUNCA geram crédito
-                    if not is_despesa:
-                        credito_icms += v_icms
+                # Só soma crédito se NÃO for despesa e NÃO for ST
+                if not is_despesa and not is_st:
+                    credito_icms += v_icms
             elif tipo_item == 'saida':
                 debito_icms += v_icms
             
