@@ -29992,28 +29992,9 @@ async def get_analise_horizontal(
                     
                     total_icms_st += float(item.get('icms_st', 0) or 0)
                     total_ipi += float(item.get('ipi', 0) or 0)
-                        total_compras += valor_total
-                        # Somar créditos (entradas)
-                        for prod in produtos:
-                            total_icms_credito += float(prod.get('v_icms', 0) or 0)
-                            total_pis_credito += float(prod.get('v_pis', 0) or 0)
-                            total_cofins_credito += float(prod.get('v_cofins', 0) or 0)
-                            total_icms_st += float(prod.get('v_icms_st', 0) or 0)
-                    
-                    elif tipo == 'saida':
-                        total_vendas += valor_total
-                        # Somar débitos (saídas)
-                        for prod in produtos:
-                            total_icms_debito += float(prod.get('v_icms', 0) or 0)
-                            total_pis_debito += float(prod.get('v_pis', 0) or 0)
-                            total_cofins_debito += float(prod.get('v_cofins', 0) or 0)
-                            total_ipi += float(prod.get('v_ipi', 0) or 0)
-                        
-                        # ISS de serviços
-                        for serv in servicos:
-                            total_iss += float(serv.get('valor_iss', 0) or 0)
                 
                 # Calcular saldos
+                total_iss = 0  # ISS seria calculado em pipeline separado se necessário
                 saldo_icms = total_icms_debito - total_icms_credito
                 saldo_pis = total_pis_debito - total_pis_credito
                 saldo_cofins = total_cofins_debito - total_cofins_credito
