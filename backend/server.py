@@ -10368,16 +10368,11 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     else:  # mista
         faturamento_total = total_nfe_saida + total_nfce + total_nfse_prestados + total_cte_saida
     
-    # Impostos a pagar
+    # Impostos a pagar (usando valores calculados pela função unificada)
     icms_pagar = max(0, debito_icms - credito_icms)
     pis_pagar = max(0, debito_pis - credito_pis)
     cofins_pagar = max(0, debito_cofins - credito_cofins)
     total_impostos_pagar = icms_pagar + pis_pagar + cofins_pagar
-    
-    # Markup
-    markup_percentual = 0
-    if total_entradas > 0:
-        markup_percentual = ((faturamento_total - total_entradas) / total_entradas) * 100
     
     logger.info(f"DASHBOARD AGREGADO: Concluído - Faturamento={faturamento_total}, Entradas={total_entradas}")
     
@@ -10410,7 +10405,7 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
             "total_documentos": total_docs
         },
         "validacao": {
-            "notas_validadas": 0,  # Agregação simplificada
+            "notas_validadas": 0,
             "notas_pendentes": total_docs,
             "produtos_total": 0,
             "produtos_validados": 0
@@ -10430,17 +10425,18 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
                 "servicos_prestados": round(total_nfse_prestados, 2),
                 "total": round(total_nfe_saida + total_nfce + total_cte_saida + total_nfse_prestados, 2)
             },
+            # CORREÇÃO: Usar valores calculados por CFOP
             "compras": {
-                "brutas": round(total_entradas, 2),
-                "devolucoes": 0,
-                "liquidas": round(total_entradas, 2)
+                "brutas": round(total_compras_brutas, 2),
+                "devolucoes": round(total_devolucao_compras, 2),
+                "liquidas": round(compras_liquidas, 2)
             },
             "vendas_liquidas": {
-                "brutas": round(faturamento_total, 2),
-                "devolucoes": 0,
-                "liquidas": round(faturamento_total, 2)
+                "brutas": round(total_vendas_brutas, 2),
+                "devolucoes": round(total_devolucao_vendas, 2),
+                "liquidas": round(vendas_liquidas, 2)
             },
-            "markup": round(markup_percentual, 2),
+            "markup": round(markup_calc, 2),
             "total_entradas": round(total_entradas, 2),
             "total_vendas": round(total_nfe_saida, 2),
             "total_cupons": round(total_nfce, 2),
@@ -10480,28 +10476,27 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
             "total": round(total_impostos_pagar, 2)
         },
         "indicadores": {
-            "markup_percentual": round(markup_percentual, 2),
+            "markup_percentual": round(markup_calc, 2),
             "perc_icms_faturamento": round((icms_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
             "perc_pis_faturamento": round((pis_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
             "perc_cofins_faturamento": round((cofins_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
             "perc_iss_faturamento": 0,
             "perc_total_impostos_faturamento": round((total_impostos_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
-            "perc_icms_vendas": 0,
-            "perc_pis_vendas": 0,
-            "perc_cofins_vendas": 0
+            "perc_icms_vendas": round((icms_pagar / vendas_liquidas * 100) if vendas_liquidas > 0 else 0, 2),
+            "perc_pis_vendas": round((pis_pagar / vendas_liquidas * 100) if vendas_liquidas > 0 else 0, 2),
+            "perc_cofins_vendas": round((cofins_pagar / vendas_liquidas * 100) if vendas_liquidas > 0 else 0, 2)
         },
         "analise_comparativa": None,
         "simples": None,
-        "_modo_agregado": True,  # Flag para indicar que foi usado modo agregado
+        "_modo_agregado": True,
         "_total_documentos_processados": total_docs,
-        # === ALERTAS DE VARIAÇÃO ===
         "alertas_variacao": await calcular_alertas_variacao(
             company_id, 
             company, 
             competencia,
             {
-                "compras": total_entradas,
-                "vendas": faturamento_total,
+                "compras": compras_liquidas,
+                "vendas": vendas_liquidas,
                 "icms": icms_pagar,
                 "pis_cofins": pis_pagar + cofins_pagar
             }
