@@ -1140,10 +1140,41 @@ const Indicadores = ({ user, onLogout }) => {
                   <div className="bg-gradient-to-br from-amber-900/30 to-amber-950/30 border border-amber-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-2 mb-2">
                       <DollarSign className="w-5 h-5 text-amber-400" />
-                      <span className="text-[#A1A1AA] text-sm">Margem de Contribuição</span>
+                      <span className="text-[#A1A1AA] text-sm">Margem de Contribuição (MCT)</span>
                     </div>
                     <p className="text-2xl font-bold text-amber-400">{formatCurrency(indicadores.margem.absoluta)}</p>
-                    <p className="text-sm text-amber-300/70 mt-1">{formatPercentual(indicadores.margem.percentual)} sobre receita</p>
+                    <p className="text-sm text-amber-300/70 mt-1">IMC: {formatPercentual(indicadores.margem.percentual)} (MC/Receita)</p>
+                  </div>
+                </div>
+
+                {/* Detalhamento da Margem de Contribuição */}
+                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <DollarSign className="w-6 h-6 text-amber-400" />
+                    <h3 className="text-lg font-semibold text-white">Margem de Contribuição</h3>
+                  </div>
+                  <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg p-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#A1A1AA]">Vendas Líquidas (Receita)</span>
+                        <span className="text-green-400 font-bold">{formatCurrency(indicadores.vendasLiquidas)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#A1A1AA]">(-) Custos Variáveis (Compras)</span>
+                        <span className="text-red-400 font-bold">-{formatCurrency(indicadores.comprasLiquidas)}</span>
+                      </div>
+                      <div className="border-t border-amber-500/30 pt-3 flex justify-between items-center">
+                        <span className="text-amber-400 font-semibold">= MCT (Margem de Contribuição Total)</span>
+                        <span className="text-amber-400 font-bold text-xl">{formatCurrency(indicadores.margem.absoluta)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-[#A1A1AA]">IMC (Índice de Margem de Contribuição)</span>
+                        <span className="text-amber-300">{formatPercentual(indicadores.margem.percentual)}</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-amber-300/50 mt-3 text-center">
+                      IMC = (Vendas Líquidas - Custos Variáveis) / Vendas Líquidas × 100
+                    </p>
                   </div>
                 </div>
 
