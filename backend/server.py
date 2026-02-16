@@ -22238,7 +22238,7 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
             "desconsiderado": is_desconsiderado
         }
         
-        if tipo == 'entrada':
+        if is_entrada:
             total_entradas += valor_total
             # Verificar se deve desconsiderar
             if desconsiderar_despesas and cfop in cfops_despesa:
