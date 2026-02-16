@@ -11711,7 +11711,7 @@ async def apuracao_pis_cofins(
         '1902',  # Massas alimentícias
         '1905',  # Pão, bolachas, biscoitos
         '2101',  # Extratos de café/chá
-        '2106',  # Preparações alimentícias
+        # '2106' REMOVIDO - apenas 21069010 tem alíquota zero (verificar por NCM completo)
         '2201',  # Águas minerais/gaseificadas
         '2202',  # Outras águas/bebidas não alcoólicas
         '2710',  # Óleos de petróleo (combustíveis)
