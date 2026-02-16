@@ -23593,11 +23593,12 @@ async def apurar_iss(
     
     documentos = await db.xml_documents.find(query_nfse, {"_id": 0, "xml_content": 0}).to_list(10000)
     
-    # Também buscar documentos de saída que possam conter serviços
+    # Também buscar documentos de saída que possam conter serviços (EXCLUIR locação)
     query_saida = {
         "company_id": company_id,
         "competencia": competencia,
-        "tipo_operacao": {"$in": ["saida", "saída"]}
+        "tipo_operacao": {"$in": ["saida", "saída"]},
+        "modelo": {"$ne": "fatura_recibo"}  # Excluir recibos de locação
     }
     docs_saida = await db.xml_documents.find(query_saida, {"_id": 0, "xml_content": 0}).to_list(10000)
     
