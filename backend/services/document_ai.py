@@ -449,28 +449,35 @@ def validate_xml_type(xml_content: str, expected_type: str, expected_operacao: s
 FATURA_RECIBO_EXTRACTION_PROMPT = """Você é um especialista em escrituração fiscal brasileira. Analise esta imagem/PDF de uma FATURA ou RECIBO de LOCAÇÃO (aluguel de bens móveis, imóveis, veículos, máquinas, equipamentos) e extraia TODOS os dados necessários para escrituração.
 
 IMPORTANTE: 
-1. Locação de bens móveis/imóveis NÃO tem incidência de ISS (não é serviço)
-2. Retorne APENAS um JSON válido, sem texto adicional
+1. Locação de bens móveis/imóveis NÃO tem incidência de ISS/ICMS
+2. TRIBUTA: PIS (0,65% cumulativo ou 1,65% não-cumulativo), COFINS (3% ou 7,6%), IRPJ, CSLL
+3. Retorne APENAS um JSON válido, sem texto adicional
 
 Estrutura esperada:
 {
     "tipo_documento": "fatura_recibo",
     "subtipo": "locacao_imovel|locacao_veiculo|locacao_maquinas|locacao_equipamentos|outro",
-    "numero_documento": "número da fatura/recibo",
+    "numero_documento": "número da fatura/recibo (ex: 0000000005)",
     "data_emissao": "YYYY-MM-DD",
     "data_vencimento": "YYYY-MM-DD ou null",
-    "competencia": "MM/YYYY",
+    "competencia": "MM/YYYY (derivar do vencimento ou emissão)",
     
     "locador": {
         "cnpj": "apenas números (ou cpf)",
         "razao_social": "nome do locador/proprietário",
+        "inscricao_estadual": "número ou null",
+        "inscricao_municipal": "número ou null",
         "endereco": {
             "logradouro": "string",
             "numero": "string",
+            "complemento": "string ou null",
+            "bairro": "string",
             "cidade": "string",
             "uf": "XX",
             "cep": "apenas números"
-        }
+        },
+        "telefone": "string ou null",
+        "email": "string ou null"
     },
     
     "locatario": {
@@ -479,6 +486,8 @@ Estrutura esperada:
         "endereco": {
             "logradouro": "string",
             "numero": "string",
+            "complemento": "string ou null",
+            "bairro": "string",
             "cidade": "string",
             "uf": "XX",
             "cep": "apenas números"
@@ -486,20 +495,26 @@ Estrutura esperada:
     },
     
     "bem_locado": {
-        "descricao": "descrição do bem locado",
+        "descricao": "descrição completa do bem/objeto da locação",
         "tipo": "imovel|veiculo|maquina|equipamento|outro",
-        "endereco_imovel": "endereço completo se for imóvel, null se não for",
-        "identificacao": "placa do veículo, número de série, matrícula do imóvel, etc."
+        "local_utilizacao": "cidade/local onde o bem é utilizado",
+        "identificacao": "código do projeto, placa, série, etc. (ex: BM 03, BM 07)",
+        "projeto": "nome do projeto/obra se houver"
     },
     
     "valores": {
-        "valor_locacao": 0.00,
-        "valor_condominio": 0.00,
-        "valor_iptu": 0.00,
-        "outros_encargos": 0.00,
+        "valor_bruto": 0.00,
+        "descontos": 0.00,
+        "valor_liquido": 0.00,
         "valor_total": 0.00,
-        "valor_ir_retido": 0.00,
-        "valor_liquido": 0.00
+        "valor_ir_retido": 0.00
+    },
+    
+    "pagamento": {
+        "banco": "nome do banco",
+        "agencia": "número da agência",
+        "conta": "número da conta",
+        "cnpj_favorecido": "CNPJ para depósito"
     },
     
     "retencao_ir": true ou false,
@@ -507,11 +522,18 @@ Estrutura esperada:
     "observacoes": "texto ou null"
 }
 
-REGRAS IMPORTANTES:
-- Locação NÃO tem ISS, PIS, COFINS sobre o valor da locação em si
-- Pode haver retenção de IR na fonte (15% para PJ, tabela progressiva para PF)
-- Se for imóvel, pode haver IPTU e condomínio inclusos na fatura
-- Valores de condomínio e IPTU quando pagos pelo locatário são despesas operacionais
+REGRAS FISCAIS IMPORTANTES:
+- Locação NÃO tem ISS (não é prestação de serviço)
+- Locação NÃO tem ICMS (não é circulação de mercadoria)
+- Locação TRIBUTA PIS e COFINS como receita de pessoa jurídica
+- Pode haver retenção de IR na fonte (1,5% para PJ)
+- O valor líquido = valor bruto - descontos
+
+DICAS DE EXTRAÇÃO:
+- O número do recibo geralmente aparece como "Recibo: XXXXXXXXXX" ou "Nº XXXXXXXXXX"
+- A data de emissão pode estar junto com o local (ex: "Lorena (SP), 10 de Fevereiro de 2026")
+- O vencimento pode aparecer no final do documento
+- Valores com R$ devem ser convertidos para número decimal
 
 Se algum campo não estiver visível, use null para strings ou 0.00 para valores numéricos.
 """
