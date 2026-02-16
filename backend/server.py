@@ -11474,13 +11474,16 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
     # Processar resultados
     base_credito = 0
     base_debito = 0
+    base_monofasico_entrada = 0
+    base_monofasico_saida = 0
     valor_pis_xml = 0
     valor_cofins_xml = 0
     por_cfop = {}
     
     for item in resultados:
         tipo = (item['_id'].get('tipo', '') or '').lower().strip()
-        cfop = str(item['_id'].get('cfop', '0000'))
+        cfop = str(item['_id'].get('cfop', '0000') or '0000')
+        ncm_prefix = str(item['_id'].get('ncm_prefix', '0000') or '0000')
         valor = float(item.get('valor_total', 0) or 0)
         
         # Determinar se é entrada ou saída
@@ -11492,22 +11495,39 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
             elif cfop and cfop[0] in ['5', '6', '7']:
                 is_entrada = False
         
+        # Verificar se é produto monofásico
+        is_monofasico = ncm_prefix in NCMS_MONOFASICOS
+        
         # Agrupar por CFOP
         if cfop not in por_cfop:
-            por_cfop[cfop] = {"valor": 0, "pis": 0, "cofins": 0, "qtd": 0, "tipo": 'entrada' if is_entrada else 'saida'}
+            por_cfop[cfop] = {
+                "valor": 0, "pis": 0, "cofins": 0, "qtd": 0, 
+                "tipo": 'entrada' if is_entrada else 'saida',
+                "valor_tributavel": 0, "valor_monofasico": 0
+            }
         por_cfop[cfop]["valor"] += valor
         por_cfop[cfop]["pis"] += float(item.get('valor_pis', 0) or 0)
         por_cfop[cfop]["cofins"] += float(item.get('valor_cofins', 0) or 0)
         por_cfop[cfop]["qtd"] += int(item.get('qtd_produtos', 0) or 0)
         
-        # Calcular bases - usar is_entrada ao invés de tipo == 'entrada'
-        if is_entrada and cfop in CFOPS_CREDITO:
-            base_credito += valor
-        elif not is_entrada and cfop in CFOPS_DEBITO:
-            base_debito += valor
+        if is_monofasico:
+            por_cfop[cfop]["valor_monofasico"] += valor
+            if is_entrada:
+                base_monofasico_entrada += valor
+            else:
+                base_monofasico_saida += valor
+        else:
+            por_cfop[cfop]["valor_tributavel"] += valor
+            # Calcular bases - SÓ PRODUTOS TRIBUTÁVEIS (não monofásicos)
+            if is_entrada and cfop in CFOPS_CREDITO:
+                base_credito += valor
+            elif not is_entrada and cfop in CFOPS_DEBITO:
+                base_debito += valor
         
         valor_pis_xml += float(item.get('valor_pis', 0) or 0)
         valor_cofins_xml += float(item.get('valor_cofins', 0) or 0)
+    
+    logger.info(f"APURACAO-PIS-COFINS: Base débito={base_debito:.2f}, Base crédito={base_credito:.2f}, Monofásico entrada={base_monofasico_entrada:.2f}, Monofásico saída={base_monofasico_saida:.2f}")
     
     # Calcular valores de PIS/COFINS baseado no regime
     if regime == 'lucro_real':
