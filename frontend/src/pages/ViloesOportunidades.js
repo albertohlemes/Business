@@ -329,8 +329,12 @@ const ViloesOportunidades = ({ user, onLogout }) => {
                 <span className="text-[#444]">|</span>
                 <span className="text-red-400" title="Débito">{formatNumber(item.icms?.debito || 0)}</span>
               </div>
-              <p className={`text-sm font-semibold ${icmsImpacto > 0 ? 'text-red-400' : icmsImpacto < 0 ? 'text-green-400' : 'text-[#666]'}`}>
-                {icmsImpacto >= 0 ? '+' : ''}{formatNumber(icmsImpacto)} <span className="text-[10px]">({formatNumber(Math.abs(percIcmsVenda))}%)</span>
+              <p className={`text-sm font-semibold ${
+                isVilao 
+                  ? (icmsImpacto > 0 ? 'text-red-400' : icmsImpacto < 0 ? 'text-green-400' : 'text-[#666]')
+                  : (icmsImpacto > 0 ? 'text-green-400' : icmsImpacto < 0 ? 'text-red-400' : 'text-[#666]')
+              }`}>
+                {isVilao ? (icmsImpacto >= 0 ? '+' : '') : (icmsImpacto > 0 ? '+' : '')}{formatNumber(icmsImpacto)} <span className="text-[10px]">({formatNumber(Math.abs(percIcmsVenda))}%)</span>
               </p>
             </div>
             
@@ -342,8 +346,12 @@ const ViloesOportunidades = ({ user, onLogout }) => {
                 <span className="text-[#444]">|</span>
                 <span className="text-red-400" title="Débito">{formatNumber(item.pis?.debito || 0)}</span>
               </div>
-              <p className={`text-sm font-semibold ${pisImpacto > 0 ? 'text-red-400' : pisImpacto < 0 ? 'text-green-400' : 'text-[#666]'}`}>
-                {pisImpacto >= 0 ? '+' : ''}{formatNumber(pisImpacto)} <span className="text-[10px]">({formatNumber(Math.abs(percPisVenda))}%)</span>
+              <p className={`text-sm font-semibold ${
+                isVilao 
+                  ? (pisImpacto > 0 ? 'text-red-400' : pisImpacto < 0 ? 'text-green-400' : 'text-[#666]')
+                  : (pisImpacto > 0 ? 'text-green-400' : pisImpacto < 0 ? 'text-red-400' : 'text-[#666]')
+              }`}>
+                {isVilao ? (pisImpacto >= 0 ? '+' : '') : (pisImpacto > 0 ? '+' : '')}{formatNumber(pisImpacto)} <span className="text-[10px]">({formatNumber(Math.abs(percPisVenda))}%)</span>
               </p>
             </div>
             
