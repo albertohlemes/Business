@@ -2271,6 +2271,95 @@ const Documents = ({ user, onLogout }) => {
   const TipoIcon = tipoConfig?.icon || FileText;
   const isEntrada = operacao === 'entrada';
 
+  // Renderização especial para Faturas/Recibos de Locação
+  if (tipoDoc === 'faturas_recibos') {
+    return (
+      <Layout user={user} onLogout={onLogout}>
+        <div data-testid="documents-recibos" className="space-y-6">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleBackToTipos}
+                className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg transition-all"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-semibold text-white flex items-center gap-3" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                  <Receipt className="w-6 h-6 text-[#C8A951]" />
+                  Faturas / Recibos de Locação
+                  <span className="px-2 py-0.5 text-xs rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    Saídas
+                  </span>
+                </h1>
+                <p className="text-[#A1A1AA] text-sm">
+                  {ctxCompany.razao_social} • {selectedCompetencia}
+                </p>
+              </div>
+            </div>
+
+            {/* Botão de Upload */}
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx"
+                multiple
+                className="hidden"
+              />
+              <button
+                data-testid="btn-upload-recibos"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#C8A951] text-black rounded-lg font-medium hover:bg-[#D4B75C] disabled:opacity-50 transition-all"
+              >
+                {uploading ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-5 h-5" />
+                    Importar Recibos (PDF/Imagem)
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Progress de Upload */}
+          {uploading && uploadProgress.total > 0 && (
+            <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-white text-sm">
+                  Processando recibos... ({uploadProgress.current}/{uploadProgress.total})
+                </span>
+                <span className="text-[#C8A951] text-sm">{uploadProgress.percent}%</span>
+              </div>
+              <div className="h-2 bg-[#0A0A0A] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-[#C8A951] transition-all duration-300"
+                  style={{ width: `${uploadProgress.percent}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Lista de Recibos */}
+          <RecibosLocacaoList
+            companyId={ctxCompany.id}
+            competencia={selectedCompetencia}
+            onUploadClick={() => fileInputRef.current?.click()}
+            onRefresh={fetchDocuments}
+          />
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="documents-list" className="flex flex-col h-[calc(100vh-140px)]">
