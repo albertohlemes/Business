@@ -1,0 +1,126 @@
+{
+  "summary": "Testes completos dos 4 endpoints fiscais críticos. Todos os 15 testes passaram. Performance excelente para empresa REPUBLIC (14.700 docs): vilões/oportunidades em 0.32s, PIS/COFINS em 0.57s (requisito <5s atendido), ICMS em 0.47s. Estruturas de retorno validadas e corretas.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration65_fiscal_endpoints.py",
+    "/app/test_reports/pytest/pytest_iteration65.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iteration65_fiscal_endpoints.py"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 testes passaram)",
+    "frontend": "N/A (apenas backend testado)"
+  },
+  "test_credentials": {
+    "email": "alberto.lemes@businessconta.com.br",
+    "password": "Business@2026"
+  },
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Endpoints fiscais validados. Empresas de teste: COMERCIAL RS (d7f30ea1-9df3-4124-a561-12984ffff64b) tem entradas E saídas com CFOPs 2xxx; REPUBLIC (2bde03ac-7314-40b3-94cc-eb7827bccd55) tem apenas saídas com 14.700 docs - boa para testes de performance.",
+  "detailed_test_results": {
+    "viloes_oportunidades": {
+      "status": "PASS",
+      "company_tested": ["REPUBLIC", "COMERCIAL_RS"],
+      "estrutura_validada": true,
+      "campos_corretos": ["entrada_valor", "saida_valor", "icms.credito", "icms.debito"],
+      "performance": {
+        "REPUBLIC_14700_docs": "0.32s",
+        "requisito": "<30s"
+      },
+      "dados_exemplo": {
+        "REPUBLIC": {
+          "viloes": 3,
+          "oportunidades": 0,
+          "primeiro_vilao": {
+            "ncm": "19023000",
+            "entrada_valor": 0,
+            "saida_valor": 738691.65,
+            "icms_credito": 0,
+            "icms_debito": 29353.58
+          }
+        },
+        "COMERCIAL_RS": {
+          "viloes": 20,
+          "oportunidades": 20,
+          "primeiro_vilao": {
+            "ncm": "22042100",
+            "entrada_valor": 1825409.13,
+            "saida_valor": 2385938.3
+          }
+        }
+      }
+    },
+    "apuracao_pis_cofins": {
+      "status": "PASS",
+      "nao_trava": true,
+      "performance": {
+        "REPUBLIC_14700_docs": "0.57s",
+        "requisito_usuario": "<5s",
+        "requisito_atendido": true
+      },
+      "estrutura_validada": true,
+      "dados_exemplo": {
+        "base_debito": 771767.11,
+        "base_credito": 0,
+        "debito_pis": 5016.49,
+        "debito_cofins": 23153.01,
+        "total_a_pagar": 28169.50
+      }
+    },
+    "analise_horizontal": {
+      "status": "PASS",
+      "valores_corretos": true,
+      "sem_valores_absurdos": true,
+      "dados_exemplo": {
+        "REPUBLIC_01_2026": {
+          "compras": 0,
+          "vendas": 2588808.12,
+          "nota": "Empresa só tem saídas, compras=0 é esperado"
+        },
+        "COMERCIAL_RS_01_2026": {
+          "compras": 75846106.53,
+          "vendas": 107997103.52,
+          "nota": "Empresa tem entradas E saídas, valores corretos"
+        }
+      }
+    },
+    "apuracao_icms": {
+      "status": "PASS",
+      "cfops_2xxx_encontrados": true,
+      "performance": "0.47s",
+      "cfops_2xxx_listados": [
+        {"cfop": "2102", "valor": 897113.36, "icms": 105391.17},
+        {"cfop": "2551", "valor": 6378.04, "icms": 765.36},
+        {"cfop": "2556", "valor": 9610.36, "icms": 114.28},
+        {"cfop": "2910", "valor": 766.90, "icms": 78.96},
+        {"cfop": "2403", "valor": 157.71, "icms": 7.64},
+        {"cfop": "2653", "valor": 928.87, "icms": 0},
+        {"cfop": "2949", "valor": 217.40, "icms": 0}
+      ],
+      "totais_entrada": {
+        "valor_total": 11967950.86,
+        "valor_icms": 1896678.12,
+        "qtd_documentos": 412
+      },
+      "totais_saida": {
+        "valor_total": 11872015.51,
+        "valor_icms": 1914479.60,
+        "qtd_documentos": 4042
+      }
+    }
+  },
+  "conclusao": "Todas as correções implementadas pelo main agent estão funcionando corretamente. Os endpoints retornam estruturas corretas, não travam com grandes volumes de dados, e os CFOPs 2xxx estão sendo mostrados quando existem nos dados."
+}
