@@ -29087,6 +29087,7 @@ async def get_impostos_retidos(
                 "csll": round(retencoes_tomados["csll"], 2),
                 "inss": round(retencoes_tomados["inss"], 2)
             },
+            "iss_por_municipio": iss_municipios_tomados,  # NOVO: Agrupado por município do PRESTADOR
             "total_retido": round(total_retido_tomados, 2),
             "detalhes": sorted(retencoes_tomados["detalhes"], key=lambda x: -x["total_retido"])
         },
@@ -29101,6 +29102,7 @@ async def get_impostos_retidos(
                 "csll": round(retencoes_prestados["csll"], 2),
                 "inss": round(retencoes_prestados["inss"], 2)
             },
+            "iss_por_municipio": iss_municipios_prestados,  # NOVO: Agrupado por município do TOMADOR
             "total_retido": round(total_retido_prestados, 2),
             "detalhes": sorted(retencoes_prestados["detalhes"], key=lambda x: -x["total_retido"])
         },
