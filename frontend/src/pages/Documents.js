@@ -15,6 +15,7 @@ import { useUpload } from '../context/UploadContext';
 import { toast } from 'sonner';
 import DocumentDetailModal from '../components/DocumentDetailModal';
 import NfseCancellationModal from '../components/NfseCancellationModal';
+import RecibosLocacaoList from '../components/RecibosLocacaoList';
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
 
