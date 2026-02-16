@@ -35998,13 +35998,24 @@ async def get_apuracao_reforma_tributaria(
         for prod in doc.get('produtos', []):
             total_icms_saida += float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
     
+    # CFOPs que GERAM crédito de ICMS (compras para comercialização)
+    CFOPS_GERAM_CREDITO_ICMS = [
+        '1101', '1102', '1111', '1113', '1116', '1117', '1118', '1120', '1121', '1122', '1152', '1251', '1252', '1253',
+        '2101', '2102', '2111', '2113', '2116', '2117', '2118', '2120', '2121', '2122', '2152', '2251', '2252', '2253',
+        '3101', '3102', '3127'  # Importação
+    ]
+    
     for doc in docs_entrada:
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
             v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
             v_icms_st = float(prod.get('v_icms_st', 0) or 0)
             
-            # Verificar se deve desconsiderar
+            # Só creditar se o CFOP gera crédito de ICMS
+            if cfop not in CFOPS_GERAM_CREDITO_ICMS:
+                continue  # Não creditar
+            
+            # Verificar se deve desconsiderar (flags da empresa)
             if desconsiderar_icms_despesas and cfop in CFOPS_DESPESA_RT:
                 icms_despesas_desconsiderado += v_icms
                 continue  # Não creditar
