@@ -36020,7 +36020,7 @@ async def get_apuracao_reforma_tributaria(
                             total_base_entrada += valor
                     
                     # ICMS entrada
-                    total_icms_entrada += float(prod.get('valor_icms', 0) or 0)
+                    total_icms_entrada += float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
         
         # Calcular PIS/COFINS
         pis_debito = total_base_saida * (aliq['pis'] / 100)
