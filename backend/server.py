@@ -29942,12 +29942,27 @@ async def get_analise_horizontal(
                     "difal": 0
                 }
             
-            # Buscar documentos do mês atual
+            # Buscar documentos do mês atual USANDO AGREGAÇÃO
             for comp, dados_dict in [(comp_atual, dados_mensal), (comp_anterior, dados_mensal_anterior)]:
-                docs = await db.xml_documents.find({
-                    **filtro_base,
-                    "competencia": comp
-                }, {"_id": 0, "xml_content": 0}).to_list(length=None)
+                # Pipeline de agregação otimizada
+                pipeline = [
+                    {"$match": {**filtro_base, "competencia": comp}},
+                    {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
+                    {
+                        "$group": {
+                            "_id": {"$ifNull": ["$tipo", "$tipo_operacao"]},
+                            "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$valor_total", 0]}}},
+                            "icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms", {"$ifNull": ["$produtos.valor_icms", 0]}]}}},
+                            "icms_st": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms_st", {"$ifNull": ["$produtos.valor_icms_st", 0]}]}}},
+                            "pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", {"$ifNull": ["$produtos.valor_pis", 0]}]}}},
+                            "cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_cofins", {"$ifNull": ["$produtos.valor_cofins", 0]}]}}},
+                            "ipi": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_ipi", {"$ifNull": ["$produtos.valor_ipi", 0]}]}}}
+                        }
+                    }
+                ]
+                
+                cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
+                resultados = await cursor.to_list(length=10)
                 
                 total_compras = 0
                 total_vendas = 0
@@ -29959,15 +29974,24 @@ async def get_analise_horizontal(
                 total_cofins_debito = 0
                 total_cofins_credito = 0
                 total_ipi = 0
-                total_iss = 0
                 
-                for doc in docs:
-                    tipo = doc.get('tipo', '')
-                    valor_total = doc.get('valor_total', 0) or 0
-                    produtos = doc.get('produtos', []) or []
-                    servicos = doc.get('servicos', []) or []
+                for item in resultados:
+                    tipo = (item['_id'] or '').lower().strip()
+                    is_entrada = tipo in ['entrada', 'entry', 'input'] or tipo not in ['saida', 'saída']
                     
-                    if tipo == 'entrada':
+                    if is_entrada:
+                        total_compras += float(item.get('valor_total', 0) or 0)
+                        total_icms_credito += float(item.get('icms', 0) or 0)
+                        total_pis_credito += float(item.get('pis', 0) or 0)
+                        total_cofins_credito += float(item.get('cofins', 0) or 0)
+                    else:
+                        total_vendas += float(item.get('valor_total', 0) or 0)
+                        total_icms_debito += float(item.get('icms', 0) or 0)
+                        total_pis_debito += float(item.get('pis', 0) or 0)
+                        total_cofins_debito += float(item.get('cofins', 0) or 0)
+                    
+                    total_icms_st += float(item.get('icms_st', 0) or 0)
+                    total_ipi += float(item.get('ipi', 0) or 0)
                         total_compras += valor_total
                         # Somar créditos (entradas)
                         for prod in produtos:
