@@ -11776,8 +11776,9 @@ async def apuracao_pis_cofins(
     total_docs = await db.xml_documents.count_documents(query)
     logger.info(f"APURACAO-PIS-COFINS: Total documentos = {total_docs}")
     
-    # Se tiver mais de 5000 docs, usar agregação simplificada
-    if total_docs > 5000:
+    # SEMPRE usar agregação para garantir performance (threshold reduzido de 5000 para 500)
+    # Isso evita timeouts em servidores mais lentos ou com mais dados
+    if total_docs > 500:
         logger.info(f"APURACAO-PIS-COFINS: Usando agregação otimizada para {total_docs} documentos")
         return await _get_apuracao_pis_cofins_aggregated(company, company_id, competencia, query, total_docs, regime)
     
@@ -12194,7 +12195,8 @@ async def apuracao_periodo(
     total_docs = await db.xml_documents.count_documents(query)
     logger.info(f"APURACAO-PERIODO: Total documentos = {total_docs}")
     
-    if total_docs > 5000:
+    # SEMPRE usar agregação para garantir performance (threshold reduzido de 5000 para 500)
+    if total_docs > 500:
         logger.info(f"APURACAO-PERIODO: Usando agregação otimizada para {total_docs} documentos")
         return await _get_apuracao_periodo_aggregated(company, company_id, competencia, query, total_docs, regime)
     
