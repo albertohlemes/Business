@@ -30041,7 +30041,10 @@ async def get_analise_horizontal(
                 
                 for item in resultados:
                     tipo = (item['_id'] or '').lower().strip()
-                    is_entrada = tipo in ['entrada', 'entry', 'input'] or tipo not in ['saida', 'saída']
+                    # Corrigido: apenas tipos explicitamente de entrada são entrada
+                    # Se tipo não for definido, não somar (evita duplicação)
+                    is_entrada = tipo in ['entrada', 'entry', 'input']
+                    is_saida = tipo in ['saida', 'saída', 'exit', 'output']
                     
                     if is_entrada:
                         total_compras += float(item.get('valor_total', 0) or 0)
