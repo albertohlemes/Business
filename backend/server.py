@@ -24700,7 +24700,10 @@ async def apurar_pis_cofins(
         produtos = doc.get('produtos', [])
         
         for prod in produtos:
-            valor_base = float(prod.get('valor_total', 0) or 0)
+            valor_total = float(prod.get('valor_total', 0) or 0)
+            # ICMS destacado - descontar da base de PIS/COFINS (STF)
+            v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+            valor_base = max(0, valor_total - v_icms)
             
             if is_servico:
                 # Calcular para serviços
