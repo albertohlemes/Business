@@ -285,8 +285,13 @@ const Indicadores = ({ user, onLogout }) => {
     const margemAbsoluta = lucroBruto;
     const margemPercentual = receitas.total > 0 ? (margemAbsoluta / receitas.total) * 100 : 0;
     
-    // Markup
-    const markup = cmv > 0 ? ((receitas.total - cmv) / cmv) * 100 : 0;
+    // MARKUP - Usar dados do backend (mesmo cálculo do Dashboard)
+    // Markup = (Vendas Líquidas - Compras Líquidas) / Compras Líquidas * 100
+    // Compras Líquidas = CFOPs de Compra - Devoluções de Saída
+    // Vendas Líquidas = CFOPs de Venda - Devoluções de Entrada
+    const markup = dados?.icms?.markup || 0;
+    const comprasLiquidas = dados?.icms?.compras_liquidas?.liquidas || 0;
+    const vendasLiquidas = dados?.icms?.vendas_liquidas?.liquidas || 0;
     
     // Entradas por tipo
     const entradas = dados?.icms?.entradas || {};
@@ -312,6 +317,8 @@ const Indicadores = ({ user, onLogout }) => {
     return {
       margem: { absoluta: margemAbsoluta, percentual: margemPercentual },
       markup,
+      comprasLiquidas,
+      vendasLiquidas,
       entradas: { insumo, revenda, despesa, ativo, total: insumo + revenda + despesa + ativo }
     };
   };
