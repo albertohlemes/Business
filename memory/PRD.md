@@ -2,41 +2,43 @@
 
 ## Status Atual (16/02/2026)
 
-### ✅ CORREÇÕES DE PERFORMANCE IMPLEMENTADAS (SESSÃO ATUAL)
+### ✅ CORREÇÃO CRÍTICA - NCMs de Alíquota Zero (SESSÃO ATUAL)
+
+#### Bug Identificado e Corrigido
+- **Problema**: O prefixo NCM `2106` estava na lista de alíquota zero, fazendo com que **TODAS** as preparações alimentícias (salgadinhos, molhos, etc.) fossem incorretamente classificadas como isentas
+- **Impacto**: 
+  - **Reforma Tributária**: Mostrava R$ 0,00 no regime atual
+  - **Comparativo Real vs Presumido**: Mostrava valores iguais
+  - **Divergências**: Não encontrava divergências
+- **Solução**: Removido o prefixo `2106` de todas as listas de alíquota zero. Apenas o NCM completo `21069010` (Preparações Compostas específicas) mantido como alíquota zero
+- **Status**: ✅ CORRIGIDO E TESTADO
+
+#### Resultados Após Correção (COMERCIAL RS - 4.5k docs)
+- **PIS/COFINS**:
+  - Lucro Real: Créditos R$ 952k, Débitos R$ 979k, A Pagar R$ 27k
+  - Lucro Presumido: Créditos R$ 70, Débitos R$ 389k, A Pagar R$ 388k
+  - **Comparativo DIFERENTE** ✅
+- **Divergências**: 3.112 produtos divergentes encontrados ✅
+- **Reforma Tributária**: Regime atual calculado corretamente ✅
+
+---
+
+### ✅ CORREÇÕES DE PERFORMANCE (SESSÃO ATUAL)
 
 #### 1. Otimização de Agregação MongoDB
 - **Problema**: Páginas PIS/COFINS e RET travavam com alto volume de dados
-- **Causa**: Threshold de 5000 docs muito alto para servidores mais lentos
-- **Solução**: Reduzido threshold de 5000 para 500 documentos em TODOS os endpoints
-- **Endpoints otimizados**: 
-  - `/api/apuracao-pis-cofins`
-  - `/api/apuracao-periodo`
-  - `/api/viloes-oportunidades`
-  - `/api/apuracao-movimento`
-  - `/api/inteligencia-tributaria` (RET)
-- **Status**: ✅ IMPLEMENTADO E TESTADO
-
-#### 2. Índices MongoDB Criados
-- **company_id + competencia** (query principal)
-- **company_id + competencia + status + desconsiderada** (filtro de notas ativas)
-- **company_id + competencia + produtos.cfop** (agregações)
-- **Status**: ✅ CRIADOS
-
-#### 3. Timeout do Frontend Aumentado
-- **Problema**: Timeout padrão do axios muito curto
-- **Solução**: Timeout de 120 segundos (2 minutos) para chamadas críticas
-- **Arquivos atualizados**: 
-  - `ApuracaoMensal.js`
-  - `RET.js`
-  - `ReformaTributaria.js`
-  - `ViloesOportunidades.js`
+- **Solução**: Reduzido threshold de 5000 para 500 documentos
 - **Status**: ✅ IMPLEMENTADO
 
-#### Resultados dos Testes (COMERCIAL RS - 4.5k docs)
-- `apuracao-pis-cofins`: 0.33s ✅
-- `apuracao-periodo`: 0.27s ✅
-- `inteligencia-tributaria`: 1.01s ✅
-- `viloes-oportunidades`: 0.25s ✅
+#### 2. Índices MongoDB Criados
+- company_id + competencia
+- company_id + competencia + status + desconsiderada
+- company_id + competencia + produtos.cfop
+- **Status**: ✅ CRIADOS
+
+#### 3. Timeout do Frontend Aumentado (120s)
+- ApuracaoMensal.js, RET.js, ReformaTributaria.js, ViloesOportunidades.js
+- **Status**: ✅ IMPLEMENTADO
 
 ---
 
