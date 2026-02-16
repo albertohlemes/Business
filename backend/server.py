@@ -14386,9 +14386,18 @@ async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str
         "empresa": company_id,
         "competencia": competencia,
         "regime": regime,
-        "viloes": viloes,
-        "oportunidades": oportunidades,
-        "viloes_por_keyword": [],  # Não calculado na versão agregada
+        "viloes": viloes,  # Compatibilidade
+        "oportunidades": oportunidades,  # Compatibilidade
+        # Estrutura esperada pelo frontend
+        "por_ncm": {
+            "viloes": viloes,
+            "oportunidades": oportunidades
+        },
+        "por_keyword": {
+            "viloes": [],  # Não calculado na versão agregada
+            "oportunidades": []
+        },
+        "viloes_por_keyword": [],
         "oportunidades_por_keyword": [],
         "resumo": {
             "total_viloes": len(viloes),
