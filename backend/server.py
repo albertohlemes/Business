@@ -26074,6 +26074,21 @@ async def inteligencia_tributaria(
         # Usar get_filtro_notas_ativas_sem_locacao() para consistência com a página de ICMS
         # IMPORTANTE: Usar o campo 'tipo' do documento como fonte de verdade (não CFOP)
         # Isso é mais preciso pois considera o CNPJ emitente vs empresa
+        
+        # Só excluir CFOPs de despesa/ST se as flags da empresa estiverem ativas
+        cfops_excluir_credito = []
+        if desconsiderar_despesas:
+            cfops_excluir_credito.extend([
+                "1407", "2407", "1556", "2556", "1557", "2557", "1128", "2128",
+                "1551", "2551", "1406", "2406", "1653", "2653", "1126", "2126",
+                "1352", "2352", "1353", "2353", "1354", "2354"
+            ])
+        if desconsiderar_st:
+            cfops_excluir_credito.extend([
+                "1403", "2403", "1409", "2409", "1410", "2410", "1411", "2411",
+                "1414", "2414", "1415", "2415", "1651", "2651", "1652", "2652"
+            ])
+        
         pipeline_icms = [
             {"$match": {
                 "company_id": company_id,
@@ -26094,20 +26109,10 @@ async def inteligencia_tributaria(
                         "branches": [
                             # Documentos de SAÍDA geram débito
                             {"case": {"$eq": ["$tipo_doc", "saida"]}, "then": "debito"},
-                            # Documentos de ENTRADA geram crédito, EXCETO CFOPs de despesas e ST
+                            # Documentos de ENTRADA geram crédito, EXCETO CFOPs configurados para excluir
                             {"case": {"$and": [
                                 {"$eq": ["$tipo_doc", "entrada"]},
-                                # Excluir CFOPs de DESPESA
-                                {"$not": {"$in": ["$cfop", [
-                                    "1407", "2407", "1556", "2556", "1557", "2557", "1128", "2128",
-                                    "1551", "2551", "1406", "2406", "1653", "2653", "1126", "2126",
-                                    "1352", "2352", "1353", "2353", "1354", "2354"
-                                ]]}},
-                                # Excluir CFOPs de ST
-                                {"$not": {"$in": ["$cfop", [
-                                    "1403", "2403", "1409", "2409", "1410", "2410", "1411", "2411",
-                                    "1414", "2414", "1415", "2415", "1651", "2651", "1652", "2652"
-                                ]]}}
+                                {"$not": {"$in": ["$cfop", cfops_excluir_credito]}} if cfops_excluir_credito else True
                             ]}, "then": "credito"}
                         ],
                         "default": "ignorar"
