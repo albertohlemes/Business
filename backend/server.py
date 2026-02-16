@@ -30008,13 +30008,37 @@ async def get_analise_horizontal(
             
             # Buscar documentos do mês atual USANDO AGREGAÇÃO
             for comp, dados_dict in [(comp_atual, dados_mensal), (comp_anterior, dados_mensal_anterior)]:
-                # Pipeline de agregação otimizada
+                # Pipeline de agregação otimizada com determinação de tipo por CFOP
                 pipeline = [
                     {"$match": {**filtro_base, "competencia": comp}},
                     {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
                     {
+                        "$addFields": {
+                            "cfop_primeiro_char": {"$substr": [{"$toString": {"$ifNull": ["$produtos.cfop", "0000"]}}, 0, 1]},
+                            "tipo_normalizado": {"$toLower": {"$ifNull": ["$tipo", "$tipo_operacao"]}}
+                        }
+                    },
+                    {
+                        "$addFields": {
+                            # Determinar entrada/saída: primeiro pelo tipo, depois pelo CFOP
+                            "is_entrada": {
+                                "$cond": {
+                                    "if": {"$in": ["$tipo_normalizado", ["entrada", "entry", "input"]]},
+                                    "then": True,
+                                    "else": {
+                                        "$cond": {
+                                            "if": {"$in": ["$tipo_normalizado", ["saida", "saída", "exit", "output"]]},
+                                            "then": False,
+                                            "else": {"$in": ["$cfop_primeiro_char", ["1", "2", "3"]]}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
                         "$group": {
-                            "_id": {"$ifNull": ["$tipo", "$tipo_operacao"]},
+                            "_id": "$is_entrada",
                             "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$valor_total", 0]}}},
                             "icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms", {"$ifNull": ["$produtos.valor_icms", 0]}]}}},
                             "icms_st": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms_st", {"$ifNull": ["$produtos.valor_icms_st", 0]}]}}},
@@ -30040,18 +30064,14 @@ async def get_analise_horizontal(
                 total_ipi = 0
                 
                 for item in resultados:
-                    tipo = (item['_id'] or '').lower().strip()
-                    # Corrigido: apenas tipos explicitamente de entrada são entrada
-                    # Se tipo não for definido, não somar (evita duplicação)
-                    is_entrada = tipo in ['entrada', 'entry', 'input']
-                    is_saida = tipo in ['saida', 'saída', 'exit', 'output']
+                    is_entrada = item['_id'] == True
                     
                     if is_entrada:
                         total_compras += float(item.get('valor_total', 0) or 0)
                         total_icms_credito += float(item.get('icms', 0) or 0)
                         total_pis_credito += float(item.get('pis', 0) or 0)
                         total_cofins_credito += float(item.get('cofins', 0) or 0)
-                    elif is_saida:
+                    else:
                         total_vendas += float(item.get('valor_total', 0) or 0)
                         total_icms_debito += float(item.get('icms', 0) or 0)
                         total_pis_debito += float(item.get('pis', 0) or 0)
