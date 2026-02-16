@@ -24760,32 +24760,7 @@ async def apurar_pis_cofins(
 
 
 @api_router.get("/pis-cofins/classificar-produto")
-        },
-        "comparativo": {
-            "regime_mais_economico": None,
-            "economia": 0
-        },
-        "divergencias": [],
-        "alertas": [],
-        "detalhamento": {
-            "entradas": [],
-            "saidas": []
-        },
-        "por_cfop_cst": [],
-        "top_10": {
-            "produtos_credito": [],
-            "produtos_debito": [],
-            "ncms_credito": [],
-            "ncms_debito": []
-        }
-    }
-    
-    # Estruturas para Top 10 e agrupamento
-    produtos_credito = {}
-    produtos_debito = {}
-    ncms_credito = {}
-    ncms_debito = {}
-    cfop_cst_agrupado = {}
+async def classificar_produto_pis_cofins(
     
     # Processar ENTRADAS (Créditos)
     for doc in entradas:
