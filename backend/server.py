@@ -10235,43 +10235,24 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     logger.info(f"DASHBOARD AGREGADO: Buscando ICMS direto do apuracao-icms...")
     
     try:
-        import httpx
-        # Fazer chamada interna ao endpoint apuracao-icms
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"http://localhost:8001/api/apuracao-icms/{company_id}",
-                params={"competencia": competencia},
-                timeout=60.0
-            )
-            if response.status_code == 200:
-                icms_data = response.json()
-                # Pegar os valores EXATOS do endpoint - NÃO RECALCULA NADA
-                credito_icms = icms_data.get('entradas', {}).get('totais', {}).get('valor_icms', 0)
-                debito_icms = icms_data.get('saidas', {}).get('totais', {}).get('valor_icms', 0)
-                total_entradas_cfop = icms_data.get('entradas', {}).get('totais', {}).get('valor_total', 0)
-                total_saidas_cfop = icms_data.get('saidas', {}).get('totais', {}).get('valor_total', 0)
-                # Compras/Vendas Líquidas e Markup também do endpoint
-                compras_liquidas = icms_data.get('compras_liquidas', {}).get('liquidas', 0)
-                vendas_liquidas = icms_data.get('vendas_liquidas', {}).get('liquidas', 0)
-                markup_calc = icms_data.get('markup', 0)
-                total_compras_brutas = icms_data.get('compras_liquidas', {}).get('brutas', 0)
-                total_devolucao_compras = icms_data.get('compras_liquidas', {}).get('devolucoes', 0)
-                total_vendas_brutas = icms_data.get('vendas_liquidas', {}).get('brutas', 0)
-                total_devolucao_vendas = icms_data.get('vendas_liquidas', {}).get('devolucoes', 0)
-                logger.info(f"DASHBOARD (DO ENDPOINT): ICMS Créd={credito_icms}, Déb={debito_icms}, Compras={compras_liquidas}, Vendas={vendas_liquidas}")
-            else:
-                logger.error(f"Erro ao chamar apuracao-icms: {response.status_code}")
-                credito_icms = 0
-                debito_icms = 0
-                total_entradas_cfop = 0
-                total_saidas_cfop = 0
-                compras_liquidas = 0
-                vendas_liquidas = 0
-                markup_calc = 0
-                total_compras_brutas = 0
-                total_devolucao_compras = 0
-                total_vendas_brutas = 0
-                total_devolucao_vendas = 0
+        # Chamar a lógica interna do endpoint apuracao-icms
+        icms_result = await _calcular_apuracao_icms_interno(company_id, competencia, company)
+        
+        # Pegar os valores EXATOS - NÃO RECALCULA NADA
+        credito_icms = icms_result.get('credito_icms', 0)
+        debito_icms = icms_result.get('debito_icms', 0)
+        total_entradas_cfop = icms_result.get('total_entradas', 0)
+        total_saidas_cfop = icms_result.get('total_saidas', 0)
+        compras_liquidas = icms_result.get('compras_liquidas', 0)
+        vendas_liquidas = icms_result.get('vendas_liquidas', 0)
+        markup_calc = icms_result.get('markup', 0)
+        total_compras_brutas = icms_result.get('compras_brutas', 0)
+        total_devolucao_compras = icms_result.get('devolucao_compras', 0)
+        total_vendas_brutas = icms_result.get('vendas_brutas', 0)
+        total_devolucao_vendas = icms_result.get('devolucao_vendas', 0)
+        
+        logger.info(f"DASHBOARD (DO ENDPOINT): ICMS Créd={credito_icms}, Déb={debito_icms}")
+        
     except Exception as e:
         logger.error(f"Erro ao buscar ICMS do endpoint: {e}")
         credito_icms = 0
