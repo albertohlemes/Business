@@ -35875,10 +35875,11 @@ async def get_apuracao_reforma_tributaria(
     )
     
     # ============== OTIMIZAÇÃO PARA GRANDES VOLUMES ==============
+    # Usar o filtro padrão de notas ativas para consistência com outras páginas
     base_query = {
         "company_id": company_id,
         "competencia": competencia,
-        "desconsiderada_devolucao": {"$ne": True}
+        **get_filtro_notas_ativas()  # Excluir canceladas, inutilizadas, etc.
     }
     
     total_docs = await db.xml_documents.count_documents(base_query)
