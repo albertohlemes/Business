@@ -36166,39 +36166,20 @@ async def get_apuracao_reforma_tributaria(
             '1414', '2414', '1415', '2415', '1651', '2651', '1652', '2652'
         ]
         
-        # Calcular usando a mesma função dos outros endpoints para consistência
-        # calcular_pis_cofins_produto já considera: NCM alíquota zero, monofásicos, CFOPs válidos
-        perfil = company.get('perfil_comercial', 'VAREJO') or 'VAREJO'
+        # USAR FUNÇÃO CENTRALIZADA para garantir 100% de consistência com RET e Apuração
+        resultado_pis_cofins = await calcular_pis_cofins_unificado(company_id, competencia, company)
         
-        # Débitos (saídas)
-        pis_debito = 0
-        cofins_debito = 0
-        total_base_saida = 0
+        pis_debito = resultado_pis_cofins['pis_debitos']
+        cofins_debito = resultado_pis_cofins['cofins_debitos']
+        pis_credito = resultado_pis_cofins['pis_creditos']
+        cofins_credito = resultado_pis_cofins['cofins_creditos']
+        total_base_saida = resultado_pis_cofins['base_debito']
+        total_base_entrada = resultado_pis_cofins['base_credito']
         
-        for doc in docs_saida:
-            for prod in doc.get('produtos', []):
-                cfop = str(prod.get('cfop', ''))
-                ncm = str(prod.get('ncm', '')).replace('.', '')
-                valor_total = float(prod.get('valor_total', 0) or 0)
-                v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
-                
-                # Excluir ICMS da base (Lei 14.592/2023)
-                valor_base = max(0, valor_total - v_icms)
-                
-                calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, 'saida', perfil, 'LUCRO_REAL')
-                pis_debito += calc.get('valor_pis', 0)
-                cofins_debito += calc.get('valor_cofins', 0)
-                if calc.get('valor_pis', 0) > 0:
-                    total_base_saida += valor_base
-        
-        # Créditos (entradas) - apenas Lucro Real
-        pis_credito = 0
-        cofins_credito = 0
-        total_base_entrada = 0
+        # ICMS (manter cálculo separado pois tem lógica diferente)
         total_icms_entrada_calc = 0
         total_icms_saida_calc = 0
         
-        # ICMS das saídas
         for doc in docs_saida:
             for prod in doc.get('produtos', []):
                 total_icms_saida_calc += float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
@@ -36207,24 +36188,13 @@ async def get_apuracao_reforma_tributaria(
             for doc in docs_entrada:
                 for prod in doc.get('produtos', []):
                     cfop = str(prod.get('cfop', ''))
-                    ncm = str(prod.get('ncm', '')).replace('.', '')
-                    valor_total = float(prod.get('valor_total', 0) or 0)
                     v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
-                    
-                    # Excluir ICMS da base (Lei 14.592/2023)
-                    valor_base = max(0, valor_total - v_icms)
-                    
-                    calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, 'entrada', perfil, 'LUCRO_REAL')
-                    if calc.get('gera_credito', False):
-                        pis_credito += calc.get('valor_pis', 0)
-                        cofins_credito += calc.get('valor_cofins', 0)
-                        total_base_entrada += valor_base
                     
                     # ICMS entrada - creditar todas entradas EXCETO despesas e ST
                     if cfop not in CFOPS_DESPESA_ICMS and cfop not in CFOPS_ST_ICMS:
                         total_icms_entrada_calc += v_icms
         
-        logger.info(f"REFORMA TRIBUTÁRIA: Base entrada (sem ICMS)={total_base_entrada:.2f}, ICMS entrada={total_icms_entrada_calc:.2f}")
+        logger.info(f"REFORMA TRIBUTÁRIA (UNIFICADO): PIS déb={pis_debito:.2f}, PIS créd={pis_credito:.2f}")
         
         regime_atual['pis'] = max(0, pis_debito - pis_credito)
         regime_atual['cofins'] = max(0, cofins_debito - cofins_credito)
