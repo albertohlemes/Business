@@ -1138,8 +1138,9 @@ NCMS_ALIQUOTA_ZERO_PREFIXOS = [
     '1401', '1404',
     # Capítulo 15 - Gorduras e óleos animais/vegetais (alguns)
     '1501', '1502', '1503', '1504', '1505', '1507', '1508', '1509', '1510', '1511', '1512', '1513', '1514', '1515', '1516', '1517',
-    # Outros específicos
-    '1701', '1901', '1902', '1905', '2101', '2106', '2201', '2202', '2710', '2711',
+    # Outros específicos - CORRIGIDO: removido '2106' que incorretamente incluía todas preparações alimentícias
+    # O NCM 21069010 (Preparações Compostas) com alíquota zero já está em NCMS_ALIQUOTA_ZERO_COMPLETOS
+    '1701', '1901', '1902', '1905', '2101', '2201', '2202', '2710', '2711',
     '3002', '3003', '3004', '3401', '3826', '4011', '4013', '4103', '4801',
     '4802', '4810', '4818', '8443', '8469', '8470', '8471', '8472', '8502',
     '8503', '8517', '8525', '8702', '8714', '8901', '9018', '9021'
