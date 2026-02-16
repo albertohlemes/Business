@@ -24648,7 +24648,11 @@ async def apurar_pis_cofins(
         for prod in produtos:
             ncm = str(prod.get('ncm', '')).replace('.', '')
             cfop = str(prod.get('cfop', ''))
-            valor_base = float(prod.get('valor_total', 0) or 0)
+            valor_total = float(prod.get('valor_total', 0) or 0)
+            
+            # Excluir ICMS da base de cálculo (Lei 14.592/2023 - entradas e saídas)
+            v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+            valor_base = max(0, valor_total - v_icms)
             
             # Valores do XML - usar o CST original do XML para o resumo
             cst_pis_xml = str(prod.get('cst_pis_xml', prod.get('cst_pis', '')))
