@@ -11569,6 +11569,11 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
     # Converter por_cfop para lista
     por_cfop_lista = [{"cfop": k, **v} for k, v in sorted(por_cfop.items())]
     
+    # Calcular valores para recuperar
+    pis_a_recuperar = abs(min(0, saldo_pis))
+    cofins_a_recuperar = abs(min(0, saldo_cofins))
+    total_a_recuperar = pis_a_recuperar + cofins_a_recuperar
+    
     return {
         "empresa": {
             "razao_social": company.get('razao_social', ''),
@@ -11577,15 +11582,18 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
         },
         "competencia": competencia,
         "totais": {
-            "base_credito": round(base_credito_tributavel, 2),
-            "base_debito": round(base_debito_tributavel, 2),
+            "base_credito": round(base_credito, 2),
+            "base_debito": round(base_debito, 2),
             "credito_pis": round(credito_pis, 2),
             "credito_cofins": round(credito_cofins, 2),
             "debito_pis": round(debito_pis, 2),
             "debito_cofins": round(debito_cofins, 2),
             "saldo_pis": round(saldo_pis, 2),
             "saldo_cofins": round(saldo_cofins, 2),
+            "pis_a_recuperar": round(pis_a_recuperar, 2),
+            "cofins_a_recuperar": round(cofins_a_recuperar, 2),
             "total_a_pagar": round(max(0, saldo_pis) + max(0, saldo_cofins), 2),
+            "total_a_recuperar": round(total_a_recuperar, 2),
             "valor_pis_xml": round(valor_pis_xml_total, 2),
             "valor_cofins_xml": round(valor_cofins_xml_total, 2),
             "aliquota_zero_excluida_entrada": round(base_aliq_zero_entrada, 2),
@@ -11593,7 +11601,7 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
         },
         "por_cfop": por_cfop_lista[:50],
         "alertas": [
-            {"tipo": "INFO", "mensagem": f"Apuração otimizada: {total_docs} documentos processados via agregação"},
+            {"tipo": "INFO", "mensagem": f"Apuração unificada: {total_docs} documentos processados com lógica consistente"},
             {"tipo": "INFO", "mensagem": f"Excluídos R$ {base_aliq_zero_saida:,.2f} de saídas com alíquota zero/monofásico"},
             {"tipo": "INFO", "mensagem": f"Excluídos R$ {base_aliq_zero_entrada:,.2f} de entradas com alíquota zero/monofásico"}
         ],
