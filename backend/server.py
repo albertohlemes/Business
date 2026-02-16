@@ -26140,25 +26140,8 @@ async def inteligencia_tributaria(
         debito_icms = icms_por_tipo.get("debito", 0)
         credito_icms = icms_por_tipo.get("credito", 0)
         
-        # Se desconsiderar ST, fazer query separada para subtrair
-        if desconsiderar_st and credito_icms > 0:
-            pipeline_st = [
-                {"$match": {
-                    "company_id": company_id,
-                    "competencia": competencia if tipo == "periodo" else {"$regex": f"/{ano}$"},
-                    **get_filtro_notas_ativas()
-                }},
-                {"$unwind": "$produtos"},
-                {"$match": {"produtos.cfop": {"$in": CFOPS_ST}}},
-                {"$group": {
-                    "_id": None,
-                    "total": {"$sum": {"$toDouble": {"$ifNull": [
-                        {"$ifNull": ["$produtos.v_icms", "$produtos.valor_icms"]}, 0
-                    ]}}}
-                }}
-            ]
-            async for doc in db.xml_documents.aggregate(pipeline_st, allowDiskUse=True):
-                credito_icms -= doc.get("total", 0)
+        # Os CFOPs de despesa e ST já são excluídos na pipeline principal (cfops_excluir_credito)
+        # NÃO subtrair novamente aqui (isso causava dupla subtração do ICMS ST)
         
         icms_real = max(0, debito_icms - credito_icms)
         logger.info(f"RET ICMS: débito={debito_icms:.2f}, crédito={credito_icms:.2f}, saldo={icms_real:.2f}")
