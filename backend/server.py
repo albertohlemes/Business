@@ -1287,6 +1287,121 @@ def detectar_transportadora(cnaes: List[str]) -> dict:
     return {"is_transportadora": False, "tipo_transporte": None}
 
 
+async def calcular_pis_cofins_unificado(company_id: str, competencia: str, company: dict) -> dict:
+    """
+    FUNÇÃO CENTRALIZADA para cálculo de PIS/COFINS.
+    Todos os endpoints (RET, Apuração, Reforma Tributária) devem usar esta função
+    para garantir 100% de consistência nos valores.
+    
+    Lei 14.592/2023: ICMS excluído da base de cálculo nas entradas E saídas.
+    
+    Retorna:
+    {
+        'pis_creditos': float,
+        'pis_debitos': float,
+        'cofins_creditos': float,
+        'cofins_debitos': float,
+        'pis_saldo': float,
+        'cofins_saldo': float,
+        'base_credito': float,
+        'base_debito': float
+    }
+    """
+    from decimal import Decimal, ROUND_HALF_UP
+    
+    # Configurações da empresa
+    perfil_empresa = company.get('perfil_comercial', 'VAREJO') or 'VAREJO'
+    perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
+    perfil = perfis[0] if perfis else 'VAREJO'
+    regime = company.get('regime_tributario', 'lucro_real')
+    
+    # Query base com filtro de notas ativas
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    
+    # Totais usando Decimal para precisão máxima
+    totais = {
+        'creditos_pis': Decimal('0'),
+        'creditos_cofins': Decimal('0'),
+        'debitos_pis': Decimal('0'),
+        'debitos_cofins': Decimal('0'),
+        'base_credito': Decimal('0'),
+        'base_debito': Decimal('0')
+    }
+    
+    # Buscar TODOS os documentos (não usar batches para garantir mesma ordem de processamento)
+    docs = await db.xml_documents.find(
+        query, 
+        {"produtos": 1, "tipo": 1, "tipo_operacao": 1, "modelo": 1}
+    ).to_list(length=50000)
+    
+    for doc in docs:
+        # Determinar tipo de operação
+        tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
+        if not tipo_operacao:
+            produtos = doc.get('produtos', [])
+            if produtos:
+                cfop = str(produtos[0].get('cfop', ''))
+                if cfop and cfop[0] in ['1', '2', '3']:
+                    tipo_operacao = 'entrada'
+                elif cfop and cfop[0] in ['5', '6', '7']:
+                    tipo_operacao = 'saida'
+        
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', '')).replace('.', '')
+            cfop = str(prod.get('cfop', ''))
+            valor_total = Decimal(str(prod.get('valor_total', 0) or 0))
+            v_icms = Decimal(str(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0))
+            
+            # Lei 14.592/2023: Excluir ICMS da base em entradas E saídas
+            valor_base = max(Decimal('0'), valor_total - v_icms)
+            
+            # Usar a função calcular_pis_cofins_produto para determinar tributação
+            regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
+            calc = calcular_pis_cofins_produto(
+                float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
+            )
+            
+            if tipo_operacao == 'entrada':
+                if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
+                    # Usar Decimal para precisão
+                    pis = Decimal(str(calc.get('valor_pis', 0)))
+                    cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                    totais['creditos_pis'] += pis
+                    totais['creditos_cofins'] += cofins
+                    totais['base_credito'] += valor_base
+            else:  # saída
+                if calc.get('valor_pis', 0) > 0:
+                    pis = Decimal(str(calc.get('valor_pis', 0)))
+                    cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                    totais['debitos_pis'] += pis
+                    totais['debitos_cofins'] += cofins
+                    totais['base_debito'] += valor_base
+    
+    # Arredondar para 2 casas decimais no final
+    def arredondar(valor: Decimal) -> float:
+        return float(valor.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+    
+    pis_creditos = arredondar(totais['creditos_pis'])
+    pis_debitos = arredondar(totais['debitos_pis'])
+    cofins_creditos = arredondar(totais['creditos_cofins'])
+    cofins_debitos = arredondar(totais['debitos_cofins'])
+    
+    return {
+        'pis_creditos': pis_creditos,
+        'pis_debitos': pis_debitos,
+        'cofins_creditos': cofins_creditos,
+        'cofins_debitos': cofins_debitos,
+        'pis_saldo': round(pis_debitos - pis_creditos, 2),
+        'cofins_saldo': round(cofins_debitos - cofins_creditos, 2),
+        'base_credito': arredondar(totais['base_credito']),
+        'base_debito': arredondar(totais['base_debito'])
+    }
+
+
 def calcular_credito_presumido_icms_transportadora(valor_debito_icms: float, percentual: float = 20.0) -> float:
     """
     Calcula o crédito presumido de ICMS para transportadoras.
