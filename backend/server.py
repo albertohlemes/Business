@@ -35969,10 +35969,30 @@ async def get_apuracao_reforma_tributaria(
         "competencia": competencia
     }, {"_id": 0, "resumo": 1})
     
-    # Primeiro, calcular ICMS dos XMLs (sempre fazer isso para ter um fallback)
+    # ============ ICMS: Usar a mesma lógica do endpoint de ICMS ============
+    # Buscar flags da empresa
+    desconsiderar_icms_despesas = company.get('desconsiderar_icms_despesas', False)
+    desconsiderar_icms_st = company.get('desconsiderar_icms_st', False)
+    
+    # CFOPs de DESPESA (entradas que não geram crédito tributário)
+    CFOPS_DESPESA_RT = [
+        '1407', '2407', '1556', '2556', '1557', '2557', '1128', '2128',
+        '1551', '2551', '1406', '2406', '1653', '2653', '1126', '2126',
+        '1352', '2352', '1353', '2353', '1354', '2354'
+    ]
+    
+    # CFOPs de MERCADORIAS ST
+    CFOPS_ST_RT = [
+        '1403', '2403', '1409', '2409', '1410', '2410', '1411', '2411',
+        '1414', '2414', '1415', '2415', '1651', '2651', '1652', '2652'
+    ]
+    
+    # Calcular ICMS dos XMLs com a mesma lógica do endpoint de ICMS
     regime_empresa = company.get('regime_tributario', 'lucro_real')
     total_icms_saida = 0
     total_icms_entrada = 0
+    icms_despesas_desconsiderado = 0
+    icms_st_desconsiderado = 0
     
     for doc in docs_saida:
         for prod in doc.get('produtos', []):
@@ -35980,7 +36000,20 @@ async def get_apuracao_reforma_tributaria(
     
     for doc in docs_entrada:
         for prod in doc.get('produtos', []):
-            total_icms_entrada += float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+            cfop = str(prod.get('cfop', ''))
+            v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+            v_icms_st = float(prod.get('v_icms_st', 0) or 0)
+            
+            # Verificar se deve desconsiderar
+            if desconsiderar_icms_despesas and cfop in CFOPS_DESPESA_RT:
+                icms_despesas_desconsiderado += v_icms
+                continue  # Não creditar
+            
+            if desconsiderar_icms_st and cfop in CFOPS_ST_RT:
+                icms_st_desconsiderado += v_icms_st
+                continue  # Não creditar ST
+            
+            total_icms_entrada += v_icms
     
     icms_calculado_xml = max(0, total_icms_saida - total_icms_entrada)
     
