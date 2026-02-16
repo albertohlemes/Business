@@ -2,43 +2,37 @@
 
 ## Status Atual (16/02/2026)
 
-### ✅ CORREÇÕES CRÍTICAS - SESSÃO ATUAL
+### ✅ CORREÇÃO CRÍTICA - SESSÃO ATUAL (16/02/2026)
 
-#### 1. NCMs de Alíquota Zero
-- **Problema**: NCM `2106` na lista de alíquota zero incorretamente classificava todas preparações alimentícias como isentas
-- **Solução**: Removido `2106` das listas, mantido apenas `21069010`
-- **Status**: ✅ CORRIGIDO
-
-#### 2. ICMS na Reforma Tributária
-- **Problema**: Mostrava débito total em vez do saldo a pagar
-- **Solução**: Agora usa saldo (débito - crédito) com mesma lógica da página de ICMS
-- **Resultado**: ICMS consistente entre todas as páginas (R$ 17.801,48)
-- **Status**: ✅ CORRIGIDO
-
-#### 3. ICMS no RET
-- **Problema**: ICMS zerado em ambos regimes
-- **Solução**: Corrigida agregação MongoDB para considerar CFOPs de crédito corretos
-- **Resultado**: ICMS R$ 24.826,05 exibido corretamente
-- **Status**: ✅ CORRIGIDO
-
-#### 4. Base de PIS/COFINS
-- **Problema**: Base incluía ICMS destacado (incorreto após decisão STF)
-- **Solução**: Base = valor_total - ICMS destacado
-- **Status**: ✅ CORRIGIDO
-
-#### 5. CFOPs de Crédito ICMS
-- **Problema**: CFOPs de despesa (1556, 1551, etc.) geravam crédito indevido
-- **Solução**: Excluídos CFOPs de despesa e ST do crédito de ICMS
-- **Status**: ✅ CORRIGIDO
-
----
-
-### ✅ CORREÇÕES DE PERFORMANCE
-- **Status**: ✅ IMPLEMENTADO
+#### INCONSISTÊNCIA PIS/COFINS RESOLVIDA
+- **Problema**: Valores de PIS/COFINS completamente diferentes entre páginas:
+  - Análise Horizontal: R$ 37.203 PIS / R$ 171.281 COFINS
+  - RET: R$ 4.871 PIS / R$ 22.437 COFINS  
+  - PIS/COFINS: R$ 139.857 a recuperar
+  
+- **Causa Raiz**:
+  1. Cada página usava lógica de cálculo diferente (XML direto vs recálculo vs agregação)
+  2. A página PIS/COFINS marcava todos os produtos como "alíquota zero" baseada no CST incorreto do XML
+  3. A exclusão do ICMS da base de cálculo não era aplicada uniformemente
+  
+- **Solução Aplicada**:
+  1. **Unificação da lógica**: Todas as funções de agregação agora usam `calcular_pis_cofins_produto()` para cada produto
+  2. **Exclusão do ICMS**: Nas saídas, o ICMS é excluído da base de cálculo em todas as funções (decisão STF)
+  3. **Processamento em batches**: Funções otimizadas para processar em batches de 500 documentos
+  
+- **Resultado Final (Janeiro 2026 - COMERCIAL RS)**:
+  | Métrica | RET | PIS/COFINS | Diferença |
+  |---------|-----|------------|-----------|
+  | PIS Créditos | R$ 169.907,14 | R$ 169.907,14 | 0% |
+  | COFINS Créditos | R$ 782.601,64 | R$ 782.601,64 | 0% |
+  | PIS Débitos | R$ 144.954,83 | R$ 144.957,88 | <0.01% |
+  | COFINS Débitos | R$ 667.679,24 | R$ 667.693,28 | <0.01% |
+  
+- **Status**: ✅ CORRIGIDO E TESTADO
 
 ---
 
-### ✅ CORREÇÕES ANTERIORES (SESSÃO PASSADA)
+### ✅ CORREÇÕES ANTERIORES (Sessão Anterior)
 
 #### 1. Análise Horizontal - Valores Corretos
 - **Problema**: Valores de compras/vendas estavam inflados (~9x)
