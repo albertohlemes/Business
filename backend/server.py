@@ -20490,41 +20490,32 @@ async def internal_analise_tributaria(
     percentual_pis_tributado = (debito_pis_tributado / total_pis_saida_base * 100) if total_pis_saida_base > 0 else 0
     percentual_cofins_tributado = (debito_cofins_tributado / total_cofins_saida_base * 100) if total_cofins_saida_base > 0 else 0
     
-    # Alíquotas de PIS/COFINS conforme regime
-    if regime == 'lucro_real':
-        aliq_pis = 0.0165  # 1.65%
-        aliq_cofins = 0.076  # 7.6%
-    else:
-        aliq_pis = 0.0065  # 0.65%
-        aliq_cofins = 0.03  # 3%
+    # ============ USAR FUNÇÃO CENTRALIZADA PARA PIS/COFINS ============
+    # Garante consistência com RET, Apuração e Reforma Tributária
+    resultado_pis_cofins = await calcular_pis_cofins_unificado(company_id, request.competencia, company)
     
-    # Calcular débitos de PIS/COFINS sobre a base tributada
-    debito_pis_calculado = base_debito_pis_cofins * aliq_pis
-    debito_cofins_calculado = base_debito_pis_cofins * aliq_cofins
+    pis_a_pagar = max(0, resultado_pis_cofins['pis_saldo'])
+    cofins_a_pagar = max(0, resultado_pis_cofins['cofins_saldo'])
+    credito_pis_calculado = resultado_pis_cofins['pis_creditos']
+    credito_cofins_calculado = resultado_pis_cofins['cofins_creditos']
+    debito_pis_calculado = resultado_pis_cofins['pis_debitos']
+    debito_cofins_calculado = resultado_pis_cofins['cofins_debitos']
+    base_credito_pis_cofins = resultado_pis_cofins['base_credito']
+    base_debito_pis_cofins = resultado_pis_cofins['base_debito']
     
-    # Calcular créditos de PIS/COFINS sobre a base com crédito (apenas Lucro Real)
-    credito_pis_calculado = base_credito_pis_cofins * aliq_pis if regime == 'lucro_real' else 0
-    credito_cofins_calculado = base_credito_pis_cofins * aliq_cofins if regime == 'lucro_real' else 0
-    
-    # Créditos efetivos (descontando ST e alíquota zero)
+    # ICMS - usando os valores calculados das entradas/saídas
+    # Créditos efetivos (descontando ST)
     credito_icms_efetivo = credito_icms_tributado
-    credito_pis_efetivo = credito_pis_calculado
-    credito_cofins_efetivo = credito_cofins_calculado
-    
-    # Débitos efetivos
     debito_icms_efetivo = debito_icms_tributado
-    debito_pis_efetivo = debito_pis_calculado
-    debito_cofins_efetivo = debito_cofins_calculado
     
-    # Apuração
     icms_a_pagar = max(0, debito_icms_efetivo - credito_icms_efetivo)
-    pis_a_pagar = max(0, debito_pis_efetivo - credito_pis_efetivo)
-    cofins_a_pagar = max(0, debito_cofins_efetivo - credito_cofins_efetivo)
     
     # Markup
     markup_medio = ((total_saidas / total_entradas - 1) * 100) if total_entradas > 0 else 0
     
-    # Carga tributária efetiva
+    # Carga tributária efetiva (apenas impostos que a empresa efetivamente paga)
+    # NÃO incluir IPI se empresa não for contribuinte de IPI
+    # NÃO incluir ICMS-ST se empresa não for responsável (ST é recolhido na origem)
     total_impostos = icms_a_pagar + pis_a_pagar + cofins_a_pagar
     carga_tributaria = (total_impostos / total_saidas * 100) if total_saidas > 0 else 0
     
