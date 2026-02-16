@@ -24679,35 +24679,84 @@ async def apurar_pis_cofins(
     }
     query.update(get_filtro_notas_ativas())
     
-    # ============== OTIMIZAÇÃO PARA GRANDES VOLUMES ==============
-    # Contar documentos primeiro para decidir estratégia
+    # ============== USAR FUNÇÃO CENTRALIZADA ==============
+    # Garante 100% de consistência com RET e Reforma Tributária
     total_docs = await db.xml_documents.count_documents(query)
     logger.info(f"PIS/COFINS: Total documentos = {total_docs}")
     
-    # Limitar busca para evitar timeout em grandes volumes
-    # Se tiver mais de 10000 docs, usar agregação simplificada
-    if total_docs > 10000:
-        logger.info(f"PIS/COFINS: Usando agregação otimizada para {total_docs} documentos")
-        return await _get_pis_cofins_aggregated(company, company_id, competencia, query, total_docs)
+    # Usar função centralizada para cálculos de PIS/COFINS
+    resultado_unificado = await calcular_pis_cofins_unificado(company_id, competencia, company)
     
-    documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
+    # Montar resposta no formato esperado pelo frontend
+    regime = company.get('regime_tributario', 'lucro_real')
     
-    # Usar o campo 'tipo' que é a fonte de verdade para entrada/saída (baseado em CNPJ)
-    # O campo tipo_operacao é preenchido apenas para exibição se não existir
-    for doc in documentos:
-        if not doc.get('tipo_operacao'):
-            # Usar o campo 'tipo' como base
-            doc['tipo_operacao'] = doc.get('tipo', 'entrada')
+    # Lucro Real
+    lucro_real = {
+        "creditos": {
+            "pis": resultado_unificado['pis_creditos'],
+            "cofins": resultado_unificado['cofins_creditos']
+        },
+        "debitos_comercio": {
+            "pis": resultado_unificado['pis_debitos'],
+            "cofins": resultado_unificado['cofins_debitos']
+        },
+        "debitos_servicos": {"pis": 0, "cofins": 0},
+        "debitos_total": {
+            "pis": resultado_unificado['pis_debitos'],
+            "cofins": resultado_unificado['cofins_debitos']
+        },
+        "saldo": {
+            "pis": resultado_unificado['pis_saldo'],
+            "cofins": resultado_unificado['cofins_saldo'],
+            "total": round(resultado_unificado['pis_saldo'] + resultado_unificado['cofins_saldo'], 2)
+        }
+    }
     
-    # Separar por tipo - usar o campo 'tipo' como fonte principal
-    entradas = [d for d in documentos if d.get('tipo') == 'entrada' or d.get('tipo_operacao') == 'entrada']
-    saidas = [d for d in documentos if d.get('tipo') == 'saida' or d.get('tipo_operacao') == 'saida']
+    # Lucro Presumido (sem créditos)
+    # Calcular débitos com alíquotas do presumido
+    aliq_pis_presumido = 0.0065
+    aliq_cofins_presumido = 0.03
+    base_debito = resultado_unificado['base_debito']
     
-    # Inicializar resultados
-    resultado = {
+    lucro_presumido = {
+        "creditos": {"pis": 0, "cofins": 0},
+        "debitos_comercio": {
+            "pis": round(base_debito * aliq_pis_presumido, 2),
+            "cofins": round(base_debito * aliq_cofins_presumido, 2)
+        },
+        "debitos_servicos": {"pis": 0, "cofins": 0},
+        "debitos_total": {
+            "pis": round(base_debito * aliq_pis_presumido, 2),
+            "cofins": round(base_debito * aliq_cofins_presumido, 2)
+        },
+        "saldo": {
+            "pis": round(base_debito * aliq_pis_presumido, 2),
+            "cofins": round(base_debito * aliq_cofins_presumido, 2),
+            "total": round(base_debito * (aliq_pis_presumido + aliq_cofins_presumido), 2)
+        }
+    }
+    
+    return {
         "empresa": {
             "id": company_id,
             "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', ''),
+            "regime_tributario": regime
+        },
+        "competencia": competencia,
+        "total_documentos": total_docs,
+        "lucro_real": lucro_real,
+        "lucro_presumido": lucro_presumido,
+        "comparativo": {
+            "economia_real": round(lucro_presumido['saldo']['total'] - lucro_real['saldo']['total'], 2),
+            "melhor_regime": "real" if lucro_real['saldo']['total'] < lucro_presumido['saldo']['total'] else "presumido"
+        },
+        "detalhamento": {
+            "base_credito": resultado_unificado['base_credito'],
+            "base_debito": resultado_unificado['base_debito'],
+            "nota": "Valores calculados com função unificada - Lei 14.592/2023 (ICMS excluído da base)"
+        }
+    }
             "cnpj": company.get('cnpj', ''),
             "regime_tributario": regime_tributario,
             "perfil_comercial": perfil_empresa,
