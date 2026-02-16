@@ -24691,50 +24691,87 @@ async def apurar_pis_cofins(
     regime = company.get('regime_tributario', 'lucro_real')
     
     # Lucro Real
+    pis_credito = resultado_unificado['pis_creditos']
+    cofins_credito = resultado_unificado['cofins_creditos']
+    pis_debito = resultado_unificado['pis_debitos']
+    cofins_debito = resultado_unificado['cofins_debitos']
+    pis_saldo = resultado_unificado['pis_saldo']
+    cofins_saldo = resultado_unificado['cofins_saldo']
+    
     lucro_real = {
         "creditos": {
-            "pis": resultado_unificado['pis_creditos'],
-            "cofins": resultado_unificado['cofins_creditos']
+            "pis": pis_credito,
+            "cofins": cofins_credito,
+            "total": round(pis_credito + cofins_credito, 2)
         },
         "debitos_comercio": {
-            "pis": resultado_unificado['pis_debitos'],
-            "cofins": resultado_unificado['cofins_debitos']
+            "pis": pis_debito,
+            "cofins": cofins_debito,
+            "total": round(pis_debito + cofins_debito, 2)
         },
-        "debitos_servicos": {"pis": 0, "cofins": 0},
+        "debitos_servicos": {"pis": 0, "cofins": 0, "total": 0},
         "debitos_total": {
-            "pis": resultado_unificado['pis_debitos'],
-            "cofins": resultado_unificado['cofins_debitos']
+            "pis": pis_debito,
+            "cofins": cofins_debito,
+            "total": round(pis_debito + cofins_debito, 2)
         },
         "saldo": {
-            "pis": resultado_unificado['pis_saldo'],
-            "cofins": resultado_unificado['cofins_saldo'],
-            "total": round(resultado_unificado['pis_saldo'] + resultado_unificado['cofins_saldo'], 2)
+            "pis": pis_saldo,
+            "cofins": cofins_saldo,
+            "total": round(pis_saldo + cofins_saldo, 2)
+        },
+        "imposto_a_pagar": {
+            "pis": max(0, pis_saldo),
+            "cofins": max(0, cofins_saldo),
+            "total": max(0, round(pis_saldo + cofins_saldo, 2))
         }
     }
     
     # Lucro Presumido (sem créditos)
-    # Calcular débitos com alíquotas do presumido
     aliq_pis_presumido = 0.0065
     aliq_cofins_presumido = 0.03
     base_debito = resultado_unificado['base_debito']
     
+    pis_presumido = round(base_debito * aliq_pis_presumido, 2)
+    cofins_presumido = round(base_debito * aliq_cofins_presumido, 2)
+    total_presumido = round(pis_presumido + cofins_presumido, 2)
+    
     lucro_presumido = {
-        "creditos": {"pis": 0, "cofins": 0},
+        "creditos": {"pis": 0, "cofins": 0, "total": 0},
         "debitos_comercio": {
-            "pis": round(base_debito * aliq_pis_presumido, 2),
-            "cofins": round(base_debito * aliq_cofins_presumido, 2)
+            "pis": pis_presumido,
+            "cofins": cofins_presumido,
+            "total": total_presumido
         },
-        "debitos_servicos": {"pis": 0, "cofins": 0},
+        "debitos_servicos": {"pis": 0, "cofins": 0, "total": 0},
         "debitos_total": {
-            "pis": round(base_debito * aliq_pis_presumido, 2),
-            "cofins": round(base_debito * aliq_cofins_presumido, 2)
+            "pis": pis_presumido,
+            "cofins": cofins_presumido,
+            "total": total_presumido
         },
         "saldo": {
-            "pis": round(base_debito * aliq_pis_presumido, 2),
-            "cofins": round(base_debito * aliq_cofins_presumido, 2),
-            "total": round(base_debito * (aliq_pis_presumido + aliq_cofins_presumido), 2)
+            "pis": pis_presumido,
+            "cofins": cofins_presumido,
+            "total": total_presumido
+        },
+        "imposto_a_pagar": {
+            "pis": pis_presumido,
+            "cofins": cofins_presumido,
+            "total": total_presumido
         }
     }
+    
+    # Determinar melhor regime
+    total_real = lucro_real['imposto_a_pagar']['total']
+    total_presumido_val = lucro_presumido['imposto_a_pagar']['total']
+    economia = abs(total_presumido_val - total_real)
+    
+    if total_real < total_presumido_val:
+        melhor_regime = "LUCRO_REAL"
+    elif total_presumido_val < total_real:
+        melhor_regime = "LUCRO_PRESUMIDO"
+    else:
+        melhor_regime = "IGUAL"
     
     return {
         "empresa": {
@@ -24748,8 +24785,10 @@ async def apurar_pis_cofins(
         "lucro_real": lucro_real,
         "lucro_presumido": lucro_presumido,
         "comparativo": {
-            "economia_real": round(lucro_presumido['saldo']['total'] - lucro_real['saldo']['total'], 2),
-            "melhor_regime": "real" if lucro_real['saldo']['total'] < lucro_presumido['saldo']['total'] else "presumido"
+            "regime_mais_economico": melhor_regime,
+            "economia": economia,
+            "economia_real": round(total_presumido_val - total_real, 2),
+            "melhor_regime": melhor_regime.lower().replace("lucro_", "")
         },
         "detalhamento": {
             "base_credito": resultado_unificado['base_credito'],
