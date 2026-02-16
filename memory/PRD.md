@@ -97,12 +97,15 @@
 
 ### Issues Pendentes
 
-#### P0 - CRÍTICO (REQUER VALIDAÇÃO DO USUÁRIO)
-- **Performance com alto volume**: Otimizações aplicadas. **PRECISA DE VALIDAÇÃO NO AMBIENTE DO CLIENTE** (14k+ docs)
+#### P0 - CRÍTICO (EM ANDAMENTO)
+- **Dashboard Principal - Valores Inconsistentes**: O usuário reportou que os valores de Compras Líquidas, Vendas Líquidas, Markup, e impostos (ICMS, PIS, COFINS) estão inconsistentes entre o Dashboard principal e a página de Indicadores. 
+  - **Causa identificada**: A função `_get_dashboard_stats_aggregated` (usada para > 500 docs) estava calculando impostos incorretamente (pegando valores do XML ao invés de usar a função unificada).
+  - **Correção aplicada parcialmente**: Iniciada refatoração para usar a mesma lógica de cálculo em todos os lugares.
+  - **Próximo passo**: Validar que os valores do Dashboard agora batem com os da página de Indicadores e com os endpoints de apuração.
 
-#### P1 - Importantes
+#### P1 - Importantes  
+- **Margem de Contribuição**: Usuário perguntou como está sendo calculada na aba "Margens e Markup". Precisa documentar/validar a fórmula.
 - **Vilões e Oportunidades**: Lógica corrigida. Aguarda validação do usuário.
-- **Frontend Indicadores**: Aba "Margens e Markup" atualizada com detalhamento de Compras/Vendas Líquidas
 
 #### P2 - Menor
 - **Insights IA sem informação**: Não investigado
