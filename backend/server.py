@@ -25494,6 +25494,72 @@ async def process_document_with_ai(
                         # Dados completos da extração
                         "dados_extraidos": extracted_data
                     }
+                elif tipo_documento == 'fatura_recibo':
+                    # Estrutura específica para Faturas/Recibos de Locação
+                    valores = extracted_data.get("valores", {})
+                    valor_total = valores.get("valor_total") or valores.get("valor_bruto") or valores.get("valor_liquido") or 0
+                    
+                    new_doc = {
+                        "id": doc_id,
+                        "company_id": company_id,
+                        "competencia": extracted_data.get("competencia", competencia),
+                        "tipo_operacao": "saida",  # Locação é receita/saída
+                        "modelo": "fatura_recibo",
+                        "subtipo": extracted_data.get("subtipo", "locacao_equipamentos"),
+                        "origem": "ia_extraction",
+                        "arquivo_original": filename,
+                        "uploaded_at": datetime.now(timezone.utc),
+                        "uploaded_by": current_user.id,
+                        
+                        # Status: ativo ou cancelado (usuário marca depois)
+                        "status": "ativo",
+                        
+                        # Dados do documento
+                        "numero_nfe": extracted_data.get("numero_documento", ""),
+                        "data_emissao": extracted_data.get("data_emissao", ""),
+                        "data_vencimento": extracted_data.get("data_vencimento", ""),
+                        "chave_acesso": f"LOC-{doc_id[:8]}",
+                        
+                        # Locador (quem está alugando = a empresa que está emitindo)
+                        "emitente_cnpj": extracted_data.get("locador", {}).get("cnpj", ""),
+                        "emitente_nome": extracted_data.get("locador", {}).get("razao_social", ""),
+                        "emitente_ie": extracted_data.get("locador", {}).get("inscricao_estadual", ""),
+                        "emitente_im": extracted_data.get("locador", {}).get("inscricao_municipal", ""),
+                        "emitente_endereco": extracted_data.get("locador", {}).get("endereco", {}),
+                        
+                        # Locatário (cliente que está alugando)
+                        "destinatario_cnpj": extracted_data.get("locatario", {}).get("cnpj", ""),
+                        "destinatario_nome": extracted_data.get("locatario", {}).get("razao_social", ""),
+                        "destinatario_endereco": extracted_data.get("locatario", {}).get("endereco", {}),
+                        
+                        # Bem locado
+                        "bem_locado": extracted_data.get("bem_locado", {}),
+                        
+                        # Valores
+                        "valor_total": valor_total,
+                        "valor_bruto": valores.get("valor_bruto", valor_total),
+                        "valor_descontos": valores.get("descontos", 0),
+                        "valor_liquido": valores.get("valor_liquido", valor_total),
+                        "valor_ir_retido": valores.get("valor_ir_retido", 0),
+                        
+                        # Dados de pagamento
+                        "pagamento": extracted_data.get("pagamento", {}),
+                        
+                        # Período e observações
+                        "periodo_locacao": extracted_data.get("periodo_locacao", ""),
+                        "observacoes": extracted_data.get("observacoes", ""),
+                        
+                        # Tributação (PIS/COFINS - sem ISS/ICMS)
+                        "tributacao": {
+                            "tem_iss": False,
+                            "tem_icms": False,
+                            "tem_pis_cofins": True,
+                            "tem_irpj_csll": True
+                        },
+                        
+                        # Dados completos da extração
+                        "dados_extraidos": extracted_data
+                    }
                 else:
                     # Estrutura para documentos de consumo (energia, internet, etc.)
                     new_doc = {
