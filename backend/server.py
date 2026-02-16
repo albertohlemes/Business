@@ -11421,128 +11421,153 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
     """
     Versão otimizada da apuração PIS/COFINS usando agregação do MongoDB.
     Usada quando há mais de 5000 documentos para evitar timeout.
+    
+    CORRIGIDO: Agora usa os campos ncm_aliq_zero e cst_pis salvos nos produtos
+    para identificar corretamente produtos com alíquota zero e monofásicos.
     """
     logger.info(f"APURACAO-PIS-COFINS AGREGADO: Iniciando para {total_docs} documentos")
     
-    # NCMs monofásicos (4 primeiros dígitos) - produtos com tributação concentrada
-    NCMS_MONOFASICOS = [
-        '2201', '2202',  # Águas e bebidas
-        '2710', '2711',  # Combustíveis
-        '3002', '3003', '3004',  # Medicamentos
-        '3401',  # Sabões
-        '4011', '4013',  # Pneus
-        '8471',  # Computadores
-        '8702', '8703', '8704',  # Veículos
-    ]
+    # CSTs que indicam alíquota zero ou monofásico (não tributam)
+    # Saídas: 04 (monofásico), 06 (alíquota zero), 07 (isento), 08 (sem incidência), 09 (suspensão)
+    # Entradas: 70 (sem crédito), 73 (alíquota zero), 74 (monofásico)
+    CSTS_SEM_TRIBUTACAO = ['04', '06', '07', '08', '09', '70', '73', '74', '98', '99']
     
-    # Pipeline de agregação - incluir NCM para tratamento especial
+    # Pipeline de agregação - CORRIGIDO para usar campos salvos nos produtos
+    # Agrupa por: tipo, cfop, ncm_aliq_zero (flag salva no produto), cst_pis
     pipeline = [
         {"$match": {**query, "modelo": {"$ne": "fatura_recibo"}}},
         {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
         {
+            "$addFields": {
+                "cfop_primeiro_char": {"$substr": [{"$toString": {"$ifNull": ["$produtos.cfop", "0000"]}}, 0, 1]},
+                "tipo_normalizado": {"$toLower": {"$ifNull": ["$tipo", "$tipo_operacao"]}},
+                # Identificar se é não tributável: ncm_aliq_zero=true OU cst_pis em lista de não tributação
+                "produto_nao_tributavel": {
+                    "$or": [
+                        {"$eq": ["$produtos.ncm_aliq_zero", True]},
+                        {"$in": [{"$toString": {"$ifNull": ["$produtos.cst_pis", ""]}}, CSTS_SEM_TRIBUTACAO]}
+                    ]
+                }
+            }
+        },
+        {
+            "$addFields": {
+                # Determinar entrada/saída: primeiro pelo tipo, depois pelo CFOP
+                "is_entrada": {
+                    "$cond": {
+                        "if": {"$in": ["$tipo_normalizado", ["entrada", "entry", "input"]]},
+                        "then": True,
+                        "else": {
+                            "$cond": {
+                                "if": {"$in": ["$tipo_normalizado", ["saida", "saída", "exit", "output"]]},
+                                "then": False,
+                                "else": {"$in": ["$cfop_primeiro_char", ["1", "2", "3"]]}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
             "$group": {
                 "_id": {
-                    "tipo": {"$ifNull": ["$tipo_operacao", {"$ifNull": ["$tipo", "entrada"]}]},
+                    "is_entrada": "$is_entrada",
                     "cfop": {"$ifNull": [{"$toString": "$produtos.cfop"}, "0000"]},
-                    "ncm_prefix": {"$substr": [{"$ifNull": [{"$toString": "$produtos.ncm"}, "00000000"]}, 0, 4]}
+                    "nao_tributavel": "$produto_nao_tributavel"
                 },
                 "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
-                "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", {"$ifNull": ["$produtos.valor_pis", 0]}]}}},
-                "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_cofins", {"$ifNull": ["$produtos.valor_cofins", 0]}]}}},
+                "valor_pis_xml": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", {"$ifNull": ["$produtos.valor_pis", 0]}]}}},
+                "valor_cofins_xml": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_cofins", {"$ifNull": ["$produtos.valor_cofins", 0]}]}}},
                 "qtd_produtos": {"$sum": 1}
             }
         }
     ]
     
     cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
-    resultados = await cursor.to_list(length=2000)  # Aumentado para pegar mais grupos NCM
+    resultados = await cursor.to_list(length=5000)
     
-    logger.info(f"APURACAO-PIS-COFINS AGREGADO: {len(resultados)} grupos NCM/CFOP encontrados")
+    logger.info(f"APURACAO-PIS-COFINS AGREGADO: {len(resultados)} grupos encontrados")
     
-    # CFOPs que geram crédito (entradas)
+    # CFOPs que geram crédito (entradas) - Lucro Real
     CFOPS_CREDITO = ['1101', '1102', '1111', '1113', '1116', '1117', '1118', '1120', '1121', '1122',
                     '1124', '1125', '1126', '1128', '1151', '1152', '1153', '1154', '1201', '1202',
+                    '1403', '1406', '1407', '1556', '1653',
                     '2101', '2102', '2111', '2113', '2116', '2117', '2118', '2120', '2121', '2122',
-                    '2124', '2125', '2126', '2128', '2151', '2152', '2153', '2154', '2201', '2202']
+                    '2124', '2125', '2126', '2128', '2151', '2152', '2153', '2154', '2201', '2202',
+                    '2403', '2406', '2407', '2556', '2653']
     
     # CFOPs que geram débito (saídas)
     CFOPS_DEBITO = ['5101', '5102', '5103', '5104', '5105', '5106', '5109', '5110', '5111', '5112',
                    '5113', '5114', '5115', '5116', '5117', '5118', '5119', '5120', '5122', '5123',
+                   '5401', '5402', '5403', '5405',
                    '6101', '6102', '6103', '6104', '6105', '6106', '6107', '6108', '6109', '6110',
                    '6111', '6112', '6113', '6114', '6115', '6116', '6117', '6118', '6119', '6120']
     
     # Processar resultados
-    base_credito = 0
-    base_debito = 0
-    base_monofasico_entrada = 0
-    base_monofasico_saida = 0
-    valor_pis_xml = 0
-    valor_cofins_xml = 0
+    base_credito_tributavel = 0
+    base_debito_tributavel = 0
+    base_aliq_zero_entrada = 0
+    base_aliq_zero_saida = 0
+    valor_pis_xml_total = 0
+    valor_cofins_xml_total = 0
     por_cfop = {}
     
     for item in resultados:
-        tipo = (item['_id'].get('tipo', '') or '').lower().strip()
+        is_entrada = item['_id'].get('is_entrada', False)
         cfop = str(item['_id'].get('cfop', '0000') or '0000')
-        ncm_prefix = str(item['_id'].get('ncm_prefix', '0000') or '0000')
+        nao_tributavel = item['_id'].get('nao_tributavel', False)
         valor = float(item.get('valor_total', 0) or 0)
-        
-        # Determinar se é entrada ou saída
-        is_entrada = tipo in ['entrada', 'entry', 'input']
-        if not tipo or tipo not in ['entrada', 'saida', 'saída', 'entry', 'output', 'exit']:
-            # Fallback: usar CFOP
-            if cfop and cfop[0] in ['1', '2', '3']:
-                is_entrada = True
-            elif cfop and cfop[0] in ['5', '6', '7']:
-                is_entrada = False
-        
-        # Verificar se é produto monofásico
-        is_monofasico = ncm_prefix in NCMS_MONOFASICOS
+        pis_xml = float(item.get('valor_pis_xml', 0) or 0)
+        cofins_xml = float(item.get('valor_cofins_xml', 0) or 0)
+        qtd = int(item.get('qtd_produtos', 0) or 0)
         
         # Agrupar por CFOP
         if cfop not in por_cfop:
             por_cfop[cfop] = {
                 "valor": 0, "pis": 0, "cofins": 0, "qtd": 0, 
                 "tipo": 'entrada' if is_entrada else 'saida',
-                "valor_tributavel": 0, "valor_monofasico": 0
+                "valor_tributavel": 0, "valor_aliq_zero": 0
             }
         por_cfop[cfop]["valor"] += valor
-        por_cfop[cfop]["pis"] += float(item.get('valor_pis', 0) or 0)
-        por_cfop[cfop]["cofins"] += float(item.get('valor_cofins', 0) or 0)
-        por_cfop[cfop]["qtd"] += int(item.get('qtd_produtos', 0) or 0)
+        por_cfop[cfop]["pis"] += pis_xml
+        por_cfop[cfop]["cofins"] += cofins_xml
+        por_cfop[cfop]["qtd"] += qtd
         
-        if is_monofasico:
-            por_cfop[cfop]["valor_monofasico"] += valor
+        valor_pis_xml_total += pis_xml
+        valor_cofins_xml_total += cofins_xml
+        
+        if nao_tributavel:
+            # Produto com alíquota zero ou monofásico - NÃO tributa
+            por_cfop[cfop]["valor_aliq_zero"] += valor
             if is_entrada:
-                base_monofasico_entrada += valor
+                base_aliq_zero_entrada += valor
             else:
-                base_monofasico_saida += valor
+                base_aliq_zero_saida += valor
         else:
+            # Produto tributável
             por_cfop[cfop]["valor_tributavel"] += valor
-            # Calcular bases - SÓ PRODUTOS TRIBUTÁVEIS (não monofásicos)
             if is_entrada and cfop in CFOPS_CREDITO:
-                base_credito += valor
+                base_credito_tributavel += valor
             elif not is_entrada and cfop in CFOPS_DEBITO:
-                base_debito += valor
-        
-        valor_pis_xml += float(item.get('valor_pis', 0) or 0)
-        valor_cofins_xml += float(item.get('valor_cofins', 0) or 0)
+                base_debito_tributavel += valor
     
-    logger.info(f"APURACAO-PIS-COFINS: Base débito={base_debito:.2f}, Base crédito={base_credito:.2f}, Monofásico entrada={base_monofasico_entrada:.2f}, Monofásico saída={base_monofasico_saida:.2f}")
+    logger.info(f"APURACAO-PIS-COFINS CORRIGIDO: Base débito TRIBUTÁVEL={base_debito_tributavel:.2f}, Base crédito TRIBUTÁVEL={base_credito_tributavel:.2f}")
+    logger.info(f"APURACAO-PIS-COFINS CORRIGIDO: Alíquota zero entrada={base_aliq_zero_entrada:.2f}, Alíquota zero saída={base_aliq_zero_saida:.2f}")
     
-    # Calcular valores de PIS/COFINS baseado no regime
+    # Calcular valores de PIS/COFINS baseado no regime - APENAS sobre base tributável
     if regime == 'lucro_real':
         aliq_pis = 0.0165  # 1.65%
         aliq_cofins = 0.076  # 7.6%
-        credito_pis = base_credito * aliq_pis
-        credito_cofins = base_credito * aliq_cofins
+        credito_pis = base_credito_tributavel * aliq_pis
+        credito_cofins = base_credito_tributavel * aliq_cofins
     else:
         aliq_pis = 0.0065  # 0.65%
         aliq_cofins = 0.03  # 3%
         credito_pis = 0
         credito_cofins = 0
     
-    debito_pis = base_debito * aliq_pis
-    debito_cofins = base_debito * aliq_cofins
+    debito_pis = base_debito_tributavel * aliq_pis
+    debito_cofins = base_debito_tributavel * aliq_cofins
     
     saldo_pis = debito_pis - credito_pis
     saldo_cofins = debito_cofins - credito_cofins
@@ -11558,8 +11583,8 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
         },
         "competencia": competencia,
         "totais": {
-            "base_credito": round(base_credito, 2),
-            "base_debito": round(base_debito, 2),
+            "base_credito": round(base_credito_tributavel, 2),
+            "base_debito": round(base_debito_tributavel, 2),
             "credito_pis": round(credito_pis, 2),
             "credito_cofins": round(credito_cofins, 2),
             "debito_pis": round(debito_pis, 2),
@@ -11567,11 +11592,17 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
             "saldo_pis": round(saldo_pis, 2),
             "saldo_cofins": round(saldo_cofins, 2),
             "total_a_pagar": round(max(0, saldo_pis) + max(0, saldo_cofins), 2),
-            "valor_pis_xml": round(valor_pis_xml, 2),
-            "valor_cofins_xml": round(valor_cofins_xml, 2)
+            "valor_pis_xml": round(valor_pis_xml_total, 2),
+            "valor_cofins_xml": round(valor_cofins_xml_total, 2),
+            "aliquota_zero_excluida_entrada": round(base_aliq_zero_entrada, 2),
+            "aliquota_zero_excluida_saida": round(base_aliq_zero_saida, 2)
         },
-        "por_cfop": por_cfop_lista[:50],  # Limitar a 50 CFOPs para não sobrecarregar
-        "alertas": [{"tipo": "INFO", "mensagem": f"Apuração simplificada: {total_docs} documentos processados via agregação"}],
+        "por_cfop": por_cfop_lista[:50],
+        "alertas": [
+            {"tipo": "INFO", "mensagem": f"Apuração otimizada: {total_docs} documentos processados via agregação"},
+            {"tipo": "INFO", "mensagem": f"Excluídos R$ {base_aliq_zero_saida:,.2f} de saídas com alíquota zero/monofásico"},
+            {"tipo": "INFO", "mensagem": f"Excluídos R$ {base_aliq_zero_entrada:,.2f} de entradas com alíquota zero/monofásico"}
+        ],
         "total_documentos": total_docs,
         "otimizado": True
     }
