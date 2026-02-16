@@ -2,7 +2,45 @@
 
 ## Status Atual (16/02/2026)
 
-### ✅ CORREÇÕES IMPLEMENTADAS NESTA SESSÃO
+### ✅ CORREÇÕES DE PERFORMANCE IMPLEMENTADAS (SESSÃO ATUAL)
+
+#### 1. Otimização de Agregação MongoDB
+- **Problema**: Páginas PIS/COFINS e RET travavam com alto volume de dados
+- **Causa**: Threshold de 5000 docs muito alto para servidores mais lentos
+- **Solução**: Reduzido threshold de 5000 para 500 documentos em TODOS os endpoints
+- **Endpoints otimizados**: 
+  - `/api/apuracao-pis-cofins`
+  - `/api/apuracao-periodo`
+  - `/api/viloes-oportunidades`
+  - `/api/apuracao-movimento`
+  - `/api/inteligencia-tributaria` (RET)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+#### 2. Índices MongoDB Criados
+- **company_id + competencia** (query principal)
+- **company_id + competencia + status + desconsiderada** (filtro de notas ativas)
+- **company_id + competencia + produtos.cfop** (agregações)
+- **Status**: ✅ CRIADOS
+
+#### 3. Timeout do Frontend Aumentado
+- **Problema**: Timeout padrão do axios muito curto
+- **Solução**: Timeout de 120 segundos (2 minutos) para chamadas críticas
+- **Arquivos atualizados**: 
+  - `ApuracaoMensal.js`
+  - `RET.js`
+  - `ReformaTributaria.js`
+  - `ViloesOportunidades.js`
+- **Status**: ✅ IMPLEMENTADO
+
+#### Resultados dos Testes (COMERCIAL RS - 4.5k docs)
+- `apuracao-pis-cofins`: 0.33s ✅
+- `apuracao-periodo`: 0.27s ✅
+- `inteligencia-tributaria`: 1.01s ✅
+- `viloes-oportunidades`: 0.25s ✅
+
+---
+
+### ✅ CORREÇÕES ANTERIORES (SESSÃO PASSADA)
 
 #### 1. Análise Horizontal - Valores Corretos
 - **Problema**: Valores de compras/vendas estavam inflados (~9x)
