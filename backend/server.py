@@ -14232,8 +14232,11 @@ async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str
     produtos_por_ncm = {}
     
     for item in resultados:
-        tipo = (item['_id'].get('tipo', '') or '').lower()
+        tipo = (item['_id'].get('tipo', '') or '').lower().strip()
         ncm = item['_id'].get('ncm', '00000000')
+        
+        # Determinar se é entrada ou saída
+        is_entrada = tipo in ['entrada', 'entry', 'input']
         
         if ncm not in produtos_por_ncm:
             produtos_por_ncm[ncm] = {
@@ -14243,7 +14246,7 @@ async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str
                 'saida': {'valor': 0, 'icms': 0, 'pis': 0, 'cofins': 0, 'qtd': 0, 'produtos': []}
             }
         
-        if tipo == 'entrada':
+        if is_entrada:
             produtos_por_ncm[ncm]['entrada']['valor'] += item.get('valor_total', 0)
             produtos_por_ncm[ncm]['entrada']['icms'] += item.get('icms', 0)
             produtos_por_ncm[ncm]['entrada']['pis'] += item.get('pis', 0)
