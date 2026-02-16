@@ -30168,10 +30168,15 @@ async def get_analise_horizontal(
                 saldo_cofins = resultado_pis_cofins['cofins_saldo']
                 
                 # Atualizar dados do mês
-                dados_dict[comp]["compras"] = round(total_compras, 2)
-                dados_dict[comp]["saidas"] = round(total_vendas, 2)  # Total bruto de saídas
-                dados_dict[comp]["vendas"] = round(total_vendas_liquido, 2)  # Saídas - devoluções
-                dados_dict[comp]["devolucoes_cliente"] = round(total_devolucoes_cliente, 2)
+                dados_dict[comp]["compras"] = round(compras_liquidas_ah, 2)  # COMPRAS LÍQUIDAS (CFOPs de compra - devoluções de saída)
+                dados_dict[comp]["compras_brutas"] = round(total_compras_ah, 2)  # CFOPs de compra
+                dados_dict[comp]["devolucoes_compra"] = round(total_devolucao_compras_ah, 2)  # Devoluções de saída
+                dados_dict[comp]["saidas"] = round(total_vendas, 2)  # Total bruto de saídas (todos os CFOPs 5xxx, 6xxx)
+                dados_dict[comp]["vendas"] = round(vendas_liquidas_ah, 2)  # VENDAS LÍQUIDAS (CFOPs de venda - devoluções de entrada)
+                dados_dict[comp]["vendas_brutas"] = round(total_vendas_ah, 2)  # CFOPs de venda
+                dados_dict[comp]["devolucoes_cliente"] = round(total_devolucoes_cliente, 2)  # Devoluções de entrada
+                dados_dict[comp]["markup"] = round(markup_ah, 2)  # Markup
+                dados_dict[comp]["total_entradas"] = round(total_compras, 2)  # Total de todas as entradas
                 dados_dict[comp]["icms"] = round(saldo_icms, 2)
                 dados_dict[comp]["icms_st"] = round(total_icms_st, 2)
                 dados_dict[comp]["pis"] = round(saldo_pis, 2)
