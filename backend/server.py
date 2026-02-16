@@ -26082,21 +26082,29 @@ async def inteligencia_tributaria(
                         "branches": [
                             # CFOPs de saída geram débito
                             {"case": {"$in": ["$cfop_primeiro", ["5", "6", "7"]]}, "then": "debito"},
-                            # Só gera crédito se for CFOP de compra para comercialização
-                            {"case": {"$in": ["$cfop", [
-                                "1101", "1102", "1111", "1113", "1116", "1117", "1118", "1120", "1121", "1122", "1152", "1251", "1252", "1253",
-                                "2101", "2102", "2111", "2113", "2116", "2117", "2118", "2120", "2121", "2122", "2152", "2251", "2252", "2253",
-                                "3101", "3102", "3127"
-                            ]]}, "then": "credito"}
+                            # CFOPs de entrada geram crédito, EXCETO despesas e ST
+                            # (mesma lógica da página de ICMS e Reforma Tributária)
+                            {"case": {"$and": [
+                                {"$in": ["$cfop_primeiro", ["1", "2", "3"]]},
+                                # Excluir CFOPs de DESPESA
+                                {"$not": {"$in": ["$cfop", [
+                                    "1407", "2407", "1556", "2556", "1557", "2557", "1128", "2128",
+                                    "1551", "2551", "1406", "2406", "1653", "2653", "1126", "2126",
+                                    "1352", "2352", "1353", "2353", "1354", "2354"
+                                ]]}},
+                                # Excluir CFOPs de ST
+                                {"$not": {"$in": ["$cfop", [
+                                    "1403", "2403", "1409", "2409", "1410", "2410", "1411", "2411",
+                                    "1414", "2414", "1415", "2415", "1651", "2651", "1652", "2652"
+                                ]]}}
+                            ]}, "then": "credito"}
                         ],
                         "default": "ignorar"
                     }
                 }
             }},
             {"$match": {
-                "tipo_icms": {"$ne": "ignorar"},
-                # Filtrar CFOPs de despesas e ST se configurado
-                **({} if not desconsiderar_despesas else {"cfop": {"$nin": CFOPS_DESPESAS}}),
+                "tipo_icms": {"$ne": "ignorar"}
             }},
             {"$group": {
                 "_id": "$tipo_icms",
