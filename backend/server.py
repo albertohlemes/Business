@@ -28914,7 +28914,7 @@ async def get_impostos_retidos(
     
     regime = company.get('regime_tributario', '')
     
-    # Buscar documentos de serviços da competência
+    # Buscar documentos de serviços da competência (EXCLUIR locação)
     documentos = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia,
@@ -28923,6 +28923,7 @@ async def get_impostos_retidos(
             {"modelo": {"$in": ["nfse_tomado", "nfse_prestado"]}},
             {"tipo_operacao": {"$in": ["tomado", "prestado"]}}
         ],
+        "modelo": {"$ne": "fatura_recibo"},  # Excluir recibos de locação
         **get_filtro_notas_ativas()
     }, {"_id": 0}).to_list(15000)
     
