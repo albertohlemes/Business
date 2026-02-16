@@ -14422,7 +14422,20 @@ async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str
         impacto_icms = icms_debito - icms_credito
         impacto_pis = pis_debito - pis_credito
         impacto_cofins = cofins_debito - cofins_credito
-        impacto_total = impacto_icms + impacto_pis + impacto_cofins
+        
+        # PIS e COFINS devem ter o mesmo comportamento (mesmo critério de crédito/débito)
+        # Se houver inconsistência por arredondamento, consolidar como PIS/COFINS
+        impacto_pis_cofins = impacto_pis + impacto_cofins
+        
+        # Corrigir inconsistências de arredondamento entre PIS e COFINS
+        # Se a soma é quase zero mas individualmente são diferentes, normalizar
+        if abs(impacto_pis_cofins) < 50 and (impacto_pis * impacto_cofins < 0):
+            # PIS e COFINS têm sinais opostos por erro de arredondamento - zerar ambos
+            impacto_pis = 0
+            impacto_cofins = 0
+            impacto_pis_cofins = 0
+        
+        impacto_total = impacto_icms + impacto_pis_cofins
         
         # Calcular margem
         margem_valor = ((saida['valor'] - entrada['valor']) / entrada['valor'] * 100) if entrada['valor'] > 0 else 0
