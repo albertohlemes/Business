@@ -30021,6 +30021,23 @@ async def get_analise_horizontal(
                     logger.warning(f"Erro ao calcular ICMS corrigido: {e}")
                     saldo_icms = total_icms_debito - total_icms_credito
                 
+                # Calcular Total Vendas = Saídas - Devoluções de clientes (entradas)
+                # CFOPs de devolução de cliente são ENTRADAS
+                CFOPS_DEVOLUCAO_CLIENTE = [
+                    '1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209', '1210', '1211',
+                    '1410', '1411', '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209', '2210', '2211', '2410', '2411'
+                ]
+                
+                total_devolucoes_cliente = 0
+                for doc in docs_icms:
+                    if doc.get('tipo') == 'entrada':
+                        for prod in doc.get('produtos', []):
+                            cfop = str(prod.get('cfop', ''))
+                            if cfop in CFOPS_DEVOLUCAO_CLIENTE:
+                                total_devolucoes_cliente += float(prod.get('valor_total', 0) or 0)
+                
+                total_vendas_liquido = total_vendas - total_devolucoes_cliente
+                
                 # USAR FUNÇÃO CENTRALIZADA para PIS/COFINS
                 # Garante consistência com RET, Apuração e Reforma Tributária
                 resultado_pis_cofins = await calcular_pis_cofins_unificado(company_id, comp, company)
