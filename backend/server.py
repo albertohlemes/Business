@@ -25498,6 +25498,24 @@ async def process_document_with_ai(
                     # Estrutura específica para Faturas/Recibos de Locação
                     valores = extracted_data.get("valores", {})
                     valor_total = valores.get("valor_total") or valores.get("valor_bruto") or valores.get("valor_liquido") or 0
+                    numero_recibo = extracted_data.get("numero_documento", "")
+                    
+                    # Verificar duplicidade pelo número do recibo
+                    if numero_recibo:
+                        existing_recibo = await db.xml_documents.find_one({
+                            "company_id": company_id,
+                            "modelo": "fatura_recibo",
+                            "numero_nfe": numero_recibo,
+                            "competencia": extracted_data.get("competencia", competencia)
+                        })
+                        if existing_recibo:
+                            results["erros"].append({
+                                "arquivo": filename,
+                                "motivo": f"Recibo Nº {numero_recibo} já existe para esta competência",
+                                "duplicado": True
+                            })
+                            results["total_erros"] += 1
+                            continue
                     
                     new_doc = {
                         "id": doc_id,
