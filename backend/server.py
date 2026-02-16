@@ -10230,6 +10230,8 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     
     # ============================================================
     # Calcular ICMS e valores líquidos (buscar docs)
+    # CORREÇÃO: Usar mesma lógica do endpoint apuracao-icms
+    # CFOPs de despesa/consumo NÃO geram crédito de ICMS
     # ============================================================
     docs_for_calc = await db.xml_documents.find(
         base_query, 
@@ -10239,7 +10241,18 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     credito_icms = Decimal('0')
     debito_icms = Decimal('0')
     
-    # CFOPs para cálculo
+    # CFOPs que NÃO geram crédito de ICMS (despesa/consumo/uso)
+    CFOPS_DESPESA = [
+        '1556', '2556',  # Compra para uso/consumo
+        '1407', '2407',  # Devolução de uso/consumo
+        '1653', '2653',  # Compra de energia elétrica para consumo
+        '1128', '2128',  # Compra para uso/consumo em operação com mercadoria sujeita ao ICMS
+        '1126', '2126',  # Compra para uso/consumo em operação isenta
+        '1557', '2557',  # Transferência para uso/consumo
+        '1408', '2408',  # Transferência energia elétrica
+    ]
+    
+    # CFOPs para cálculo de compras/vendas
     CFOPS_COMPRAS = ['1102', '2102', '1403', '2403', '1101', '2101', '1201', '2201', '1551', '2551']
     CFOPS_DEVOLUCAO_COMPRA = ['5201', '5202', '5410', '5411', '6201', '6202', '6410', '6411']
     CFOPS_VENDA = [
@@ -10254,6 +10267,9 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     total_devolucao_compras = Decimal('0')
     total_vendas_brutas = Decimal('0')
     total_devolucao_vendas = Decimal('0')
+    
+    # Verificar configurações da empresa para desconsiderar ICMS
+    desconsiderar_icms_despesas = company.get('desconsiderar_icms_despesas', False)
     
     for doc in docs_for_calc:
         tipo = doc.get('tipo') or doc.get('tipo_operacao') or ''
