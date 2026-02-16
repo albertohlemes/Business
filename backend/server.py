@@ -14702,33 +14702,32 @@ async def get_viloes_oportunidades(
         if entrada['qtd'] == 0 or saida['qtd'] == 0:
             continue
         
-        # Impacto total de impostos
+        # ICMS: usar valores do XML (cada estado/produto tem alíquota diferente)
         icms_credito = entrada['icms']
         icms_debito = saida['icms']
-        pis_credito = entrada['pis']
-        pis_debito = saida['pis']
-        cofins_credito = entrada['cofins']
-        cofins_debito = saida['cofins']
-        
         impacto_icms = icms_debito - icms_credito
-        impacto_pis = pis_debito - pis_credito
-        impacto_cofins = cofins_debito - cofins_credito
         
-        # PIS e COFINS devem ter o mesmo comportamento (mesmo critério de crédito/débito)
-        # Se têm sinais opostos, é erro de arredondamento - adequar as bases
-        impacto_pis_cofins_total = impacto_pis + impacto_cofins
+        # PIS/COFINS: calcular com base nos VALORES usando alíquotas fixas
+        # Isso garante consistência - se compra > venda, crédito > débito
+        # Alíquotas Lucro Real não-cumulativo: PIS 1,65%, COFINS 7,60%
+        ALIQ_PIS = 0.0165
+        ALIQ_COFINS = 0.076
         
-        if impacto_pis * impacto_cofins < 0:
-            # Sinais opostos - adequar proporcionalmente ao impacto total
-            logger.info(f"VILOES: NCM {ncm} - Adequando PIS/COFINS: PIS={impacto_pis:.2f}, COFINS={impacto_cofins:.2f}, Total={impacto_pis_cofins_total:.2f}")
-            
-            # Proporção normal: COFINS = 4.6 * PIS (7.6/1.65)
-            # Distribuir o impacto total proporcionalmente
-            if impacto_pis_cofins_total != 0:
-                # PIS = 1/5.6 do total, COFINS = 4.6/5.6 do total
-                impacto_pis = impacto_pis_cofins_total * (1.65 / (1.65 + 7.60))
-                impacto_cofins = impacto_pis_cofins_total * (7.60 / (1.65 + 7.60))
+        # Calcular crédito/débito com base nos valores
+        pis_credito_calc = entrada['valor'] * ALIQ_PIS
+        pis_debito_calc = saida['valor'] * ALIQ_PIS
+        cofins_credito_calc = entrada['valor'] * ALIQ_COFINS
+        cofins_debito_calc = saida['valor'] * ALIQ_COFINS
         
+        # Usar valores calculados para o impacto (consistência)
+        # mas mostrar valores originais do XML para referência
+        pis_credito_xml = entrada['pis']
+        pis_debito_xml = saida['pis']
+        cofins_credito_xml = entrada['cofins']
+        cofins_debito_xml = saida['cofins']
+        
+        impacto_pis = pis_debito_calc - pis_credito_calc
+        impacto_cofins = cofins_debito_calc - cofins_credito_calc
         impacto_total = impacto_icms + impacto_pis + impacto_cofins
         
         # Vilão: impacto negativo alto
