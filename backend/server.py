@@ -1383,6 +1383,52 @@ def get_filtro_notas_ativas_sem_locacao():
     }
 
 
+def is_documento_entrada(doc_or_tipo, cfop=None):
+    """
+    Determina se um documento/tipo é de entrada de forma robusta.
+    Suporta múltiplos formatos: tipo string, tipo_operacao, ou derivar do CFOP.
+    
+    Args:
+        doc_or_tipo: Pode ser dict (documento), str (tipo), ou None
+        cfop: CFOP opcional para fallback
+    
+    Returns:
+        bool: True se é entrada, False se é saída
+    """
+    # Se é um documento (dict), extrair o tipo
+    if isinstance(doc_or_tipo, dict):
+        tipo = doc_or_tipo.get('tipo') or doc_or_tipo.get('tipo_operacao') or ''
+        if not cfop:
+            # Tentar pegar CFOP do primeiro produto
+            produtos = doc_or_tipo.get('produtos', [])
+            if produtos:
+                cfop = str(produtos[0].get('cfop', '') or '')
+    else:
+        tipo = doc_or_tipo or ''
+    
+    # Normalizar tipo
+    tipo = str(tipo).lower().strip()
+    
+    # Verificar tipos conhecidos de entrada
+    if tipo in ['entrada', 'entry', 'input', 'tomado', 'compra']:
+        return True
+    
+    # Verificar tipos conhecidos de saída
+    if tipo in ['saida', 'saída', 'exit', 'output', 'prestado', 'venda']:
+        return False
+    
+    # Fallback: usar CFOP se disponível (1/2/3 = entrada, 5/6/7 = saída)
+    if cfop:
+        cfop_str = str(cfop).strip()
+        if cfop_str and cfop_str[0] in ['1', '2', '3']:
+            return True
+        elif cfop_str and cfop_str[0] in ['5', '6', '7']:
+            return False
+    
+    # Default: considerar como saída se não conseguir determinar
+    return False
+
+
 # ============== LIMITE SEGURO PARA CONSULTAS ==============
 # Limite máximo de documentos para carregar na memória
 SAFE_DOCUMENT_LIMIT = 10000
