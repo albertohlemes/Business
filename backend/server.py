@@ -10245,12 +10245,20 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
             )
             if response.status_code == 200:
                 icms_data = response.json()
-                # Pegar os valores EXATOS do endpoint
+                # Pegar os valores EXATOS do endpoint - NÃO RECALCULA NADA
                 credito_icms = icms_data.get('entradas', {}).get('totais', {}).get('valor_icms', 0)
                 debito_icms = icms_data.get('saidas', {}).get('totais', {}).get('valor_icms', 0)
                 total_entradas_cfop = icms_data.get('entradas', {}).get('totais', {}).get('valor_total', 0)
                 total_saidas_cfop = icms_data.get('saidas', {}).get('totais', {}).get('valor_total', 0)
-                logger.info(f"DASHBOARD ICMS (DO ENDPOINT): Crédito={credito_icms}, Débito={debito_icms}")
+                # Compras/Vendas Líquidas e Markup também do endpoint
+                compras_liquidas = icms_data.get('compras_liquidas', {}).get('liquidas', 0)
+                vendas_liquidas = icms_data.get('vendas_liquidas', {}).get('liquidas', 0)
+                markup_calc = icms_data.get('markup', 0)
+                total_compras_brutas = icms_data.get('compras_liquidas', {}).get('brutas', 0)
+                total_devolucao_compras = icms_data.get('compras_liquidas', {}).get('devolucoes', 0)
+                total_vendas_brutas = icms_data.get('vendas_liquidas', {}).get('brutas', 0)
+                total_devolucao_vendas = icms_data.get('vendas_liquidas', {}).get('devolucoes', 0)
+                logger.info(f"DASHBOARD (DO ENDPOINT): ICMS Créd={credito_icms}, Déb={debito_icms}, Compras={compras_liquidas}, Vendas={vendas_liquidas}")
             else:
                 logger.error(f"Erro ao chamar apuracao-icms: {response.status_code}")
                 credito_icms = 0
