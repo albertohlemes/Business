@@ -26053,20 +26053,30 @@ async def inteligencia_tributaria(
     
     # ============ BUSCAR VALORES REAIS DAS APURAÇÕES (LUCRO REAL) ============
     # Buscar apuração ICMS - OTIMIZADO COM AGREGAÇÃO para suportar alto volume
+    # Usar mesma lógica da página de ICMS para consistência
     icms_real = 0
     try:
         desconsiderar_despesas = company.get('desconsiderar_icms_despesas', False)
         desconsiderar_st = company.get('desconsiderar_icms_st', False)
         
-        CFOPS_DESPESAS = ['1407', '2407', '1556', '2556', '1551', '2551', '1653', '2653', '1128', '2128', '1126', '2126']
-        CFOPS_ST = ['1403', '2403', '1409', '2409']
+        # CFOPs de DESPESA e ST (mesma lista da página de ICMS)
+        CFOPS_DESPESAS = [
+            '1407', '2407', '1556', '2556', '1557', '2557', '1128', '2128',
+            '1551', '2551', '1406', '2406', '1653', '2653', '1126', '2126',
+            '1352', '2352', '1353', '2353', '1354', '2354'
+        ]
+        CFOPS_ST = [
+            '1403', '2403', '1409', '2409', '1410', '2410', '1411', '2411',
+            '1414', '2414', '1415', '2415', '1651', '2651', '1652', '2652'
+        ]
         
         # Pipeline de agregação para calcular ICMS de forma eficiente
+        # Usar get_filtro_notas_ativas_sem_locacao() para consistência com a página de ICMS
         pipeline_icms = [
             {"$match": {
                 "company_id": company_id,
                 "competencia": competencia if tipo == "periodo" else {"$regex": f"/{ano}$"},
-                **get_filtro_notas_ativas()
+                **get_filtro_notas_ativas_sem_locacao()
             }},
             {"$unwind": "$produtos"},
             {"$project": {
