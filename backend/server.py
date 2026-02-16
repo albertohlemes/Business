@@ -36134,33 +36134,6 @@ async def get_apuracao_reforma_tributaria(
         }
         aliq = aliquotas.get(regime_empresa, aliquotas['lucro_real'])
         
-        # Calcular débitos de PIS/COFINS das saídas
-        # IMPORTANTE: Base de cálculo = valor_total - ICMS (STF: exclusão do ICMS da base)
-        total_base_saida = 0
-        total_icms_saida_calc = 0
-        
-        for doc in docs_saida:
-            for prod in doc.get('produtos', []):
-                valor = float(prod.get('valor_total', 0) or 0)
-                v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
-                ncm = prod.get('ncm', '')
-                
-                # Verificar se é alíquota zero ou monofásico
-                if not is_ncm_aliquota_zero(ncm) and not is_ncm_monofasico(ncm):
-                    # Base de cálculo = valor_total - ICMS destacado
-                    base_pis_cofins = valor - v_icms
-                    total_base_saida += max(0, base_pis_cofins)
-                
-                # ICMS do produto (para cálculo separado)
-                total_icms_saida_calc += v_icms
-        
-        logger.info(f"REFORMA TRIBUTÁRIA: Base saída (sem ICMS)={total_base_saida:.2f}, ICMS saída={total_icms_saida_calc:.2f}")
-        
-        # Calcular créditos de PIS/COFINS das entradas (Lucro Real)
-        # E calcular ICMS usando apenas CFOPs que geram crédito de ICMS
-        total_base_entrada = 0
-        total_icms_entrada_calc = 0
-        
         # CFOPs de DESPESA e ST que NÃO geram crédito de ICMS (mesma lógica da página de ICMS)
         CFOPS_DESPESA_ICMS = [
             '1407', '2407', '1556', '2556', '1557', '2557', '1128', '2128',
