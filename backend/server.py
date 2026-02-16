@@ -20575,6 +20575,7 @@ async def internal_analise_tributaria(
             "total": total_saidas,
             "servicos": total_servicos,
             "vendas": total_vendas,
+            "devolucoes_cliente": total_devolucoes_cliente,
             "percentual_servicos": round(percentual_servicos, 1),
             "percentual_vendas": round(percentual_vendas, 1)
         },
