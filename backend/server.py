@@ -35950,11 +35950,11 @@ async def get_apuracao_reforma_tributaria(
     
     for doc in docs_saida:
         for prod in doc.get('produtos', []):
-            total_icms_saida += float(prod.get('valor_icms', 0) or 0)
+            total_icms_saida += float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
     
     for doc in docs_entrada:
         for prod in doc.get('produtos', []):
-            total_icms_entrada += float(prod.get('valor_icms', 0) or 0)
+            total_icms_entrada += float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
     
     icms_calculado_xml = max(0, total_icms_saida - total_icms_entrada)
     
