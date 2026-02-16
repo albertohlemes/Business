@@ -10326,6 +10326,8 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     total_devolucao_compras = Decimal('0')
     total_vendas_brutas = Decimal('0')
     total_devolucao_vendas = Decimal('0')
+    total_entradas_cfop = Decimal('0')  # Total por CFOP (igual apuracao-icms)
+    total_saidas_cfop = Decimal('0')    # Total por CFOP (igual apuracao-icms)
     
     for doc in docs_icms:  # Usar os mesmos docs já carregados
         produtos = doc.get('produtos', [])
@@ -10333,6 +10335,13 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         for prod in produtos:
             cfop = str(prod.get('cfop', ''))
             valor_total = Decimal(str(prod.get('valor_total', 0) or 0))
+            
+            # Determinar tipo pelo CFOP
+            primeiro_digito = cfop[0] if cfop and cfop[0].isdigit() else '0'
+            if primeiro_digito in ['1', '2', '3']:
+                total_entradas_cfop += valor_total
+            elif primeiro_digito in ['5', '6', '7']:
+                total_saidas_cfop += valor_total
             
             # Compras e Vendas por CFOP
             if cfop in CFOPS_COMPRAS:
