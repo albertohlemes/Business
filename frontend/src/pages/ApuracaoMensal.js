@@ -460,18 +460,24 @@ const ApuracaoMensal = ({ user, onLogout }) => {
       const token = localStorage.getItem('token');
       
       // Buscar dados de apuração e PIS/COFINS em paralelo
+      // Timeout de 120 segundos para suportar grandes volumes de dados
+      const requestConfig = { 
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 120000 // 2 minutos
+      };
+      
       const [apuracaoRes, pisCofinsRes, estoqueRes] = await Promise.all([
         axios.get(
           `${API}/apuracao-periodo/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          requestConfig
         ),
         axios.get(
           `${API}/apuracao-pis-cofins/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          requestConfig
         ),
         axios.get(
           `${API}/estoque-competencia/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          requestConfig
         ).catch(() => ({ data: { estoque_inicial: 0, estoque_final: 0 } }))
       ]);
       
