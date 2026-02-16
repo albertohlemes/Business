@@ -106,7 +106,8 @@ class TestComprasVendasMarkupConsistency:
         data = response.json()
         
         # Find data for competencia 01/2026
-        dados_mensal = data.get("dados_mensal", {})
+        # Estrutura correta: mensal (não dados_mensal)
+        dados_mensal = data.get("mensal", {})
         comp_data = dados_mensal.get(TEST_COMPETENCIA, {})
         
         assert comp_data, f"Dados para competência {TEST_COMPETENCIA} não encontrados"
@@ -159,7 +160,7 @@ class TestComprasVendasMarkupConsistency:
         
         # Extract values
         compras_liquidas_icms = data_icms["compras_liquidas"]["liquidas"]
-        compras_liquidas_ah = data_ah["dados_mensal"][TEST_COMPETENCIA]["compras"]
+        compras_liquidas_ah = data_ah["mensal"][TEST_COMPETENCIA]["compras"]
         
         print(f"\n=== COMPRAS LÍQUIDAS - CONSISTÊNCIA ===")
         print(f"Apuração ICMS: {compras_liquidas_icms}")
@@ -192,7 +193,7 @@ class TestComprasVendasMarkupConsistency:
         
         # Extract values
         vendas_liquidas_icms = data_icms["vendas_liquidas"]["liquidas"]
-        vendas_liquidas_ah = data_ah["dados_mensal"][TEST_COMPETENCIA]["vendas"]
+        vendas_liquidas_ah = data_ah["mensal"][TEST_COMPETENCIA]["vendas"]
         
         print(f"\n=== VENDAS LÍQUIDAS - CONSISTÊNCIA ===")
         print(f"Apuração ICMS: {vendas_liquidas_icms}")
@@ -225,7 +226,7 @@ class TestComprasVendasMarkupConsistency:
         
         # Extract values
         markup_icms = data_icms["markup"]
-        markup_ah = data_ah["dados_mensal"][TEST_COMPETENCIA]["markup"]
+        markup_ah = data_ah["mensal"][TEST_COMPETENCIA]["markup"]
         
         print(f"\n=== MARKUP - CONSISTÊNCIA ===")
         print(f"Apuração ICMS: {markup_icms}%")
