@@ -24757,27 +24757,9 @@ async def apurar_pis_cofins(
             "nota": "Valores calculados com função unificada - Lei 14.592/2023 (ICMS excluído da base)"
         }
     }
-            "cnpj": company.get('cnpj', ''),
-            "regime_tributario": regime_tributario,
-            "perfil_comercial": perfil_empresa,
-            "cnaes": cnaes_empresa
-        },
-        "competencia": competencia,
-        "lucro_real": {
-            "creditos": {"pis": 0, "cofins": 0, "total": 0},
-            "debitos_comercio": {"pis": 0, "cofins": 0, "total": 0},
-            "debitos_servicos": {"pis": 0, "cofins": 0, "total": 0},
-            "debitos_total": {"pis": 0, "cofins": 0, "total": 0},
-            "saldo": {"pis": 0, "cofins": 0, "total": 0},
-            "imposto_a_pagar": {"pis": 0, "cofins": 0, "total": 0}
-        },
-        "lucro_presumido": {
-            "creditos": {"pis": 0, "cofins": 0, "total": 0},
-            "debitos_comercio": {"pis": 0, "cofins": 0, "total": 0},
-            "debitos_servicos": {"pis": 0, "cofins": 0, "total": 0},
-            "debitos_total": {"pis": 0, "cofins": 0, "total": 0},
-            "saldo": {"pis": 0, "cofins": 0, "total": 0},
-            "imposto_a_pagar": {"pis": 0, "cofins": 0, "total": 0}
+
+
+@api_router.get("/pis-cofins/classificar-produto")
         },
         "comparativo": {
             "regime_mais_economico": None,
