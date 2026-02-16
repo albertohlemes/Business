@@ -30070,7 +30070,7 @@ async def get_analise_horizontal(
                     {
                         "$group": {
                             "_id": "$is_entrada",
-                            "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$valor_total", 0]}}},
+                            "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
                             "icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms", {"$ifNull": ["$produtos.valor_icms", 0]}]}}},
                             "icms_st": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms_st", {"$ifNull": ["$produtos.valor_icms_st", 0]}]}}},
                             "pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", {"$ifNull": ["$produtos.valor_pis", 0]}]}}},
