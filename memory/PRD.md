@@ -98,11 +98,11 @@
 ### Issues Pendentes
 
 #### P0 - CRÍTICO (REQUER VALIDAÇÃO DO USUÁRIO)
-- **PIS/COFINS travando**: Otimizações aplicadas. **PRECISA DE VALIDAÇÃO NO AMBIENTE DO CLIENTE** (14k+ docs)
-- **RET travando**: Mesmo que acima
+- **Performance com alto volume**: Otimizações aplicadas. **PRECISA DE VALIDAÇÃO NO AMBIENTE DO CLIENTE** (14k+ docs)
 
 #### P1 - Importantes
-- **Vilões e Oportunidades**: Lógica corrigida (usa bases de entrada/saída com alíquotas 1,65%/7,60%). Aguarda validação do usuário.
+- **Vilões e Oportunidades**: Lógica corrigida. Aguarda validação do usuário.
+- **Frontend Indicadores**: Aba "Margens e Markup" atualizada com detalhamento de Compras/Vendas Líquidas
 
 #### P2 - Menor
 - **Insights IA sem informação**: Não investigado
@@ -110,17 +110,29 @@
 
 ---
 
-### Issues Resolvidas (Sessão Atual)
+### Issues Resolvidas (Sessão Atual - Fork 2)
+- ✅ **Markup incorreto entre Dashboard e Indicadores**: Valores agora consistentes (diferença = 0)
+- ✅ **Compras Líquidas inconsistentes**: Unificada lógica em todos os endpoints
+- ✅ **Vendas Líquidas inconsistentes**: Unificada lógica em todos os endpoints
+- ✅ **Frontend Indicadores não usava dados do backend**: Corrigido para consumir `dados.icms.markup`, `dados.icms.compras_liquidas`, `dados.icms.vendas_liquidas`
+
+### Issues Resolvidas (Sessão Anterior - Fork 1)
 - ✅ **Inconsistência PIS/COFINS entre páginas**: Valores agora consistentes (diferença < 0.01%)
 - ✅ **Base de PIS/COFINS sem exclusão do ICMS**: Corrigido para excluir ICMS da base nas saídas
 - ✅ **Lógica de cálculo não unificada**: Todas as funções agora usam `calcular_pis_cofins_produto()`
 
-## Arquivos Principais Modificados
-- `/app/backend/server.py` - Correções em múltiplos endpoints:
-  - `_get_apuracao_pis_cofins_aggregated()` - Linha ~11421
-  - `_get_pis_cofins_aggregated()` - Linha ~24316
-  - `inteligencia-tributaria` endpoint - Linha ~26247
-- `/app/frontend/src/pages/ReformaTributaria.js` - Mostra débito bruto
+## Arquivos Modificados na Sessão Atual (Fork 2)
+- `/app/backend/server.py`:
+  - Endpoint `/api/apuracao-icms` - Adicionados campos compras_liquidas, vendas_liquidas, markup (~linhas 23065-23120, 23280-23300)
+  - Endpoint `/api/analise-horizontal` - Corrigida lógica de Compras/Vendas Líquidas (~linhas 30109-30185)
+- `/app/frontend/src/pages/Indicadores.js`:
+  - Função `calcularIndicadores()` - Atualizada para usar dados do backend (~linhas 278-330)
+  - Aba "Margens e Markup" - Novo detalhamento visual de Compras/Vendas (~linhas 1102-1169)
+
+## Arquivos de Teste Criados
+- `/app/backend/tests/test_compras_vendas_markup_consistency.py`
+- `/app/test_reports/pytest/pytest_compras_vendas_markup.xml`
+- `/app/test_reports/iteration_66.json`
 
 ## Credenciais de Teste
 - **Super Admin**: `alberto.lemes@businessconta.com.br` / `Business@2026`
