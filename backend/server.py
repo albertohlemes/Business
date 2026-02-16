@@ -14406,40 +14406,30 @@ async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str
     viloes = []
     oportunidades = []
     
+    # Alíquotas Lucro Real não-cumulativo para cálculo consistente
+    ALIQ_PIS = 0.0165
+    ALIQ_COFINS = 0.076
+    
     for ncm, dados in produtos_por_ncm.items():
         entrada = dados['entrada']
         saida = dados['saida']
         descricao = dados.get('descricao', '')
         
-        # Calcular impactos por imposto
+        # ICMS: usar valores do XML (cada estado/produto tem alíquota diferente)
         icms_credito = entrada['icms']
         icms_debito = saida['icms']
-        pis_credito = entrada['pis']
-        pis_debito = saida['pis']
-        cofins_credito = entrada['cofins']
-        cofins_debito = saida['cofins']
-        
         impacto_icms = icms_debito - icms_credito
-        impacto_pis = pis_debito - pis_credito
-        impacto_cofins = cofins_debito - cofins_credito
         
-        # PIS e COFINS devem ter o mesmo comportamento (mesmo critério de crédito/débito)
-        # Se houver inconsistência por arredondamento, consolidar como PIS/COFINS
-        impacto_pis_cofins = impacto_pis + impacto_cofins
+        # PIS/COFINS: calcular com base nos VALORES usando alíquotas fixas
+        # Isso garante consistência - se compra > venda, crédito > débito
+        pis_credito_calc = entrada['valor'] * ALIQ_PIS
+        pis_debito_calc = saida['valor'] * ALIQ_PIS
+        cofins_credito_calc = entrada['valor'] * ALIQ_COFINS
+        cofins_debito_calc = saida['valor'] * ALIQ_COFINS
         
-        # Corrigir inconsistências de arredondamento entre PIS e COFINS
-        # Se PIS e COFINS têm sinais opostos (impossível fiscalmente), adequar as bases
-        if impacto_pis * impacto_cofins < 0:
-            # Sinais opostos - adequar proporcionalmente ao impacto total
-            logger.info(f"VILOES AGREGADO: NCM {ncm} - Adequando PIS/COFINS: PIS={impacto_pis:.2f}, COFINS={impacto_cofins:.2f}, Total={impacto_pis_cofins:.2f}")
-            
-            # Proporção normal: COFINS = 4.6 * PIS (7.6/1.65)
-            # Distribuir o impacto total proporcionalmente
-            if impacto_pis_cofins != 0:
-                impacto_pis = impacto_pis_cofins * (1.65 / (1.65 + 7.60))
-                impacto_cofins = impacto_pis_cofins * (7.60 / (1.65 + 7.60))
-        
-        impacto_total = impacto_icms + impacto_pis_cofins
+        impacto_pis = pis_debito_calc - pis_credito_calc
+        impacto_cofins = cofins_debito_calc - cofins_credito_calc
+        impacto_total = impacto_icms + impacto_pis + impacto_cofins
         
         # Calcular margem
         margem_valor = ((saida['valor'] - entrada['valor']) / entrada['valor'] * 100) if entrada['valor'] > 0 else 0
@@ -14454,8 +14444,8 @@ async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str
                 'saida_valor': round(saida['valor'], 2),
                 'margem_percentual': round(margem_valor, 2),
                 'icms': {'credito': round(icms_credito, 2), 'debito': round(icms_debito, 2), 'impacto': round(impacto_icms, 2)},
-                'pis': {'credito': round(pis_credito, 2), 'debito': round(pis_debito, 2), 'impacto': round(impacto_pis, 2)},
-                'cofins': {'credito': round(cofins_credito, 2), 'debito': round(cofins_debito, 2), 'impacto': round(impacto_cofins, 2)},
+                'pis': {'credito': round(pis_credito_calc, 2), 'debito': round(pis_debito_calc, 2), 'impacto': round(impacto_pis, 2)},
+                'cofins': {'credito': round(cofins_credito_calc, 2), 'debito': round(cofins_debito_calc, 2), 'impacto': round(impacto_cofins, 2)},
                 'impacto_total': round(impacto_total, 2),
                 'qtd_entrada': entrada['qtd'],
                 'qtd_saida': saida['qtd'],
