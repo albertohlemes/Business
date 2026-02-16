@@ -36085,8 +36085,16 @@ async def get_apuracao_reforma_tributaria(
         logger.info(f"REFORMA TRIBUTÁRIA: Base saída={total_base_saida:.2f}, ICMS saída={total_icms_saida_calc:.2f}")
         
         # Calcular créditos de PIS/COFINS das entradas (Lucro Real)
+        # E calcular ICMS usando apenas CFOPs que geram crédito de ICMS
         total_base_entrada = 0
         total_icms_entrada_calc = 0
+        
+        # CFOPs que GERAM crédito de ICMS (compras para comercialização)
+        CFOPS_GERAM_CREDITO_ICMS_CALC = [
+            '1101', '1102', '1111', '1113', '1116', '1117', '1118', '1120', '1121', '1122', '1152', '1251', '1252', '1253',
+            '2101', '2102', '2111', '2113', '2116', '2117', '2118', '2120', '2121', '2122', '2152', '2251', '2252', '2253',
+            '3101', '3102', '3127'
+        ]
         
         if regime_empresa == 'lucro_real':
             for doc in docs_entrada:
@@ -36094,14 +36102,16 @@ async def get_apuracao_reforma_tributaria(
                     cfop = str(prod.get('cfop', ''))
                     ncm = prod.get('ncm', '')
                     valor = float(prod.get('valor_total', 0) or 0)
+                    v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
                     
-                    # Verificar se CFOP gera crédito e se não é alíquota zero
+                    # Verificar se CFOP gera crédito de PIS/COFINS e se não é alíquota zero
                     if cfop in CFOPS_COM_CREDITO_PIS_COFINS:
                         if not is_ncm_aliquota_zero(ncm) and not is_ncm_monofasico(ncm):
                             total_base_entrada += valor
                     
-                    # ICMS entrada
-                    total_icms_entrada_calc += float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+                    # ICMS entrada - SÓ creditar se o CFOP gera crédito de ICMS
+                    if cfop in CFOPS_GERAM_CREDITO_ICMS_CALC:
+                        total_icms_entrada_calc += v_icms
         
         logger.info(f"REFORMA TRIBUTÁRIA: Base entrada={total_base_entrada:.2f}, ICMS entrada={total_icms_entrada_calc:.2f}")
         
