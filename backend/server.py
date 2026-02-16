@@ -14711,6 +14711,15 @@ async def get_viloes_oportunidades(
         impacto_icms = icms_debito - icms_credito
         impacto_pis = pis_debito - pis_credito
         impacto_cofins = cofins_debito - cofins_credito
+        
+        # PIS e COFINS devem ter o mesmo comportamento (mesmo critério de crédito/débito)
+        # Se PIS e COFINS têm sinais opostos (impossível fiscalmente), é erro de arredondamento
+        if impacto_pis * impacto_cofins < 0:
+            # Corrigir: zerar ambos os impactos
+            logger.info(f"VILOES: NCM {ncm} - Corrigindo inconsistência PIS/COFINS: PIS={impacto_pis:.2f}, COFINS={impacto_cofins:.2f}")
+            impacto_pis = 0
+            impacto_cofins = 0
+        
         impacto_total = impacto_icms + impacto_pis + impacto_cofins
         
         # Vilão: impacto negativo alto
