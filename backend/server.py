@@ -10252,6 +10252,18 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         '1408', '2408',  # Transferência energia elétrica
     ]
     
+    # CFOPs de ST (Substituição Tributária) - Crédito de ICMS vai para conta separada
+    CFOPS_ST = [
+        '1403', '2403',  # Compra para comercialização ST
+        '1409', '2409',  # Transferência para comercialização ST
+        '1410', '2410',  # Devolução de venda ST
+        '1411', '2411',  # Devolução de venda fora do estabelecimento ST
+        '1414', '2414',  # Retorno de mercadoria ST
+        '1415', '2415',  # Retorno de mercadoria diversa ST
+        '1651', '2651',  # Compra de combustível ST
+        '1652', '2652',  # Compra de combustível ST fora do estado
+    ]
+    
     # CFOPs para cálculo de compras/vendas
     CFOPS_COMPRAS = ['1102', '2102', '1403', '2403', '1101', '2101', '1201', '2201', '1551', '2551']
     CFOPS_DEVOLUCAO_COMPRA = ['5201', '5202', '5410', '5411', '6201', '6202', '6410', '6411']
