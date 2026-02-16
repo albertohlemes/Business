@@ -26258,9 +26258,11 @@ async def inteligencia_tributaria(
                     cfop = str(prod.get('cfop', ''))
                     valor_total = float(prod.get('valor_total', 0) or 0)
                     
+                    # Excluir ICMS da base de cálculo (Lei 14.592/2023 - entradas e saídas)
+                    v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+                    valor_base = max(0, valor_total - v_icms)
+                    
                     if tipo_operacao == 'entrada':
-                        # Para entradas, usar valor total
-                        valor_base = valor_total
                         calc_real = calcular_pis_cofins_produto(
                             valor_base, ncm, cfop, 'entrada', perfil, 'LUCRO_REAL'
                         )
@@ -26269,10 +26271,6 @@ async def inteligencia_tributaria(
                             totais['creditos']['cofins'] += Decimal(str(calc_real.get('valor_cofins', 0)))
                     
                     elif tipo_operacao == 'saida':
-                        # Para saídas, excluir ICMS da base (decisão STF)
-                        v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
-                        valor_base = max(0, valor_total - v_icms)
-                        
                         if is_servico:
                             codigo_servico = prod.get('codigo_servico', '')
                             calc_real = calcular_pis_cofins_servico(
