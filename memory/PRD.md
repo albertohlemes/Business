@@ -2,42 +2,38 @@
 
 ## Status Atual (16/02/2026)
 
-### ✅ CORREÇÃO CRÍTICA - NCMs de Alíquota Zero (SESSÃO ATUAL)
+### ✅ CORREÇÕES CRÍTICAS - SESSÃO ATUAL
 
-#### Bug Identificado e Corrigido
-- **Problema**: O prefixo NCM `2106` estava na lista de alíquota zero, fazendo com que **TODAS** as preparações alimentícias (salgadinhos, molhos, etc.) fossem incorretamente classificadas como isentas
-- **Impacto**: 
-  - **Reforma Tributária**: Mostrava R$ 0,00 no regime atual
-  - **Comparativo Real vs Presumido**: Mostrava valores iguais
-  - **Divergências**: Não encontrava divergências
-- **Solução**: Removido o prefixo `2106` de todas as listas de alíquota zero. Apenas o NCM completo `21069010` (Preparações Compostas específicas) mantido como alíquota zero
-- **Status**: ✅ CORRIGIDO E TESTADO
+#### 1. NCMs de Alíquota Zero
+- **Problema**: NCM `2106` na lista de alíquota zero incorretamente classificava todas preparações alimentícias como isentas
+- **Solução**: Removido `2106` das listas, mantido apenas `21069010`
+- **Status**: ✅ CORRIGIDO
 
-#### Resultados Após Correção (COMERCIAL RS - 4.5k docs)
-- **PIS/COFINS**:
-  - Lucro Real: Créditos R$ 952k, Débitos R$ 979k, A Pagar R$ 27k
-  - Lucro Presumido: Créditos R$ 70, Débitos R$ 389k, A Pagar R$ 388k
-  - **Comparativo DIFERENTE** ✅
-- **Divergências**: 3.112 produtos divergentes encontrados ✅
-- **Reforma Tributária**: Regime atual calculado corretamente ✅
+#### 2. ICMS na Reforma Tributária
+- **Problema**: Mostrava débito total em vez do saldo a pagar
+- **Solução**: Agora usa saldo (débito - crédito) com mesma lógica da página de ICMS
+- **Resultado**: ICMS consistente entre todas as páginas (R$ 17.801,48)
+- **Status**: ✅ CORRIGIDO
+
+#### 3. ICMS no RET
+- **Problema**: ICMS zerado em ambos regimes
+- **Solução**: Corrigida agregação MongoDB para considerar CFOPs de crédito corretos
+- **Resultado**: ICMS R$ 24.826,05 exibido corretamente
+- **Status**: ✅ CORRIGIDO
+
+#### 4. Base de PIS/COFINS
+- **Problema**: Base incluía ICMS destacado (incorreto após decisão STF)
+- **Solução**: Base = valor_total - ICMS destacado
+- **Status**: ✅ CORRIGIDO
+
+#### 5. CFOPs de Crédito ICMS
+- **Problema**: CFOPs de despesa (1556, 1551, etc.) geravam crédito indevido
+- **Solução**: Excluídos CFOPs de despesa e ST do crédito de ICMS
+- **Status**: ✅ CORRIGIDO
 
 ---
 
-### ✅ CORREÇÕES DE PERFORMANCE (SESSÃO ATUAL)
-
-#### 1. Otimização de Agregação MongoDB
-- **Problema**: Páginas PIS/COFINS e RET travavam com alto volume de dados
-- **Solução**: Reduzido threshold de 5000 para 500 documentos
-- **Status**: ✅ IMPLEMENTADO
-
-#### 2. Índices MongoDB Criados
-- company_id + competencia
-- company_id + competencia + status + desconsiderada
-- company_id + competencia + produtos.cfop
-- **Status**: ✅ CRIADOS
-
-#### 3. Timeout do Frontend Aumentado (120s)
-- ApuracaoMensal.js, RET.js, ReformaTributaria.js, ViloesOportunidades.js
+### ✅ CORREÇÕES DE PERFORMANCE
 - **Status**: ✅ IMPLEMENTADO
 
 ---
