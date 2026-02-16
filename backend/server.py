@@ -1369,6 +1369,20 @@ def get_filtro_notas_ativas():
     }
 
 
+def get_filtro_notas_ativas_sem_locacao():
+    """
+    Retorna o filtro MongoDB para excluir notas canceladas, desconsideradas E recibos de locação.
+    Usar em apurações de ICMS e ISS onde locação NÃO deve ser incluída.
+    """
+    return {
+        "$and": [
+            {"$or": [{"cancelada": {"$exists": False}}, {"cancelada": False}]},
+            {"$or": [{"desconsiderada_devolucao": {"$exists": False}}, {"desconsiderada_devolucao": False}]},
+            {"modelo": {"$ne": "fatura_recibo"}}  # Excluir recibos de locação
+        ]
+    }
+
+
 # ============== LIMITE SEGURO PARA CONSULTAS ==============
 # Limite máximo de documentos para carregar na memória
 SAFE_DOCUMENT_LIMIT = 10000
