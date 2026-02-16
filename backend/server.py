@@ -36172,33 +36172,65 @@ async def get_apuracao_reforma_tributaria(
             '1414', '2414', '1415', '2415', '1651', '2651', '1652', '2652'
         ]
         
+        # Calcular usando a mesma função dos outros endpoints para consistência
+        # calcular_pis_cofins_produto já considera: NCM alíquota zero, monofásicos, CFOPs válidos
+        perfil = company.get('perfil_comercial', 'VAREJO') or 'VAREJO'
+        
+        # Débitos (saídas)
+        pis_debito = 0
+        cofins_debito = 0
+        total_base_saida = 0
+        
+        for doc in docs_saida:
+            for prod in doc.get('produtos', []):
+                cfop = str(prod.get('cfop', ''))
+                ncm = str(prod.get('ncm', '')).replace('.', '')
+                valor_total = float(prod.get('valor_total', 0) or 0)
+                v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+                
+                # Excluir ICMS da base (Lei 14.592/2023)
+                valor_base = max(0, valor_total - v_icms)
+                
+                calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, 'saida', perfil, 'LUCRO_REAL')
+                pis_debito += calc.get('valor_pis', 0)
+                cofins_debito += calc.get('valor_cofins', 0)
+                if calc.get('valor_pis', 0) > 0:
+                    total_base_saida += valor_base
+        
+        # Créditos (entradas) - apenas Lucro Real
+        pis_credito = 0
+        cofins_credito = 0
+        total_base_entrada = 0
+        total_icms_entrada_calc = 0
+        total_icms_saida_calc = 0
+        
+        # ICMS das saídas
+        for doc in docs_saida:
+            for prod in doc.get('produtos', []):
+                total_icms_saida_calc += float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+        
         if regime_empresa == 'lucro_real':
             for doc in docs_entrada:
                 for prod in doc.get('produtos', []):
                     cfop = str(prod.get('cfop', ''))
-                    ncm = prod.get('ncm', '')
-                    valor = float(prod.get('valor_total', 0) or 0)
+                    ncm = str(prod.get('ncm', '')).replace('.', '')
+                    valor_total = float(prod.get('valor_total', 0) or 0)
                     v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
                     
-                    # Verificar se CFOP gera crédito de PIS/COFINS e se não é alíquota zero
-                    if cfop in CFOPS_COM_CREDITO_PIS_COFINS:
-                        if not is_ncm_aliquota_zero(ncm) and not is_ncm_monofasico(ncm):
-                            # Base de cálculo = valor_total - ICMS destacado
-                            base_pis_cofins = valor - v_icms
-                            total_base_entrada += max(0, base_pis_cofins)
+                    # Excluir ICMS da base (Lei 14.592/2023)
+                    valor_base = max(0, valor_total - v_icms)
+                    
+                    calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, 'entrada', perfil, 'LUCRO_REAL')
+                    if calc.get('gera_credito', False):
+                        pis_credito += calc.get('valor_pis', 0)
+                        cofins_credito += calc.get('valor_cofins', 0)
+                        total_base_entrada += valor_base
                     
                     # ICMS entrada - creditar todas entradas EXCETO despesas e ST
-                    # (mesma lógica da página de ICMS para consistência)
                     if cfop not in CFOPS_DESPESA_ICMS and cfop not in CFOPS_ST_ICMS:
                         total_icms_entrada_calc += v_icms
         
         logger.info(f"REFORMA TRIBUTÁRIA: Base entrada (sem ICMS)={total_base_entrada:.2f}, ICMS entrada={total_icms_entrada_calc:.2f}")
-        
-        # Calcular PIS/COFINS
-        pis_debito = total_base_saida * (aliq['pis'] / 100)
-        cofins_debito = total_base_saida * (aliq['cofins'] / 100)
-        pis_credito = total_base_entrada * (aliq['pis'] / 100) if regime_empresa == 'lucro_real' else 0
-        cofins_credito = total_base_entrada * (aliq['cofins'] / 100) if regime_empresa == 'lucro_real' else 0
         
         regime_atual['pis'] = max(0, pis_debito - pis_credito)
         regime_atual['cofins'] = max(0, cofins_debito - cofins_credito)
