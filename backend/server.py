@@ -29986,8 +29986,12 @@ async def get_analise_horizontal(
                 # Calcular saldos
                 total_iss = 0  # ISS seria calculado em pipeline separado se necessário
                 saldo_icms = total_icms_debito - total_icms_credito
-                saldo_pis = total_pis_debito - total_pis_credito
-                saldo_cofins = total_cofins_debito - total_cofins_credito
+                
+                # USAR FUNÇÃO CENTRALIZADA para PIS/COFINS
+                # Garante consistência com RET, Apuração e Reforma Tributária
+                resultado_pis_cofins = await calcular_pis_cofins_unificado(company_id, comp, company)
+                saldo_pis = resultado_pis_cofins['pis_saldo']
+                saldo_cofins = resultado_pis_cofins['cofins_saldo']
                 
                 # Atualizar dados do mês
                 dados_dict[comp]["compras"] = round(total_compras, 2)
