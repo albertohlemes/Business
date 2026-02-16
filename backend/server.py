@@ -10298,36 +10298,7 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     # ============================================================
     # Calcular Compras e Vendas Líquidas
     # ============================================================
-    docs_for_calc = await db.xml_documents.find(
-        base_query, 
-        {"_id": 0, "tipo": 1, "tipo_operacao": 1, "produtos": 1}
-    ).to_list(20000)
-    
-    credito_icms = Decimal('0')
-    debito_icms = Decimal('0')
-    
-    # CFOPs que NÃO geram crédito de ICMS (despesa/consumo/uso)
-    CFOPS_DESPESA = [
-        '1556', '2556',  # Compra para uso/consumo
-        '1407', '2407',  # Devolução de uso/consumo
-        '1653', '2653',  # Compra de energia elétrica para consumo
-        '1128', '2128',  # Compra para uso/consumo em operação com mercadoria sujeita ao ICMS
-        '1126', '2126',  # Compra para uso/consumo em operação isenta
-        '1557', '2557',  # Transferência para uso/consumo
-        '1408', '2408',  # Transferência energia elétrica
-    ]
-    
-    # CFOPs de ST (Substituição Tributária) - Crédito de ICMS vai para conta separada
-    CFOPS_ST = [
-        '1403', '2403',  # Compra para comercialização ST
-        '1409', '2409',  # Transferência para comercialização ST
-        '1410', '2410',  # Devolução de venda ST
-        '1411', '2411',  # Devolução de venda fora do estabelecimento ST
-        '1414', '2414',  # Retorno de mercadoria ST
-        '1415', '2415',  # Retorno de mercadoria diversa ST
-        '1651', '2651',  # Compra de combustível ST
-        '1652', '2652',  # Compra de combustível ST fora do estado
-    ]
+    from decimal import Decimal
     
     # CFOPs para cálculo de compras/vendas
     CFOPS_COMPRAS = ['1102', '2102', '1403', '2403', '1101', '2101', '1201', '2201', '1551', '2551']
@@ -10345,17 +10316,12 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     total_vendas_brutas = Decimal('0')
     total_devolucao_vendas = Decimal('0')
     
-    # Verificar configurações da empresa para desconsiderar ICMS
-    desconsiderar_icms_despesas = company.get('desconsiderar_icms_despesas', False)
-    
-    for doc in docs_for_calc:
-        tipo = doc.get('tipo') or doc.get('tipo_operacao') or ''
+    for doc in docs_icms:  # Usar os mesmos docs já carregados
         produtos = doc.get('produtos', [])
         
         for prod in produtos:
             cfop = str(prod.get('cfop', ''))
             valor_total = Decimal(str(prod.get('valor_total', 0) or 0))
-            v_icms = Decimal(str(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0))
             
             # Determinar tipo pela primeira posição do CFOP (fonte da verdade fiscal)
             primeiro_digito = cfop[0] if cfop and cfop[0].isdigit() else '0'
