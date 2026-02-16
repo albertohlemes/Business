@@ -22924,12 +22924,18 @@ async def apurar_icms(
             valor_icms_st = float(prod.get('v_icms_st', 0) or 0)
             bc_icms_st = float(prod.get('v_bc_icms_st', 0) or 0)
             
-            # CORREÇÃO: Usar o tipo do DOCUMENTO como fonte da verdade (baseado no CNPJ do emitente)
-            # Não usar CFOP para determinar entrada/saída - isso causa bugs quando:
-            # 1. Uma nota de entrada tem produtos com CFOP de saída (devoluções espelhadas)
-            # 2. Uma nota de saída tem produtos com CFOP de entrada
-            # O tipo do documento é determinado na importação: CNPJ emitente == CNPJ empresa => saída, senão => entrada
-            tipo_item = tipo_op
+            # CORREÇÃO: Usar o CFOP para determinar entrada/saída (fonte da verdade fiscal)
+            # CFOPs 1xxx, 2xxx, 3xxx = ENTRADAS
+            # CFOPs 5xxx, 6xxx, 7xxx = SAÍDAS
+            # O tipo do documento pode estar errado, mas o CFOP nunca mente
+            primeiro_digito = cfop[0] if cfop and cfop[0].isdigit() else '0'
+            if primeiro_digito in ['1', '2', '3']:
+                tipo_item = 'entrada'
+            elif primeiro_digito in ['5', '6', '7']:
+                tipo_item = 'saida'
+            else:
+                # CFOP inválido ou sem CFOP - usar o tipo do documento como fallback
+                tipo_item = tipo_op
             
             if tipo_item == 'entrada':
                 # Verificar se CFOP é de despesa ou ST
