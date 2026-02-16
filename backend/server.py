@@ -17432,11 +17432,11 @@ async def export_sped(
     if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    # EXCLUIR notas canceladas e desconsideradas
+    # EXCLUIR notas canceladas, desconsideradas e recibos de locação (não vão no SPED)
     query = {
         "company_id": company_id
     }
-    query.update(get_filtro_notas_ativas())
+    query.update(get_filtro_notas_ativas_sem_locacao())  # Exclui locação do SPED
     if competencia:
         query['competencia'] = competencia
     
