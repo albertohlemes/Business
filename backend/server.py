@@ -11568,63 +11568,6 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
     
     # Converter por_cfop para lista
     por_cfop_lista = [{"cfop": k, **v} for k, v in sorted(por_cfop.items())]
-        pis_xml = float(item.get('valor_pis_xml', 0) or 0)
-        cofins_xml = float(item.get('valor_cofins_xml', 0) or 0)
-        qtd = int(item.get('qtd_produtos', 0) or 0)
-        
-        # Agrupar por CFOP
-        if cfop not in por_cfop:
-            por_cfop[cfop] = {
-                "valor": 0, "pis": 0, "cofins": 0, "qtd": 0, 
-                "tipo": 'entrada' if is_entrada else 'saida',
-                "valor_tributavel": 0, "valor_aliq_zero": 0
-            }
-        por_cfop[cfop]["valor"] += valor
-        por_cfop[cfop]["pis"] += pis_xml
-        por_cfop[cfop]["cofins"] += cofins_xml
-        por_cfop[cfop]["qtd"] += qtd
-        
-        valor_pis_xml_total += pis_xml
-        valor_cofins_xml_total += cofins_xml
-        
-        if nao_tributavel:
-            # Produto com alíquota zero ou monofásico - NÃO tributa
-            por_cfop[cfop]["valor_aliq_zero"] += valor
-            if is_entrada:
-                base_aliq_zero_entrada += valor
-            else:
-                base_aliq_zero_saida += valor
-        else:
-            # Produto tributável
-            por_cfop[cfop]["valor_tributavel"] += valor
-            if is_entrada and cfop in CFOPS_CREDITO:
-                base_credito_tributavel += valor
-            elif not is_entrada and cfop in CFOPS_DEBITO:
-                base_debito_tributavel += valor
-    
-    logger.info(f"APURACAO-PIS-COFINS CORRIGIDO: Base débito TRIBUTÁVEL={base_debito_tributavel:.2f}, Base crédito TRIBUTÁVEL={base_credito_tributavel:.2f}")
-    logger.info(f"APURACAO-PIS-COFINS CORRIGIDO: Alíquota zero entrada={base_aliq_zero_entrada:.2f}, Alíquota zero saída={base_aliq_zero_saida:.2f}")
-    
-    # Calcular valores de PIS/COFINS baseado no regime - APENAS sobre base tributável
-    if regime == 'lucro_real':
-        aliq_pis = 0.0165  # 1.65%
-        aliq_cofins = 0.076  # 7.6%
-        credito_pis = base_credito_tributavel * aliq_pis
-        credito_cofins = base_credito_tributavel * aliq_cofins
-    else:
-        aliq_pis = 0.0065  # 0.65%
-        aliq_cofins = 0.03  # 3%
-        credito_pis = 0
-        credito_cofins = 0
-    
-    debito_pis = base_debito_tributavel * aliq_pis
-    debito_cofins = base_debito_tributavel * aliq_cofins
-    
-    saldo_pis = debito_pis - credito_pis
-    saldo_cofins = debito_cofins - credito_cofins
-    
-    # Converter por_cfop para lista
-    por_cfop_lista = [{"cfop": k, **v} for k, v in sorted(por_cfop.items())]
     
     return {
         "empresa": {
