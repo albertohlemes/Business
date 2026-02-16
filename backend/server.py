@@ -26335,7 +26335,6 @@ async def inteligencia_tributaria(
         
         pis_real = max(0, resultado_pis_cofins['pis_saldo'])
         cofins_real = max(0, resultado_pis_cofins['cofins_saldo'])
-        cofins_creditos_real = float(creditos_cofins)
         
     except Exception as e:
         print(f"Erro ao calcular PIS/COFINS: {e}")
