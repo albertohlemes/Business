@@ -23064,6 +23064,73 @@ async def apurar_icms(
                     ncms_debito[ncm]["qtd"] += 1
                     ncms_debito[ncm]["produtos"].add(descricao[:30])
     
+    # ============================================================
+    # CÁLCULO DE COMPRAS E VENDAS LÍQUIDAS (para Markup)
+    # Lógica unificada - mesma do Dashboard
+    # ============================================================
+    
+    # CFOPs de COMPRA para revenda e insumos
+    CFOPS_COMPRA_REVENDA = ['1102', '2102', '1403', '2403', '1101', '2101']
+    CFOPS_COMPRA_INSUMO = ['1101', '2101', '1201', '2201', '1551', '2551']
+    CFOPS_COMPRAS_UNIFICADO = list(set(CFOPS_COMPRA_REVENDA + CFOPS_COMPRA_INSUMO))
+    
+    # CFOPs de DEVOLUÇÃO de compra (empresa devolvendo para fornecedor) - SAÍDAS
+    CFOPS_DEVOLUCAO_COMPRA = ['5201', '5202', '5410', '5411', '6201', '6202', '6410', '6411']
+    
+    # CFOPs de VENDA (vendas mercantis)
+    CFOPS_VENDA_UNIFICADO = [
+        # Vendas internas
+        '5101', '5102', '5103', '5104', '5105', '5106', '5109', '5110', '5111', '5112', '5113', '5114', '5115', '5116', '5117', '5118', '5119', '5120', '5122', '5123', '5124', '5125',
+        '5401', '5402', '5403', '5405',
+        # Vendas interestaduais
+        '6101', '6102', '6103', '6104', '6105', '6106', '6107', '6108', '6109', '6110', '6111', '6112', '6113', '6114', '6115', '6116', '6117', '6118', '6119', '6120', '6122', '6123', '6124', '6125',
+        '6401', '6402', '6403', '6404'
+    ]
+    
+    # CFOPs de DEVOLUÇÃO de venda (cliente devolvendo para empresa) - ENTRADAS
+    CFOPS_DEVOLUCAO_VENDA = ['1202', '1410', '1411', '2202', '2410', '2411']
+    
+    # Calcular valores líquidos pelos CFOPs
+    total_compras_brutas = 0
+    total_devolucao_compras = 0
+    total_vendas_brutas = 0
+    total_devolucao_vendas = 0
+    
+    for doc in documentos:
+        produtos = doc.get('produtos', [])
+        for prod in produtos:
+            cfop = str(prod.get('cfop', ''))
+            valor = float(prod.get('valor_total', 0) or 0)
+            
+            # Compras para revenda/insumo
+            if cfop in CFOPS_COMPRAS_UNIFICADO:
+                total_compras_brutas += valor
+            
+            # Devolução de compra (empresa devolvendo)
+            if cfop in CFOPS_DEVOLUCAO_COMPRA:
+                total_devolucao_compras += valor
+            
+            # Vendas
+            if cfop in CFOPS_VENDA_UNIFICADO:
+                total_vendas_brutas += valor
+            
+            # Devolução de venda (cliente devolvendo)
+            if cfop in CFOPS_DEVOLUCAO_VENDA:
+                total_devolucao_vendas += valor
+    
+    # Valores líquidos
+    compras_liquidas_calc = total_compras_brutas - total_devolucao_compras
+    vendas_liquidas_calc = total_vendas_brutas - total_devolucao_vendas
+    
+    # Markup = (Vendas Líquidas - Compras Líquidas) / Compras Líquidas * 100
+    markup_calc = ((vendas_liquidas_calc - compras_liquidas_calc) / compras_liquidas_calc * 100) if compras_liquidas_calc > 0 else 0
+    
+    logger.info(f"APURACAO-ICMS: Compras Brutas={total_compras_brutas}, Devoluções Compra={total_devolucao_compras}, Compras Líquidas={compras_liquidas_calc}")
+    logger.info(f"APURACAO-ICMS: Vendas Brutas={total_vendas_brutas}, Devoluções Venda={total_devolucao_vendas}, Vendas Líquidas={vendas_liquidas_calc}")
+    logger.info(f"APURACAO-ICMS: Markup={markup_calc:.2f}%")
+    
+    # ============================================================
+    
     # Converter sets para listas nos NCMs
     for ncm in ncms_credito.values():
         ncm["produtos"] = list(ncm["produtos"])[:3]
