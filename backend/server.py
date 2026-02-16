@@ -24774,7 +24774,7 @@ async def classificar_produto_pis_cofins_endpoint(
     return resultado
 
 
-@api_router.get("/pis-cofins/detalhamento/{company_id}")@api_router.get("/pis-cofins/detalhamento/{company_id}")
+@api_router.get("/pis-cofins/detalhamento/{company_id}")
 async def detalhamento_pis_cofins(
     company_id: str,
     competencia: str,
