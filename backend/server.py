@@ -10411,7 +10411,7 @@ async def get_dashboard_stats(
     
     # Se há muitos documentos, usar agregação para calcular totais
     # Isso evita carregar todos os produtos na memória
-    if total_docs > 5000:
+    if total_docs > 500:
         logger.info(f"DASHBOARD: Usando agregação otimizada para {total_docs} documentos")
         return await _get_dashboard_stats_aggregated(company, company_id, competencia, query, total_docs)
     
@@ -14539,7 +14539,7 @@ async def get_viloes_oportunidades(
     logger.info(f"VILOES: Total documentos = {total_docs}")
     
     # Se tiver mais de 5000 documentos, usar agregação otimizada
-    if total_docs > 5000:
+    if total_docs > 500:
         logger.info(f"VILOES: Usando agregação otimizada para {total_docs} documentos")
         return await _get_viloes_oportunidades_aggregated(company_id, competencia, regime)
     
@@ -21874,7 +21874,7 @@ async def apuracao_movimento(
     total_docs = await db.xml_documents.count_documents(query)
     logger.info(f"APURACAO-MOVIMENTO: Total documentos = {total_docs}")
     
-    if total_docs > 5000:
+    if total_docs > 500:
         logger.info(f"APURACAO-MOVIMENTO: Usando agregação otimizada para {total_docs} documentos")
         return await _get_apuracao_movimento_aggregated(company, company_id, competencia, query, total_docs)
     
