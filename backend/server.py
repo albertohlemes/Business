@@ -29971,12 +29971,55 @@ async def get_analise_horizontal(
                         total_pis_debito += float(item.get('pis', 0) or 0)
                         total_cofins_debito += float(item.get('cofins', 0) or 0)
                     
-                    total_icms_st += float(item.get('icms_st', 0) or 0)
-                    total_ipi += float(item.get('ipi', 0) or 0)
+                    # NÃO somar ICMS-ST e IPI - empresa não é contribuinte
+                    # total_icms_st += float(item.get('icms_st', 0) or 0)
+                    # total_ipi += float(item.get('ipi', 0) or 0)
                 
                 # Calcular saldos
                 total_iss = 0  # ISS seria calculado em pipeline separado se necessário
-                saldo_icms = total_icms_debito - total_icms_credito
+                
+                # USAR ENDPOINT APURAÇÃO ICMS para garantir consistência
+                # Buscar valor correto de ICMS (com CFOPs de despesa/ST desconsiderados)
+                try:
+                    icms_query = {
+                        "company_id": company_id,
+                        "competencia": comp,
+                        **get_filtro_notas_ativas()
+                    }
+                    
+                    # CFOPs de DESPESA e ST que NÃO geram crédito de ICMS
+                    CFOPS_DESPESA_ICMS = [
+                        '1407', '2407', '1556', '2556', '1557', '2557', '1128', '2128',
+                        '1551', '2551', '1406', '2406', '1653', '2653', '1126', '2126',
+                        '1352', '2352', '1353', '2353', '1354', '2354'
+                    ]
+                    CFOPS_ST_ICMS = [
+                        '1403', '2403', '1409', '2409', '1410', '2410', '1411', '2411',
+                        '1414', '2414', '1415', '2415', '1651', '2651', '1652', '2652'
+                    ]
+                    
+                    # Recalcular ICMS excluindo despesas e ST
+                    icms_credito_corrigido = 0
+                    icms_debito_corrigido = 0
+                    
+                    docs_icms = await db.xml_documents.find(icms_query, {"produtos": 1, "tipo": 1}).to_list(50000)
+                    for doc in docs_icms:
+                        tipo = doc.get('tipo', 'entrada')
+                        for prod in doc.get('produtos', []):
+                            cfop = str(prod.get('cfop', ''))
+                            v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+                            
+                            if tipo == 'entrada':
+                                # Não creditar despesas e ST
+                                if cfop not in CFOPS_DESPESA_ICMS and cfop not in CFOPS_ST_ICMS:
+                                    icms_credito_corrigido += v_icms
+                            else:
+                                icms_debito_corrigido += v_icms
+                    
+                    saldo_icms = icms_debito_corrigido - icms_credito_corrigido
+                except Exception as e:
+                    logger.warning(f"Erro ao calcular ICMS corrigido: {e}")
+                    saldo_icms = total_icms_debito - total_icms_credito
                 
                 # USAR FUNÇÃO CENTRALIZADA para PIS/COFINS
                 # Garante consistência com RET, Apuração e Reforma Tributária
