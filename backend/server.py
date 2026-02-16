@@ -20393,9 +20393,29 @@ async def internal_analise_tributaria(
                 credito_cofins_aliquota_zero += valor
     
     # ============ ANÁLISE DETALHADA DE SAÍDAS (DÉBITOS/FATURAMENTO) ============
-    total_saidas = sum(d.get('valor_total', 0) for d in docs_saida)
-    total_servicos = sum(d.get('valor_servicos', 0) for d in docs_saida)
-    total_vendas = total_saidas - total_servicos
+    # CFOPs de devolução de cliente (saídas que devem ser descontadas das vendas)
+    CFOPS_DEVOLUCAO_CLIENTE = [
+        '5201', '5202', '5205', '5206', '5207', '5208', '5209', '5210', '5211',
+        '6201', '6202', '6205', '6206', '6207', '6208', '6209', '6210', '6211'
+    ]
+    
+    total_saidas = 0
+    total_devolucoes_cliente = 0
+    total_servicos = 0
+    
+    for doc in docs_saida:
+        valor_doc = float(doc.get('valor_total', 0) or 0)
+        total_saidas += valor_doc
+        total_servicos += float(doc.get('valor_servicos', 0) or 0)
+        
+        # Verificar se é devolução de cliente
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            if cfop in CFOPS_DEVOLUCAO_CLIENTE:
+                total_devolucoes_cliente += float(prod.get('valor_total', 0) or 0)
+    
+    # Vendas líquidas = Total de saídas - Devoluções de clientes - Serviços
+    total_vendas = total_saidas - total_devolucoes_cliente - total_servicos
     
     # Débitos separados por imposto
     debito_icms_tributado = 0
