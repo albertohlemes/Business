@@ -52,7 +52,8 @@ const ReformaTributaria = ({ user, onLogout }) => {
         `${API}/api/reforma-tributaria/apuracao/${selectedCompany.id}`,
         { 
           headers: { Authorization: `Bearer ${token}` },
-          params: { competencia: selectedCompetencia }
+          params: { competencia: selectedCompetencia },
+          timeout: 120000 // 2 minutos para suportar grandes volumes
         }
       );
       setApuracao(response.data);
