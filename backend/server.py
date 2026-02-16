@@ -10280,10 +10280,25 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
             valor_total = Decimal(str(prod.get('valor_total', 0) or 0))
             v_icms = Decimal(str(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0))
             
-            # ICMS
-            if tipo == 'entrada':
-                credito_icms += v_icms
-            elif tipo == 'saida':
+            # Determinar tipo pela primeira posição do CFOP (fonte da verdade fiscal)
+            primeiro_digito = cfop[0] if cfop and cfop[0].isdigit() else '0'
+            if primeiro_digito in ['1', '2', '3']:
+                tipo_item = 'entrada'
+            elif primeiro_digito in ['5', '6', '7']:
+                tipo_item = 'saida'
+            else:
+                tipo_item = tipo
+            
+            # ICMS - Excluir CFOPs de despesa do crédito (mesma lógica de apuracao-icms)
+            is_despesa = cfop in CFOPS_DESPESA
+            
+            if tipo_item == 'entrada':
+                # Só soma crédito se NÃO for despesa ou se a empresa não desconsiderar
+                if not (is_despesa and desconsiderar_icms_despesas):
+                    # Na verdade, CFOPs de despesa NUNCA geram crédito
+                    if not is_despesa:
+                        credito_icms += v_icms
+            elif tipo_item == 'saida':
                 debito_icms += v_icms
             
             # Compras e Vendas por CFOP
