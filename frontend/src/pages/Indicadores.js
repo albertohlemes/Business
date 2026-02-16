@@ -281,17 +281,19 @@ const Indicadores = ({ user, onLogout }) => {
     const cmv = calcularCMV();
     const lucroBruto = calcularLucroBruto();
     
-    // Margem de Contribuição
-    const margemAbsoluta = lucroBruto;
-    const margemPercentual = receitas.total > 0 ? (margemAbsoluta / receitas.total) * 100 : 0;
-    
     // MARKUP - Usar dados do backend (mesmo cálculo do Dashboard)
     // Markup = (Vendas Líquidas - Compras Líquidas) / Compras Líquidas * 100
-    // Compras Líquidas = CFOPs de Compra - Devoluções de Saída
-    // Vendas Líquidas = CFOPs de Venda - Devoluções de Entrada
     const markup = dados?.icms?.markup || 0;
     const comprasLiquidas = dados?.icms?.compras_liquidas?.liquidas || 0;
     const vendasLiquidas = dados?.icms?.vendas_liquidas?.liquidas || 0;
+    
+    // MARGEM DE CONTRIBUIÇÃO - Fórmula correta:
+    // MCT (Margem de Contribuição Total) = Receita Total - Custos Variáveis
+    // Custos Variáveis = Compras Líquidas (custo das mercadorias)
+    // IMC (Índice de Margem de Contribuição) = (MCT / Receita Total) x 100
+    const custosVariaveis = comprasLiquidas; // CMV = Compras Líquidas
+    const margemContribuicaoTotal = vendasLiquidas - custosVariaveis; // MCT = Vendas - Custos
+    const indiceMargemContribuicao = vendasLiquidas > 0 ? (margemContribuicaoTotal / vendasLiquidas) * 100 : 0; // IMC = MC / Receita
     
     // Entradas por tipo
     const entradas = dados?.icms?.entradas || {};
@@ -315,10 +317,14 @@ const Indicadores = ({ user, onLogout }) => {
     });
     
     return {
-      margem: { absoluta: margemAbsoluta, percentual: margemPercentual },
+      margem: { 
+        absoluta: margemContribuicaoTotal,  // MCT
+        percentual: indiceMargemContribuicao // IMC
+      },
       markup,
       comprasLiquidas,
       vendasLiquidas,
+      custosVariaveis,
       entradas: { insumo, revenda, despesa, ativo, total: insumo + revenda + despesa + ativo }
     };
   };
