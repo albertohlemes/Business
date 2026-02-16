@@ -35508,13 +35508,15 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
     qtd_prod_saidas = 0
     
     for item in resultados:
-        tipo = item['_id'] or ''
-        if tipo == 'entrada':
-            total_entradas = item['valor_total']
-            qtd_prod_entradas = item['qtd_produtos']
-        elif tipo == 'saida':
-            total_saidas = item['valor_total']
-            qtd_prod_saidas = item['qtd_produtos']
+        tipo = (item['_id'] or '').lower().strip()
+        is_entrada = tipo in ['entrada', 'entry', 'input']
+        
+        if is_entrada:
+            total_entradas = float(item.get('valor_total', 0) or 0)
+            qtd_prod_entradas = int(item.get('qtd_produtos', 0) or 0)
+        else:
+            total_saidas = float(item.get('valor_total', 0) or 0)
+            qtd_prod_saidas = int(item.get('qtd_produtos', 0) or 0)
     
     # Calcular impostos
     credito_cbs = total_entradas * aliquota_cbs
