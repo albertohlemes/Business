@@ -2,7 +2,33 @@
 
 ## Status Atual (16/02/2026)
 
-### ✅ CORREÇÃO CRÍTICA COMPLETA - SESSÃO ATUAL
+### ✅ CORREÇÃO CRÍTICA COMPLETA - SESSÃO ATUAL (Fork 2)
+
+#### CONSISTÊNCIA 100% - COMPRAS LÍQUIDAS, VENDAS LÍQUIDAS e MARKUP 
+**Problema original**: Valores de Compras Líquidas, Vendas Líquidas e Markup inconsistentes entre Dashboard e página Indicadores.
+
+**Solução implementada**:
+1. Adicionados campos `compras_liquidas`, `vendas_liquidas` e `markup` no endpoint `/api/apuracao-icms`
+2. Corrigido endpoint `/api/analise-horizontal` para calcular valores corretamente por CFOP
+3. Atualizada página `/app/frontend/src/pages/Indicadores.js` para consumir dados do backend
+
+**Fórmulas implementadas (conforme solicitado pelo usuário)**:
+- **Compras Líquidas** = CFOPs de Compra (1102, 2102, 1403, 2403, 1101, 2101) - Devoluções de Saída (5201, 5202, 5410, 5411, 6201, 6202, 6410, 6411)
+- **Vendas Líquidas** = CFOPs de Venda (5102, 6102, etc.) - Devoluções de Entrada (1202, 1410, 1411, 2202, 2410, 2411)
+- **Markup** = (Vendas Líquidas - Compras Líquidas) / Compras Líquidas × 100
+
+**Resultado Final (Janeiro 2026 - COMERCIAL RS)**:
+| Campo | Endpoint apuracao-icms | Endpoint analise-horizontal | Diferença |
+|-------|------------------------|----------------------------|-----------|
+| Compras Líquidas | R$ 10.929.656,95 | R$ 10.929.656,95 | 0.0 |
+| Vendas Líquidas | R$ 11.407.076,05 | R$ 11.407.076,05 | 0.0 |
+| Markup | 4,37% | 4,37% | 0.0 |
+
+**Status**: ✅ 100% CONSISTENTE - 10/10 TESTES PASSARAM
+
+---
+
+### ✅ CORREÇÃO CRÍTICA - SESSÃO ANTERIOR (Fork 1)
 
 #### CONSISTÊNCIA 100% PIS/COFINS 
 **Problema original**: Valores de PIS/COFINS completamente diferentes entre RET, Apuração e Reforma Tributária.
