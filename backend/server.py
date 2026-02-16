@@ -10487,21 +10487,21 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
                 "nfce": round(total_nfce, 2),
                 "cte": round(total_cte_saida, 2),
                 "servicos_prestados": round(total_nfse_prestados, 2),
-                "total": round(total_nfe_saida + total_nfce + total_cte_saida + total_nfse_prestados, 2)
+                "total": round(float(total_saidas_cfop), 2)  # Total por CFOP (igual apuracao-icms)
             },
             # CORREÇÃO: Usar valores calculados por CFOP
             "compras": {
-                "brutas": round(total_compras_brutas, 2),
-                "devolucoes": round(total_devolucao_compras, 2),
+                "brutas": round(float(total_compras_brutas), 2),
+                "devolucoes": round(float(total_devolucao_compras), 2),
                 "liquidas": round(compras_liquidas, 2)
             },
             "vendas_liquidas": {
-                "brutas": round(total_vendas_brutas, 2),
-                "devolucoes": round(total_devolucao_vendas, 2),
+                "brutas": round(float(total_vendas_brutas), 2),
+                "devolucoes": round(float(total_devolucao_vendas), 2),
                 "liquidas": round(vendas_liquidas, 2)
             },
             "markup": round(markup_calc, 2),
-            "total_entradas": round(total_entradas, 2),
+            "total_entradas": round(float(total_entradas_cfop), 2),  # Total por CFOP (igual apuracao-icms)
             "total_vendas": round(total_nfe_saida, 2),
             "total_cupons": round(total_nfce, 2),
             "total_servicos": round(total_nfse_prestados, 2),
