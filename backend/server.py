@@ -36040,6 +36040,33 @@ async def get_apuracao_reforma_tributaria(
         regime_atual['total'] = regime_atual['pis_cofins'] + regime_atual['icms']
         
         logger.info(f"REFORMA TRIBUTÁRIA: regime_atual calculado: pis={regime_atual['pis']:.2f}, cofins={regime_atual['cofins']:.2f}, icms={regime_atual['icms']:.2f}")
+        
+        # Adicionar detalhamento para debug
+        regime_atual['detalhamento'] = {
+            'pis_debito': round(pis_debito, 2),
+            'pis_credito': round(pis_credito, 2),
+            'pis_saldo': round(pis_debito - pis_credito, 2),
+            'cofins_debito': round(cofins_debito, 2),
+            'cofins_credito': round(cofins_credito, 2),
+            'cofins_saldo': round(cofins_debito - cofins_credito, 2),
+            'icms_debito': round(total_icms_saida_calc, 2),
+            'icms_credito': round(total_icms_entrada_calc, 2),
+            'icms_saldo': round(total_icms_saida_calc - total_icms_entrada_calc, 2),
+            'base_saida': round(total_base_saida, 2),
+            'base_entrada': round(total_base_entrada, 2),
+            'nota': 'Valores negativos indicam saldo credor'
+        }
+        
+        # Se tem saldo credor, mostrar o débito (não zero)
+        # Isso é mais informativo para comparação com reforma tributária
+        if pis_debito > 0 or cofins_debito > 0 or total_icms_saida_calc > 0:
+            # Mostrar débito bruto para comparação
+            regime_atual['debito_bruto'] = {
+                'pis': round(pis_debito, 2),
+                'cofins': round(cofins_debito, 2),
+                'icms': round(total_icms_saida_calc, 2),
+                'total': round(pis_debito + cofins_debito + total_icms_saida_calc, 2)
+            }
     
     # Estatísticas por CST
     stats_cst_entrada = {}
