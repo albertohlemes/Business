@@ -11420,104 +11420,154 @@ async def get_inconsistencias(
 
 async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, competencia: str, query: dict, total_docs: int, regime: str):
     """
-    Versão otimizada da apuração PIS/COFINS usando agregação do MongoDB.
-    Usada quando há mais de 5000 documentos para evitar timeout.
+    Versão otimizada da apuração PIS/COFINS usando a mesma lógica da RET/Inteligência Tributária.
     
-    CORRIGIDO: Agora usa os campos ncm_aliq_zero e cst_pis salvos nos produtos
-    para identificar corretamente produtos com alíquota zero e monofásicos.
+    IMPORTANTE: Usa calcular_pis_cofins_produto() para cada produto, garantindo consistência
+    entre todas as páginas que calculam PIS/COFINS (RET, Reforma Tributária, PIS/COFINS).
+    
+    NÃO confia no CST do XML pois frequentemente está incorreto.
     """
-    logger.info(f"APURACAO-PIS-COFINS AGREGADO: Iniciando para {total_docs} documentos")
+    logger.info(f"APURACAO-PIS-COFINS UNIFICADO: Iniciando para {total_docs} documentos")
     
-    # CSTs que indicam alíquota zero ou monofásico (não tributam)
-    # Saídas: 04 (monofásico), 06 (alíquota zero), 07 (isento), 08 (sem incidência), 09 (suspensão)
-    # Entradas: 70 (sem crédito), 73 (alíquota zero), 74 (monofásico)
-    CSTS_SEM_TRIBUTACAO = ['04', '06', '07', '08', '09', '70', '73', '74', '98', '99']
+    from decimal import Decimal
     
-    # Pipeline de agregação - CORRIGIDO para usar campos salvos nos produtos
-    # Agrupa por: tipo, cfop, ncm_aliq_zero (flag salva no produto), cst_pis
-    pipeline = [
-        {"$match": {**query, "modelo": {"$ne": "fatura_recibo"}}},
-        {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
-        {
-            "$addFields": {
-                "cfop_primeiro_char": {"$substr": [{"$toString": {"$ifNull": ["$produtos.cfop", "0000"]}}, 0, 1]},
-                "tipo_normalizado": {"$toLower": {"$ifNull": ["$tipo", "$tipo_operacao"]}},
-                # Identificar se é não tributável: ncm_aliq_zero=true OU cst_pis em lista de não tributação
-                "produto_nao_tributavel": {
-                    "$or": [
-                        {"$eq": ["$produtos.ncm_aliq_zero", True]},
-                        {"$in": [{"$toString": {"$ifNull": ["$produtos.cst_pis", ""]}}, CSTS_SEM_TRIBUTACAO]}
-                    ]
-                }
-            }
-        },
-        {
-            "$addFields": {
-                # Determinar entrada/saída: primeiro pelo tipo, depois pelo CFOP
-                "is_entrada": {
-                    "$cond": {
-                        "if": {"$in": ["$tipo_normalizado", ["entrada", "entry", "input"]]},
-                        "then": True,
-                        "else": {
-                            "$cond": {
-                                "if": {"$in": ["$tipo_normalizado", ["saida", "saída", "exit", "output"]]},
-                                "then": False,
-                                "else": {"$in": ["$cfop_primeiro_char", ["1", "2", "3"]]}
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        {
-            "$group": {
-                "_id": {
-                    "is_entrada": "$is_entrada",
-                    "cfop": {"$ifNull": [{"$toString": "$produtos.cfop"}, "0000"]},
-                    "nao_tributavel": "$produto_nao_tributavel"
-                },
-                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
-                "valor_pis_xml": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", {"$ifNull": ["$produtos.valor_pis", 0]}]}}},
-                "valor_cofins_xml": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_cofins", {"$ifNull": ["$produtos.valor_cofins", 0]}]}}},
-                "qtd_produtos": {"$sum": 1}
-            }
-        }
-    ]
+    # Obter perfil da empresa
+    perfil_empresa = company.get('perfil_comercial', 'VAREJO') or 'VAREJO'
+    perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
+    perfil = perfis[0] if perfis else 'VAREJO'
     
-    cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
-    resultados = await cursor.to_list(length=5000)
+    # Estrutura para totais usando Decimal para precisão
+    totais = {
+        'creditos': {'pis': Decimal('0'), 'cofins': Decimal('0'), 'base': Decimal('0')},
+        'debitos': {'pis': Decimal('0'), 'cofins': Decimal('0'), 'base': Decimal('0')},
+        'aliq_zero_entrada': Decimal('0'),
+        'aliq_zero_saida': Decimal('0'),
+        'monofasico_entrada': Decimal('0'),
+        'monofasico_saida': Decimal('0'),
+    }
     
-    logger.info(f"APURACAO-PIS-COFINS AGREGADO: {len(resultados)} grupos encontrados")
-    
-    # CFOPs que geram crédito (entradas) - Lucro Real
-    CFOPS_CREDITO = ['1101', '1102', '1111', '1113', '1116', '1117', '1118', '1120', '1121', '1122',
-                    '1124', '1125', '1126', '1128', '1151', '1152', '1153', '1154', '1201', '1202',
-                    '1403', '1406', '1407', '1556', '1653',
-                    '2101', '2102', '2111', '2113', '2116', '2117', '2118', '2120', '2121', '2122',
-                    '2124', '2125', '2126', '2128', '2151', '2152', '2153', '2154', '2201', '2202',
-                    '2403', '2406', '2407', '2556', '2653']
-    
-    # CFOPs que geram débito (saídas)
-    CFOPS_DEBITO = ['5101', '5102', '5103', '5104', '5105', '5106', '5109', '5110', '5111', '5112',
-                   '5113', '5114', '5115', '5116', '5117', '5118', '5119', '5120', '5122', '5123',
-                   '5401', '5402', '5403', '5405',
-                   '6101', '6102', '6103', '6104', '6105', '6106', '6107', '6108', '6109', '6110',
-                   '6111', '6112', '6113', '6114', '6115', '6116', '6117', '6118', '6119', '6120']
-    
-    # Processar resultados
-    base_credito_tributavel = 0
-    base_debito_tributavel = 0
-    base_aliq_zero_entrada = 0
-    base_aliq_zero_saida = 0
+    por_cfop = {}
     valor_pis_xml_total = 0
     valor_cofins_xml_total = 0
-    por_cfop = {}
     
-    for item in resultados:
-        is_entrada = item['_id'].get('is_entrada', False)
-        cfop = str(item['_id'].get('cfop', '0000') or '0000')
-        nao_tributavel = item['_id'].get('nao_tributavel', False)
-        valor = float(item.get('valor_total', 0) or 0)
+    # Processar em batches para não sobrecarregar memória
+    BATCH_SIZE = 500
+    skip = 0
+    
+    # Adicionar filtro para excluir recibos de locação
+    query_filtered = {**query, "modelo": {"$ne": "fatura_recibo"}}
+    
+    while True:
+        docs_batch = await db.xml_documents.find(
+            query_filtered, 
+            {"produtos": 1, "tipo": 1, "tipo_operacao": 1}
+        ).skip(skip).limit(BATCH_SIZE).to_list(BATCH_SIZE)
+        
+        if not docs_batch:
+            break
+        
+        for doc in docs_batch:
+            # Inferir tipo_operacao
+            tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
+            if not tipo_operacao:
+                produtos = doc.get('produtos', [])
+                if produtos:
+                    cfop = str(produtos[0].get('cfop', ''))
+                    if cfop and cfop[0] in ['1', '2', '3']:
+                        tipo_operacao = 'entrada'
+                    elif cfop and cfop[0] in ['5', '6', '7']:
+                        tipo_operacao = 'saida'
+            
+            for prod in doc.get('produtos', []):
+                ncm = str(prod.get('ncm', '')).replace('.', '')
+                cfop = str(prod.get('cfop', ''))
+                valor_base = float(prod.get('valor_total', 0) or 0)
+                pis_xml = float(prod.get('v_pis', 0) or prod.get('valor_pis', 0) or 0)
+                cofins_xml = float(prod.get('v_cofins', 0) or prod.get('valor_cofins', 0) or 0)
+                
+                valor_pis_xml_total += pis_xml
+                valor_cofins_xml_total += cofins_xml
+                
+                # Agrupar por CFOP
+                if cfop not in por_cfop:
+                    por_cfop[cfop] = {
+                        "valor": 0, "pis": 0, "cofins": 0, "qtd": 0, 
+                        "tipo": 'entrada' if tipo_operacao == 'entrada' else 'saida',
+                        "valor_tributavel": 0, "valor_aliq_zero": 0
+                    }
+                por_cfop[cfop]["valor"] += valor_base
+                por_cfop[cfop]["qtd"] += 1
+                
+                # Usar calcular_pis_cofins_produto para determinar tributação
+                # Regime para cálculo: LUCRO_REAL ou LUCRO_PRESUMIDO
+                regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
+                calc = calcular_pis_cofins_produto(
+                    valor_base, ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
+                )
+                
+                classificacao = calc.get('classificacao', {})
+                tipo_produto = classificacao.get('tipo', '')
+                
+                if tipo_operacao == 'entrada':
+                    if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
+                        # Produto gera crédito
+                        totais['creditos']['pis'] += Decimal(str(calc.get('valor_pis', 0)))
+                        totais['creditos']['cofins'] += Decimal(str(calc.get('valor_cofins', 0)))
+                        totais['creditos']['base'] += Decimal(str(valor_base))
+                        por_cfop[cfop]["valor_tributavel"] += valor_base
+                        por_cfop[cfop]["pis"] += calc.get('valor_pis', 0)
+                        por_cfop[cfop]["cofins"] += calc.get('valor_cofins', 0)
+                    else:
+                        # Sem crédito (alíquota zero, monofásico, CFOP sem crédito)
+                        if tipo_produto == 'ALIQUOTA_ZERO':
+                            totais['aliq_zero_entrada'] += Decimal(str(valor_base))
+                        elif tipo_produto == 'MONOFASICO':
+                            totais['monofasico_entrada'] += Decimal(str(valor_base))
+                        por_cfop[cfop]["valor_aliq_zero"] += valor_base
+                else:  # saída
+                    if calc.get('valor_pis', 0) > 0:
+                        # Produto gera débito
+                        totais['debitos']['pis'] += Decimal(str(calc.get('valor_pis', 0)))
+                        totais['debitos']['cofins'] += Decimal(str(calc.get('valor_cofins', 0)))
+                        totais['debitos']['base'] += Decimal(str(valor_base))
+                        por_cfop[cfop]["valor_tributavel"] += valor_base
+                        por_cfop[cfop]["pis"] += calc.get('valor_pis', 0)
+                        por_cfop[cfop]["cofins"] += calc.get('valor_cofins', 0)
+                    else:
+                        # Sem débito (alíquota zero, monofásico, CFOP sem débito)
+                        if tipo_produto == 'ALIQUOTA_ZERO':
+                            totais['aliq_zero_saida'] += Decimal(str(valor_base))
+                        elif tipo_produto == 'MONOFASICO':
+                            totais['monofasico_saida'] += Decimal(str(valor_base))
+                        por_cfop[cfop]["valor_aliq_zero"] += valor_base
+        
+        skip += BATCH_SIZE
+        
+        # Limite de segurança
+        if skip > 100000:
+            logger.warning(f"APURACAO-PIS-COFINS: Limite de 100k docs atingido para company {company_id}")
+            break
+    
+    # Calcular saldos
+    credito_pis = float(totais['creditos']['pis'])
+    credito_cofins = float(totais['creditos']['cofins'])
+    debito_pis = float(totais['debitos']['pis'])
+    debito_cofins = float(totais['debitos']['cofins'])
+    
+    saldo_pis = debito_pis - credito_pis
+    saldo_cofins = debito_cofins - credito_cofins
+    
+    base_credito = float(totais['creditos']['base'])
+    base_debito = float(totais['debitos']['base'])
+    base_aliq_zero_entrada = float(totais['aliq_zero_entrada']) + float(totais['monofasico_entrada'])
+    base_aliq_zero_saida = float(totais['aliq_zero_saida']) + float(totais['monofasico_saida'])
+    
+    logger.info(f"APURACAO-PIS-COFINS UNIFICADO: Base crédito={base_credito:.2f}, Base débito={base_debito:.2f}")
+    logger.info(f"APURACAO-PIS-COFINS UNIFICADO: Crédito PIS={credito_pis:.2f}, Débito PIS={debito_pis:.2f}")
+    logger.info(f"APURACAO-PIS-COFINS UNIFICADO: Alíq zero entrada={base_aliq_zero_entrada:.2f}, saída={base_aliq_zero_saida:.2f}")
+    
+    # Converter por_cfop para lista
+    por_cfop_lista = [{"cfop": k, **v} for k, v in sorted(por_cfop.items())]
         pis_xml = float(item.get('valor_pis_xml', 0) or 0)
         cofins_xml = float(item.get('valor_cofins_xml', 0) or 0)
         qtd = int(item.get('qtd_produtos', 0) or 0)
