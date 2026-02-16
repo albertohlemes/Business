@@ -26072,6 +26072,8 @@ async def inteligencia_tributaria(
         
         # Pipeline de agregação para calcular ICMS de forma eficiente
         # Usar get_filtro_notas_ativas_sem_locacao() para consistência com a página de ICMS
+        # IMPORTANTE: Usar o campo 'tipo' do documento como fonte de verdade (não CFOP)
+        # Isso é mais preciso pois considera o CNPJ emitente vs empresa
         pipeline_icms = [
             {"$match": {
                 "company_id": company_id,
@@ -26080,22 +26082,21 @@ async def inteligencia_tributaria(
             }},
             {"$unwind": "$produtos"},
             {"$project": {
+                "tipo_doc": "$tipo",  # entrada ou saida (baseado no documento)
                 "cfop": {"$toString": {"$ifNull": ["$produtos.cfop", ""]}},
                 "valor_icms": {"$toDouble": {"$ifNull": [
                     {"$ifNull": ["$produtos.v_icms", "$produtos.valor_icms"]}, 0
-                ]}},
-                "cfop_primeiro": {"$substr": [{"$toString": {"$ifNull": ["$produtos.cfop", ""]}}, 0, 1]}
+                ]}}
             }},
             {"$addFields": {
                 "tipo_icms": {
                     "$switch": {
                         "branches": [
-                            # CFOPs de saída geram débito
-                            {"case": {"$in": ["$cfop_primeiro", ["5", "6", "7"]]}, "then": "debito"},
-                            # CFOPs de entrada geram crédito, EXCETO despesas e ST
-                            # (mesma lógica da página de ICMS e Reforma Tributária)
+                            # Documentos de SAÍDA geram débito
+                            {"case": {"$eq": ["$tipo_doc", "saida"]}, "then": "debito"},
+                            # Documentos de ENTRADA geram crédito, EXCETO CFOPs de despesas e ST
                             {"case": {"$and": [
-                                {"$in": ["$cfop_primeiro", ["1", "2", "3"]]},
+                                {"$eq": ["$tipo_doc", "entrada"]},
                                 # Excluir CFOPs de DESPESA
                                 {"$not": {"$in": ["$cfop", [
                                     "1407", "2407", "1556", "2556", "1557", "2557", "1128", "2128",
