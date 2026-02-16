@@ -26090,6 +26090,7 @@ async def inteligencia_tributaria(
             ])
         
         # Construir a condição de crédito baseado nas flags
+        logger.info(f"RET CFOPs a excluir: {len(cfops_excluir_credito)} CFOPs: {cfops_excluir_credito[:5]}...")
         if cfops_excluir_credito:
             credito_condition = {
                 "$and": [
