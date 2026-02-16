@@ -28930,11 +28930,13 @@ async def get_impostos_retidos(
     # Estrutura para acumular dados
     retencoes_tomados = {
         "iss": 0, "ir": 0, "pis": 0, "cofins": 0, "csll": 0, "inss": 0,
-        "total_servicos": 0, "qtd_docs": 0, "detalhes": []
+        "total_servicos": 0, "qtd_docs": 0, "detalhes": [],
+        "iss_por_municipio": {}  # NOVO: ISS agrupado por município do prestador
     }
     retencoes_prestados = {
         "iss": 0, "ir": 0, "pis": 0, "cofins": 0, "csll": 0, "inss": 0,
-        "total_servicos": 0, "qtd_docs": 0, "detalhes": []
+        "total_servicos": 0, "qtd_docs": 0, "detalhes": [],
+        "iss_por_municipio": {}  # NOVO: ISS agrupado por município do tomador
     }
     
     # Processar documentos
@@ -28942,8 +28944,18 @@ async def get_impostos_retidos(
         tipo = doc.get('tipo_operacao', doc.get('tipo', 'tomado'))
         if tipo in ['saida', 'prestado']:
             estrutura = retencoes_prestados
+            # Para prestados: município do TOMADOR (destino)
+            municipio_info = doc.get('destinatario_endereco', {}) or doc.get('tomador', {}).get('endereco', {}) or {}
+            municipio = municipio_info.get('cidade', '') or doc.get('tomador_municipio', '') or doc.get('destinatario_municipio', '') or 'NÃO INFORMADO'
+            uf = municipio_info.get('uf', '') or doc.get('destinatario_uf', '') or ''
+            codigo_municipio = municipio_info.get('codigo_municipio', '') or doc.get('codigo_municipio_tomador', '') or ''
         else:
             estrutura = retencoes_tomados
+            # Para tomados: município do PRESTADOR (remetente)
+            municipio_info = doc.get('emitente_endereco', {}) or doc.get('prestador', {}).get('endereco', {}) or {}
+            municipio = municipio_info.get('cidade', '') or doc.get('prestador_municipio', '') or doc.get('emitente_municipio', '') or 'NÃO INFORMADO'
+            uf = municipio_info.get('uf', '') or doc.get('emitente_uf', '') or ''
+            codigo_municipio = municipio_info.get('codigo_municipio', '') or doc.get('codigo_municipio_prestador', '') or ''
         
         estrutura["qtd_docs"] += 1
         
@@ -28981,13 +28993,29 @@ async def get_impostos_retidos(
             csll_retido += float(servico.get('v_csll', 0) or servico.get('csll_retido', 0) or 0)
             inss_retido += float(servico.get('v_inss', 0) or servico.get('inss_retido', 0) or 0)
         
-        # Acumular
+        # Acumular totais
         estrutura["iss"] += iss_retido
         estrutura["ir"] += ir_retido
         estrutura["pis"] += pis_retido
         estrutura["cofins"] += cofins_retido
         estrutura["csll"] += csll_retido
         estrutura["inss"] += inss_retido
+        
+        # NOVO: Agrupar ISS por município
+        if iss_retido > 0:
+            chave_municipio = f"{municipio} - {uf}".strip(' -')
+            if chave_municipio not in estrutura["iss_por_municipio"]:
+                estrutura["iss_por_municipio"][chave_municipio] = {
+                    "municipio": municipio,
+                    "uf": uf,
+                    "codigo_municipio": codigo_municipio,
+                    "valor_servicos": 0,
+                    "iss_retido": 0,
+                    "qtd_notas": 0
+                }
+            estrutura["iss_por_municipio"][chave_municipio]["valor_servicos"] += valor_servicos
+            estrutura["iss_por_municipio"][chave_municipio]["iss_retido"] += iss_retido
+            estrutura["iss_por_municipio"][chave_municipio]["qtd_notas"] += 1
         
         # Adicionar aos detalhes se tiver alguma retenção
         total_retido = iss_retido + ir_retido + pis_retido + cofins_retido + csll_retido + inss_retido
@@ -28997,6 +29025,8 @@ async def get_impostos_retidos(
                 "data_emissao": doc.get('data_emissao', ''),
                 "prestador" if tipo in ['entrada', 'tomado'] else "tomador": doc.get('emitente_nome', '') if tipo in ['entrada', 'tomado'] else doc.get('destinatario_nome', ''),
                 "cnpj": doc.get('emitente_cnpj', '') if tipo in ['entrada', 'tomado'] else doc.get('destinatario_cnpj', ''),
+                "municipio": municipio,
+                "uf": uf,
                 "valor_servicos": round(valor_servicos, 2),
                 "retencoes": {
                     "iss": round(iss_retido, 2),
@@ -29008,6 +29038,23 @@ async def get_impostos_retidos(
                 },
                 "total_retido": round(total_retido, 2)
             })
+    
+    # Converter dicionários de município para listas ordenadas
+    iss_municipios_tomados = sorted(
+        [
+            {**v, "iss_retido": round(v["iss_retido"], 2), "valor_servicos": round(v["valor_servicos"], 2)}
+            for v in retencoes_tomados["iss_por_municipio"].values()
+        ],
+        key=lambda x: -x["iss_retido"]
+    )
+    
+    iss_municipios_prestados = sorted(
+        [
+            {**v, "iss_retido": round(v["iss_retido"], 2), "valor_servicos": round(v["valor_servicos"], 2)}
+            for v in retencoes_prestados["iss_por_municipio"].values()
+        ],
+        key=lambda x: -x["iss_retido"]
+    )
     
     # Calcular totais
     total_retido_tomados = sum([
