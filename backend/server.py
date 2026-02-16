@@ -14428,14 +14428,16 @@ async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str
         impacto_pis_cofins = impacto_pis + impacto_cofins
         
         # Corrigir inconsistências de arredondamento entre PIS e COFINS
-        # Se PIS e COFINS têm sinais opostos (impossível fiscalmente), zerar ambos os impactos
+        # Se PIS e COFINS têm sinais opostos (impossível fiscalmente), adequar as bases
         if impacto_pis * impacto_cofins < 0:
-            # PIS e COFINS têm sinais opostos por erro de arredondamento - zerar ambos
-            # Mantemos os valores originais (credito/debito) mas zeramos o impacto
-            logger.info(f"VILOES: NCM {ncm} - Corrigindo inconsistência PIS/COFINS: PIS={impacto_pis}, COFINS={impacto_cofins}")
-            impacto_pis = 0
-            impacto_cofins = 0
-            impacto_pis_cofins = 0
+            # Sinais opostos - adequar proporcionalmente ao impacto total
+            logger.info(f"VILOES AGREGADO: NCM {ncm} - Adequando PIS/COFINS: PIS={impacto_pis:.2f}, COFINS={impacto_cofins:.2f}, Total={impacto_pis_cofins:.2f}")
+            
+            # Proporção normal: COFINS = 4.6 * PIS (7.6/1.65)
+            # Distribuir o impacto total proporcionalmente
+            if impacto_pis_cofins != 0:
+                impacto_pis = impacto_pis_cofins * (1.65 / (1.65 + 7.60))
+                impacto_cofins = impacto_pis_cofins * (7.60 / (1.65 + 7.60))
         
         impacto_total = impacto_icms + impacto_pis_cofins
         
