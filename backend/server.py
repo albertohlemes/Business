@@ -26314,8 +26314,8 @@ async def inteligencia_tributaria(
         import traceback
         traceback.print_exc()
     
-    # Buscar apuração PIS/COFINS do regime atual
-    # OTIMIZADO: Usar batches para processar grandes volumes sem estourar memória
+    # Buscar apuração PIS/COFINS do regime atual usando FUNÇÃO CENTRALIZADA
+    # Garante 100% de consistência com outros endpoints (Apuração e Reforma Tributária)
     pis_real = 0
     cofins_real = 0
     pis_debitos_real = 0
@@ -26324,110 +26324,17 @@ async def inteligencia_tributaria(
     cofins_creditos_real = 0
     
     try:
-        from decimal import Decimal
-        perfil_empresa = company.get('perfil_comercial', 'VAREJO')
-        perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
-        perfil = perfis[0] if perfis else 'VAREJO'
-        cnaes_empresa = company.get('cnaes', [])
-        cnae_principal = cnaes_empresa[0] if cnaes_empresa else ''
+        # Usar função centralizada para garantir mesmos valores em todos os endpoints
+        comp_pis = competencia if tipo == "periodo" else competencia
+        resultado_pis_cofins = await calcular_pis_cofins_unificado(company_id, comp_pis, company)
         
-        query_pis = {
-            "company_id": company_id,
-            "competencia": competencia if tipo == "periodo" else {"$regex": f"/{ano}$"},
-            **get_filtro_notas_ativas()
-        }
+        pis_debitos_real = resultado_pis_cofins['pis_debitos']
+        cofins_debitos_real = resultado_pis_cofins['cofins_debitos']
+        pis_creditos_real = resultado_pis_cofins['pis_creditos']
+        cofins_creditos_real = resultado_pis_cofins['cofins_creditos']
         
-        # Estrutura para totais
-        totais = {
-            'creditos': {'pis': Decimal('0'), 'cofins': Decimal('0')},
-            'debitos_comercio': {'pis': Decimal('0'), 'cofins': Decimal('0')},
-            'debitos_servicos': {'pis': Decimal('0'), 'cofins': Decimal('0')}
-        }
-        
-        # OTIMIZAÇÃO: Processar em batches de 500 documentos para não sobrecarregar memória
-        BATCH_SIZE = 500
-        skip = 0
-        
-        while True:
-            docs_batch = await db.xml_documents.find(
-                query_pis, 
-                {"produtos": 1, "tipo": 1, "tipo_operacao": 1, "modelo": 1}
-            ).skip(skip).limit(BATCH_SIZE).to_list(BATCH_SIZE)
-            
-            if not docs_batch:
-                break
-            
-            for doc in docs_batch:
-                # Inferir tipo_operacao se não tiver
-                tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
-                if not tipo_operacao:
-                    produtos = doc.get('produtos', [])
-                    if produtos:
-                        cfop = str(produtos[0].get('cfop', ''))
-                        if cfop and cfop[0] in ['1', '2', '3']:
-                            tipo_operacao = 'entrada'
-                        elif cfop and cfop[0] in ['5', '6', '7']:
-                            tipo_operacao = 'saida'
-                
-                modelo = doc.get('modelo', 'nfe')
-                is_servico = modelo in ['nfse', 'nfse_prestado']
-                
-                for prod in doc.get('produtos', []):
-                    ncm = str(prod.get('ncm', '')).replace('.', '')
-                    cfop = str(prod.get('cfop', ''))
-                    valor_total = float(prod.get('valor_total', 0) or 0)
-                    
-                    # Excluir ICMS da base de cálculo (Lei 14.592/2023 - entradas e saídas)
-                    v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
-                    valor_base = max(0, valor_total - v_icms)
-                    
-                    if tipo_operacao == 'entrada':
-                        calc_real = calcular_pis_cofins_produto(
-                            valor_base, ncm, cfop, 'entrada', perfil, 'LUCRO_REAL'
-                        )
-                        if calc_real.get('gera_credito', False):
-                            totais['creditos']['pis'] += Decimal(str(calc_real.get('valor_pis', 0)))
-                            totais['creditos']['cofins'] += Decimal(str(calc_real.get('valor_cofins', 0)))
-                    
-                    elif tipo_operacao == 'saida':
-                        if is_servico:
-                            codigo_servico = prod.get('codigo_servico', '')
-                            calc_real = calcular_pis_cofins_servico(
-                                valor_base, cnae_principal, codigo_servico, 'saida', 'LUCRO_REAL'
-                            )
-                            totais['debitos_servicos']['pis'] += Decimal(str(calc_real.get('valor_pis', 0)))
-                            totais['debitos_servicos']['cofins'] += Decimal(str(calc_real.get('valor_cofins', 0)))
-                        else:
-                            calc_real = calcular_pis_cofins_produto(
-                                valor_base, ncm, cfop, 'saida', perfil, 'LUCRO_REAL'
-                            )
-                            totais['debitos_comercio']['pis'] += Decimal(str(calc_real.get('valor_pis', 0)))
-                            totais['debitos_comercio']['cofins'] += Decimal(str(calc_real.get('valor_cofins', 0)))
-            
-            skip += BATCH_SIZE
-            
-            # Limite de segurança para evitar loops infinitos
-            if skip > 100000:
-                logger.warning(f"RET PIS/COFINS: Limite de 100k docs atingido para company {company_id}")
-                break
-        
-        # Calcular débitos total e saldo
-        debitos_pis = totais['debitos_comercio']['pis'] + totais['debitos_servicos']['pis']
-        debitos_cofins = totais['debitos_comercio']['cofins'] + totais['debitos_servicos']['cofins']
-        creditos_pis = totais['creditos']['pis']
-        creditos_cofins = totais['creditos']['cofins']
-        
-        saldo_pis = debitos_pis - creditos_pis
-        saldo_cofins = debitos_cofins - creditos_cofins
-        
-        # Para o comparativo RET, mostrar os DÉBITOS (não o saldo a pagar)
-        pis_real = float(max(Decimal('0'), saldo_pis))
-        cofins_real = float(max(Decimal('0'), saldo_cofins))
-        
-        # Armazenar débitos e créditos separados para exibição detalhada
-        pis_debitos_real = float(debitos_pis)
-        cofins_debitos_real = float(debitos_cofins)
-        pis_creditos_real = float(creditos_pis)
+        pis_real = max(0, resultado_pis_cofins['pis_saldo'])
+        cofins_real = max(0, resultado_pis_cofins['cofins_saldo'])
         cofins_creditos_real = float(creditos_cofins)
         
     except Exception as e:
