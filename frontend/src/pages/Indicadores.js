@@ -1107,37 +1107,97 @@ const Indicadores = ({ user, onLogout }) => {
                   <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 border border-green-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-2 mb-2">
                       <TrendingUp className="w-5 h-5 text-green-400" />
-                      <span className="text-[#A1A1AA] text-sm">Margem de Contribuição</span>
+                      <span className="text-[#A1A1AA] text-sm">Vendas Líquidas</span>
                     </div>
-                    <p className="text-2xl font-bold text-green-400">{formatCurrency(indicadores.margem.absoluta)}</p>
-                    <p className="text-sm text-green-300/70 mt-1">{formatPercentual(indicadores.margem.percentual)} sobre receita</p>
+                    <p className="text-2xl font-bold text-green-400">{formatCurrency(indicadores.vendasLiquidas)}</p>
+                    <p className="text-sm text-green-300/70 mt-1">CFOPs de Venda - Devoluções</p>
                   </div>
                   
+                  <div className="bg-gradient-to-br from-blue-900/30 to-blue-950/30 border border-blue-500/30 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingDown className="w-5 h-5 text-blue-400" />
+                      <span className="text-[#A1A1AA] text-sm">Compras Líquidas</span>
+                    </div>
+                    <p className="text-2xl font-bold text-blue-400">{formatCurrency(indicadores.comprasLiquidas)}</p>
+                    <p className="text-sm text-blue-300/70 mt-1">CFOPs de Compra - Devoluções</p>
+                  </div>
+
                   <div className="bg-gradient-to-br from-purple-900/30 to-purple-950/30 border border-purple-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-2 mb-2">
                       <Percent className="w-5 h-5 text-purple-400" />
                       <span className="text-[#A1A1AA] text-sm">Markup</span>
                     </div>
                     <p className="text-2xl font-bold text-purple-400">{formatPercentual(indicadores.markup)}</p>
-                    <p className="text-sm text-purple-300/70 mt-1">Sobre o custo</p>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-blue-900/30 to-blue-950/30 border border-blue-500/30 rounded-xl p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <DollarSign className="w-5 h-5 text-blue-400" />
-                      <span className="text-[#A1A1AA] text-sm">Total Saídas</span>
-                    </div>
-                    <p className="text-2xl font-bold text-blue-400">{formatCurrency(receitas.total)}</p>
-                    <p className="text-sm text-blue-300/70 mt-1">Receita bruta</p>
+                    <p className="text-sm text-purple-300/70 mt-1">(Vendas - Compras) / Compras</p>
                   </div>
 
                   <div className="bg-gradient-to-br from-amber-900/30 to-amber-950/30 border border-amber-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-2 mb-2">
-                      <Package className="w-5 h-5 text-amber-400" />
-                      <span className="text-[#A1A1AA] text-sm">Total Entradas</span>
+                      <DollarSign className="w-5 h-5 text-amber-400" />
+                      <span className="text-[#A1A1AA] text-sm">Margem de Contribuição</span>
                     </div>
-                    <p className="text-2xl font-bold text-amber-400">{formatCurrency(indicadores.entradas.total)}</p>
-                    <p className="text-sm text-amber-300/70 mt-1">Compras do período</p>
+                    <p className="text-2xl font-bold text-amber-400">{formatCurrency(indicadores.margem.absoluta)}</p>
+                    <p className="text-sm text-amber-300/70 mt-1">{formatPercentual(indicadores.margem.percentual)} sobre receita</p>
+                  </div>
+                </div>
+
+                {/* Detalhamento de Compras e Vendas */}
+                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Calculator className="w-6 h-6 text-[#C8A951]" />
+                    <h3 className="text-lg font-semibold text-white">Detalhamento do Markup</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Compras */}
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <h4 className="text-blue-400 font-semibold mb-3 flex items-center gap-2">
+                        <TrendingDown className="w-4 h-4" />
+                        Compras
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-[#A1A1AA] text-sm">CFOPs de Compra</span>
+                          <span className="text-white">{formatCurrency(dados?.icms?.compras_liquidas?.brutas || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#A1A1AA] text-sm">(-) Devoluções de Saída</span>
+                          <span className="text-red-400">-{formatCurrency(dados?.icms?.compras_liquidas?.devolucoes || 0)}</span>
+                        </div>
+                        <div className="border-t border-[#2A2A2A] pt-2 flex justify-between">
+                          <span className="text-blue-400 font-semibold">= Compras Líquidas</span>
+                          <span className="text-blue-400 font-bold">{formatCurrency(indicadores.comprasLiquidas)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Vendas */}
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <h4 className="text-green-400 font-semibold mb-3 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" />
+                        Vendas
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-[#A1A1AA] text-sm">CFOPs de Venda</span>
+                          <span className="text-white">{formatCurrency(dados?.icms?.vendas_liquidas?.brutas || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#A1A1AA] text-sm">(-) Devoluções de Entrada</span>
+                          <span className="text-red-400">-{formatCurrency(dados?.icms?.vendas_liquidas?.devolucoes || 0)}</span>
+                        </div>
+                        <div className="border-t border-[#2A2A2A] pt-2 flex justify-between">
+                          <span className="text-green-400 font-semibold">= Vendas Líquidas</span>
+                          <span className="text-green-400 font-bold">{formatCurrency(indicadores.vendasLiquidas)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Fórmula do Markup */}
+                  <div className="mt-4 bg-purple-900/20 border border-purple-500/30 rounded-lg p-4">
+                    <p className="text-purple-300 text-sm font-mono text-center">
+                      Markup = (Vendas Líquidas - Compras Líquidas) / Compras Líquidas × 100 = <span className="text-purple-400 font-bold">{formatPercentual(indicadores.markup)}</span>
+                    </p>
                   </div>
                 </div>
 
