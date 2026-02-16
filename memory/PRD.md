@@ -88,9 +88,13 @@
 
 ### Issues Pendentes
 
+#### P0 - CRÍTICO (REQUER VALIDAÇÃO DO USUÁRIO)
+- **PIS/COFINS travando**: Otimizações aplicadas. **PRECISA DE VALIDAÇÃO NO AMBIENTE DO CLIENTE** (14k+ docs)
+- **RET travando**: Mesmo que acima
+
 #### P1 - Importantes
 - **RET (ICMS zerado)**: O ICMS aparece como zero porque a empresa tem saldo credor. Seria útil mostrar o débito bruto para comparação, similar à Reforma Tributária.
-- **Discrepância Dashboard vs ICMS**: Não investigado nesta sessão
+- **Vilões e Oportunidades**: Lógica corrigida (usa bases de entrada/saída com alíquotas 1,65%/7,60%). Aguarda validação do usuário.
 
 #### P2 - Menor
 - **Insights IA sem informação**: Não investigado
