@@ -14432,6 +14432,7 @@ async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str
         if impacto_pis * impacto_cofins < 0:
             # PIS e COFINS têm sinais opostos por erro de arredondamento - zerar ambos
             # Mantemos os valores originais (credito/debito) mas zeramos o impacto
+            logger.info(f"VILOES: NCM {ncm} - Corrigindo inconsistência PIS/COFINS: PIS={impacto_pis}, COFINS={impacto_cofins}")
             impacto_pis = 0
             impacto_cofins = 0
             impacto_pis_cofins = 0
