@@ -10332,17 +10332,6 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
             else:
                 tipo_item = tipo
             
-            # ICMS - Excluir CFOPs de despesa e ST do crédito (mesma lógica de apuracao-icms)
-            is_despesa = cfop in CFOPS_DESPESA
-            is_st = cfop in CFOPS_ST
-            
-            if tipo_item == 'entrada':
-                # Só soma crédito se NÃO for despesa e NÃO for ST
-                if not is_despesa and not is_st:
-                    credito_icms += v_icms
-            elif tipo_item == 'saida':
-                debito_icms += v_icms
-            
             # Compras e Vendas por CFOP
             if cfop in CFOPS_COMPRAS:
                 total_compras_brutas += valor_total
@@ -10354,14 +10343,10 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
                 total_devolucao_vendas += valor_total
     
     # Converter para float
-    credito_icms = float(credito_icms)
-    debito_icms = float(debito_icms)
-    
     compras_liquidas = float(total_compras_brutas - total_devolucao_compras)
     vendas_liquidas = float(total_vendas_brutas - total_devolucao_vendas)
     markup_calc = ((vendas_liquidas - compras_liquidas) / compras_liquidas * 100) if compras_liquidas > 0 else 0
     
-    logger.info(f"DASHBOARD AGREGADO ICMS: Crédito={credito_icms:.2f}, Débito={debito_icms:.2f}")
     logger.info(f"DASHBOARD AGREGADO: Compras Líquidas={compras_liquidas:.2f}, Vendas Líquidas={vendas_liquidas:.2f}, Markup={markup_calc:.2f}%")
     
     # Processar resultados da agregação de totais
