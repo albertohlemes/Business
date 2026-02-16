@@ -167,20 +167,21 @@ const ImpostosRetidos = ({ user, onLogout }) => {
       inss: { valor: 0, detalhes: [] }
     };
     
-    // ISS por município
-    const issPorMunicipio = {};
+    // ISS por município - será preenchido pelo backend se disponível
+    let issPorMunicipio = {};
     
     (detalhes || []).forEach(item => {
       const ret = item.retencoes || {};
-      const municipio = item.municipio_prestador || item.municipio || 'Não informado';
+      const municipio = item.municipio ? `${item.municipio} - ${item.uf || ''}`.trim() : 'Não informado';
       
       // ISS
       if (ret.iss > 0) {
         totais.iss.valor += ret.iss;
         totais.iss.detalhes.push(item);
         
+        // Fallback: calcular ISS por município se não vier do backend
         if (!issPorMunicipio[municipio]) {
-          issPorMunicipio[municipio] = { valor: 0, qtd: 0 };
+          issPorMunicipio[municipio] = { valor: 0, qtd: 0, municipio: item.municipio, uf: item.uf };
         }
         issPorMunicipio[municipio].valor += ret.iss;
         issPorMunicipio[municipio].qtd += 1;
@@ -215,6 +216,13 @@ const ImpostosRetidos = ({ user, onLogout }) => {
     totais.total = totais.iss.valor + totais.ir.valor + totais.contribuicoes.valor + totais.inss.valor;
     
     return totais;
+  };
+  
+  // NOVO: Obter ISS por município do backend (já agrupado)
+  const getIssPorMunicipioBackend = (tipo) => {
+    if (!dados) return [];
+    const section = tipo === 'tomados' ? dados.servicos_tomados : dados.servicos_prestados;
+    return section?.iss_por_municipio || [];
   };
 
   // Componente de Card de Grupo de Imposto
