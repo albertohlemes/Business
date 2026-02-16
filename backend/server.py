@@ -36112,13 +36112,15 @@ async def get_apuracao_reforma_tributaria(
                     # Verificar se CFOP gera crédito de PIS/COFINS e se não é alíquota zero
                     if cfop in CFOPS_COM_CREDITO_PIS_COFINS:
                         if not is_ncm_aliquota_zero(ncm) and not is_ncm_monofasico(ncm):
-                            total_base_entrada += valor
+                            # Base de cálculo = valor_total - ICMS destacado
+                            base_pis_cofins = valor - v_icms
+                            total_base_entrada += max(0, base_pis_cofins)
                     
                     # ICMS entrada - SÓ creditar se o CFOP gera crédito de ICMS
                     if cfop in CFOPS_GERAM_CREDITO_ICMS_CALC:
                         total_icms_entrada_calc += v_icms
         
-        logger.info(f"REFORMA TRIBUTÁRIA: Base entrada={total_base_entrada:.2f}, ICMS entrada={total_icms_entrada_calc:.2f}")
+        logger.info(f"REFORMA TRIBUTÁRIA: Base entrada (sem ICMS)={total_base_entrada:.2f}, ICMS entrada={total_icms_entrada_calc:.2f}")
         
         # Calcular PIS/COFINS
         pis_debito = total_base_saida * (aliq['pis'] / 100)
