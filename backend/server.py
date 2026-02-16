@@ -30051,7 +30051,7 @@ async def get_analise_horizontal(
                         total_icms_credito += float(item.get('icms', 0) or 0)
                         total_pis_credito += float(item.get('pis', 0) or 0)
                         total_cofins_credito += float(item.get('cofins', 0) or 0)
-                    else:
+                    elif is_saida:
                         total_vendas += float(item.get('valor_total', 0) or 0)
                         total_icms_debito += float(item.get('icms', 0) or 0)
                         total_pis_debito += float(item.get('pis', 0) or 0)
