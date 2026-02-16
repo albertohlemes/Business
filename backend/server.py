@@ -24315,81 +24315,116 @@ async def apurar_ipi(
 
 async def _get_pis_cofins_aggregated(company: dict, company_id: str, competencia: str, query: dict, total_docs: int):
     """
-    Versão otimizada da apuração PIS/COFINS usando agregação do MongoDB.
-    Usada quando há mais de 10000 documentos para evitar timeout.
-    Usa cache inteligente para evitar recálculos desnecessários.
+    Versão otimizada da apuração PIS/COFINS usando a mesma lógica da RET/Inteligência Tributária.
+    
+    IMPORTANTE: Usa calcular_pis_cofins_produto() para cada produto, garantindo consistência
+    entre todas as páginas que calculam PIS/COFINS.
     """
     # Verificar cache primeiro
     cached = aggregation_cache.get("pis_cofins", company_id, competencia)
     if cached:
         return cached
     
-    logger.info(f"PIS/COFINS AGREGADO: Iniciando para {total_docs} documentos")
+    logger.info(f"PIS/COFINS AGREGADO UNIFICADO: Iniciando para {total_docs} documentos")
+    
+    from decimal import Decimal
     
     regime_tributario = company.get('regime_tributario', 'lucro_presumido')
-    perfil_empresa = company.get('perfil_comercial', 'VAREJO')
+    perfil_empresa = company.get('perfil_comercial', 'VAREJO') or 'VAREJO'
+    perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
+    perfil = perfis[0] if perfis else 'VAREJO'
     cnaes_empresa = company.get('cnaes', [])
     
-    # Pipeline de agregação para calcular totais de PIS/COFINS por tipo
-    pipeline = [
-        {"$match": query},
-        {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
-        {
-            "$group": {
-                "_id": {
-                    "tipo": {"$ifNull": ["$tipo", "$tipo_operacao"]}
-                },
-                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
-                "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", {"$ifNull": ["$produtos.valor_pis", 0]}]}}},
-                "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_cofins", {"$ifNull": ["$produtos.valor_cofins", 0]}]}}},
-                "bc_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_bc_pis", 0]}}},
-                "bc_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_bc_cofins", 0]}}},
-                "qtd_produtos": {"$sum": 1}
-            }
-        }
-    ]
-    
-    # Executar agregação
-    cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
-    resultados_agregados = await cursor.to_list(length=10)
-    
-    # Processar resultados
-    credito_pis = 0
-    credito_cofins = 0
-    debito_pis = 0
-    debito_cofins = 0
+    # Estrutura para totais usando Decimal para precisão
+    totais_real = {
+        'creditos': {'pis': Decimal('0'), 'cofins': Decimal('0')},
+        'debitos': {'pis': Decimal('0'), 'cofins': Decimal('0')}
+    }
+    totais_presumido = {
+        'creditos': {'pis': Decimal('0'), 'cofins': Decimal('0')},
+        'debitos': {'pis': Decimal('0'), 'cofins': Decimal('0')}
+    }
     total_entradas = 0
     total_saidas = 0
     
-    for item in resultados_agregados:
-        tipo = item['_id'].get('tipo', '') or ''
-        if tipo == 'entrada':
-            total_entradas = item['valor_total']
-            # No lucro real, usar alíquotas não-cumulativas
-            if regime_tributario == 'lucro_real':
-                credito_pis = total_entradas * 0.0165  # 1.65%
-                credito_cofins = total_entradas * 0.076  # 7.6%
-            else:
-                credito_pis = item.get('valor_pis', 0)
-                credito_cofins = item.get('valor_cofins', 0)
-        elif tipo == 'saida':
-            total_saidas = item['valor_total']
-            # No lucro real, usar alíquotas não-cumulativas
-            if regime_tributario == 'lucro_real':
-                debito_pis = total_saidas * 0.0165
-                debito_cofins = total_saidas * 0.076
-            else:
-                # Lucro presumido: cumulativo
-                debito_pis = total_saidas * 0.0065  # 0.65%
-                debito_cofins = total_saidas * 0.03  # 3%
+    # Processar em batches para não sobrecarregar memória
+    BATCH_SIZE = 500
+    skip = 0
     
-    # Calcular saldos
+    while True:
+        docs_batch = await db.xml_documents.find(
+            query, 
+            {"produtos": 1, "tipo": 1, "tipo_operacao": 1}
+        ).skip(skip).limit(BATCH_SIZE).to_list(BATCH_SIZE)
+        
+        if not docs_batch:
+            break
+        
+        for doc in docs_batch:
+            tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
+            if not tipo_operacao:
+                produtos = doc.get('produtos', [])
+                if produtos:
+                    cfop = str(produtos[0].get('cfop', ''))
+                    if cfop and cfop[0] in ['1', '2', '3']:
+                        tipo_operacao = 'entrada'
+                    elif cfop and cfop[0] in ['5', '6', '7']:
+                        tipo_operacao = 'saida'
+            
+            for prod in doc.get('produtos', []):
+                ncm = str(prod.get('ncm', '')).replace('.', '')
+                cfop = str(prod.get('cfop', ''))
+                valor_base = float(prod.get('valor_total', 0) or 0)
+                
+                if tipo_operacao == 'entrada':
+                    total_entradas += valor_base
+                else:
+                    total_saidas += valor_base
+                
+                # Calcular Lucro Real
+                calc_real = calcular_pis_cofins_produto(
+                    valor_base, ncm, cfop, tipo_operacao or 'saida', perfil, 'LUCRO_REAL'
+                )
+                
+                if tipo_operacao == 'entrada' and calc_real.get('gera_credito', False):
+                    totais_real['creditos']['pis'] += Decimal(str(calc_real.get('valor_pis', 0)))
+                    totais_real['creditos']['cofins'] += Decimal(str(calc_real.get('valor_cofins', 0)))
+                elif tipo_operacao == 'saida' and calc_real.get('valor_pis', 0) > 0:
+                    totais_real['debitos']['pis'] += Decimal(str(calc_real.get('valor_pis', 0)))
+                    totais_real['debitos']['cofins'] += Decimal(str(calc_real.get('valor_cofins', 0)))
+                
+                # Calcular Lucro Presumido
+                calc_presumido = calcular_pis_cofins_produto(
+                    valor_base, ncm, cfop, tipo_operacao or 'saida', perfil, 'LUCRO_PRESUMIDO'
+                )
+                
+                if tipo_operacao == 'entrada' and calc_presumido.get('gera_credito', False):
+                    totais_presumido['creditos']['pis'] += Decimal(str(calc_presumido.get('valor_pis', 0)))
+                    totais_presumido['creditos']['cofins'] += Decimal(str(calc_presumido.get('valor_cofins', 0)))
+                elif tipo_operacao == 'saida' and calc_presumido.get('valor_pis', 0) > 0:
+                    totais_presumido['debitos']['pis'] += Decimal(str(calc_presumido.get('valor_pis', 0)))
+                    totais_presumido['debitos']['cofins'] += Decimal(str(calc_presumido.get('valor_cofins', 0)))
+        
+        skip += BATCH_SIZE
+        
+        if skip > 100000:
+            logger.warning(f"PIS/COFINS AGREGADO: Limite de 100k docs atingido para company {company_id}")
+            break
+    
+    # Converter para float e calcular saldos
+    credito_pis = float(totais_real['creditos']['pis'])
+    credito_cofins = float(totais_real['creditos']['cofins'])
+    debito_pis = float(totais_real['debitos']['pis'])
+    debito_cofins = float(totais_real['debitos']['cofins'])
+    
     saldo_pis = debito_pis - credito_pis
     saldo_cofins = debito_cofins - credito_cofins
     
-    # Também calcular para lucro presumido para comparação
-    debito_pis_presumido = total_saidas * 0.0065
-    debito_cofins_presumido = total_saidas * 0.03
+    # Lucro Presumido
+    debito_pis_presumido = float(totais_presumido['debitos']['pis'])
+    debito_cofins_presumido = float(totais_presumido['debitos']['cofins'])
+    
+    logger.info(f"PIS/COFINS AGREGADO UNIFICADO: Crédito PIS={credito_pis:.2f}, Débito PIS={debito_pis:.2f}")
     
     # ============== CALCULAR TOP 10 NCMs (agregação separada) ==============
     top_ncms_credito = []
