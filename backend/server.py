@@ -10323,15 +10323,6 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
             cfop = str(prod.get('cfop', ''))
             valor_total = Decimal(str(prod.get('valor_total', 0) or 0))
             
-            # Determinar tipo pela primeira posição do CFOP (fonte da verdade fiscal)
-            primeiro_digito = cfop[0] if cfop and cfop[0].isdigit() else '0'
-            if primeiro_digito in ['1', '2', '3']:
-                tipo_item = 'entrada'
-            elif primeiro_digito in ['5', '6', '7']:
-                tipo_item = 'saida'
-            else:
-                tipo_item = tipo
-            
             # Compras e Vendas por CFOP
             if cfop in CFOPS_COMPRAS:
                 total_compras_brutas += valor_total
