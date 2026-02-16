@@ -40,16 +40,20 @@ const RET = ({ user, onLogout }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
+      // Timeout de 120 segundos para suportar grandes volumes
+      const requestConfig = { 
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 120000 // 2 minutos
+      };
       
       const periodoRes = await axios.get(
         `${API}/inteligencia-tributaria/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}&tipo=periodo`,
-        { headers }
+        requestConfig
       ).catch(() => null);
       
       const acumuladoRes = await axios.get(
         `${API}/inteligencia-tributaria/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}&tipo=acumulado`,
-        { headers }
+        requestConfig
       ).catch(() => null);
       
       setDados(periodoRes?.data);
