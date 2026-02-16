@@ -1,141 +1,177 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou um fluxo de trabalho complexo para a edição de CFOP (Código Fiscal de Operações e Prestações), incluindo uma funcionalidade de Memória IA para salvar as escolhas do usuário, melhorias de UI, e a correção de bugs. O requisito mais recente e crítico é corrigir um bug onde as exceções de CFOP são salvas com o código errado e garantir que a interface do usuário seja idêntica entre as páginas Classificação Inteligente e Wizard de Fechamento.
+O usuário enfrenta problemas críticos de performance e estabilidade que impedem a comercialização do sistema para clientes com alto volume de documentos (ex: 14.000+ XMLs por mês). Várias páginas de análise (, , , ) travam o sistema ou exibem dados zerados/incorretos. Além disso, há bugs específicos como cálculos de impostos errados (PIS/COFINS não considera produtos monofásicos), divergências de dados entre painéis (Dashboard vs. ICMS) e funcionalidades que não exibem resultados (Vilões e Oportunidades, CFOPs de outros estados no ICMS).
+
+O usuário também solicitou e o agente implementou uma funcionalidade para importar e gerenciar recibos de locação, que subsequentemente apresentou bugs (duplicação, cálculo de impostos incorreto, erro no SPED) que foram corrigidos. A prioridade máxima e absoluta é resolver os problemas de performance e correção de dados para tornar a aplicação utilizável em cenários de produção reais.
 
 PRODUCT REQUIREMENTS:
-1.  **Memória IA para Edições Manuais**: Edições manuais de CFOP devem criar/atualizar uma regra permanente na coleção  para automação futura.
-2.  **Fluxo de Edição Específico**:
-    *   O CFOP original da nota deve aparecer no cabeçalho do card.
-    *   A seleção de um CFOP de destino no cabeçalho deve preencher a coluna CFOP para todos os produtos abaixo.
-    *   A coluna CFOP deve ser editável individualmente para permitir exceções.
-    *   Ao confirmar, o sistema deve salvar tanto a regra geral quanto as exceções individuais.
-3.  **UI - Tags em Maiúsculas**: Todas as tags de categoria de produtos devem ser exibidas em letras maiúsculas.
-4.  **Consistência de UI**: O fluxo de edição (Requisito 2) e o layout devem ser idênticos nas páginas  e .
+1.  **Estabilidade e Performance (P0)**: O sistema não deve travar ou sofrer timeouts em páginas de análise (, , , , , ) ao processar grandes volumes de dados (15.000+ documentos).
+2.  **Correção de Dados (P0)**: As páginas de análise devem exibir dados corretos e completos. Isso inclui:
+    *   : A apuração deve considerar corretamente produtos com alíquota zero e monofásicos, não tributando 100% da receita.
+    *   : Deve exibir CFOPs de entrada de outros estados (iniciados com '2') e os totais devem ser consistentes com outros painéis como o Dashboard.
+    *   : A lista de produtos/NCMs deve ser exibida, correspondendo aos totais mostrados nos cards.
+    *    e : Não devem aparecer zeradas.
+3.  **Instalação On-Premise (P2)**: O usuário solicitou a possibilidade de instalar a aplicação em um servidor local. O próximo agente deve estar preparado para criar um pacote de instalação (ex: com Docker Compose e documentação).
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-O agente implementou com sucesso o novo fluxo de edição de CFOP na página . Isso inclui um layout compacto de uma linha para os alertas, a exibição do CFOP original, uma lista de produtos editável para exceções e um novo botão Manter Natureza. O backend para a Memória IA está funcional.
-
-No entanto, a implementação tem dois problemas críticos:
-1.  Um bug onde as exceções de CFOP editadas individualmente são salvas no banco de dados com o CFOP da regra geral, em vez do CFOP da exceção.
-2.  A nova interface e funcionalidades foram aplicadas apenas à , deixando o  com a aparência antiga e inconsistente.
+A aplicação full-stack (React + FastAPI + MongoDB) possui uma funcionalidade central de análise fiscal. O agente anterior implementou otimizações críticas em vários endpoints do , substituindo processamento em memória por agregações do MongoDB. Foram feitas correções nas páginas de , , e na lógica de cálculo de  para considerar produtos monofásicos. Também foi criada uma função helper  para identificar de forma mais robusta o tipo de operação dos documentos. Apesar dessas correções terem sido implementadas, elas ainda não foram validadas em um ambiente com dados de produção, e alguns problemas, como o travamento da página , ainda não foram totalmente resolvidos.
 
 **Last working item**:
--   **Last item agent was working**: O agente acabou de receber feedback do usuário (mensagem #121) sobre o bug crítico das exceções e a inconsistência da UI. O agente estava se preparando para iniciar a investigação do bug e alinhar a UI do Wizard.
+-   **Last item agent was working**: O agente estava no meio da correção de uma lista extensa de bugs críticos de performance e dados (reportados pelo usuário na mensagem #444). Foram implementadas correções para:
+    1.  **Análise Horizontal**: Refatorado o endpoint para usar agregação, evitando carregar 24 meses de documentos na memória.
+    2.  **Vilões e Oportunidades**: Ajustada a estrutura de dados do retorno do backend para que o frontend pudesse exibir a lista de itens.
+    3.  **Cálculo de PIS/COFINS**: Modificada a pipeline de agregação para incluir dados de NCM e identificar corretamente produtos monofásicos/alíquota zero.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: N (Para a correção do novo bug e o alinhamento da UI).
--   **Which testing method agent to use?**: testing_agent_v3_fork. É crucial para realizar um teste E2E completo, validando a lógica de salvamento da exceção no backend e a consistência da UI entre as páginas  e .
--   **User Testing Done**: Y (O usuário encontrou o bug).
+-   **Agent Testing Done**: N (As correções foram implementadas, mas não validadas em um cenário de alto volume de dados que replica o problema do usuário).
+-   **Which testing method agent to use?**: . É essencial para validar as correções de performance e dados. O teste deve focar nas páginas críticas (, , , , , ) e verificar tanto a estabilidade (ausência de travamentos) quanto a exatidão dos dados exibidos.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Bug: Exceções de CFOP são salvas com o CFOP incorreto (P0).
--   **Issue 2**: A UI do  está inconsistente com a da  (P0).
--   **Issue 3**: Garantir que todas as tags de categoria de produto estejam em maiúsculas em toda a aplicação (P2).
+-   **Issue 1**:  (Relatório de Entradas Tributáveis) derruba o sistema (P0).
+-   **Issue 2**: Discrepância de valores entre Dashboard e menu ICMS (P1).
+-   **Issue 3**:  está sem informação (P2).
 
 **Issues Detail**:
--   **Issue 1: Bug: Exceções de CFOP são salvas com o CFOP incorreto (P0)**
-    -   **Attempted fixes**: Nenhum. O agente estava prestes a iniciar a investigação.
+-   **Issue 1:  derruba o sistema (P0)**
+    -   **Attempted fixes**: A investigação inicial mostrou que o endpoint  chama a função  individualmente para cada produto, o que é inviável com milhares de documentos. As otimizações em outras áreas não abordaram este endpoint específico.
     -   **Next debug checklist**:
-        1.  No , inspecionar a função  para verificar o payload enviado ao backend. Confirmar que o produto com a exceção tem o  correto no array .
-        2.  No , depurar o endpoint . Rastrear como o loop sobre a lista  recebida está tratando os itens individuais ao salvar na coleção . A lógica provavelmente está aplicando o CFOP da regra geral a todos os itens sem distinção.
-    -   **Why fix this issue and what will be achieved with the fix?**: Este é um bug crítico que invalida a funcionalidade principal da Memória IA. A correção garantirá que as edições do usuário sejam persistidas corretamente, tornando o sistema confiável.
+        1.  Localizar o endpoint  em .
+        2.  Refatorar completamente a lógica para usar uma pipeline de agregação do MongoDB, eliminando o loop que processa produto por produto.
+        3.  A nova pipeline deve replicar a lógica de  de forma agregada, considerando NCMs e tipos de tributação.
+    -   **Why fix this issue and what will be achieved with the fix?**: É um dos principais endpoints que travam, e a correção é vital para a estabilidade do sistema.
     -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y (É um bug em uma funcionalidade recém-desenvolvida).
-    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: backend
     -   **Blocked on other issue**: Não.
 
--   **Issue 2: A UI do  está inconsistente (P0)**
-    -   **Attempted fixes**: Nenhum. O agente implementou a nova UI apenas na .
+-   **Issue 2: Discrepância de valores entre Dashboard e menu ICMS (P1)**
+    -   **Attempted fixes**: A correção da ausência de CFOPs de outros estados pode ter impactado isso, mas a discrepância em si não foi investigada diretamente.
     -   **Next debug checklist**:
-        1.  Revisar a nova estrutura JSX e as classes CSS do layout compacto em .
-        2.  Localizar a seção correspondente em .
-        3.  Refatorar o componente  para replicar o layout de alerta compacto de uma linha e incluir a lógica do botão Manter Natureza presente na .
-    -   **Why fix this issue and what will be achieved with the fix?**: Para fornecer uma experiência de usuário consistente nas duas principais interfaces de classificação, conforme solicitado explicitamente pelo usuário.
+        1.  Comparar as queries do MongoDB usadas pelos endpoints  e  em .
+        2.  Identificar as diferenças nos filtros (), tipos de documentos ou campos somados que estão causando a divergência nos totais.
+        3.  Ajustar a query menos precisa para corresponder à mais correta, garantindo consistência.
+    -   **Why fix this issue and what will be achieved with the fix?**: Garante a confiabilidade e consistência dos dados apresentados ao usuário.
     -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y (O usuário pediu explicitamente que ambas as páginas fossem idênticas).
-    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: Não.
+
+-   **Issue 3:  está sem informação (P2)**
+    -   **Attempted fixes**: Nenhum.
+    -   **Next debug checklist**:
+        1.  Localizar o endpoint que alimenta a página  em .
+        2.  Analisar sua lógica e verificar se ele também sofre do problema de carregar todos os documentos em memória.
+        3.  Refatorar para usar agregação do MongoDB, se aplicável, e garantir que os filtros estejam corretos.
+    -   **Why fix this issue and what will be achieved with the fix?**: Resolve mais um dos problemas de página vazia relatados pelo usuário.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: backend
     -   **Blocked on other issue**: Não.
 
 **Upcoming and Future Tasks**
-*   **Upcoming Tasks:**
-    *   **(P1)** Implementar visualização agrupada por dia na página de documentos.
-    *   **(P1)** Implementar relatórios por email para a importação em lote.
-*   **Future Tasks (Refatoração Crítica):**
-    *   **(P0)** Refatoração do monolito .
-    *   **(P1)** Refatoração dos componentes  e  para usar componentes compartilhados.
-*   **Future Tasks (Novas Funcionalidades):**
-    *   **(P1)** Integração de CT-e (Conhecimento de Transporte Eletrônico).
-    *   **(P2)** Implementação de testes automatizados.
+-   **Upcoming Tasks:**
+    -   **(P0) Teste e Validação das Correções**: Validar as correções já implementadas para , , ,  e .
+    -   **(P2) Auditoria de Performance**: Realizar uma varredura completa no  para encontrar outros endpoints que possam ter problemas de performance e refatorá-los preventivamente.
+-   **Future Tasks:**
+    -   **(P1) Pacote de Instalação On-Premise**: Criar um pacote de deploy com Docker Compose, scripts e um  detalhado para instalação local.
+    -   **(P2) Suíte de Testes Automatizados**: Implementar testes com ============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: anyio-4.12.1
+collected 521 items / 1 error
+
+==================================== ERRORS ====================================
+__________________ ERROR collecting test_ai_classification.py __________________
+import file mismatch:
+imported module 'test_ai_classification' has this __file__ attribute:
+  /app/backend/tests/test_ai_classification.py
+which is not the same as the test file we want to collect:
+  /app/test_ai_classification.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules
+=============================== warnings summary ===============================
+../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
+  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/server.py:36228
+  /app/backend/server.py:36228: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR test_ai_classification.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+========================= 4 warnings, 1 error in 3.99s ========================= para o backend, focando nas complexas lógicas de cálculo e agregação para prevenir futuras regressões.
 
 **Completed work in this session**
--   **Nova UI de Edição de CFOP**: Reimplementada a UI em  para corresponder ao fluxo de trabalho detalhado do usuário.
--   **Layout Compacto**: Refatorados os cards de alerta de CFOP para um design de uma única linha.
--   **Botão Manter Natureza**: Adicionado um novo botão de ação para conversão rápida de CFOP.
--   **Teste de UI**: Utilizado o  com sucesso para validar a nova UI na  antes de o usuário descobrir o bug de backend.
--   **Atualização do PRD**: O arquivo  foi atualizado.
-
-**Earlier issues found/mentioned but not fixed**
--   NF de fevereiro continua aparecendo nas entradas de janeiro (P1).
--   Discrepância de valores entre Dashboard e SPED (P2).
--   Botão de Login fica travado em Processando... (P2).
--   Inconsistência na lógica de devoluções com valor divergente (P0).
-
-**Known issue recurrence from previous fork**
--   ** monolítico**: O arquivo continua sendo uma fonte de débito técnico. Toda a nova lógica de backend foi adicionada a ele.
+-   **Performance/Bug Fix**: Refatorado o endpoint  para usar agregação, corrigindo um travamento crítico.
+-   **Performance/Bug Fix**: Corrigido o endpoint  para retornar os dados na estrutura que o frontend espera, populando a lista.
+-   **Performance/Bug Fix**: Refatorado o endpoint  para considerar produtos monofásicos/alíquota zero através de uma pipeline de agregação mais complexa.
+-   **Performance/Bug Fix**: Substituído o  por uma função  mais robusta em múltiplos endpoints (, , etc.) para corrigir filtros de dados.
+-   **Feature**: Implementado o fluxo completo de gerenciamento de **Recibos de Locação**, incluindo UI, backend e extração por IA.
+-   **Bug Fix**: Corrigidos bugs relacionados a recibos de locação (duplicação, cálculo de impostos, exportação SPED).
+-   **Feature**: Atualizada a tela de **Impostos Retidos** para agrupar o ISS por município.
+-   **Bug Fix**: Corrigido o endpoint de deleção em massa para funcionar com NFS-e e faturas/recibos.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Gerenciamento de Estado Complexo no Frontend**:  utiliza o estado do React para gerenciar uma regra geral, uma lista de produtos e exceções individuais para os CFOPs.
--   **Motor de Regras no Backend**: A lógica no  que persiste as decisões do usuário na coleção . Esta lógica contém o bug que precisa ser corrigido.
--   **Consistência de UI/UX**: Um requisito chave é garantir funcionalidade e aparência idênticas entre  e .
-
-**key DB schema**
--   **learned_rules**: 
+-   **MongoDB Aggregation Pipelines**: A tecnologia central para resolver os problemas de performance. O agente tem migrado a lógica de processamento de dados de loops em Python para pipelines de agregação complexas (, , , ) executadas diretamente no banco de dados.
+-   **Otimização de Performance de Backend**: A principal tarefa é identificar e eliminar gargalos causados por consultas que carregam grandes volumes de dados na memória do servidor (ex:  seguido de um loop extenso).
+-   **Sincronia Backend-Frontend**: Debug de problemas onde a estrutura de dados retornada pela API não corresponde à esperada pelo componente React, resultando em UIs vazias ou quebradas.
 
 **All files of reference**
--    (Fonte da nova UI e da parte do frontend do bug)
--    (Precisa de atualização da UI)
--    (Contém a lógica de backend para o bug)
-
-**Areas that need refactoring**:
--   ****: Deve ser atualizado para corresponder à nova UI/UX do . Esta é agora uma tarefa de alta prioridade.
--   **Duplicação de Componentes**: A lógica e o JSX para a lista de produtos e edição de CFOP devem ser extraídos para um componente reutilizável para evitar futuras inconsistências.
--   ** (CRÍTICO)**: Continua sendo um monolito.
-
-**key api endpoints**
--   : O endpoint responsável por salvar as regras e exceções de CFOP. É aqui que o bug provavelmente reside.
+-    (Arquivo principal para todas as correções de backend)
+-    (Frontend que tinha o bug de lista vazia)
+-   
+-   
+-   
+-   
+-   
 
 **Critical Info for New Agent**
--   **PRIORIDADE #1: CORRIGIR O BUG DAS EXCEÇÕES (P0)**: O usuário reportou que ao criar uma exceção (ex: editar um produto para ATIVO), a regra é salva com o CFOP errado (ex: 1106 da regra geral em vez de 1551 da exceção). Investigue o payload enviado pelo frontend () e a lógica de salvamento no backend ( em ).
--   **PRIORIDADE #2: ALINHAR A UI DO WIZARD (P0)**: Após corrigir o bug, o usuário exigiu que a UI do  seja **exatamente igual** à nova UI da  (layout compacto, botão Manter Natureza, etc.).
--   **Valide com o **: Após corrigir o bug e alinhar a UI, use o testing agent para fazer um teste E2E completo, verificando o salvamento de exceções e a consistência visual entre as duas páginas.
-
-**documents and test reports created in this job**
--   
--   
+-   **A ESTABILIDADE É TUDO**: A prioridade número um, acima de qualquer outra coisa, é resolver os problemas de performance e travamento. O usuário está frustrado e a viabilidade comercial do projeto depende disso.
+-   **A ESTRATÉGIA É AGREGAÇÃO**: A abordagem de substituir o processamento em Python por pipelines de agregação do MongoDB é a correta. Continue e aprofunde essa estratégia.
+-   **FOCO TOTAL**: Não se desvie com novas funcionalidades ou pedidos menores. Concentre-se em corrigir a lista de problemas críticos de performance e dados. Valide cada correção antes de passar para a próxima. O endpoint  é provavelmente o próximo grande culpado a ser refatorado.
 
 **Last 10 User Messages and any pending HUMAN messages**
--    (message #121): **CRÍTICO**: CERTIFIQUE-SE QUE FOI MUDADO TANTO NA CLASSIFICACAO INTELIGENTE QUANTO NO WIZARD, ELES PRECISAM SER EXATAMENTE IGUAIS. POR FAVOR, INVESTIGUE AS EXCECOES, APARENTEMENTE ELE MIGRAM PARA A CLASSIFICACAO CORRETO MAS COM O CFOP ERRADO. **Status: NOT STARTED**. Esta é a tarefa de maior prioridade.
--    (message #90): Usuário fornece feedback sobre a nova UI. Gosta, mas aponta problemas de layout e pede um novo botão Manter Natureza. **Status: RESOLVIDO** (mas levou ao bug reportado na mensagem #121).
+-    (message #444): **CRÍTICO** - Fornece uma lista detalhada de problemas graves: Vilões/Oportunidades (lista vazia), discrepância Dashboard vs. ICMS, falta de CFOPs de outros estados, Reforma Tributária/Análise Horizontal zeradas, travamentos no RET e PIS/COFINS, e cálculo errado de PIS/COFINS. **Status: IN PROGRESS**.
+-    (message #442): Pergunta sobre a viabilidade da instalação local para resolver os travamentos. **Status: RESOLVED** (Agente explicou que o problema é o código, não a plataforma, e detalhou as opções).
+-    (message #379): **CRÍTICO** - Expressa frustração extrema com os travamentos do sistema em um ambiente de produção com alto volume, afirmando que precisa das correções para comercializar o sistema. **Status: IN PROGRESS**.
+-    (message #350): Reporta bug ao tentar excluir NFS-e e faturas/recibos. **Status: RESOLVED**.
+-    (message #313): Solicita que a retenção de ISS seja agrupada por município. **Status: RESOLVED**.
 
 **Project Health Check:**
--   **Broken**: Sim. Um bug crítico foi introduzido na funcionalidade principal (Memória IA), onde as exceções não são salvas corretamente. A aplicação também está inconsistente entre páginas chave.
+-   **Broken**: Sim, criticamente. As funcionalidades principais de análise fiscal são instáveis e inutilizáveis para clientes com alto volume de dados, que são o público-alvo.
 
 **3rd Party Integrations**
--   Gemini (para classificação de produtos)
--   
+-   Gemini (usado para classificação de produtos e extração de dados de documentos via )
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. O agente validou com sucesso a nova UI no . No entanto, essa validação não detectou o bug sutil no backend relacionado ao salvamento de exceções, que foi posteriormente encontrado pelo usuário.
+-   **Testing agent used after significant changes**: NO (Não para as últimas e mais críticas correções de performance).
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: A funcionalidade Memória IA para exceções está agora quebrada; ela salva o CFOP incorreto.
+-   **Known regressions**: Nenhuma regressão conhecida, mas os problemas de performance existentes são tão severos que se comportam como tal.
 
 **Credentials to test flow:**
--   **Super Admin**:  / 
-
-**What agent forgot to execute**
--   O agente não aplicou as novas alterações de UI (layout compacto, botão Manter Natureza) ao , deixando as duas páginas principais inconsistentes.
--   A implementação do tratamento de exceções pelo agente introduziu um bug crítico onde o CFOP incorreto é persistido. O agente estava prestes a começar a depurar isso quando a sessão terminou.</analysis>
+-   **Super Admin**:  / </analysis>

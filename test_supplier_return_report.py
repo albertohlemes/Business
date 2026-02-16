@@ -10,7 +10,7 @@ import uuid
 import time
 
 class SupplierReturnReportTester:
-    def __init__(self, base_url="https://classificacao-beta.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://dados-corrigidos.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.admin_token = None
         self.test_company_id = None
