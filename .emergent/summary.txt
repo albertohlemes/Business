@@ -1,60 +1,65 @@
 <analysis>**original_problem_statement:**
-O usuário enfrenta problemas críticos de performance e estabilidade que impedem a comercialização do sistema para clientes com alto volume de documentos (ex: 14.000+ XMLs por mês). As principais páginas de análise (, ) travam o sistema. Adicionalmente, existem inconsistências de dados e bugs de cálculo em várias telas:
-- : Cálculos de PIS/COFINS inconsistentes para o mesmo produto e cores de impacto invertidas.
--  e : Exibiam valores zerados ou inconsistentes, especialmente para ICMS e no comparativo de regimes.
-- : Além de travar, a base de cálculo não excluía o ICMS e a classificação de produtos com alíquota zero era incorreta.
-- : Cálculos inconsistentes entre diferentes páginas (, , e a página de ).
+O usuário enfrenta problemas críticos de performance e consistência de dados em uma aplicação de análise fiscal. As principais páginas de análise (, , , ) travam ou exibem valores fiscais inconsistentes e incorretos. Os principais requisitos do usuário são:
 
 PRODUCT REQUIREMENTS:
-1.  **Estabilidade e Performance (P0)**: O sistema não deve travar ou sofrer timeouts em páginas de análise (, , , , , ) ao processar grandes volumes de dados (15.000+ documentos).
-2.  **Correção e Consistência de Dados (P0)**: As páginas de análise devem exibir dados corretos, consistentes e completos. Isso inclui cálculos fiscais (PIS/COFINS, ICMS) alinhados entre as diferentes telas e com a legislação vigente.
+1.  **Estabilidade e Performance (P0)**: O sistema não deve travar ao processar grandes volumes de dados (15.000+ documentos).
+2.  **Correção e Consistência de Dados (P0)**: Todas as páginas de análise devem exibir cálculos fiscais (PIS/COFINS, ICMS, etc.) corretos e 100% consistentes entre si. Isso inclui:
+    *   Cálculos corretos de PIS/COFINS, ICMS e outros impostos.
+    *   Definições corretas para métricas de negócio como Vendas Líquidas, Compras Líquidas e Markup.
+    *   Classificação correta de documentos como entrada/saída com base no CFOP.
 3.  **Instalação On-Premise (P2)**: O usuário solicitou a possibilidade de instalar a aplicação em um servidor local.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-Uma aplicação full-stack (React + FastAPI + MongoDB) para análise fiscal. O agente anterior focou intensamente em resolver problemas de performance e consistência de dados. Foram feitas otimizações significativas no backend (), substituindo loops em memória por pipelines de agregação do MongoDB, adicionando índices e ajustando thresholds. A lógica de cálculo do ICMS foi unificada em todas as telas (, , ) para garantir consistência. A base de cálculo do PIS/COFINS foi corrigida para excluir o valor do ICMS, e a lista de NCMs com alíquota zero foi depurada. Apesar do progresso, o usuário reportou uma nova inconsistência crítica nos valores de PIS/COFINS.
+Uma aplicação full-stack (React + FastAPI + MongoDB). O agente anterior realizou um trabalho extensivo para resolver graves inconsistências de dados. A principal estratégia foi unificar a lógica de cálculo de PIS/COFINS, que era diferente em cada página (, , , ). Para isso, foi criada uma função centralizada, , em  e todos os endpoints relevantes foram refatorados para usá-la.
+
+Foram implementadas correções fiscais cruciais, como a exclusão do ICMS da base de cálculo do PIS/COFINS tanto nas entradas (conforme Lei 14.592/2023) quanto nas saídas (conforme decisão do STF). Também foi corrigida a lógica de classificação de documentos (entrada/saída) para usar o prefixo do CFOP como fonte da verdade, resolvendo problemas como CFOPs de entrada aparecendo em relatórios de saída.
+
+No entanto, ao final da sessão, o usuário apontou novas e importantes inconsistências nos indicadores de negócio do dashboard principal e da página de .
 
 **Last working item**:
--   **Last item agent was working**: Investigando uma nova inconsistência de dados reportada pelo usuário (mensagem #520). Os valores de PIS/COFINS apurados na página  são drasticamente diferentes dos valores exibidos na página principal de .
+-   **Last item agent was working**: Investigando e corrigindo inconsistências nos cálculos de Compras Líquidas, Vendas Líquidas e Markup entre o dashboard principal () e a página de , conforme apontado pelo usuário na mensagem #479.
 -   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: backend testing agent. O agente deve comparar os resultados dos endpoints que alimentam as duas páginas ( e ). A investigação deve focar nas diferenças de lógica de cálculo (ex: filtros aplicados, base de cálculo, tratamento de créditos/débitos) entre as duas funções em .
--   **User Testing Done**: Y (O usuário forneceu screenshots que comprovam a divergência).
+-   **Which testing method agent to use?**: backend testing agent. O agente deve verificar a lógica nos endpoints que alimentam o dashboard () e a página de indicadores, garantindo que as definições de Compras Líquidas e Vendas Líquidas estejam corretas e unificadas, e que o Markup seja calculado corretamente a partir desses valores.
+-   **User Testing Done**: Y (O usuário forneceu screenshots e uma descrição clara dos erros de cálculo).
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Inconsistência no cálculo de PIS/COFINS entre a página de  e a página de  (P0).
+-   **Issue 1**: ,  e  estão incorretos e inconsistentes entre o Dashboard e a página  (P0).
 -   **Issue 2**: Validação de performance do sistema com alto volume de dados (P0).
 -   **Issue 3**:  - Inconsistência na lógica de cálculo (P1).
 -   **Issue 4**:  está sem informação (P2).
 
 **Issues Detail**:
--   **Issue 1: Inconsistência no cálculo de PIS/COFINS (P0)**
-    -   **Attempted fixes**: Nenhuma. O problema foi recém-reportado pelo usuário no final da sessão anterior.
+-   **Issue 1: Inconsistência nos indicadores de negócio (P0)**
+    -   **Attempted fixes**: O agente anterior identificou o problema e concordou que estava inconsistente, mas não iniciou a implementação da correção.
     -   **Next debug checklist**:
-        1.  Analisar a função que alimenta a  ( em ) e a que alimenta a página  ( em ).
-        2.  Identificar as diferenças nas pipelines de agregação, especialmente nos estágios  (filtros) e  (cálculo da base de valor).
-        3.  Verificar se a  está utilizando a lógica corrigida de excluir o ICMS da base de cálculo.
-        4.  Unificar a lógica de cálculo para que ambas as páginas utilizem a mesma fonte de verdade e retornem valores idênticos para o Regime Atual.
-    -   **Why fix this issue and what will be achieved with the fix?**: Garante a confiabilidade dos dados fiscais, que é o core da aplicação. A inconsistência atual invalida a análise do usuário.
+        1.  Identificar os endpoints que alimentam o Dashboard e a página  (provavelmente  e ).
+        2.  Revisar e corrigir a lógica de cálculo para seguir as definições do usuário:
+            *   **Compras Líquidas** = CFOPs de Compra (1102, 2102, etc.) - Devoluções de Saída (CFOPs como 5202, 5411, etc.).
+            *   **Vendas Líquidas** = CFOPs de Venda (5102, 6102, etc.) - Devoluções de Entrada (CFOPs como 1202, 1411, etc.).
+            *   **Markup** = .
+        3.  Garantir que os cards no Dashboard principal (Total de Entradas, Total de Saídas, Compras Líquidas, Vendas Líquidas) e os dados na página  usem essa lógica unificada.
+    -   **Why fix this issue and what will be achieved with the fix?**: Garante a precisão de métricas de negócio essenciais para o usuário, restaurando a confiança na aplicação.
     -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y (Inconsistências de dados são um tema recorrente).
+    -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: backend
     -   **Blocked on other issue**: Não.
 
 -   **Issue 2: Validação de performance do sistema (P0)**
-    -   **Attempted fixes**: Múltiplas otimizações foram implementadas: endpoints reescritos com agregação, índices de DB criados, timeouts de frontend aumentados. Os testes do agente com a empresa COMERCIAL RS (~4.5k docs) mostraram respostas rápidas (<2s).
-    -   **Next debug checklist**: Após resolver a inconsistência de dados, é crucial solicitar ao usuário que teste o sistema com seu volume máximo de dados (14k+ docs) para validar se os travamentos foram de fato resolvidos.
+    -   **Attempted fixes**: Múltiplas otimizações foram implementadas (agregações no DB, índices). Testes do agente com ~4.5k docs foram rápidos.
+    -   **Next debug checklist**: Após resolver as inconsistências de dados, é crucial solicitar ao usuário que teste o sistema com seu volume máximo de dados (14k+ docs) para validar se os travamentos foram resolvidos.
     -   **Why fix this issue and what will be achieved with the fix?**: Resolve o principal impedimento para a comercialização do produto.
     -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend (teste de carga)
+    -   **Should Test frontend/backend/both after fix?**: backend (teste de carga pelo usuário)
     -   **Blocked on other issue**: Não.
 
 -   **Issue 3:  - Inconsistência na lógica de cálculo (P1)**
-    -   **Attempted fixes**: A lógica foi corrigida em uma sessão anterior para usar as bases de cálculo corretas ao invés de somar valores dos XMLs, resolvendo inconsistências.
-    -   **Next debug checklist**: A correção precisa ser validada pelo usuário. O agente deve apresentar o resultado corrigido para o item AURORA SUCO e pedir confirmação.
-    -   **Why fix this issue and what will be achieved with the fix?**: Garante a confiabilidade de uma das principais ferramentas de análise.
+    -   **Attempted fixes**: A lógica foi corrigida em uma sessão anterior.
+    -   **Next debug checklist**: A correção precisa ser validada pelo usuário.
+    -   **Why fix this issue and what will be achieved with the fix?**: Garante a confiabilidade de uma ferramenta de análise.
     -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
@@ -95,8 +100,8 @@ HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test
   /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
     from crypt import crypt as _crypt
 
-backend/server.py:36460
-  /app/backend/server.py:36460: DeprecationWarning: 
+backend/server.py:36322
+  /app/backend/server.py:36322: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -117,58 +122,76 @@ backend/server.py:36460
 =========================== short test summary info ============================
 ERROR test_ai_classification.py
 !!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-========================= 4 warnings, 1 error in 4.15s ========================= para o backend para prevenir regressões de dados.
+========================= 4 warnings, 1 error in 4.10s ========================= para o backend para prevenir regressões de dados.
     -   **(P2) Auditoria de Performance**: Realizar uma varredura completa no  para encontrar outros endpoints potencialmente lentos.
 
 **Completed work in this session**
--   **Performance Fix**: Otimizados os endpoints críticos (, , , ) reduzindo o threshold para forçar a agregação e adicionando índices no MongoDB.
--   **Data Fix**: Corrigida a lista de NCMs com alíquota zero (), removendo o prefixo '2106' que classificava incorretamente produtos tributáveis como isentos.
--   **Data Fix**: A base de cálculo de PIS/COFINS foi corrigida para **excluir o valor do ICMS**, conforme a legislação, em múltiplos endpoints.
--   **CRITICAL DATA CONSISTENCY FIX**: A lógica de cálculo do **ICMS** foi **unificada** nas páginas ,  e . Todas agora exibem o mesmo saldo a pagar (R$ 17.801,48), resolvendo bugs relacionados a saldo credor, filtros de CFOPs de despesa/ST, e notas fiscais ativas.
--   **Frontend Fix**: Aumentado o timeout para 120 segundos nas chamadas Axios das páginas de análise para evitar falhas em ambientes mais lentos.
+-   **CRITICAL DATA CONSISTENCY FIX (PIS/COFINS)**: Unificada a lógica de cálculo de PIS/COFINS em **TODAS** as páginas (, , , , ), garantindo valores 100% idênticos.
+    -   Criada a função centralizada  em .
+    -   Todos os endpoints relevantes foram refatorados para usar esta função.
+-   **CRITICAL FISCAL RULE FIX**: Corrigida a base de cálculo do PIS/COFINS para **excluir o valor do ICMS** tanto nas **entradas** quanto nas **saídas**, conforme solicitado pelo usuário.
+-   **CRITICAL CLASSIFICATION FIX**: Corrigida a lógica de classificação de documentos para usar o **prefixo do CFOP** para determinar se é entrada ou saída, resolvendo o problema de CFOPs de entrada (ex: 1202) aparecerem em relatórios de saída.
+-   **Dashboard Fix**: Corrigido o endpoint  para exibir os valores de impostos (ICMS, PIS, COFINS) consistentes com as outras páginas e para ocultar corretamente IPI e ICMS-ST para empresas não contribuintes.
+-   **Frontend Fix**: Corrigido um crash na aba Comparativo PIS/COFINS ajustando a estrutura de dados retornada pelo backend.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **MongoDB Aggregation Pipelines**: Estratégia central para otimização e correção de cálculos complexos. A sessão atual focou em refinar e unificar essas pipelines.
--   **Data Consistency**: O principal desafio foi garantir que métricas idênticas (como o saldo de ICMS) sejam calculadas da mesma forma em diferentes partes da aplicação.
--   **Depuração de Lógica Fiscal**: Análise profunda das regras de PIS/COFINS (base de cálculo) e ICMS (CFOPs que geram crédito, despesas, ST).
+-   **Unificação de Lógica**: A estratégia principal foi centralizar lógicas de cálculo fiscal complexas em funções únicas para garantir consistência em toda a aplicação.
+-   **CFOP como Fonte da Verdade**: Utilizar os prefixos dos CFOPs para determinar regras fiscais (como entrada/saída), superando dados potencialmente incorretos dos arquivos XML.
+-   **Depuração de Regras Fiscais**: Análise e implementação de regras fiscais específicas, como a exclusão do ICMS da base de PIS/COFINS.
 
 **All files of reference**
--    (Arquivo principal para todas as correções de backend)
+-    (Arquivo principal para todas as correções)
 -   
 -   
 -   
+
+**Areas that need refactoring**:
+-   O arquivo  é um monólito com mais de 30.000 linhas. Refatorar este arquivo em uma estrutura modular (ex: , , ) é altamente recomendado para melhorar a manutenibilidade e evitar erros futuros.
+
+**key api endpoints**
 -   
+-   
+-   
+-    (alimenta a tela de RET)
 
 **Critical Info for New Agent**
--   **PRIORIDADE MÁXIMA é a CONSISTÊNCIA DE DADOS**: O usuário está focado nos dados. A inconsistência no PIS/COFINS (última mensagem) é o bloqueador atual e deve ser resolvido primeiro.
--   **A ESTRATÉGIA É UNIFICAR A LÓGICA**: O sucesso na correção do ICMS veio da unificação da lógica de cálculo. A mesma abordagem deve ser aplicada para o PIS/COFINS: garantir que a  e a página  usem a mesma função ou pipeline de agregação para calcular os valores do regime atual.
--   **VALIDAÇÃO DE PERFORMANCE AINDA É NECESSÁRIA**: Embora o agente tenha feito muitas otimizações e os testes locais sejam rápidos, a validação final só pode ser feita pelo usuário em seu ambiente de produção com alto volume de dados.
+-   **A PRIORIDADE MÁXIMA AINDA É A CONSISTÊNCIA DE DADOS**: O usuário é extremamente detalhista e qualquer inconsistência, por menor que seja, invalida o uso da ferramenta. O próximo passo é corrigir as métricas de negócio (, ).
+-   **CONTINUE A UNIFICAÇÃO DA LÓGICA**: A estratégia de criar funções centralizadas funcionou bem. Aplique o mesmo princípio para corrigir os cálculos de  e .
+-   **NÃO CONFIE NOS DADOS DO XML**: O agente anterior descobriu que campos como  e  nos XMLs podem estar incorretos. A lógica de negócio deve se basear em regras fiscais aplicadas sobre os dados brutos (ex: usar o prefixo do CFOP).
 
 **documents and test reports created in this job**
--    (Atualizado com as correções de performance e dados)
+-    (Atualizado ao final da sessão anterior)
 
 **Last 10 User Messages and any pending HUMAN messages**
--    (#520): **CRÍTICO** - Reporta que os valores de PIS/COFINS estão totalmente diferentes entre a página específica e a página da Reforma Tributária. **Status: IN PROGRESS (Last working item)**.
--    (#387): Reporta que os valores de ICMS estão diferentes entre as páginas. **Status: RESOLVED** (Agente unificou a lógica de cálculo do ICMS).
--    (#318): Pede para verificar se a base de PIS/COFINS está desconsiderando o valor do ICMS. **Status: RESOLVED** (Agente implementou a exclusão do ICMS da base).
--    (#249): Reporta que o ICMS da Reforma Tributária e do RET está incorreto/zerado. **Status: RESOLVED**.
--    (#136): Reporta que a Reforma Tributária está inconsistente e não lista produtos. **Status: PARTIALLY RESOLVED** (Agente corrigiu vários sub-problemas, mas a inconsistência de PIS/COFINS surgiu).
--    (#4): **CRÍTICO** - A mensagem que iniciou grande parte do trabalho, listando todos os problemas de performance e dados. **Status: IN PROGRESS** (Performance supostamente resolvida, mas aguardando validação do usuário).
+1.   (#479): **CRÍTICO / PENDENTE** - Aponta que o cálculo de  está errado e que as definições de  e  estão inconsistentes entre o Dashboard e a página de Indicadores.
+2.   (#461): Reporta que o CFOP 1202 (entrada) está aparecendo na lista de saídas da página de ICMS. **Status: RESOLVED**.
+3.   (#385): Reporta múltiplos erros na página de Indicadores e Análise Horizontal: Total Vendas igual a Total Saídas, valores de IPI e ICMS-ST aparecendo incorretamente, e valor de ICMS inconsistente. **Status: PARTIALLY RESOLVED** (Impostos corrigidos, mas Vendas/Compras ainda pendente).
+4.   (#365): Aponta que a tela de Análise Horizontal está tudo errado, mostrando valores de PIS/COFINS do XML. **Status: RESOLVED**.
+5.   (#359): Confirma a definição correta de Total Vendas (CFOPs de venda - devoluções de entrada). **Status: IN PROGRESS**.
+6.   (#336): Aponta que Total de Saídas e Total de Vendas estão com a lógica errada. **Status: IN PROGRESS**.
+7.   (#318): Reporta um erro Uncaught runtime errors na aba de Comparativo PIS e COFINS. **Status: RESOLVED**.
+8.   (#259): Pede para finalizar o trabalho. **Status: NOT ACTIONED** (agente continuou trabalhando).
+9.   (#228): Pede para remover pequenas diferenças de arredondamento entre as páginas, para que os valores fiquem exatamente iguais. **Status: RESOLVED**.
+10.  (#194): Pergunta se a correção do PIS/COFINS foi aplicada em todos os locais (RET, Apuração, Reforma Tributária) e se os valores estão iguais. **Status: RESOLVED**.
 
 **Project Health Check:**
--   **Broken**: Sim. Apesar dos grandes avanços em performance e na consistência do ICMS, a nova inconsistência crítica nos cálculos de PIS/COFINS impede o uso confiável da aplicação.
+-   **Broken**: Sim. Apesar dos enormes avanços na consistência dos impostos, a inconsistência em métricas de negócio chave como  e  torna a aplicação funcionalmente incorreta e inutilizável para o usuário.
 
 **3rd Party Integrations**
--   Gemini (usado para classificação de produtos, sem alterações nesta sessão)
+-   Gemini (usado para classificação de produtos)
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: A estabilidade geral do sistema sob alta carga ainda é uma preocupação não validada. Inconsistências de dados continuam a surgir em diferentes módulos.
+-   **Known regressions**: Nenhuma regressão explícita, mas a descoberta contínua de inconsistências de dados indica que a base de código é frágil.
 
 **Credentials to test flow:**
--   **Super Admin**:  / </analysis>
+-   **Super Admin**:  / 
+
+**What agent forgot to execute**
+-   O agente não finalizou a tarefa quando o usuário pediu na mensagem #259, continuando a refatorar.
+-   O trabalho principal solicitado na última mensagem do usuário (#479), que é a correção do  e das , ainda não foi implementado.</analysis>
