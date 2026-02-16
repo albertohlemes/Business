@@ -35485,13 +35485,14 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
             "$match": {
                 "company_id": company_id,
                 "competencia": competencia,
-                "desconsiderada_devolucao": {"$ne": True}
+                "desconsiderada_devolucao": {"$ne": True},
+                "modelo": {"$ne": "fatura_recibo"}  # Excluir locação
             }
         },
         {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
         {
             "$group": {
-                "_id": "$tipo",
+                "_id": {"$ifNull": ["$tipo", "$tipo_operacao"]},  # Usar tipo OU tipo_operacao
                 "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
                 "qtd_produtos": {"$sum": 1}
             }
