@@ -1,498 +1,75 @@
 <analysis>**original_problem_statement:**
 O usuário enfrenta problemas críticos de performance e estabilidade que impedem a comercialização do sistema para clientes com alto volume de documentos (ex: 14.000+ XMLs por mês). As principais páginas de análise (, ) travam o sistema. Adicionalmente, existem inconsistências de dados e bugs de cálculo em várias telas:
 - : Cálculos de PIS/COFINS inconsistentes para o mesmo produto e cores de impacto invertidas.
--  e : Exibem valores zerados quando a empresa possui saldo credor de impostos, o que é confuso.
-- : Exibia valores de compra e venda inflacionados.
-- : Além de travar, não estava excluindo corretamente produtos com alíquota zero/monofásicos das bases de cálculo.
-- : Não exibia CFOPs de outros estados (problema posteriormente identificado como sendo de dados da empresa de teste).
+-  e : Exibiam valores zerados ou inconsistentes, especialmente para ICMS e no comparativo de regimes.
+- : Além de travar, a base de cálculo não excluía o ICMS e a classificação de produtos com alíquota zero era incorreta.
+- : Cálculos inconsistentes entre diferentes páginas (, , e a página de ).
 
 PRODUCT REQUIREMENTS:
 1.  **Estabilidade e Performance (P0)**: O sistema não deve travar ou sofrer timeouts em páginas de análise (, , , , , ) ao processar grandes volumes de dados (15.000+ documentos).
-2.  **Correção de Dados (P0)**: As páginas de análise devem exibir dados corretos e completos. Isso inclui cálculos fiscais consistentes, exibição correta de saldos credores e dados alinhados com os documentos XML.
+2.  **Correção e Consistência de Dados (P0)**: As páginas de análise devem exibir dados corretos, consistentes e completos. Isso inclui cálculos fiscais (PIS/COFINS, ICMS) alinhados entre as diferentes telas e com a legislação vigente.
 3.  **Instalação On-Premise (P2)**: O usuário solicitou a possibilidade de instalar a aplicação em um servidor local.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-A aplicação full-stack (React + FastAPI + MongoDB) possui funcionalidades de análise fiscal. O agente anterior realizou múltiplas refatorações no monolito  para corrigir bugs de dados e performance, focando na substituição de processamento em memória por pipelines de agregação do MongoDB. Foram feitas correções nas páginas  (valores inflados),  (lógica de cálculo e cores) e  (cálculo de ICMS e exibição de saldo credor). Apesar das tentativas, o problema mais crítico, o travamento da página  com alto volume de dados, persiste.
+Uma aplicação full-stack (React + FastAPI + MongoDB) para análise fiscal. O agente anterior focou intensamente em resolver problemas de performance e consistência de dados. Foram feitas otimizações significativas no backend (), substituindo loops em memória por pipelines de agregação do MongoDB, adicionando índices e ajustando thresholds. A lógica de cálculo do ICMS foi unificada em todas as telas (, , ) para garantir consistência. A base de cálculo do PIS/COFINS foi corrigida para excluir o valor do ICMS, e a lista de NCMs com alíquota zero foi depurada. Apesar do progresso, o usuário reportou uma nova inconsistência crítica nos valores de PIS/COFINS.
 
 **Last working item**:
--   **Last item agent was working**: Investigando e tentando resolver o travamento da página de , conforme reportado pelo usuário na sua última mensagem (Definitivamente o problema de cair o sistema ao consultar o pis e Cofins não foi resolvido!).
+-   **Last item agent was working**: Investigando uma nova inconsistência de dados reportada pelo usuário (mensagem #520). Os valores de PIS/COFINS apurados na página  são drasticamente diferentes dos valores exibidos na página principal de .
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: N (O agente acreditou ter resolvido o problema de performance anteriormente, mas o último relato do usuário confirma que o travamento persiste).
--   **Which testing method agent to use?**: . O agente deve primeiro tentar reproduzir o travamento. A melhor abordagem é usar  para chamar o endpoint  com os parâmetros de uma empresa de alto volume (a COMERCIAL RS com ~4.5k docs pode ser um bom começo, mas o ideal seria um volume > 10k) e um período de tempo relevante. É crucial monitorar os logs do backend (==> /var/log/supervisor/backend.err.log <==
-INFO:server:REFORMA TRIBUTÁRIA: Calculando regime_atual para regime=lucro_real
-INFO:server:REFORMA TRIBUTÁRIA: Base saída=9375926.01, ICMS saída=1939698.16
-INFO:server:REFORMA TRIBUTÁRIA: Base entrada=9398002.60, ICMS entrada=2070035.51
-INFO:server:REFORMA TRIBUTÁRIA: regime_atual calculado: pis=0.00, cofins=0.00, icms=0.00
-INFO:server:REFORMA TRIBUTÁRIA: Total documentos = 4484
-INFO:server:REFORMA TRIBUTÁRIA: Calculando regime_atual para regime=lucro_real
-INFO:server:REFORMA TRIBUTÁRIA: Base saída=9375926.01, ICMS saída=1939698.16
-INFO:server:REFORMA TRIBUTÁRIA: Base entrada=9398002.60, ICMS entrada=2070035.51
-INFO:server:REFORMA TRIBUTÁRIA: regime_atual calculado: pis=0.00, cofins=0.00, icms=0.00
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [4729]
-INFO:     Started server process [5120]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [5120]
-INFO:     Stopping reloader process [4727]
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [5134] using WatchFiles
-INFO:     Started server process [5136]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:server:REFORMA TRIBUTÁRIA: Total documentos = 4484
-INFO:server:REFORMA TRIBUTÁRIA: Calculando regime_atual para regime=lucro_real
-INFO:server:REFORMA TRIBUTÁRIA: Base saída=9375926.01, ICMS saída=1939698.16
-INFO:server:REFORMA TRIBUTÁRIA: Base entrada=9398002.60, ICMS entrada=2070035.51
-INFO:server:REFORMA TRIBUTÁRIA: regime_atual calculado: pis=0.00, cofins=0.00, icms=0.00
-INFO:server:VILOES: Total documentos = 4495
-INFO:server:VILOES: Total documentos = 4495
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [5136]
-INFO:     Started server process [5840]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [5840]
-INFO:     Stopping reloader process [5134]
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [5845] using WatchFiles
-INFO:     Started server process [5847]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:server:VILOES: Total documentos = 4495
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [5847]
-INFO:     Started server process [5915]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [5915]
-INFO:     Stopping reloader process [5845]
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [5920] using WatchFiles
-INFO:     Started server process [5922]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:server:VILOES: Total documentos = 4495
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [5922]
-INFO:     Started server process [6062]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [6062]
-INFO:     Stopping reloader process [5920]
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [6067] using WatchFiles
-INFO:     Started server process [6069]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:server:VILOES: Total documentos = 4495
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [6069]
-INFO:     Started server process [6272]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [6272]
-INFO:     Stopping reloader process [6067]
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [6300] using WatchFiles
-INFO:     Started server process [6302]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:server:VILOES: Total documentos = 4495
-INFO:server:VILOES: NCM 20096100 - Corrigindo inconsistência PIS/COFINS: PIS=6.73, COFINS=-5.18
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [6302]
-INFO:     Started server process [6395]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [6395]
-INFO:     Started server process [6421]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [6421]
-INFO:     Stopping reloader process [6300]
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [6426] using WatchFiles
-INFO:     Started server process [6428]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:server:VILOES: Total documentos = 4495
-INFO:server:VILOES: NCM 20096100 - Adequando PIS/COFINS: PIS=6.73, COFINS=-5.18, Total=1.55
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [6428]
-INFO:     Started server process [6595]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [6595]
-INFO:     Started server process [6644]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [6644]
-INFO:     Started server process [6739]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [6739]
-INFO:     Started server process [6788]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [6788]
-INFO:     Started server process [6837]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [6837]
-INFO:     Stopping reloader process [6426]
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [6842] using WatchFiles
-INFO:     Started server process [6844]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:server:VILOES: Total documentos = 4495
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [48] using WatchFiles
-
-==> /var/log/supervisor/backend.out.log <==
-INFO:     10.64.131.7:60872 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.126:46262 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:46262 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:60172 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.7:60870 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.228:54472 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.7:60870 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.137:55984 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.130.228:36694 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.7:45726 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.134.7:46722 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.129.177:47746 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.110:59290 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.132.137:51084 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:43042 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.136.198:58054 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.136.198:58054 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.136.198:47334 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.129.177:58482 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:58482 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.7:38184 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.137:45290 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.136.198:47338 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.136.198:47338 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:46898 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.110:34648 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.228:33054 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.137:45292 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.228:33054 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.228:33054 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.126:40392 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:40392 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.102:51846 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.134.6:45958 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.110:52362 - "GET /api/inteligencia-tributaria/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=01%2F2026&tipo=periodo HTTP/1.1" 200 OK
-INFO:     10.64.132.102:51846 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.137:42626 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.129.177:55106 - "GET /api/reforma-tributaria/apuracao/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.136.198:57050 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:46620 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:46620 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.7:59558 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.136.198:57050 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:55120 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.102:48266 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:33418 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.110:51100 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.7:45118 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.228:59348 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.7:45118 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.126:33424 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:50400 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.110:46482 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.7:45118 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.102:34002 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.110:46482 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:51682 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.137:55738 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.110:46482 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.134.7:39214 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.132.102:34004 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.228:58886 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:41698 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.110:46482 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.126:46280 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:46280 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.228:44598 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.185:57090 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.131.185:57090 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:41704 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.185:57090 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.185:57090 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.102:44918 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.132.137:49554 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.110:57494 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.137:49554 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:42728 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.126:42728 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.7:44690 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.137:49554 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.110:35440 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.129.177:40618 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.185:59426 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.134.7:57812 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.102:48110 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:40618 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.132.137:41542 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:40618 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:35984 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.134.6:52008 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.132.102:48656 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:54100 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:54100 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.137:37852 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.131.185:35786 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.137:37852 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.7:35314 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.110:58788 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.185:35786 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.110:58788 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:50442 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.102:34938 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.129.177:60740 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:50442 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.110:54406 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:60740 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.110:54406 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.132.102:38376 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:37730 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:32976 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.131.185:55758 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:33590 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.137:46250 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.132.102:35642 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.132.137:49484 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.134.7:34434 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.134.6:40410 - "GET /api/viloes-oportunidades/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.228:45972 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.134.6:57070 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.126:41842 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.132.137:42544 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.110:53368 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.131.185:55312 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.129.177:58640 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.129.177:58640 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.110:39810 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.132.102:41060 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:48940 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.129.177:35368 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.132.137:36416 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.185:56344 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:60836 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.7:49790 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:60836 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.110:48070 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.110:48070 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.131.185:47366 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:52142 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.228:53066 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:52142 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.129.177:52142 - "GET /api/xml/upload-status/9cf6c9a7-9554-4291-99bb-227ffd21908d HTTP/1.1" 200 OK
-INFO:     10.64.130.126:47446 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.131.185:47368 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.132.137:39936 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.126:47446 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.110:56292 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.110:56290 - "GET /api/viloes-oportunidades/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.129.177:53544 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.132.137:53736 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.126:49592 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.131.7:60722 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.126:55048 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.131.185:55430 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.110:54588 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.132.137:39198 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.129.177:41672 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.131.7:40818 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.129.177:41060 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.126:35128 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.126:35130 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.131.185:36338 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.110:36734 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.131.7:39812 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.132.137:38288 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.131.185:41814 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.132.137:48510 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.126:33890 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.130.126:54978 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.129.177:57828 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-INFO:     10.64.131.185:33078 - "GET /api/xml/jobs?limit=10 HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.130.110:35804 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.134.7:56946 - "GET /api/viloes-oportunidades/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=01%2F2026 HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.134.7:44586 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.134.7:44586 - "GET /api/viloes-oportunidades/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=01%2F2026 HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.130.110:43188 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.131.7:55096 - "GET /api/viloes-oportunidades/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=01%2F2026 HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.134.7:36644 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.134.6:54120 - "GET /api/viloes-oportunidades/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=01%2F2026 HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.134.7:43646 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.134.7:43646 - "GET /api/viloes-oportunidades/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=01%2F2026 HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.134.7:51358 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.129.177:43064 - "GET /api/viloes-oportunidades/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=01%2F2026 HTTP/1.1" 200 OK) durante o teste para capturar erros de memória ou timeout. A sugestão do usuário separa a base? indica que uma solução de paginação/chunking pode ser necessária.
--   **User Testing Done**: Y (E falhou, confirmando que o problema persiste).
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: backend testing agent. O agente deve comparar os resultados dos endpoints que alimentam as duas páginas ( e ). A investigação deve focar nas diferenças de lógica de cálculo (ex: filtros aplicados, base de cálculo, tratamento de créditos/débitos) entre as duas funções em .
+-   **User Testing Done**: Y (O usuário forneceu screenshots que comprovam a divergência).
 
 **All Pending/In progress Issue list**:
--   **Issue 1**:  derruba o sistema ao ser consultado (P0).
--   **Issue 2**:  (Relatório de Entradas Tributáveis) derruba o sistema (P0).
--   **Issue 3**:  - Inconsistência na lógica de cálculo de PIS/COFINS (P1).
--   **Issue 4**:  e  mostram impostos a pagar como zero quando há saldo credor (P1).
--   **Issue 5**:  está sem informação (P2).
+-   **Issue 1**: Inconsistência no cálculo de PIS/COFINS entre a página de  e a página de  (P0).
+-   **Issue 2**: Validação de performance do sistema com alto volume de dados (P0).
+-   **Issue 3**:  - Inconsistência na lógica de cálculo (P1).
+-   **Issue 4**:  está sem informação (P2).
 
 **Issues Detail**:
--   **Issue 1:  derruba o sistema (P0)**
-    -   **Attempted fixes**: O endpoint  e sua função agregada  foram refatorados várias vezes. O agente acreditou ter resolvido a performance, pois os testes com  retornavam rapidamente. No entanto, o usuário final continua enfrentando travamentos.
+-   **Issue 1: Inconsistência no cálculo de PIS/COFINS (P0)**
+    -   **Attempted fixes**: Nenhuma. O problema foi recém-reportado pelo usuário no final da sessão anterior.
     -   **Next debug checklist**:
-        1.  Revisar o endpoint  em  novamente.
-        2.  Analisar a possibilidade de o problema estar no caminho não-agregado ou em uma condição de borda que força o processamento em memória.
-        3.  Considerar a sugestão do usuário de separar a base. Implementar paginação do lado do servidor (server-side pagination) para os resultados da apuração de PIS/COFINS pode ser a solução definitiva, em vez de tentar retornar todos os dados de uma vez.
-        4.  Investigar os logs do backend em busca de erros de out-of-memory ou request timeout.
-    -   **Why fix this issue and what will be achieved with the fix?**: É o problema mais crítico que impede o uso da aplicação. A resolução é essencial para a viabilidade comercial do produto.
+        1.  Analisar a função que alimenta a  ( em ) e a que alimenta a página  ( em ).
+        2.  Identificar as diferenças nas pipelines de agregação, especialmente nos estágios  (filtros) e  (cálculo da base de valor).
+        3.  Verificar se a  está utilizando a lógica corrigida de excluir o ICMS da base de cálculo.
+        4.  Unificar a lógica de cálculo para que ambas as páginas utilizem a mesma fonte de verdade e retornem valores idênticos para o Regime Atual.
+    -   **Why fix this issue and what will be achieved with the fix?**: Garante a confiabilidade dos dados fiscais, que é o core da aplicação. A inconsistência atual invalida a análise do usuário.
     -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
+    -   **Is recurring issue?**: Y (Inconsistências de dados são um tema recorrente).
     -   **Should Test frontend/backend/both after fix?**: backend
     -   **Blocked on other issue**: Não.
 
--   **Issue 2:  derruba o sistema (P0)**
-    -   **Attempted fixes**: Nenhum. Este problema foi mencionado no handoff inicial mas não foi abordado.
-    -   **Next debug checklist**:
-        1.  Localizar o endpoint que alimenta a página RET ( ou similar) em .
-        2.  Analisar sua lógica e confirmar se ela processa documentos um a um em um loop.
-        3.  Refatorar o endpoint para usar uma pipeline de agregação do MongoDB, similar ao que foi feito para outras telas.
-    -   **Why fix this issue and what will be achieved with the fix?**: Resolve outro travamento crítico do sistema.
-    -   **Status**: NOT STARTED
+-   **Issue 2: Validação de performance do sistema (P0)**
+    -   **Attempted fixes**: Múltiplas otimizações foram implementadas: endpoints reescritos com agregação, índices de DB criados, timeouts de frontend aumentados. Os testes do agente com a empresa COMERCIAL RS (~4.5k docs) mostraram respostas rápidas (<2s).
+    -   **Next debug checklist**: Após resolver a inconsistência de dados, é crucial solicitar ao usuário que teste o sistema com seu volume máximo de dados (14k+ docs) para validar se os travamentos foram de fato resolvidos.
+    -   **Why fix this issue and what will be achieved with the fix?**: Resolve o principal impedimento para a comercialização do produto.
+    -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Should Test frontend/backend/both after fix?**: backend (teste de carga)
     -   **Blocked on other issue**: Não.
 
 -   **Issue 3:  - Inconsistência na lógica de cálculo (P1)**
-    -   **Attempted fixes**: O agente realizou uma extensa depuração e corrigiu a lógica. A solução final foi recalcular o PIS/COFINS para fins de análise usando as bases de entrada/saída (, ) e alíquotas padrão (1,65%/7,60%), em vez de somar os valores / dos XMLs, que causavam inconsistências por arredondamento e alíquotas diferentes. O teste com  (mensagem #398) mostrou que a nova lógica funciona corretamente (compra > venda => crédito > débito => OPORTUNIDADE).
-    -   **Next debug checklist**: A correção precisa ser validada pelo usuário. O agente deve apresentar o resultado corrigido (de preferência com um screenshot da UI) para o item AURORA SUCO e pedir confirmação.
-    -   **Why fix this issue and what will be achieved with the fix?**: Garante a confiabilidade da principal ferramenta de análise de produtos do sistema.
+    -   **Attempted fixes**: A lógica foi corrigida em uma sessão anterior para usar as bases de cálculo corretas ao invés de somar valores dos XMLs, resolvendo inconsistências.
+    -   **Next debug checklist**: A correção precisa ser validada pelo usuário. O agente deve apresentar o resultado corrigido para o item AURORA SUCO e pedir confirmação.
+    -   **Why fix this issue and what will be achieved with the fix?**: Garante a confiabilidade de uma das principais ferramentas de análise.
     -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: Não.
 
--   **Issue 4:  e  mostram R$ 0 quando há saldo credor (P1)**
-    -   **Attempted fixes**: Para a , o agente modificou o backend para retornar os débitos e créditos brutos, e o frontend para exibir o débito bruto para comparação. Isso resolve parcialmente o problema, mas a UI pode precisar de mais ajustes para ser clara.
-    -   **Next debug checklist**:
-        1.  Revisar a página  para aplicar a mesma lógica: exibir os débitos e créditos brutos para que o usuário entenda por que o valor a pagar é zero.
-        2.  Validar com o usuário se a nova exibição na  está clara.
-    -   **Why fix this issue and what will be achieved with the fix?**: Melhora a usabilidade e a transparência dos dados, evitando que o usuário pense que os cálculos estão errados.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on other issue**: Não.
-
--   **Issue 5:  está sem informação (P2)**
+-   **Issue 4:  está sem informação (P2)**
     -   **Attempted fixes**: Nenhum.
-    -   **Next debug checklist**:
-        1.  Localizar o endpoint que alimenta a página  em .
-        2.  Analisar a lógica e refatorar para usar agregação se houver problemas de performance.
-    -   **Why fix this issue and what will be achieved with the fix?**: Resolve uma das páginas que aparecem vazias para o usuário.
+    -   **Next debug checklist**: Localizar e analisar o endpoint que alimenta a página em .
+    -   **Why fix this issue and what will be achieved with the fix?**: Completa uma funcionalidade visível para o usuário.
     -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y
+    -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: backend
     -   **Blocked on other issue**: Não.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks:**
-    -   **(P0) Validação da Correção de **: Apresentar a nova lógica de cálculo ao usuário para validação.
-    -   **(P1) Aplicação da Lógica de Saldo Credor no RET**: Modificar a página  para exibir débitos/créditos brutos.
 -   **Future Tasks:**
     -   **(P1) Pacote de Instalação On-Premise**: Criar um pacote de deploy com Docker Compose e documentação.
     -   **(P2) Suíte de Testes Automatizados**: Implementar testes com ============================= test session starts ==============================
@@ -518,8 +95,8 @@ HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test
   /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
     from crypt import crypt as _crypt
 
-backend/server.py:36368
-  /app/backend/server.py:36368: DeprecationWarning: 
+backend/server.py:36460
+  /app/backend/server.py:36460: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -540,56 +117,58 @@ backend/server.py:36368
 =========================== short test summary info ============================
 ERROR test_ai_classification.py
 !!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-========================= 4 warnings, 1 error in 6.49s ========================= para o backend para prevenir regressões.
-    -   **(P2) Auditoria de Performance**: Realizar uma varredura completa no  para encontrar outros endpoints lentos.
+========================= 4 warnings, 1 error in 4.15s ========================= para o backend para prevenir regressões de dados.
+    -   **(P2) Auditoria de Performance**: Realizar uma varredura completa no  para encontrar outros endpoints potencialmente lentos.
 
 **Completed work in this session**
--   **Bug Fix**: **Análise Horizontal** - Corrigido bug que inflava os valores de compra/venda em 9x devido a um  incorreto na pipeline de agregação.
--   **Bug Fix**: **Reforma Tributária** - Corrigido bug que usava a chave  em vez de , fazendo com que os valores de ICMS ficassem zerados.
--   **UX/Bug Fix**: **Reforma Tributária** - Modificado o endpoint para retornar os débitos e créditos brutos quando há saldo credor, e o frontend para usar esses valores, tornando a comparação mais clara.
--   **UX/Bug Fix**: **Vilões e Oportunidades** - Corrigidas as cores invertidas (vermelho/verde) na aba de Oportunidades.
--   **Data Investigation**: Identificado que a ausência de CFOPs de outros estados e valores zerados na empresa REPUBLIC era um **problema de dados** (a empresa não possuía documentos de entrada), e não um bug de código.
+-   **Performance Fix**: Otimizados os endpoints críticos (, , , ) reduzindo o threshold para forçar a agregação e adicionando índices no MongoDB.
+-   **Data Fix**: Corrigida a lista de NCMs com alíquota zero (), removendo o prefixo '2106' que classificava incorretamente produtos tributáveis como isentos.
+-   **Data Fix**: A base de cálculo de PIS/COFINS foi corrigida para **excluir o valor do ICMS**, conforme a legislação, em múltiplos endpoints.
+-   **CRITICAL DATA CONSISTENCY FIX**: A lógica de cálculo do **ICMS** foi **unificada** nas páginas ,  e . Todas agora exibem o mesmo saldo a pagar (R$ 17.801,48), resolvendo bugs relacionados a saldo credor, filtros de CFOPs de despesa/ST, e notas fiscais ativas.
+-   **Frontend Fix**: Aumentado o timeout para 120 segundos nas chamadas Axios das páginas de análise para evitar falhas em ambientes mais lentos.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **MongoDB Aggregation Pipelines**: Estratégia principal para otimização. A complexidade agora está em garantir que as pipelines sejam corretas e performáticas, e talvez complementá-las com paginação.
--   **Otimização de Performance**: O foco mudou de simples refatoração para a necessidade de estratégias mais robustas como paginação para lidar com o volume de dados do usuário.
--   **Depuração de Lógica Fiscal**: A sessão envolveu uma depuração profunda das regras de PIS/COFINS (não-cumulativo, alíquotas, bases de cálculo) para corrigir a análise de Vilões e Oportunidades.
+-   **MongoDB Aggregation Pipelines**: Estratégia central para otimização e correção de cálculos complexos. A sessão atual focou em refinar e unificar essas pipelines.
+-   **Data Consistency**: O principal desafio foi garantir que métricas idênticas (como o saldo de ICMS) sejam calculadas da mesma forma em diferentes partes da aplicação.
+-   **Depuração de Lógica Fiscal**: Análise profunda das regras de PIS/COFINS (base de cálculo) e ICMS (CFOPs que geram crédito, despesas, ST).
 
 **All files of reference**
 -    (Arquivo principal para todas as correções de backend)
--    (Frontend onde a lógica de cores e exibição foi corrigida)
--    (Frontend modificado para exibir saldos credores)
+-   
+-   
+-   
+-   
 
 **Critical Info for New Agent**
--   **A PRIORIDADE MÁXIMA É A PERFORMANCE**: O usuário está extremamente frustrado e impedido de usar o sistema. Resolver os travamentos de  e  é a única prioridade que importa agora.
--   **A ESTRATÉGIA DE AGREGAÇÃO PODE NÃO SER SUFICIENTE**: As pipelines de agregação sozinhas podem não resolver o problema se o volume de dados retornado para o frontend for muito grande. A sugestão do usuário (separa a base?) é uma pista importante. O próximo agente deve investigar seriamente a implementação de **paginação do lado do servidor**.
--   **VALIDAR CORREÇÕES DE LÓGICA**: A lógica de cálculo em  foi extensivamente corrigida, mas o usuário ainda não a validou. É importante obter essa confirmação para fechar o assunto.
--   **DADOS DE TESTE**: Os documentos da empresa REPUBLIC foram apagados. A empresa COMERCIAL RS (~4.5k docs) é agora a principal referência para testes. Para simular o problema do usuário, pode ser necessário encontrar uma maneira de testar com volumes ainda maiores (>10k docs).
+-   **PRIORIDADE MÁXIMA é a CONSISTÊNCIA DE DADOS**: O usuário está focado nos dados. A inconsistência no PIS/COFINS (última mensagem) é o bloqueador atual e deve ser resolvido primeiro.
+-   **A ESTRATÉGIA É UNIFICAR A LÓGICA**: O sucesso na correção do ICMS veio da unificação da lógica de cálculo. A mesma abordagem deve ser aplicada para o PIS/COFINS: garantir que a  e a página  usem a mesma função ou pipeline de agregação para calcular os valores do regime atual.
+-   **VALIDAÇÃO DE PERFORMANCE AINDA É NECESSÁRIA**: Embora o agente tenha feito muitas otimizações e os testes locais sejam rápidos, a validação final só pode ser feita pelo usuário em seu ambiente de produção com alto volume de dados.
+
+**documents and test reports created in this job**
+-    (Atualizado com as correções de performance e dados)
 
 **Last 10 User Messages and any pending HUMAN messages**
--    (message #400): **CRÍTICO** - Informa que o sistema continua travando ao consultar  e pede ajuda urgente. **Status: IN PROGRESS (Last working item)**.
--    (message #371): Reporta que o cálculo para o Suco Aurora está errado, pois com compra > venda, deveria gerar oportunidade (crédito), não débito. **Status: RESOLVED** (Agente corrigiu a lógica para usar as bases de cálculo corretas).
--    (message #362): Questiona a solução do agente de zerar os valores de PIS/COFINS, afirmando corretamente que a solução é adequar as bases. **Status: RESOLVED** (Agente acatou e corrigiu a abordagem).
--    (message #319): Aponta uma inconsistência matemática: é impossível o PIS gerar mais débito enquanto o COFINS gera mais crédito, pois seguem a mesma regra. **Status: RESOLVED** (Agente identificou que era um erro de arredondamento acumulado e implementou uma correção).
--    (message #296): Reporta problemas nos  (cálculo de bases e cores invertidas) e informa que  e  mostram valores zerados incorretamente. **Status: PARTIALLY RESOLVED** (Cálculos e cores corrigidos, mas a questão do saldo credor no RET ainda está pendente).
--    (message #191): Reporta 3 problemas na empresa COMERCIAL RS: valores incorretos na Evolução Fiscal, valores zerados na Reforma Tributária e RET. **Status: PARTIALLY RESOLVED** (Evolução Fiscal e Reforma Tributária corrigidas, RET pendente).
--    (message #114): Reporta que o PIS/COFINS não está excluindo alíquota zero/monofásico. **Status: RESOLVED** (Agente corrigiu a pipeline de agregação para considerar os campos  e CSTs).
--    (message #44): **CRÍTICO** - A mensagem que iniciou grande parte do trabalho, listando todos os problemas de performance e dados. **Status: IN PROGRESS**.
+-    (#520): **CRÍTICO** - Reporta que os valores de PIS/COFINS estão totalmente diferentes entre a página específica e a página da Reforma Tributária. **Status: IN PROGRESS (Last working item)**.
+-    (#387): Reporta que os valores de ICMS estão diferentes entre as páginas. **Status: RESOLVED** (Agente unificou a lógica de cálculo do ICMS).
+-    (#318): Pede para verificar se a base de PIS/COFINS está desconsiderando o valor do ICMS. **Status: RESOLVED** (Agente implementou a exclusão do ICMS da base).
+-    (#249): Reporta que o ICMS da Reforma Tributária e do RET está incorreto/zerado. **Status: RESOLVED**.
+-    (#136): Reporta que a Reforma Tributária está inconsistente e não lista produtos. **Status: PARTIALLY RESOLVED** (Agente corrigiu vários sub-problemas, mas a inconsistência de PIS/COFINS surgiu).
+-    (#4): **CRÍTICO** - A mensagem que iniciou grande parte do trabalho, listando todos os problemas de performance e dados. **Status: IN PROGRESS** (Performance supostamente resolvida, mas aguardando validação do usuário).
 
 **Project Health Check:**
--   **Broken**: Sim, criticamente. As funcionalidades centrais de análise fiscal permanecem instáveis e inutilizáveis para o cenário de produção do usuário (alto volume de dados), que é o público-alvo principal.
+-   **Broken**: Sim. Apesar dos grandes avanços em performance e na consistência do ICMS, a nova inconsistência crítica nos cálculos de PIS/COFINS impede o uso confiável da aplicação.
 
 **3rd Party Integrations**
--   Gemini (usado para classificação de produtos e extração de dados de documentos via )
+-   Gemini (usado para classificação de produtos, sem alterações nesta sessão)
 
 **Testing status**
--   **Testing agent used after significant changes**: YES (Uma vez, com sucesso, mas não cobriu os problemas de performance mais recentes que ressurgiram).
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: O travamento da página  é um problema recorrente que se comporta como uma regressão, pois o agente acreditava tê-lo resolvido, mas ele persiste.
+-   **Known regressions**: A estabilidade geral do sistema sob alta carga ainda é uma preocupação não validada. Inconsistências de dados continuam a surgir em diferentes módulos.
 
 **Credentials to test flow:**
 -   **Super Admin**:  / </analysis>
