@@ -11424,15 +11424,27 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
     """
     logger.info(f"APURACAO-PIS-COFINS AGREGADO: Iniciando para {total_docs} documentos")
     
-    # Pipeline de agregação para calcular totais por tipo de operação e CFOP
+    # NCMs monofásicos (4 primeiros dígitos) - produtos com tributação concentrada
+    NCMS_MONOFASICOS = [
+        '2201', '2202',  # Águas e bebidas
+        '2710', '2711',  # Combustíveis
+        '3002', '3003', '3004',  # Medicamentos
+        '3401',  # Sabões
+        '4011', '4013',  # Pneus
+        '8471',  # Computadores
+        '8702', '8703', '8704',  # Veículos
+    ]
+    
+    # Pipeline de agregação - incluir NCM para tratamento especial
     pipeline = [
-        {"$match": query},
+        {"$match": {**query, "modelo": {"$ne": "fatura_recibo"}}},
         {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
         {
             "$group": {
                 "_id": {
                     "tipo": {"$ifNull": ["$tipo_operacao", {"$ifNull": ["$tipo", "entrada"]}]},
-                    "cfop": {"$ifNull": ["$produtos.cfop", "0000"]}
+                    "cfop": {"$ifNull": [{"$toString": "$produtos.cfop"}, "0000"]},
+                    "ncm_prefix": {"$substr": [{"$ifNull": [{"$toString": "$produtos.ncm"}, "00000000"]}, 0, 4]}
                 },
                 "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
                 "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", {"$ifNull": ["$produtos.valor_pis", 0]}]}}},
@@ -11443,7 +11455,9 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
     ]
     
     cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
-    resultados = await cursor.to_list(length=500)
+    resultados = await cursor.to_list(length=2000)  # Aumentado para pegar mais grupos NCM
+    
+    logger.info(f"APURACAO-PIS-COFINS AGREGADO: {len(resultados)} grupos NCM/CFOP encontrados")
     
     # CFOPs que geram crédito (entradas)
     CFOPS_CREDITO = ['1101', '1102', '1111', '1113', '1116', '1117', '1118', '1120', '1121', '1122',
