@@ -25641,6 +25641,111 @@ async def process_document_with_ai(
 
 
 # ===========================================
+# RECIBOS DE LOCAÇÃO - ENDPOINTS ESPECÍFICOS
+# ===========================================
+
+@api_router.get("/recibos-locacao/{company_id}")
+async def listar_recibos_locacao(
+    company_id: str,
+    competencia: Optional[str] = None,
+    status: Optional[str] = None,  # "ativo", "cancelado", ou None para todos
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lista todos os recibos de locação de uma empresa.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    query = {
+        "company_id": company_id,
+        "modelo": "fatura_recibo"
+    }
+    
+    if competencia:
+        query["competencia"] = competencia
+    
+    if status:
+        query["status"] = status
+    
+    recibos = await db.xml_documents.find(
+        query,
+        {"_id": 0, "xml_content": 0}
+    ).sort("data_emissao", -1).to_list(1000)
+    
+    # Calcular resumo
+    total_ativos = sum(1 for r in recibos if r.get("status") == "ativo")
+    total_cancelados = sum(1 for r in recibos if r.get("status") == "cancelado")
+    valor_total_ativos = sum(r.get("valor_total", 0) for r in recibos if r.get("status") == "ativo")
+    
+    return {
+        "recibos": recibos,
+        "resumo": {
+            "total": len(recibos),
+            "ativos": total_ativos,
+            "cancelados": total_cancelados,
+            "valor_total_ativos": valor_total_ativos
+        }
+    }
+
+
+@api_router.put("/recibos-locacao/{company_id}/{recibo_id}/status")
+async def atualizar_status_recibo(
+    company_id: str,
+    recibo_id: str,
+    status: str,  # "ativo" ou "cancelado"
+    motivo_cancelamento: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Atualiza o status de um recibo de locação (ativo ou cancelado).
+    """
+    if status not in ["ativo", "cancelado"]:
+        raise HTTPException(status_code=400, detail="Status deve ser 'ativo' ou 'cancelado'")
+    
+    update_data = {
+        "status": status,
+        "status_atualizado_em": datetime.now(timezone.utc),
+        "status_atualizado_por": current_user.id
+    }
+    
+    if status == "cancelado" and motivo_cancelamento:
+        update_data["motivo_cancelamento"] = motivo_cancelamento
+    
+    result = await db.xml_documents.update_one(
+        {"company_id": company_id, "id": recibo_id, "modelo": "fatura_recibo"},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Recibo não encontrado")
+    
+    return {"message": f"Recibo atualizado para {status}", "id": recibo_id}
+
+
+@api_router.delete("/recibos-locacao/{company_id}/{recibo_id}")
+async def excluir_recibo_locacao(
+    company_id: str,
+    recibo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Exclui um recibo de locação.
+    """
+    result = await db.xml_documents.delete_one({
+        "company_id": company_id,
+        "id": recibo_id,
+        "modelo": "fatura_recibo"
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Recibo não encontrado")
+    
+    return {"message": "Recibo excluído com sucesso", "id": recibo_id}
+
+
+# ===========================================
 # INTELIGÊNCIA TRIBUTÁRIA - COMPARAÇÃO DE REGIMES
 # ===========================================
 
