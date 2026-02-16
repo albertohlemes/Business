@@ -1,0 +1,121 @@
+{
+  "summary": "Testes completos de consistência Compras/Vendas/Markup. TODOS OS 10 TESTES PASSARAM. Os valores são 100% consistentes entre os endpoints /api/apuracao-icms e /api/analise-horizontal. A página Indicadores pode consumir os dados corretamente.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_compras_vendas_markup_consistency.py",
+    "/app/test_reports/pytest/pytest_compras_vendas_markup.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_compras_vendas_markup_consistency.py"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10 testes passaram)",
+    "frontend": "N/A - apenas backend testado conforme solicitado"
+  },
+  "test_credentials": {
+    "email": "alberto.lemes@businessconta.com.br",
+    "password": "Business@2026"
+  },
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Endpoints de Compras/Vendas/Markup validados e 100% consistentes. Empresa de teste: COMERCIAL RS LTDA (d7f30ea1-9df3-4124-a561-12984ffff64b) com competência 01/2026.",
+  "detailed_test_results": {
+    "test_1_apuracao_icms_structure": {
+      "status": "PASS",
+      "description": "Endpoint /api/apuracao-icms retorna campos compras_liquidas, vendas_liquidas, markup",
+      "valores": {
+        "compras_brutas": 11318524.07,
+        "devolucoes_compra": 388867.12,
+        "compras_liquidas": 10929656.95,
+        "vendas_brutas": 11413901.61,
+        "devolucoes_venda": 6825.56,
+        "vendas_liquidas": 11407076.05,
+        "markup": 4.37
+      }
+    },
+    "test_2_analise_horizontal_structure": {
+      "status": "PASS",
+      "description": "Endpoint /api/analise-horizontal retorna campos compras, vendas, markup com detalhes",
+      "valores": {
+        "compras_brutas": 11318524.07,
+        "devolucoes_compra": 388867.12,
+        "compras": 10929656.95,
+        "vendas_brutas": 11413901.61,
+        "devolucoes_cliente": 6825.56,
+        "vendas": 11407076.05,
+        "markup": 4.37
+      }
+    },
+    "test_3_consistency_compras_liquidas": {
+      "status": "PASS",
+      "description": "Compras Líquidas IGUAIS entre endpoints",
+      "apuracao_icms": 10929656.95,
+      "analise_horizontal": 10929656.95,
+      "diferenca": 0.0
+    },
+    "test_4_consistency_vendas_liquidas": {
+      "status": "PASS",
+      "description": "Vendas Líquidas IGUAIS entre endpoints",
+      "apuracao_icms": 11407076.05,
+      "analise_horizontal": 11407076.05,
+      "diferenca": 0.0
+    },
+    "test_5_consistency_markup": {
+      "status": "PASS",
+      "description": "Markup IGUAL entre endpoints",
+      "apuracao_icms": 4.37,
+      "analise_horizontal": 4.37,
+      "diferenca": 0.0
+    },
+    "test_6_business_logic_compras": {
+      "status": "PASS",
+      "description": "Fórmula: Compras Líquidas = Brutas - Devoluções",
+      "formula": "11318524.07 - 388867.12 = 10929656.95"
+    },
+    "test_7_business_logic_vendas": {
+      "status": "PASS",
+      "description": "Fórmula: Vendas Líquidas = Brutas - Devoluções",
+      "formula": "11413901.61 - 6825.56 = 11407076.05"
+    },
+    "test_8_business_logic_markup": {
+      "status": "PASS",
+      "description": "Fórmula: Markup = (Vendas - Compras) / Compras * 100",
+      "formula": "(11407076.05 - 10929656.95) / 10929656.95 * 100 = 4.37%"
+    },
+    "test_9_expected_values_validation": {
+      "status": "PASS",
+      "description": "Valores retornados correspondem exatamente aos esperados pelo main agent",
+      "valores_esperados": {
+        "compras_liquidas": 10929656.95,
+        "vendas_liquidas": 11407076.05,
+        "markup": 4.37
+      },
+      "valores_recebidos": {
+        "compras_liquidas": 10929656.95,
+        "vendas_liquidas": 11407076.05,
+        "markup": 4.37
+      }
+    },
+    "test_10_indicadores_page_integration": {
+      "status": "PASS",
+      "description": "Página Indicadores pode consumir dados corretamente via dados?.icms?.{markup, compras_liquidas, vendas_liquidas}"
+    }
+  },
+  "business_rules_validated": {
+    "compras_liquidas_formula": "CFOPs Compra (1102, 2102, 1403, 2403, 1101, 2101) - Devoluções Saída (5201, 5202, 5410, 5411, 6201, 6202, 6410, 6411)",
+    "vendas_liquidas_formula": "CFOPs Venda (5102, 6102, etc) - Devoluções Entrada (1202, 1410, 1411, 2202, 2410, 2411)",
+    "markup_formula": "(Vendas Líquidas - Compras Líquidas) / Compras Líquidas * 100"
+  },
+  "conclusao": "A implementação do main agent está 100% correta. Os valores de Compras Líquidas, Vendas Líquidas e Markup são perfeitamente consistentes entre os endpoints /api/apuracao-icms e /api/analise-horizontal, conforme requisitado."
+}
