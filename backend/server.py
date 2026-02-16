@@ -24382,7 +24382,14 @@ async def _get_pis_cofins_aggregated(company: dict, company_id: str, competencia
             for prod in doc.get('produtos', []):
                 ncm = str(prod.get('ncm', '')).replace('.', '')
                 cfop = str(prod.get('cfop', ''))
-                valor_base = float(prod.get('valor_total', 0) or 0)
+                valor_total = float(prod.get('valor_total', 0) or 0)
+                
+                # Para saídas, excluir ICMS da base (decisão STF)
+                if tipo_operacao == 'saida':
+                    v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+                    valor_base = max(0, valor_total - v_icms)
+                else:
+                    valor_base = valor_total
                 
                 if tipo_operacao == 'entrada':
                     total_entradas += valor_base
