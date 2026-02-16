@@ -488,19 +488,44 @@ const ReformaTributaria = ({ user, onLogout }) => {
                       <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
                         <span className="text-[#A1A1AA]">PIS/COFINS</span>
                         <span className="text-white font-medium">
-                          {formatCurrency(apuracao.comparativo_regime_atual?.pis_cofins)}
+                          {formatCurrency(
+                            apuracao.comparativo_regime_atual?.pis_cofins > 0 
+                              ? apuracao.comparativo_regime_atual?.pis_cofins 
+                              : (apuracao.comparativo_regime_atual?.debito_bruto?.pis || 0) + 
+                                (apuracao.comparativo_regime_atual?.debito_bruto?.cofins || 0)
+                          )}
+                          {apuracao.comparativo_regime_atual?.pis_cofins === 0 && 
+                           apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo < 0 && (
+                            <span className="text-xs text-green-400 ml-2">(débito)</span>
+                          )}
                         </span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
                         <span className="text-[#A1A1AA]">ICMS</span>
                         <span className="text-white font-medium">
-                          {formatCurrency(apuracao.comparativo_regime_atual?.icms)}
+                          {formatCurrency(
+                            apuracao.comparativo_regime_atual?.icms > 0 
+                              ? apuracao.comparativo_regime_atual?.icms 
+                              : apuracao.comparativo_regime_atual?.debito_bruto?.icms || 0
+                          )}
+                          {apuracao.comparativo_regime_atual?.icms === 0 && 
+                           apuracao.comparativo_regime_atual?.detalhamento?.icms_saldo < 0 && (
+                            <span className="text-xs text-green-400 ml-2">(débito)</span>
+                          )}
                         </span>
                       </div>
                       <div className="flex justify-between items-center p-4 bg-amber-500/10 rounded-lg border border-amber-500/30">
                         <span className="text-amber-400 font-semibold">TOTAL ATUAL</span>
                         <span className="text-amber-400 font-bold text-xl">
-                          {formatCurrency(apuracao.comparativo_regime_atual?.total)}
+                          {formatCurrency(
+                            apuracao.comparativo_regime_atual?.total > 0 
+                              ? apuracao.comparativo_regime_atual?.total 
+                              : apuracao.comparativo_regime_atual?.debito_bruto?.total || 0
+                          )}
+                          {apuracao.comparativo_regime_atual?.total === 0 && 
+                           apuracao.comparativo_regime_atual?.debito_bruto?.total > 0 && (
+                            <span className="text-xs text-green-400 ml-2">(débito bruto)</span>
+                          )}
                         </span>
                       </div>
                     </div>
