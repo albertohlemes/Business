@@ -22834,7 +22834,7 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
     except Exception as e:
         logger.warning(f"ICMS AGREGADO: Erro ao calcular Top NCMs: {e}")
     
-    return {
+    resultado = {
         "empresa": {
             "id": company_id,
             "razao_social": company.get('razao_social', ''),
