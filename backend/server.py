@@ -22700,6 +22700,33 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
     
     saldo = debito_icms - credito_icms
     
+    # ============== CALCULAR VENDAS/COMPRAS LÍQUIDAS (usando dados já agregados por CFOP) ==============
+    # CFOPs de COMPRA para revenda e insumos
+    CFOPS_COMPRAS_UNIFICADO = ['1102', '2102', '1403', '2403', '1101', '2101', '1201', '2201', '1551', '2551']
+    # CFOPs de DEVOLUÇÃO de compra (empresa devolvendo para fornecedor) - SAÍDAS
+    CFOPS_DEVOLUCAO_COMPRA = ['5201', '5202', '5410', '5411', '6201', '6202', '6410', '6411']
+    # CFOPs de VENDA
+    CFOPS_VENDA_UNIFICADO = [
+        '5101', '5102', '5103', '5104', '5105', '5106', '5109', '5110', '5111', '5112', '5113', '5114', '5115', '5116', '5117', '5118', '5119', '5120', '5122', '5123', '5124', '5125',
+        '5401', '5402', '5403', '5405',
+        '6101', '6102', '6103', '6104', '6105', '6106', '6107', '6108', '6109', '6110', '6111', '6112', '6113', '6114', '6115', '6116', '6117', '6118', '6119', '6120', '6122', '6123', '6124', '6125',
+        '6401', '6402', '6403', '6404'
+    ]
+    # CFOPs de DEVOLUÇÃO de venda (cliente devolvendo para empresa) - ENTRADAS
+    CFOPS_DEVOLUCAO_VENDA = ['1202', '1410', '1411', '2202', '2410', '2411']
+    
+    # Calcular usando os dados já agregados por CFOP
+    total_compras_brutas = sum(entradas_por_cfop.get(cfop, {}).get('valor_total', 0) for cfop in CFOPS_COMPRAS_UNIFICADO)
+    total_devolucao_compras = sum(saidas_por_cfop.get(cfop, {}).get('valor_total', 0) for cfop in CFOPS_DEVOLUCAO_COMPRA)
+    total_vendas_brutas = sum(saidas_por_cfop.get(cfop, {}).get('valor_total', 0) for cfop in CFOPS_VENDA_UNIFICADO)
+    total_devolucao_vendas = sum(entradas_por_cfop.get(cfop, {}).get('valor_total', 0) for cfop in CFOPS_DEVOLUCAO_VENDA)
+    
+    compras_liquidas_agg = total_compras_brutas - total_devolucao_compras
+    vendas_liquidas_agg = total_vendas_brutas - total_devolucao_vendas
+    markup_agg = ((vendas_liquidas_agg - compras_liquidas_agg) / compras_liquidas_agg * 100) if compras_liquidas_agg > 0 else 0
+    
+    logger.info(f"ICMS AGREGADO: Compras Líquidas={compras_liquidas_agg:.2f}, Vendas Líquidas={vendas_liquidas_agg:.2f}, Markup={markup_agg:.2f}%")
+    
     # ============== CALCULAR TOP 10 NCMs E PRODUTOS (agregação separada) ==============
     top_ncms_credito = []
     top_ncms_debito = []
