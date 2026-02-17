@@ -658,48 +658,41 @@ const PisCofins = ({ user, onLogout }) => {
         >
           <div className="space-y-4">
             {/* Resumo por CST - Débitos */}
-            {apuracao.por_cfop_cst && apuracao.por_cfop_cst.filter(i => i.tipo === 'SAIDA' || i.tipo === 'SAÍDA').length > 0 && (
+            {apuracao.por_cst && apuracao.por_cst.saidas_por_cst && apuracao.por_cst.saidas_por_cst.length > 0 && (
               <div className="bg-[#0C0C0C] rounded-lg p-4">
                 <h4 className="text-white font-medium mb-3 flex items-center gap-2">
                   <Layers className="w-4 h-4 text-red-400" />
                   Resumo por CST (Débitos)
                 </h4>
                 {(() => {
-                  const saidas = apuracao.por_cfop_cst.filter(i => i.tipo === 'SAIDA' || i.tipo === 'SAÍDA');
-                  const porCST = saidas.reduce((acc, item) => {
-                    const cst = item.cst || 'N/A';
-                    if (!acc[cst]) {
-                      acc[cst] = { qtd: 0, valor_base: 0, valor_pis: 0, valor_cofins: 0 };
-                    }
-                    acc[cst].qtd += item.qtd || 0;
-                    acc[cst].valor_base += item.valor_base || 0;
-                    acc[cst].valor_pis += item.valor_pis || 0;
-                    acc[cst].valor_cofins += item.valor_cofins || 0;
-                    return acc;
-                  }, {});
+                  const saidas = apuracao.por_cst.saidas_por_cst;
                   
                   return (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-[#2A2A2A]">
-                            <th className="text-left py-2 px-3 text-[#A1A1AA]">CST</th>
-                            <th className="text-right py-2 px-3 text-[#A1A1AA]">Qtd Docs</th>
+                            <th className="text-left py-2 px-3 text-[#A1A1AA]">CST PIS</th>
+                            <th className="text-left py-2 px-3 text-[#A1A1AA]">CST COFINS</th>
+                            <th className="text-right py-2 px-3 text-[#A1A1AA]">Qtd Itens</th>
                             <th className="text-right py-2 px-3 text-[#A1A1AA]">Base de Cálculo</th>
                             <th className="text-right py-2 px-3 text-[#A1A1AA]">PIS</th>
                             <th className="text-right py-2 px-3 text-[#A1A1AA]">COFINS</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {Object.entries(porCST).sort((a, b) => b[1].valor_base - a[1].valor_base).map(([cst, dados]) => (
-                            <tr key={cst} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
+                          {saidas.sort((a, b) => b.valor_base - a.valor_base).map((item, idx) => (
+                            <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
                               <td className="py-2 px-3">
-                                <span className="font-mono text-[#C8A951]">{cst}</span>
+                                <span className="font-mono text-[#C8A951]">{item.cst_pis || 'N/A'}</span>
                               </td>
-                              <td className="py-2 px-3 text-right text-[#A1A1AA]">{dados.qtd}</td>
-                              <td className="py-2 px-3 text-right text-white">{formatCurrency(dados.valor_base)}</td>
-                              <td className="py-2 px-3 text-right text-red-400">{formatCurrency(dados.valor_pis)}</td>
-                              <td className="py-2 px-3 text-right text-red-400">{formatCurrency(dados.valor_cofins)}</td>
+                              <td className="py-2 px-3">
+                                <span className="font-mono text-[#C8A951]">{item.cst_cofins || 'N/A'}</span>
+                              </td>
+                              <td className="py-2 px-3 text-right text-[#A1A1AA]">{item.qtd_itens}</td>
+                              <td className="py-2 px-3 text-right text-white">{formatCurrency(item.valor_base)}</td>
+                              <td className="py-2 px-3 text-right text-red-400">{formatCurrency(item.valor_pis)}</td>
+                              <td className="py-2 px-3 text-right text-red-400">{formatCurrency(item.valor_cofins)}</td>
                             </tr>
                           ))}
                         </tbody>
