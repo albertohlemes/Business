@@ -25247,6 +25247,9 @@ async def apurar_pis_cofins(
     else:
         melhor_regime = "IGUAL"
     
+    # Calcular totalizador por CST
+    por_cst = await calcular_pis_cofins_por_cst(company_id, competencia)
+    
     return {
         "empresa": {
             "id": company_id,
@@ -25268,7 +25271,8 @@ async def apurar_pis_cofins(
             "base_credito": resultado_unificado['base_credito'],
             "base_debito": resultado_unificado['base_debito'],
             "nota": "Valores calculados com função unificada - Lei 14.592/2023 (ICMS excluído da base)"
-        }
+        },
+        "por_cst": por_cst
     }
 
 
