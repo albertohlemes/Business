@@ -217,8 +217,6 @@ const FechamentoMensal = ({ user, onLogout }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* ICMS */}
               <div className="bg-[#141414] rounded-xl p-5 border border-[#2A2A2A]">
-              {/* ICMS */}
-              <div className="bg-[#141414] rounded-xl p-5 border border-[#2A2A2A]">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                     <Calculator className="w-5 h-5 text-blue-400" />
