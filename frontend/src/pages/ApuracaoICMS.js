@@ -503,11 +503,20 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                     {formatCurrency(item.bc_icms)}
                   </td>
                   <td className={`py-3 px-4 text-right font-semibold ${
-                    isDesconsiderado 
-                      ? 'text-red-400/60 line-through' 
-                      : tipo === 'entrada' ? 'text-green-400' : 'text-red-400'
+                    tipo === 'entrada' ? 'text-green-400' : 'text-red-400'
                   }`}>
-                    {formatCurrency(item.valor_icms)}
+                    {isDesconsiderado ? (
+                      <div className="flex flex-col items-end">
+                        <span className="text-red-400/60 line-through text-xs">
+                          {formatCurrency(item.valor_icms_original || 0)}
+                        </span>
+                        <span className="text-[#A1A1AA]">
+                          {formatCurrency(0)}
+                        </span>
+                      </div>
+                    ) : (
+                      formatCurrency(item.valor_icms)
+                    )}
                   </td>
                 </tr>
               );
