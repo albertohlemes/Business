@@ -1773,13 +1773,13 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
                 entradas_cst[cst_display]['qtd'] += 1
                 
             else:  # saída
-                # Verificar se deve ser desconsiderado
+                # Verificar se deve ser desconsiderado (usar CST 49 para saídas, não 98)
                 categoria_sem_debito = any(cat in categoria for cat in CATEGORIAS_SEM_DEBITO) if categoria else False
                 cfop_sem_debito = cfop in CFOPS_SEM_DEBITO
                 
                 if categoria_sem_debito or cfop_sem_debito:
-                    # Agrupar como CST 98 - Desconsiderado
-                    cst_display = '98'
+                    # Saídas sem débito = CST 49 (Outras saídas)
+                    cst_display = '49'
                     valor_pis = Decimal('0')
                     valor_cofins = Decimal('0')
                 else:
