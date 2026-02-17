@@ -775,8 +775,211 @@ const PisCofins = ({ user, onLogout }) => {
           </div>
         </SecaoColapsavel>
 
-        {/* Agrupamento por CFOP + CST */}
-        {apuracao.por_cfop_cst && apuracao.por_cfop_cst.length > 0 && (
+        {/* Confronto CFOP x CST - Novo formato com descrições */}
+        {apuracao.confronto_cfop_cst && (apuracao.confronto_cfop_cst.entradas_cfop_cst?.length > 0 || apuracao.confronto_cfop_cst.saidas_cfop_cst?.length > 0) && (
+          <SecaoColapsavel
+            titulo="Confronto CFOP x CST"
+            subtitulo="Detalhamento de CFOPs considerados e desconsiderados"
+            sectionKey="confronto_cfop_cst"
+          >
+            {(() => {
+              const entradas = apuracao.confronto_cfop_cst.entradas_cfop_cst || [];
+              const saidas = apuracao.confronto_cfop_cst.saidas_cfop_cst || [];
+              
+              // Calcular subtotais de entradas
+              const subtotalEntradas = entradas.reduce((acc, item) => ({
+                qtd: acc.qtd + (item.qtd_itens || 0),
+                valor_base: acc.valor_base + (item.valor_base || 0),
+                valor_pis: acc.valor_pis + (item.valor_pis || 0),
+                valor_cofins: acc.valor_cofins + (item.valor_cofins || 0)
+              }), { qtd: 0, valor_base: 0, valor_pis: 0, valor_cofins: 0 });
+              
+              // Subtotal considerados (créditos)
+              const consideradosEntradas = entradas.filter(e => e.considerado);
+              const subtotalConsideradosEntradas = consideradosEntradas.reduce((acc, item) => ({
+                qtd: acc.qtd + (item.qtd_itens || 0),
+                valor_base: acc.valor_base + (item.valor_base || 0),
+                valor_pis: acc.valor_pis + (item.valor_pis || 0),
+                valor_cofins: acc.valor_cofins + (item.valor_cofins || 0)
+              }), { qtd: 0, valor_base: 0, valor_pis: 0, valor_cofins: 0 });
+              
+              // Calcular subtotais de saídas
+              const subtotalSaidas = saidas.reduce((acc, item) => ({
+                qtd: acc.qtd + (item.qtd_itens || 0),
+                valor_base: acc.valor_base + (item.valor_base || 0),
+                valor_pis: acc.valor_pis + (item.valor_pis || 0),
+                valor_cofins: acc.valor_cofins + (item.valor_cofins || 0)
+              }), { qtd: 0, valor_base: 0, valor_pis: 0, valor_cofins: 0 });
+
+              const TabelaConfrontoNew = ({ dados, tipo, subtotal }) => (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[#2A2A2A]">
+                        <th className="text-left py-2 px-2 text-[#A1A1AA]">CFOP</th>
+                        <th className="text-left py-2 px-2 text-[#A1A1AA]">Descrição</th>
+                        <th className="text-center py-2 px-2 text-[#A1A1AA]">CST</th>
+                        <th className="text-left py-2 px-2 text-[#A1A1AA]">Status</th>
+                        <th className="text-right py-2 px-2 text-[#A1A1AA]">Qtd</th>
+                        <th className="text-right py-2 px-2 text-[#A1A1AA]">Base Cálculo</th>
+                        <th className="text-right py-2 px-2 text-[#A1A1AA]">PIS</th>
+                        <th className="text-right py-2 px-2 text-[#A1A1AA]">COFINS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dados.map((item, idx) => (
+                        <tr 
+                          key={idx} 
+                          className={`border-b border-[#1A1A1A] hover:bg-[#1A1A1A] ${
+                            !item.considerado ? 'opacity-60 bg-red-900/10' : ''
+                          }`}
+                        >
+                          <td className="py-2 px-2">
+                            <span className="font-mono text-white font-semibold">{item.cfop}</span>
+                          </td>
+                          <td className="py-2 px-2 text-[#A1A1AA] text-xs max-w-[180px] truncate" title={item.cfop_descricao}>
+                            {item.cfop_descricao}
+                          </td>
+                          <td className="py-2 px-2 text-center">
+                            <span className={`font-mono px-2 py-0.5 rounded text-xs font-semibold ${
+                              item.cst === '50' ? 'bg-green-600/30 text-green-400' :
+                              item.cst === '01' ? 'bg-red-600/30 text-red-400' :
+                              item.cst === '98' ? 'bg-gray-600/30 text-gray-400 line-through' :
+                              item.cst === '70' ? 'bg-orange-600/30 text-orange-400' :
+                              item.cst === '73' || item.cst === '06' ? 'bg-blue-600/30 text-blue-400' :
+                              'bg-yellow-600/30 text-yellow-400'
+                            }`}>
+                              {item.cst}
+                            </span>
+                          </td>
+                          <td className="py-2 px-2">
+                            {item.considerado ? (
+                              <span className="text-xs flex items-center gap-1 text-green-400">
+                                <CheckCircle className="w-3 h-3" />
+                                {tipo === 'ENTRADA' ? 'Crédito' : 'Débito'}
+                              </span>
+                            ) : (
+                              <span className="text-xs flex items-center gap-1 text-gray-500">
+                                <AlertTriangle className="w-3 h-3" />
+                                Desconsiderado
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2 px-2 text-right text-[#A1A1AA]">{item.qtd_itens}</td>
+                          <td className="py-2 px-2 text-right text-white">{formatCurrency(item.valor_base)}</td>
+                          <td className={`py-2 px-2 text-right ${
+                            !item.considerado ? 'text-gray-500 line-through' :
+                            tipo === 'ENTRADA' ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {formatCurrency(item.valor_pis)}
+                          </td>
+                          <td className={`py-2 px-2 text-right ${
+                            !item.considerado ? 'text-gray-500 line-through' :
+                            tipo === 'ENTRADA' ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {formatCurrency(item.valor_cofins)}
+                          </td>
+                        </tr>
+                      ))}
+                      {/* Linha de Subtotal */}
+                      <tr className={`${tipo === 'ENTRADA' ? 'bg-green-600/20' : 'bg-red-600/20'} font-semibold`}>
+                        <td colSpan="4" className="py-3 px-2 text-white">
+                          TOTAL {tipo === 'ENTRADA' ? 'CRÉDITOS' : 'DÉBITOS'} CONSIDERADOS
+                        </td>
+                        <td className="py-3 px-2 text-right text-white">{subtotal.qtd}</td>
+                        <td className="py-3 px-2 text-right text-white">{formatCurrency(subtotal.valor_base)}</td>
+                        <td className={`py-3 px-2 text-right font-bold ${tipo === 'ENTRADA' ? 'text-green-400' : 'text-red-400'}`}>
+                          {formatCurrency(subtotal.valor_pis)}
+                        </td>
+                        <td className={`py-3 px-2 text-right font-bold ${tipo === 'ENTRADA' ? 'text-green-400' : 'text-red-400'}`}>
+                          {formatCurrency(subtotal.valor_cofins)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              );
+
+              return (
+                <div className="space-y-6">
+                  {/* Legenda */}
+                  <div className="flex flex-wrap gap-4 text-xs p-3 bg-[#0C0C0C] rounded-lg border border-[#2A2A2A]">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-green-600/30 text-green-400 font-mono">50</span>
+                      <span className="text-[#A1A1AA]">Com direito a crédito</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-red-600/30 text-red-400 font-mono">01</span>
+                      <span className="text-[#A1A1AA]">Tributado (débito)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-orange-600/30 text-orange-400 font-mono">70</span>
+                      <span className="text-[#A1A1AA]">Sem direito a crédito</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-blue-600/30 text-blue-400 font-mono">73/06</span>
+                      <span className="text-[#A1A1AA]">Alíquota zero</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-gray-600/30 text-gray-400 font-mono line-through">98</span>
+                      <span className="text-[#A1A1AA]">Desconsiderado (devolução, bonificação, etc.)</span>
+                    </div>
+                  </div>
+                  
+                  {/* ENTRADAS (Créditos) */}
+                  {entradas.length > 0 && (
+                    <div>
+                      <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                        <ArrowDown className="w-4 h-4 text-green-400" />
+                        ENTRADAS (Créditos)
+                        <span className="text-xs bg-green-600/20 text-green-400 px-2 py-0.5 rounded-full">
+                          {entradas.filter(e => e.considerado).length} considerado(s)
+                        </span>
+                        {entradas.filter(e => !e.considerado).length > 0 && (
+                          <span className="text-xs bg-gray-600/20 text-gray-400 px-2 py-0.5 rounded-full">
+                            {entradas.filter(e => !e.considerado).length} desconsiderado(s)
+                          </span>
+                        )}
+                      </h4>
+                      <TabelaConfrontoNew dados={entradas} tipo="ENTRADA" subtotal={subtotalConsideradosEntradas} />
+                    </div>
+                  )}
+                  
+                  {/* SAÍDAS (Débitos) */}
+                  {saidas.length > 0 && (
+                    <div>
+                      <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                        <ArrowUp className="w-4 h-4 text-red-400" />
+                        SAÍDAS (Débitos)
+                        <span className="text-xs bg-red-600/20 text-red-400 px-2 py-0.5 rounded-full">
+                          {saidas.filter(s => s.considerado).length} considerado(s)
+                        </span>
+                        {saidas.filter(s => !s.considerado).length > 0 && (
+                          <span className="text-xs bg-gray-600/20 text-gray-400 px-2 py-0.5 rounded-full">
+                            {saidas.filter(s => !s.considerado).length} desconsiderado(s)
+                          </span>
+                        )}
+                      </h4>
+                      <TabelaConfrontoNew 
+                        dados={saidas} 
+                        tipo="SAIDA" 
+                        subtotal={saidas.filter(s => s.considerado).reduce((acc, item) => ({
+                          qtd: acc.qtd + (item.qtd_itens || 0),
+                          valor_base: acc.valor_base + (item.valor_base || 0),
+                          valor_pis: acc.valor_pis + (item.valor_pis || 0),
+                          valor_cofins: acc.valor_cofins + (item.valor_cofins || 0)
+                        }), { qtd: 0, valor_base: 0, valor_pis: 0, valor_cofins: 0 })} 
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </SecaoColapsavel>
+        )}
+
+        {/* Agrupamento por CFOP + CST (formato antigo - backup) */}
+        {apuracao.por_cfop_cst && apuracao.por_cfop_cst.length > 0 && !apuracao.confronto_cfop_cst && (
           <SecaoColapsavel
             titulo="Detalhamento por CFOP + CST"
             subtitulo={`${apuracao.por_cfop_cst.length} combinação(ões)`}
