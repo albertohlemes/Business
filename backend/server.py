@@ -36435,6 +36435,11 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
                 "icms_saldo": 0
             }
         },
+        # Diferença para comparação (usando a_pagar que é sempre >= 0)
+        "diferenca": {
+            "valor": round(max(0, saldo_total) - pis_cofins_total_real, 2),
+            "percentual": round(((max(0, saldo_total) - pis_cofins_total_real) / pis_cofins_total_real * 100) if pis_cofins_total_real > 0 else 0, 2)
+        },
         "detalhes_entradas": [],
         "detalhes_saidas": [],
         "_agregado": True,
