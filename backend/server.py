@@ -11641,7 +11641,7 @@ async def get_dashboard_stats(
             # CST 40 = Isenta, 41 = Não tributada, 50 = Suspensão, 51 = Diferimento
             cst_icms_isento = cst_icms in ['40', '41', '50', '51', '040', '041', '050', '051']
             
-            if is_st or is_1910_com_st:
+            if is_st or is_bonificacao_com_st:
                 if desconsiderar_icms_st:
                     credito_icms_st_desconsiderado += v_icms
                 else:
