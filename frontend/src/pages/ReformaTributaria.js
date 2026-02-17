@@ -407,9 +407,9 @@ const ReformaTributaria = ({ user, onLogout }) => {
                         </span>
                       </div>
                       <div className="flex justify-between items-center p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
-                        <span className="text-blue-400 font-semibold">SALDO CBS</span>
+                        <span className="text-blue-400 font-semibold">A PAGAR CBS</span>
                         <span className="text-blue-400 font-bold text-xl">
-                          {formatCurrency(apuracao.apuracao?.saldo?.cbs)}
+                          {formatCurrency(apuracao.apuracao?.a_pagar?.cbs ?? Math.max(0, apuracao.apuracao?.saldo?.cbs || 0))}
                         </span>
                       </div>
                     </div>
