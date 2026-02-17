@@ -36143,15 +36143,21 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
             }
         },
         "comparativo_regime_atual": {
-            "pis": round(pis_saldo, 2) if pis_saldo > 0 else 0,
-            "cofins": round(cofins_saldo, 2) if cofins_saldo > 0 else 0,
-            "pis_cofins": round(pis_cofins_total, 2) if pis_cofins_total > 0 else 0,
+            # Mostrar valores de saldo (pode ser positivo ou negativo)
+            "pis": round(pis_saldo, 2),
+            "cofins": round(cofins_saldo, 2),
+            "pis_cofins": round(pis_cofins_total, 2),
             "icms": 0,  # ICMS não é calculado na reforma tributária
-            "total": round(pis_cofins_total, 2) if pis_cofins_total > 0 else 0,
+            "total": round(pis_cofins_total, 2),
             "debito_bruto": {
                 "pis": round(pis_debito_atual, 2),
                 "cofins": round(cofins_debito_atual, 2),
                 "total": round(pis_debito_atual + cofins_debito_atual, 2)
+            },
+            "credito_bruto": {
+                "pis": round(pis_credito_atual, 2),
+                "cofins": round(cofins_credito_atual, 2),
+                "total": round(pis_credito_atual + cofins_credito_atual, 2)
             },
             "detalhamento": {
                 "pis_saldo": round(pis_saldo, 2),
