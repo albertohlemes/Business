@@ -1402,6 +1402,69 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
     }
 
 
+async def calcular_pis_cofins_por_cst(company_id: str, competencia: str) -> dict:
+    """
+    Calcula totalizadores de PIS/COFINS agrupados por CST.
+    Retorna um dicionário com:
+    - entradas_por_cst: lista de totais por CST nas entradas
+    - saidas_por_cst: lista de totais por CST nas saídas
+    """
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    
+    # Pipeline para agregar por CST de PIS/COFINS
+    pipeline = [
+        {"$match": query},
+        {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": False}},
+        {
+            "$group": {
+                "_id": {
+                    "tipo": {"$ifNull": ["$tipo", "$tipo_operacao"]},
+                    "cst_pis": {"$ifNull": ["$produtos.cst_pis", "99"]},
+                    "cst_cofins": {"$ifNull": ["$produtos.cst_cofins", "99"]}
+                },
+                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_pis", 0]}}},
+                "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_cofins", 0]}}},
+                "qtd_itens": {"$sum": 1}
+            }
+        },
+        {"$sort": {"_id.tipo": 1, "_id.cst_pis": 1}}
+    ]
+    
+    cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
+    results = await cursor.to_list(length=200)
+    
+    entradas_por_cst = []
+    saidas_por_cst = []
+    
+    for item in results:
+        tipo = (item['_id']['tipo'] or '').lower().strip()
+        is_entrada = tipo in ['entrada', 'entry', 'input']
+        
+        cst_data = {
+            "cst_pis": item['_id'].get('cst_pis', '99'),
+            "cst_cofins": item['_id'].get('cst_cofins', '99'),
+            "valor_base": round(item.get('valor_total', 0), 2),
+            "valor_pis": round(item.get('valor_pis', 0), 2),
+            "valor_cofins": round(item.get('valor_cofins', 0), 2),
+            "qtd_itens": item.get('qtd_itens', 0)
+        }
+        
+        if is_entrada:
+            entradas_por_cst.append(cst_data)
+        else:
+            saidas_por_cst.append(cst_data)
+    
+    return {
+        'entradas_por_cst': entradas_por_cst,
+        'saidas_por_cst': saidas_por_cst
+    }
+
+
 def calcular_credito_presumido_icms_transportadora(valor_debito_icms: float, percentual: float = 20.0) -> float:
     """
     Calcula o crédito presumido de ICMS para transportadoras.
