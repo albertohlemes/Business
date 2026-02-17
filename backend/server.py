@@ -11626,9 +11626,9 @@ async def get_dashboard_stats(
             is_st = cfop in CFOPS_ST
             is_despesa = cfop in CFOPS_DESPESA
             
-            # ADICIONAL: CFOP 1910 com CST ICMS 010, 060, 070 também é considerado ST
+            # ADICIONAL: CFOP 1910/2910 com CST ICMS 010, 060, 070 também é considerado ST
             cst_icms = str(prod.get('cst', prod.get('cst_icms', ''))).strip()
-            is_1910_com_st = cfop == '1910' and cst_icms in ['010', '060', '070', '10', '60', '70']
+            is_bonificacao_com_st = cfop in ['1910', '2910'] and cst_icms in ['010', '060', '070', '10', '60', '70']
             
             # Verificar se produto é afetado pelo benefício fiscal
             ncm = prod.get('ncm', '')
