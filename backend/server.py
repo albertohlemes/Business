@@ -36081,6 +36081,16 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
     saldo_ibs = debito_ibs - credito_ibs
     saldo_total = debito_total - credito_total
     
+    # Calcular PIS/COFINS atual para comparativo
+    pis_debito_atual = total_saidas * 0.0165  # 1.65%
+    pis_credito_atual = total_entradas * 0.0165
+    cofins_debito_atual = total_saidas * 0.076  # 7.6%
+    cofins_credito_atual = total_entradas * 0.076
+    
+    pis_saldo = pis_debito_atual - pis_credito_atual
+    cofins_saldo = cofins_debito_atual - cofins_credito_atual
+    pis_cofins_total = pis_saldo + cofins_saldo
+    
     return {
         "empresa": {
             "id": company_id,
@@ -36114,19 +36124,40 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
                 "situacao": "A_PAGAR" if saldo_total > 0 else "A_RECUPERAR" if saldo_total < 0 else "ZERADO"
             }
         },
-        "comparativo": {
-            "pis_cofins_atual": {
-                "pis": round(total_saidas * 0.0165, 2),  # 1.65%
-                "cofins": round(total_saidas * 0.076, 2),  # 7.6%
-                "total": round(total_saidas * 0.0925, 2)  # PIS + COFINS = 9.25%
+        # Campos no formato que o frontend espera
+        "apuracao": {
+            "creditos": {
+                "cbs": round(credito_cbs, 2),
+                "ibs": round(credito_ibs, 2),
+                "total": round(credito_total, 2)
             },
-            "cbs_2027": {
-                "debitos": round(debito_cbs, 2),
-                "creditos": round(credito_cbs, 2),
-                "saldo": round(saldo_cbs, 2)
+            "debitos": {
+                "cbs": round(debito_cbs, 2),
+                "ibs": round(debito_ibs, 2),
+                "total": round(debito_total, 2)
             },
-            "economia_2027": round((total_saidas * 0.0925) - saldo_total, 2) if saldo_total > 0 else round(abs(saldo_total), 2),
-            "economia_percentual": round(((total_saidas * 0.0925) - saldo_total) / (total_saidas * 0.0925) * 100, 2) if total_saidas > 0 else 0
+            "saldo": {
+                "cbs": round(saldo_cbs, 2),
+                "ibs": round(saldo_ibs, 2),
+                "total": round(saldo_total, 2)
+            }
+        },
+        "comparativo_regime_atual": {
+            "pis": round(pis_saldo, 2) if pis_saldo > 0 else 0,
+            "cofins": round(cofins_saldo, 2) if cofins_saldo > 0 else 0,
+            "pis_cofins": round(pis_cofins_total, 2) if pis_cofins_total > 0 else 0,
+            "icms": 0,  # ICMS não é calculado na reforma tributária
+            "total": round(pis_cofins_total, 2) if pis_cofins_total > 0 else 0,
+            "debito_bruto": {
+                "pis": round(pis_debito_atual, 2),
+                "cofins": round(cofins_debito_atual, 2),
+                "total": round(pis_debito_atual + cofins_debito_atual, 2)
+            },
+            "detalhamento": {
+                "pis_saldo": round(pis_saldo, 2),
+                "cofins_saldo": round(cofins_saldo, 2),
+                "icms_saldo": 0
+            }
         },
         "detalhes_entradas": [],
         "detalhes_saidas": [],
