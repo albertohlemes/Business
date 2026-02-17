@@ -25772,25 +25772,27 @@ async def listar_divergencias_pis_cofins(
                 else:
                     totais['recolhido_a_menor'] += abs(diff_pis + diff_cofins)
                 
-                todas_divergencias.append({
-                    'doc_id': doc.get('id', ''),
-                    'numero_nfe': doc.get('numero_nfe', ''),
-                    'tipo_doc': doc.get('modelo', 'nfe'),
-                    'tipo_operacao': tipo_op,
-                    'emitente': doc.get('emitente_nome', ''),
-                    'destinatario': doc.get('destinatario_nome', ''),
-                    'data_emissao': doc.get('data_emissao', ''),
-                    'produto': prod.get('descricao', ''),
-                    'codigo': prod.get('codigo', ''),
-                    'ncm': ncm,
-                    'cfop': cfop,
-                    'valor_base': round(valor_base, 2),
-                    'classificacao': calc.get('classificacao', {}).get('grupo', 'REGRA_GERAL'),
-                    'divergencias': divergencias_prod,
-                    'diferenca_pis': round(diff_pis, 2) if abs(diff_pis) > 0.10 else 0,
-                    'diferenca_cofins': round(diff_cofins, 2) if abs(diff_cofins) > 0.10 else 0,
-                    'diferenca_total': round(diff_pis + diff_cofins, 2) if abs(diff_pis + diff_cofins) > 0.10 else 0
-                })
+                # Limitar detalhamento em grandes volumes (mas manter contagem total)
+                if len(todas_divergencias) < max_divergencias_detalhadas:
+                    todas_divergencias.append({
+                        'doc_id': doc.get('id', ''),
+                        'numero_nfe': doc.get('numero_nfe', ''),
+                        'tipo_doc': doc.get('modelo', 'nfe'),
+                        'tipo_operacao': tipo_op,
+                        'emitente': doc.get('emitente_nome', ''),
+                        'destinatario': doc.get('destinatario_nome', ''),
+                        'data_emissao': doc.get('data_emissao', ''),
+                        'produto': prod.get('descricao', ''),
+                        'codigo': prod.get('codigo', ''),
+                        'ncm': ncm,
+                        'cfop': cfop,
+                        'valor_base': round(valor_base, 2),
+                        'classificacao': calc.get('classificacao', {}).get('grupo', 'REGRA_GERAL'),
+                        'divergencias': divergencias_prod,
+                        'diferenca_pis': round(diff_pis, 2) if abs(diff_pis) > 0.10 else 0,
+                        'diferenca_cofins': round(diff_cofins, 2) if abs(diff_cofins) > 0.10 else 0,
+                        'diferenca_total': round(diff_pis + diff_cofins, 2) if abs(diff_pis + diff_cofins) > 0.10 else 0
+                    })
         
         if doc_tem_divergencia:
             totais['documentos_com_divergencia'] += 1
