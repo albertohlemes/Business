@@ -36820,9 +36820,11 @@ async def get_apuracao_reforma_tributaria(
         'apuracao': apuracao,
         'comparativo_regime_atual': regime_atual,
         'diferenca': {
-            'valor': float(apuracao['saldo']['total']) - regime_atual['total'],
+            # Usar 'a_pagar' (sempre >= 0) para comparação justa
+            # Se saldo é negativo (crédito acumulado), a_pagar = 0
+            'valor': float(apuracao.get('a_pagar', {}).get('total', max(0, apuracao['saldo']['total']))) - regime_atual['total'],
             'percentual': (
-                ((float(apuracao['saldo']['total']) - regime_atual['total']) / regime_atual['total'] * 100)
+                ((float(apuracao.get('a_pagar', {}).get('total', max(0, apuracao['saldo']['total']))) - regime_atual['total']) / regime_atual['total'] * 100)
                 if regime_atual['total'] > 0 else 0
             )
         },
