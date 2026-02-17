@@ -34915,6 +34915,54 @@ async def classificar_produtos_pendentes_wizard(
                 
                 doc_atualizado = True
                 total_produtos_classificados += 1
+                
+                # ============================================================
+                # SALVAR REGRA em learned_rules para aplicação futura
+                # Isso garante que a classificação seja aplicada em novas importações
+                # ============================================================
+                produto_codigo = produto.get('codigo', '')
+                produto_descricao = produto.get('descricao', '')
+                produto_ncm = produto.get('ncm', '')
+                
+                if produto_descricao:
+                    # Verificar se já existe regra para este produto
+                    regra_existente = await db.learned_rules.find_one({
+                        "company_id": company_id,
+                        "$or": [
+                            {"produto_codigo": produto_codigo} if produto_codigo else {},
+                            {"produto_descricao": produto_descricao}
+                        ]
+                    })
+                    
+                    if regra_existente:
+                        # Atualizar regra existente
+                        await db.learned_rules.update_one(
+                            {"id": regra_existente.get('id')},
+                            {"$set": {
+                                "cfop_correto": cfop_novo,
+                                "categoria_correta": categoria_padrao,
+                                "ncm": produto_ncm or regra_existente.get('ncm', ''),
+                                "aprendido_de": "wizard_classificacao_lote",
+                                "updated_by": current_user.id,
+                                "updated_at": datetime.now(timezone.utc)
+                            }}
+                        )
+                    else:
+                        # Criar nova regra
+                        await db.learned_rules.insert_one({
+                            "id": str(uuid.uuid4()),
+                            "company_id": company_id,
+                            "produto_descricao": produto_descricao,
+                            "produto_codigo": produto_codigo,
+                            "ncm": produto_ncm,
+                            "cfop_original": cfop_original,
+                            "cfop_correto": cfop_novo,
+                            "categoria_correta": categoria_padrao,
+                            "motivo": f"Classificação wizard: {categoria_padrao} ({tipo_atividade})",
+                            "aprendido_de": "wizard_classificacao_lote",
+                            "created_by": current_user.id,
+                            "created_at": datetime.now(timezone.utc)
+                        })
         
         if doc_atualizado:
             await db.xml_documents.update_one(
