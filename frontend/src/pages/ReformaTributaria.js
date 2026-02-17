@@ -262,14 +262,14 @@ const ReformaTributaria = ({ user, onLogout }) => {
                     <ArrowDown className="w-5 h-5 text-emerald-400" />
                   </div>
                   <p className="text-2xl font-bold text-emerald-400">
-                    {formatCurrency(apuracao.apuracao?.creditos?.total)}
+                    {formatCurrency(apuracao.resumo?.creditos?.total || apuracao.apuracao?.creditos?.total)}
                   </p>
                   <div className="mt-2 text-xs text-[#666] space-y-1">
-                    <p>CBS: {formatCurrency(apuracao.apuracao?.creditos?.cbs)}</p>
-                    <p>IBS: {formatCurrency(apuracao.apuracao?.creditos?.ibs)}</p>
+                    <p>CBS: {formatCurrency(apuracao.resumo?.creditos?.cbs || apuracao.apuracao?.creditos?.cbs)}</p>
+                    <p>IBS: {formatCurrency(apuracao.resumo?.creditos?.ibs || apuracao.apuracao?.creditos?.ibs)}</p>
                   </div>
                   <p className="mt-2 text-xs text-[#A1A1AA]">
-                    {apuracao.estatisticas?.entradas?.produtos || 0} itens
+                    {apuracao.resumo?.creditos?.qtd_itens || apuracao.estatisticas?.entradas?.produtos || 0} itens
                   </p>
                 </div>
 
@@ -280,14 +280,14 @@ const ReformaTributaria = ({ user, onLogout }) => {
                     <ArrowUp className="w-5 h-5 text-red-400" />
                   </div>
                   <p className="text-2xl font-bold text-red-400">
-                    {formatCurrency(apuracao.apuracao?.debitos?.total)}
+                    {formatCurrency(apuracao.resumo?.debitos?.total || apuracao.apuracao?.debitos?.total)}
                   </p>
                   <div className="mt-2 text-xs text-[#666] space-y-1">
-                    <p>CBS: {formatCurrency(apuracao.apuracao?.debitos?.cbs)}</p>
-                    <p>IBS: {formatCurrency(apuracao.apuracao?.debitos?.ibs)}</p>
+                    <p>CBS: {formatCurrency(apuracao.resumo?.debitos?.cbs || apuracao.apuracao?.debitos?.cbs)}</p>
+                    <p>IBS: {formatCurrency(apuracao.resumo?.debitos?.ibs || apuracao.apuracao?.debitos?.ibs)}</p>
                   </div>
                   <p className="mt-2 text-xs text-[#A1A1AA]">
-                    {apuracao.estatisticas?.saidas?.produtos || 0} itens
+                    {apuracao.resumo?.debitos?.qtd_itens || apuracao.estatisticas?.saidas?.produtos || 0} itens
                   </p>
                 </div>
 
