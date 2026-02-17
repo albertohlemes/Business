@@ -844,10 +844,11 @@ const PisCofins = ({ user, onLogout }) => {
                             <span className={`font-mono px-2 py-0.5 rounded text-xs font-semibold ${
                               item.cst === '50' ? 'bg-green-600/30 text-green-400' :
                               item.cst === '01' ? 'bg-red-600/30 text-red-400' :
-                              item.cst === '98' ? 'bg-gray-600/30 text-gray-400 line-through' :
+                              item.cst === '98' ? 'bg-gray-600/30 text-gray-400' :
+                              item.cst === '49' ? 'bg-yellow-600/30 text-yellow-400' :
                               item.cst === '70' ? 'bg-orange-600/30 text-orange-400' :
                               item.cst === '73' || item.cst === '06' ? 'bg-blue-600/30 text-blue-400' :
-                              'bg-yellow-600/30 text-yellow-400'
+                              'bg-purple-600/30 text-purple-400'
                             }`}>
                               {item.cst}
                             </span>
