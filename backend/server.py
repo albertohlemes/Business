@@ -16440,6 +16440,9 @@ async def resolver_alerta_cfop_por_grupo(
     if cfop_atual in CFOP_ENTRADA_PARA_SAIDA:
         cfops_buscar.append(CFOP_ENTRADA_PARA_SAIDA[cfop_atual])
     
+    # Set para evitar criar regras duplicadas para o mesmo produto
+    produtos_regras_salvas = set()
+    
     for doc in documents:
         produtos = doc.get('produtos', [])
         atualizado = False
