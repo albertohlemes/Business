@@ -17220,9 +17220,22 @@ async def resolver_alerta_cfop_individual(
         if prod_verificado:
             cfop_verificado = prod_verificado.get('cfop', '')
             categoria_verificada = prod_verificado.get('categoria_classificada', '')
-            logger.info(f"RESOLVER INDIVIDUAL: VERIFICAÇÃO - CFOP={cfop_verificado}, Categoria={categoria_verificada}")
+            pendente_verificado = prod_verificado.get('pendente_revisao_cfop', True)
+            logger.info(f"RESOLVER INDIVIDUAL: VERIFICAÇÃO POST-UPDATE - CFOP={cfop_verificado}, Categoria={categoria_verificada}, Pendente={pendente_verificado}")
             if cfop_verificado != novo_cfop:
-                logger.error(f"RESOLVER INDIVIDUAL: ERRO! CFOP não foi atualizado! Esperado={novo_cfop}, Encontrado={cfop_verificado}")
+                logger.error(f"RESOLVER INDIVIDUAL: ❌ ERRO CRÍTICO! CFOP não foi atualizado! Esperado={novo_cfop}, Encontrado={cfop_verificado}")
+                # Tentar novamente com uma atualização mais específica
+                await db.xml_documents.update_one(
+                    {"id": documento_id},
+                    {"$set": {
+                        f"produtos.{produto_idx}.cfop": novo_cfop,
+                        f"produtos.{produto_idx}.categoria_classificada": categoria_final,
+                        f"produtos.{produto_idx}.pendente_revisao_cfop": False
+                    }}
+                )
+                logger.info(f"RESOLVER INDIVIDUAL: Tentativa de correção com update específico")
+            else:
+                logger.info(f"RESOLVER INDIVIDUAL: ✅ Atualização confirmada com sucesso!")
     
     # ============ MEMÓRIA IA - SEMPRE SALVAR/ATUALIZAR REGRA ============
     # Verificar se já existe uma regra para este produto (por código OU descrição)
