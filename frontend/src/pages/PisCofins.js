@@ -922,8 +922,12 @@ const PisCofins = ({ user, onLogout }) => {
                       <span className="text-[#A1A1AA]">Alíquota zero</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded bg-gray-600/30 text-gray-400 font-mono line-through">98</span>
-                      <span className="text-[#A1A1AA]">Desconsiderado (devolução, bonificação, etc.)</span>
+                      <span className="px-2 py-0.5 rounded bg-gray-600/30 text-gray-400 font-mono">98</span>
+                      <span className="text-[#A1A1AA]">Entrada sem crédito (devolução, remessa, etc.)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-yellow-600/30 text-yellow-400 font-mono">49</span>
+                      <span className="text-[#A1A1AA]">Saída sem débito (devolução, remessa, etc.)</span>
                     </div>
                   </div>
                   
