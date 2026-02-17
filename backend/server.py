@@ -17857,7 +17857,15 @@ async def get_classification_suggestions_v2(
                 grupo['codigo'] = codigo
                 grupo['descricao'] = descricao_original
                 grupo['ncm'] = ncm
-                grupo['cfop_atual'] = prod.get('cfop', '')
+                # CORREÇÃO: Mostrar o CFOP do histórico, não o CFOP antigo do banco
+                cfop_do_historico = historico.get('cfop', '')
+                cfop_atual_prod = prod.get('cfop', '')
+                # Ajustar prefixo se necessário
+                if cfop_do_historico and cfop_atual_prod:
+                    prefixo_atual = cfop_atual_prod[0] if cfop_atual_prod[0] in ['1', '2'] else '1'
+                    if cfop_do_historico[0] in ['1', '2'] and cfop_do_historico[0] != prefixo_atual:
+                        cfop_do_historico = prefixo_atual + cfop_do_historico[1:]
+                grupo['cfop_atual'] = cfop_do_historico or cfop_atual_prod
                 grupo['categoria_atual'] = historico['categoria']
                 grupo['quantidade'] += prod.get('quantidade', 0)
                 grupo['valor_total'] += prod.get('valor_total', 0)
