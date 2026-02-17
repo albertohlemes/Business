@@ -1,77 +1,95 @@
 <analysis>**original_problem_statement:**
-O usuário enfrenta problemas críticos de performance e consistência de dados em uma aplicação de análise fiscal. As principais páginas de análise (, , , ) travam ou exibem valores fiscais inconsistentes e incorretos. Os principais requisitos do usuário são:
+O usuário enfrenta uma série de problemas críticos de performance, estabilidade e consistência de dados em sua aplicação de análise fiscal no ambiente de produção. As principais queixas são:
 
 PRODUCT REQUIREMENTS:
-1.  **Estabilidade e Performance (P0)**: O sistema não deve travar ao processar grandes volumes de dados (15.000+ documentos).
-2.  **Correção e Consistência de Dados (P0)**: Todas as páginas de análise devem exibir cálculos fiscais (PIS/COFINS, ICMS, etc.) corretos e 100% consistentes entre si. Isso inclui:
-    *   Cálculos corretos de PIS/COFINS, ICMS e outros impostos.
-    *   Definições corretas para métricas de negócio como Vendas Líquidas, Compras Líquidas e Markup.
-    *   Classificação correta de documentos como entrada/saída com base no CFOP.
-3.  **Instalação On-Premise (P2)**: O usuário solicitou a possibilidade de instalar a aplicação em um servidor local.
+1.  **Consistência de Dados (P0)**: Os valores fiscais (ICMS, PIS/COFINS) devem ser 100% consistentes entre o Dashboard principal e os menus de apuração específicos (e.g., Menu ICMS, Menu PIS/COFINS).
+2.  **Correção de Cálculos (P0)**: As métricas de negócio e os cálculos fiscais devem estar corretos em todas as telas. Isso inclui:
+    *   Cálculo correto de Saldo a Pagar/Recuperar na Reforma Tributária.
+    *   Valores corretos (não zerados) para Entradas, Saídas e impostos em Vilões e Oportunidades por Categoria.
+    *   Classificação fiscal correta de operações (e.g., confusão entre CST 50 e 70 no PIS/COFINS).
+    *   Totalizadores em tabelas (e.g., Total de Entradas na apuração de ICMS) devem bater com os valores de resumo.
+3.  **Funcionalidades Inoperantes (P1)**:
+    *   O menu Divergências está sempre zerado.
+    *   A classificação de produtos feita em Alerta de CFOPs não reflete na Classificação Inteligente.
+4.  **Requisitos de UI/UX (P1)**:
+    *   O menu ICMS ST deve ser removido e sua funcionalidade integrada ao menu ICMS, visível apenas para empresas contribuintes de ST.
+    *   Adicionar um totalizador por CST nos detalhamentos de créditos e débitos da apuração de PIS/COFINS.
+5.  **Estabilidade e Performance (P0)**: A aplicação não deve travar ou dar timeout no ambiente de produção, que possui um volume de dados maior (+5000 documentos).
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-Uma aplicação full-stack (React + FastAPI + MongoDB). O agente corrigiu com sucesso as inconsistências nos cálculos de , , , ,  e  entre o Dashboard principal e a página de .
-
-No entanto, uma grande inconsistência persiste no cálculo de **ICMS**. A lógica de cálculo do ICMS no Dashboard (, especificamente na função agregada ) é diferente da lógica na página de apuração de ICMS (), que é considerada a fonte da verdade. Isso causa valores diferentes de crédito e débito de ICMS entre as telas, o que frustrou o usuário. A última instrução explícita do usuário foi para parar de recalcular o ICMS no dashboard e, em vez disso, reutilizar o resultado exato da lógica de apuração de ICMS.
+Uma aplicação full-stack (React + FastAPI + MongoDB). O agente anterior implementou e corrigiu uma série de inconsistências de dados e problemas de performance. As otimizações de performance foram validadas após o usuário fazer um upgrade de recursos (RAM) em seu servidor de produção. Diversas inconsistências entre endpoints de dashboard e endpoints de apuração foram resolvidas unificando a lógica de cálculo no backend para ICMS e PIS/COFINS. Também foram corrigidos bugs onde seções inteiras apareciam zeradas (Reforma Tributária, Vilões por Categoria, Vendas/Compras Líquidas) porque a lógica de agregação do banco de dados (usada para performance) não retornava os campos necessários.
 
 **Last working item**:
--   **Last item agent was working**: Refatorando o backend para que o endpoint do Dashboard () utilize a mesma lógica de cálculo de ICMS que o endpoint de apuração (), eliminando a inconsistência de dados. O agente tentou uma chamada HTTP interna que falhou (403 Forbidden) e depois começou a criar uma função interna compartilhada (), mas não concluiu a implementação.
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: N (A nova abordagem de usar uma função interna compartilhada não foi implementada nem testada).
--   **Which testing method agent to use?**: backend testing agent. O agente deve usar  para chamar os endpoints  e  com os mesmos parâmetros (empresa, competência) e validar que os valores de ,  e  são **IDÊNTICOS**. Também deve garantir que os outros valores que já estavam corretos (PIS/COFINS, Vendas/Compras) não sofreram regressão.
+-   **Last item agent was working**: Investigando a confusão entre CST 70 e CST 50 na tela de apuração de PIS/COFINS. O usuário apontou que a tabela Resumo por CST mostra uma grande base de cálculo para CST 70 (Operação sem direito a crédito) com valor de PIS/COFINS zerado, enquanto o crédito total é calculado e exibido separadamente. O agente concluiu que a lógica está provavelmente classificando as operações como CST 70 (com base no XML), mas os créditos estão sendo calculados com base em alíquotas (conforme regras de negócio), o que implicitamente as tornaria CST 50 (Operação com direito a crédito). A tarefa é corrigir essa classificação para que os créditos calculados sejam agrupados sob o CST correto (e.g., CST 50).
+-   **Status**: NOT STARTED
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: backend testing agent. O agente deve chamar o endpoint  e validar que a seção  no JSON de resposta agrupa corretamente as operações. As bases de cálculo que geram crédito devem ser classificadas sob CSTs que permitem crédito (50-56), e os valores de PIS/COFINS calculados devem aparecer nesse grupo.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Inconsistência no cálculo de ICMS entre o Dashboard e a página  (P0).
--   **Issue 2**: Verificação da fórmula da  na página  (P1).
--   **Issue 3**: Validação de performance do sistema com alto volume de dados (P0).
--   **Issue 4**:  - Inconsistência na lógica de cálculo (P1).
--   **Issue 5**:  está sem informação (P2).
+-   **Issue 1**: Confusão de classificação entre CST 70 e CST 50 no menu PIS/COFINS (P0).
+-   **Issue 2**: O menu  está sempre zerado em produção (P1).
+-   **Issue 3**: O menu  deve ser removido e integrado ao menu  (P1).
+-   **Issue 4**: Classificação de produtos feita em Alerta de CFOPs não atualiza a Classificação Inteligente (P2).
 
 **Issues Detail**:
--   **Issue 1: Inconsistência no cálculo de ICMS (P0)**
-    -   **Attempted fixes**: A tentativa de replicar a lógica de cálculo no dashboard resultou em uma diferença de 0.08%. Uma chamada HTTP interna falhou com erro 403. A abordagem atual é criar uma função interna compartilhada,  em , mas a integração não foi finalizada.
+-   **Issue 1: Confusão de classificação entre CST 70 e CST 50 (P0)**
+    -   **Attempted fixes**: Nenhuma. O agente apenas diagnosticou o problema.
     -   **Next debug checklist**:
-        1.  Revisar a função  criada em .
-        2.  Modificar o endpoint principal de apuração () para usar esta nova função interna.
-        3.  Modificar a função do dashboard () para **chamar esta mesma função interna** para obter os dados de ICMS, em vez de fazer qualquer cálculo próprio.
-        4.  Garantir que os resultados (crédito, débito, valor a pagar) sejam retornados corretamente no JSON do endpoint do dashboard.
-    -   **Why fix this issue and what will be achieved with the fix?**: Atender à demanda direta e crítica do usuário, garantindo 100% de consistência nos dados fiscais, que é o principal requisito do projeto.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
+        1.  Localizar a lógica de cálculo de PIS/COFINS no backend (provavelmente na função  e sua contraparte agregada em ).
+        2.  Identificar onde a classificação de CST é feita e onde o crédito é calculado.
+        3.  Modificar a lógica para que, se um crédito for calculado para uma operação, essa operação seja agrupada sob o CST correto (e.g., 50) no resumo , em vez de aparecer sob um CST sem direito a crédito (e.g., 70).
+    -   **Why fix this issue and what will be achieved with the fix?**: Corrigir a representação fiscal dos dados, fornecendo clareza ao usuário sobre a origem dos seus créditos de PIS/COFINS.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: backend
     -   **Blocked on other issue**: Não.
 
--   **Issue 2: Verificação da fórmula da Margem de Contribuição (P1)**
-    -   **Attempted fixes**: O agente editou o arquivo  para ajustar a fórmula, conforme solicitado pelo usuário na mensagem #211. A fórmula implementada foi .
+-   **Issue 2: Menu Divergências zerado (P1)**
+    -   **Attempted fixes**: Nenhuma. O agente diagnosticou que o endpoint  retorna uma resposta vazia para volumes de dados > 500 documentos para evitar problemas de performance.
     -   **Next debug checklist**:
-        1.  Revisar a lógica em .
-        2.  Confirmar com o usuário se a definição Custos Variáveis = Compras Líquidas está correta para o cálculo da margem.
-        3.  Verificar visualmente com a ferramenta de screenshot se a página de , na aba Margens e Markup, exibe o cálculo corretamente.
-    -   **Why fix this issue and what will be achieved with the fix?**: Garante a precisão de outra métrica de negócio importante para o usuário.
-    -   **Status**: TESTING PENDING
+        1.  Revisar o endpoint  em .
+        2.  Implementar a lógica de análise de divergências na função de agregação que é chamada para grandes volumes de dados. A função deve, no mínimo, retornar um resumo das divergências encontradas.
+    -   **Why fix this issue and what will be achieved with the fix?**: Tornar a funcionalidade de Divergências útil para o usuário em seu ambiente de produção.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: Não.
+
+-   **Issue 3: Refatoração do menu ICMS ST (P1)**
+    -   **Attempted fixes**: Nenhuma.
+    -   **Next debug checklist**:
+        1.  Revisar a estrutura de rotas e o layout principal no frontend (provavelmente em  e ).
+        2.  Remover o item de menu ICMS ST.
+        3.  Modificar a página do Menu ICMS para incluir uma aba ou seção para a apuração de ST.
+        4.  Essa nova seção deve ser renderizada condicionalmente, com base em uma propriedade da empresa (e.g.,  ou um campo específico ).
+    -   **Why fix this issue and what will be achieved with the fix?**: Atender a um requisito de UX do usuário para organizar melhor a interface.
+    -   **Status**: NOT STARTED
     -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: Não.
 
-**In progress Task List**:
--   **Task 1: Concluir a refatoração da lógica de ICMS (P0)**
-    -   **Where to resume**: Em , a função  foi criada, mas não está sendo chamada. O trabalho deve ser retomado para integrar esta função nos endpoints  (na função ) e .
-    -   **What will be achieved with this?**: Resolução definitiva da inconsistência de dados do ICMS.
-    -   **Status**: IN PROGRESS
+-   **Issue 4: Sincronização da Classificação Inteligente (P2)**
+    -   **Attempted fixes**: Nenhuma.
+    -   **Next debug checklist**:
+        1.  Identificar o endpoint chamado pela UI Alerta de CFOPs para classificar um produto.
+        2.  Analisar a lógica desse endpoint para garantir que ele salva a nova regra de classificação do produto de forma persistente.
+        3.  Verificar o endpoint que alimenta a tela Classificação Inteligente para garantir que ele aplica as regras salvas.
+    -   **Why fix this issue and what will be achieved with the fix?**: Corrigir o fluxo de trabalho de classificação de produtos, uma funcionalidade chave da aplicação.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: backend
-    -   **Blocked on something**: Não.
+    -   **Blocked on other issue**: Não.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    -   (P0) **Validação de Performance**: Solicitar ao usuário que teste a aplicação com seu volume máximo de dados (+14k documentos) para confirmar que os travamentos foram resolvidos.
-    -   (P1) **Validação de **: Solicitar ao usuário que verifique se a lógica da funcionalidade está correta após as correções anteriores.
+    -   (P1) Implementar o totalizador por CST nos detalhamentos de CRÉDITOS e DÉBITOS no frontend do PIS/COFINS (o backend já retorna os dados, mas o frontend só exibe na aba de apuração principal).
 -   **Future Tasks**:
-    -   (P1) **Pacote de Instalação On-Premise**: Criar um pacote de deploy com Docker Compose e documentação.
-    -   (P2) **Fix **: Investigar e corrigir a página , que atualmente não exibe informações.
-    -   (P2) **Suíte de Testes Automatizados**: Implementar testes com ============================= test session starts ==============================
+    -   (P2) Criar um pacote de instalação On-Premise com Docker.
+    -   (P2) Investigar e popular a página .
+    -   (P2) Criar uma suíte de testes automatizados com ============================= test session starts ==============================
 platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
 rootdir: /app
 plugins: anyio-4.12.1
@@ -94,8 +112,8 @@ HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test
   /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
     from crypt import crypt as _crypt
 
-backend/server.py:36551
-  /app/backend/server.py:36551: DeprecationWarning: 
+backend/server.py:36920
+  /app/backend/server.py:36920: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -116,76 +134,92 @@ backend/server.py:36551
 =========================== short test summary info ============================
 ERROR test_ai_classification.py
 !!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-========================= 4 warnings, 1 error in 4.39s ========================= para o backend para prevenir futuras regressões de dados.
-    -   (P2) **Auditoria de Performance**: Realizar uma varredura completa no  para encontrar outros endpoints potencialmente lentos.
+========================= 4 warnings, 1 error in 4.10s ========================= para evitar regressões de dados.
 
 **Completed work in this session**
--   **Consistência de Dados (Dashboard vs. Indicadores)**: Unificada a lógica de cálculo para , , ,  e  entre os endpoints  e .
--   **Consistência de Dados (PIS/COFINS)**: O endpoint do Dashboard foi corrigido para buscar os valores de PIS/COFINS diretamente da função unificada (), garantindo 100% de consistência.
--   **Correção de Frontend (Página Indicadores)**: A aba Impostos foi ajustada para exibir Vendas Líquidas em seu banner.
--   **Correção de Frontend (Página Indicadores)**: A fórmula para o cálculo da  foi ajustada no frontend (pendente de validação).
+-   **Consistência de ICMS (Dashboard vs. Menu ICMS)**: Garantida 100% de consistência ao fazer o Dashboard chamar a mesma lógica de cálculo do Menu ICMS. Corrigido o Total de Entradas na tabela de apuração para refletir o valor de crédito efetivo, excluindo valores desconsiderados.
+-   **Consistência de PIS/COFINS (Reforma Tributária vs. Menu PIS/COFINS)**: Corrigido o cálculo na Reforma Tributária para usar os valores reais do endpoint de PIS/COFINS, resolvendo a inconsistência.
+-   **Correção de Dados Zerados**:
+    -   **Vendas/Compras Líquidas**: Corrigido o endpoint agregado de ICMS que não retornava estes campos.
+    -   **Vilões por Categoria**: Corrigido o endpoint agregado que não calculava e retornava os dados por categoria, fazendo as colunas de valores aparecerem zeradas.
+    -   **Reforma Tributária**: Corrigido o frontend que lia uma estrutura de dados incorreta da API, fazendo os valores aparecerem zerados.
+-   **Performance em Produção**: Identificado que o servidor de produção do usuário estava com poucos recursos (200MB RAM), causando travamentos. Guiado o usuário para fazer o upgrade, o que resolveu os problemas de timeout e crashes. Otimizados vários endpoints diminuindo o threshold para uso de agregações.
+-   **Totalizador por CST (Backend)**: Adicionado o agrupamento de totais por CST no retorno do endpoint de apuração de PIS/COFINS.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Inconsistência de dados entre diferentes partes da aplicação. Este é o problema central e recorrente do projeto.
--   **Recurrence count**: 2+
+-   **Issue recurrence in previous fork**: Inconsistência de dados entre diferentes partes da aplicação (especialmente entre lógicas de cálculo normal vs. agregada) e problemas de performance no ambiente de produção.
+-   **Recurrence count**: 3+
 -   **Status**: IN PROGRESS
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Unificação de Lógica**: A estratégia principal é centralizar cálculos em funções internas e reutilizá-las em múltiplos endpoints para garantir consistência.
--   **MongoDB Aggregation**: Usado extensivamente para otimizar o desempenho do dashboard, mas sua complexidade foi a fonte de muitas inconsistências de cálculo.
+-   **Unificação de Lógica**: A estratégia principal é centralizar cálculos em funções unificadas e reutilizá-las para garantir consistência.
+-   **MongoDB Aggregation**: A performance da aplicação depende de pipelines de agregação complexos para lidar com grande volume de dados. A principal fonte de bugs é a divergência entre a lógica de agregação e a lógica de cálculo iterativa (não agregada) em Python.
 
 **key DB schema**
--   **documents**: Coleção principal contendo todos os dados dos documentos fiscais, com campos como , , , , , , , , etc.
+-   **documents**: Contém todos os dados dos documentos fiscais (NF-e, NFC-e).
+-   **empresas**: Contém as configurações das empresas, incluindo regime tributário, que pode ser usado para a lógica condicional do ICMS-ST.
 
 **All files of reference**
--   : Arquivo principal onde toda a lógica do backend e todas as correções foram implementadas.
--   : Arquivo do frontend onde a fórmula da  foi alterada.
--   
+-   : O único arquivo de backend, onde todas as correções de lógica foram aplicadas.
+-   : Frontend da Reforma Tributária.
+-   : Frontend da apuração de PIS/COFINS.
+-   : Frontend da apuração de ICMS.
+-   : Frontend dos Vilões e Oportunidades.
 
 **Areas that need refactoring**:
--   O arquivo  é um monólito de difícil manutenção. A extração da lógica de negócio para uma camada de serviço (ex: , ) é fundamental para a estabilidade do projeto a longo prazo.
+-   O arquivo  é um monólito massivo e a principal fonte de risco técnico. A extração de lógicas (e.g., , ) é crítica.
+-   As lógicas de cálculo agregada (MongoDB) e não-agregada (Python loop) deveriam ser unificadas para evitar as constantes regressões e inconsistências. Uma abordagem seria construir um pipeline de agregação base e adicionar/modificar estágios conforme a necessidade, em vez de ter duas implementações completamente separadas.
 
 **key api endpoints**
--   : Alimenta o Dashboard principal. É o endpoint que precisa ser corrigido para usar a lógica de ICMS unificada.
--   : Alimenta a página de  e é considerado a fonte da verdade para os cálculos de ICMS.
--   : Alimenta a apuração de PIS/COFINS, fonte da verdade para esses impostos.
+-   : Alimenta o Dashboard principal.
+-   : Alimenta o menu de apuração de ICMS.
+-   : Alimenta o menu de apuração de PIS/COFINS.
+-   : Alimenta o menu de Reforma Tributária.
+-   : Alimenta o menu Vilões e Oportunidades.
+-   : Alimenta o menu Divergências (atualmente quebrado para grandes volumes).
 
 **Critical Info for New Agent**
--   **A PRIORIDADE MÁXIMA É A CONSISTÊNCIA DE DADOS**. O usuário está extremamente frustrado e foi muito explícito em sua última instrução: o Dashboard **NÃO DEVE** recalcular o ICMS; deve usar o resultado exato da lógica do endpoint .
--   **SIGA O PLANO DE REATORAÇÃO**: A abordagem correta é finalizar a implementação da função interna compartilhada  e garantir que ambos os endpoints a utilizem. Não tente outras abordagens.
--   Após corrigir o ICMS, valide a correção da  no frontend.
+-   **A fonte da maioria dos bugs é a existência de duas lógicas de cálculo separadas**: uma em Python para volumes pequenos de dados e outra com Agregação do MongoDB para volumes grandes. Ao corrigir ou adicionar um campo, **você DEVE verificar e atualizar AMBAS as lógicas**, caso contrário, introduzirá uma inconsistência.
+-   **O ambiente de produção do usuário é a única fonte da verdade para testes de performance e volume**. O ambiente de preview tem dados diferentes. O usuário sabe como fazer o deploy () para aplicar as correções no ambiente dele.
+-   **A prioridade máxima é a consistência e correção dos dados fiscais**. O usuário é muito atento e reportará qualquer discrepância. Sempre valide os totais e cruzamentos de informações entre as telas.
 
 **documents and test reports created in this job**
--   : Relatório de teste do  que validou a consistência dos cálculos de Compras/Vendas Líquidas e Markup.
--   
+-   Nenhum documento ou relatório de teste formal foi criado nesta sessão.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.   (#321): **CRÍTICO/PENDENTE**: Expressa extrema frustração. Exige que o agente pare de recalcular o ICMS no dashboard e simplesmente use o valor que já está calculado no menu .
-2.   (#288): **CRÍTICO/PENDENTE**: Reporta que  está incorreto no dashboard. Reitera a necessidade de copiar o resultado do ICMS da página de apuração. Pede para ajustar o banner na aba  (menu Indicadores) para usar .
-3.   (#211): **CRÍTICO/PENDENTE**: Reporta que o ICMS continua inconsistente e fornece a fórmula correta para .
-4.   (#176): FAZ SO A PRIORIDADE - Pede para focar apenas na tarefa prioritária.
-5.   (#169): FINALIZE - O agente ignorou este comando.
-6.   (#122): **CRÍTICO/PENDENTE**: Início do bug report. Aponta inconsistências massivas em todos os valores do dashboard (Compras, Vendas, Impostos, Markup) em comparação com a página de Indicadores, fornecendo screenshots.
-7.   (older): Mensagens relacionadas a bugs anteriores que foram resolvidos.
+1.   (#455): Enviou um screenshot mostrando a confusão entre CST 70 e CST 50 na apuração de PIS/COFINS. (PENDENTE)
+2.   (#452): ESTA HAVENCO CONFUSAO COM CST 70 E 50 - Reportou o bug do CST no PIS/COFINS. (PENDENTE)
+3.   (#415): Reportou inconsistência no PIS/COFINS da Reforma Tributária e pediu detalhamento por CST. (RESOLVIDO)
+4.   (#384): Enviou screenshot mostrando que o TOTAL ENTRADAS na tabela de ICMS não batia com o valor de crédito apurado. (RESOLVIDO)
+5.   (#372): Reclamou que mesmo após a correção, o ICMS do dashboard e do menu ICMS estavam diferentes. (RESOLVIDO, era um problema de cache/diferença mínima no nome da situação)
+6.   (#369): RESOLVE O ICMS PRA MIM... - Pediu com urgência a correção da diferença de ICMS. (RESOLVIDO)
+7.   (#338): PODE CONTINUAR. (N/A)
+8.   (#307): PODE CONTINUAR DE ONDE PAROU. (N/A)
+9.   (#304): Reportou uma longa lista de problemas em produção: Reforma Tributária, Dashboard, Vilões, menu ICMS ST, menu Divergências. (PARCIALMENTE RESOLVIDO)
+10.  (#296): SUBI, TESTA SE TA TUDO CERTO - Avisou que fez o re-deploy e pediu para o agente validar. (N/A)
 
 **Project Health Check:**
--   **Broken**: Sim. Embora muitas inconsistências tenham sido corrigidas, a discrepância restante no ICMS, uma métrica fiscal primária, e a frustração explícita do usuário tornam a aplicação inaceitável em seu estado atual.
+-   **Broken**: Sim. Apesar dos inúmeros bugs corrigidos, funcionalidades chave ainda apresentam dados incorretos ou estão inoperantes no ambiente de produção do usuário. A confiança do usuário está baixa, e a aplicação não é considerada estável.
 
 **3rd Party Integrations**
--   Gemini (usado para classificação de produtos em uma funcionalidade anterior).
+-   Gemini (mencionado no handoff inicial, mas não utilizado nesta sessão).
 
 **Testing status**
--   **Testing agent used after significant changes**: YES (para a primeira parte da correção de consistência).
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: Nenhuma.
+-   **Known regressions**: Nenhuma nesta sessão, mas o padrão de bugs por lógica duplicada (agregada vs. não agregada) é uma fonte constante de regressões em potencial.
 
 **Credentials to test flow:**
--   **Super Admin**:  / 
+-   **Production Environment**:  / 
+-   **Empresa para teste**: COMERCIAL RS LTDA (ID: 6026)
+-   **Competência para teste**: 01/2026
 
 **What agent forgot to execute**
--   O agente não concluiu a implementação da correção final do ICMS, que era reutilizar a lógica de cálculo existente, conforme exigido pelo usuário.
--   O agente ignorou um comando FINALIZE do usuário, prolongando a interação e a frustração.</analysis>
+-   O agente não abordou três dos problemas levantados pelo usuário na mensagem #304:
+    1.  O menu  deveria ser removido e integrado ao menu .
+    2.  O menu  está zerado.
+-   Da mensagem #189, o agente não corrigiu o bug onde a classificação de produtos em Alerta de CFOPs não sincroniza com a Classificação Inteligente.</analysis>
