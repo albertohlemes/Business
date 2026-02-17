@@ -14800,11 +14800,39 @@ async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str
                 'keyword': keyword,
                 'ncms': [],
                 'impacto_total': 0,
-                'qtd_ncms': 0
+                'qtd_ncms': 0,
+                'entrada_valor': 0,
+                'saida_valor': 0,
+                'icms': {'credito': 0, 'debito': 0, 'impacto': 0},
+                'pis': {'credito': 0, 'debito': 0, 'impacto': 0},
+                'cofins': {'credito': 0, 'debito': 0, 'impacto': 0},
+                'margem_percentual': 0
             }
         viloes_por_categoria[keyword]['ncms'].append(v['ncm'])
         viloes_por_categoria[keyword]['impacto_total'] += v['impacto_total']
         viloes_por_categoria[keyword]['qtd_ncms'] += 1
+        viloes_por_categoria[keyword]['entrada_valor'] += v.get('entrada_valor', 0)
+        viloes_por_categoria[keyword]['saida_valor'] += v.get('saida_valor', 0)
+        viloes_por_categoria[keyword]['icms']['credito'] += v.get('icms', {}).get('credito', 0)
+        viloes_por_categoria[keyword]['icms']['debito'] += v.get('icms', {}).get('debito', 0)
+        viloes_por_categoria[keyword]['icms']['impacto'] += v.get('icms', {}).get('impacto', 0)
+        viloes_por_categoria[keyword]['pis']['credito'] += v.get('pis', {}).get('credito', 0)
+        viloes_por_categoria[keyword]['pis']['debito'] += v.get('pis', {}).get('debito', 0)
+        viloes_por_categoria[keyword]['pis']['impacto'] += v.get('pis', {}).get('impacto', 0)
+        viloes_por_categoria[keyword]['cofins']['credito'] += v.get('cofins', {}).get('credito', 0)
+        viloes_por_categoria[keyword]['cofins']['debito'] += v.get('cofins', {}).get('debito', 0)
+        viloes_por_categoria[keyword]['cofins']['impacto'] += v.get('cofins', {}).get('impacto', 0)
+    
+    # Calcular margem média por categoria
+    for cat in viloes_por_categoria.values():
+        if cat['entrada_valor'] > 0:
+            cat['margem_percentual'] = round((cat['saida_valor'] - cat['entrada_valor']) / cat['entrada_valor'] * 100, 2)
+        # Arredondar valores
+        cat['entrada_valor'] = round(cat['entrada_valor'], 2)
+        cat['saida_valor'] = round(cat['saida_valor'], 2)
+        cat['icms'] = {k: round(v, 2) for k, v in cat['icms'].items()}
+        cat['pis'] = {k: round(v, 2) for k, v in cat['pis'].items()}
+        cat['cofins'] = {k: round(v, 2) for k, v in cat['cofins'].items()}
     
     # Agrupar oportunidades por categoria
     oportunidades_por_categoria = {}
@@ -14815,11 +14843,39 @@ async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str
                 'keyword': keyword,
                 'ncms': [],
                 'beneficio_total': 0,
-                'qtd_ncms': 0
+                'qtd_ncms': 0,
+                'entrada_valor': 0,
+                'saida_valor': 0,
+                'icms': {'credito': 0, 'debito': 0, 'beneficio': 0},
+                'pis': {'credito': 0, 'debito': 0, 'beneficio': 0},
+                'cofins': {'credito': 0, 'debito': 0, 'beneficio': 0},
+                'margem_percentual': 0
             }
         oportunidades_por_categoria[keyword]['ncms'].append(o['ncm'])
         oportunidades_por_categoria[keyword]['beneficio_total'] += o.get('beneficio_total', 0)
         oportunidades_por_categoria[keyword]['qtd_ncms'] += 1
+        oportunidades_por_categoria[keyword]['entrada_valor'] += o.get('entrada_valor', 0)
+        oportunidades_por_categoria[keyword]['saida_valor'] += o.get('saida_valor', 0)
+        oportunidades_por_categoria[keyword]['icms']['credito'] += o.get('icms', {}).get('credito', 0)
+        oportunidades_por_categoria[keyword]['icms']['debito'] += o.get('icms', {}).get('debito', 0)
+        oportunidades_por_categoria[keyword]['icms']['beneficio'] += o.get('icms', {}).get('beneficio', 0)
+        oportunidades_por_categoria[keyword]['pis']['credito'] += o.get('pis', {}).get('credito', 0)
+        oportunidades_por_categoria[keyword]['pis']['debito'] += o.get('pis', {}).get('debito', 0)
+        oportunidades_por_categoria[keyword]['pis']['beneficio'] += o.get('pis', {}).get('beneficio', 0)
+        oportunidades_por_categoria[keyword]['cofins']['credito'] += o.get('cofins', {}).get('credito', 0)
+        oportunidades_por_categoria[keyword]['cofins']['debito'] += o.get('cofins', {}).get('debito', 0)
+        oportunidades_por_categoria[keyword]['cofins']['beneficio'] += o.get('cofins', {}).get('beneficio', 0)
+    
+    # Calcular margem média por categoria
+    for cat in oportunidades_por_categoria.values():
+        if cat['entrada_valor'] > 0:
+            cat['margem_percentual'] = round((cat['saida_valor'] - cat['entrada_valor']) / cat['entrada_valor'] * 100, 2)
+        # Arredondar valores
+        cat['entrada_valor'] = round(cat['entrada_valor'], 2)
+        cat['saida_valor'] = round(cat['saida_valor'], 2)
+        cat['icms'] = {k: round(v, 2) for k, v in cat['icms'].items()}
+        cat['pis'] = {k: round(v, 2) for k, v in cat['pis'].items()}
+        cat['cofins'] = {k: round(v, 2) for k, v in cat['cofins'].items()}
     
     # Converter para listas ordenadas
     viloes_cat_list = sorted(viloes_por_categoria.values(), key=lambda x: x['impacto_total'], reverse=True)
