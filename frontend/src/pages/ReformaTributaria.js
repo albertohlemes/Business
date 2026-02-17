@@ -626,34 +626,77 @@ const ReformaTributaria = ({ user, onLogout }) => {
                   </div>
                 </div>
                 
-                {/* Resultado Reforma Completa */}
-                <div className={`mt-4 p-4 rounded-xl flex items-center justify-between ${
-                  apuracao.diferenca?.valor > 0 
-                    ? 'bg-red-500/10 border border-red-500/30' 
-                    : 'bg-emerald-500/10 border border-emerald-500/30'
-                }`}>
-                  <div className="flex items-center gap-3">
-                    {apuracao.diferenca?.valor > 0 ? (
-                      <TrendingUp className="w-6 h-6 text-red-400" />
-                    ) : (
-                      <TrendingDown className="w-6 h-6 text-emerald-400" />
-                    )}
-                    <div>
-                      <p className={`font-bold ${apuracao.diferenca?.valor > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                        {apuracao.diferenca?.valor > 0 ? '⚠️ Aumento Total' : '✅ Economia Total'}
-                      </p>
-                      <p className="text-xs text-[#A1A1AA]">IVA Dual vs Regime Atual Completo</p>
+                {/* Resultado Reforma Completa - Economia ou Aumento */}
+                {(() => {
+                  const totalAtual = apuracao.comparativo_regime_atual?.total || 0;
+                  const totalIva = apuracao.apuracao?.a_pagar?.total ?? Math.max(0, apuracao.apuracao?.saldo?.total || 0);
+                  const diferenca = apuracao.diferenca?.valor || (totalIva - totalAtual);
+                  const percentual = apuracao.diferenca?.percentual || (totalAtual > 0 ? ((totalIva - totalAtual) / totalAtual * 100) : 0);
+                  const vaiPagarMais = diferenca > 0;
+                  const economiaReal = Math.abs(diferenca);
+                  const temCreditoTotal = (apuracao.apuracao?.saldo?.total || 0) < 0;
+                  
+                  return (
+                    <div className={`mt-4 p-5 rounded-xl ${
+                      vaiPagarMais 
+                        ? 'bg-red-500/10 border border-red-500/30' 
+                        : 'bg-emerald-500/10 border border-emerald-500/30'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {vaiPagarMais ? (
+                            <TrendingUp className="w-6 h-6 text-red-400" />
+                          ) : (
+                            <TrendingDown className="w-6 h-6 text-emerald-400" />
+                          )}
+                          <div>
+                            <p className={`font-bold ${vaiPagarMais ? 'text-red-400' : 'text-emerald-400'}`}>
+                              {vaiPagarMais ? '⚠️ Aumento Total' : '✅ Economia Total'}
+                            </p>
+                            <p className="text-xs text-[#A1A1AA]">IVA Dual vs Regime Atual Completo</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-2xl font-bold ${vaiPagarMais ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {vaiPagarMais ? '+' : '-'} {formatCurrency(economiaReal)}
+                          </p>
+                          <p className={`text-sm ${vaiPagarMais ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {percentual.toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Explicação detalhada da economia */}
+                      {!vaiPagarMais && economiaReal > 0 && (
+                        <div className="mt-4 pt-4 border-t border-emerald-500/20">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-[#A1A1AA] mb-1">Regime Atual (PIS/COFINS + ICMS)</p>
+                              <p className="font-semibold text-amber-400">Pagaria {formatCurrency(totalAtual)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[#A1A1AA] mb-1">IVA Dual (CBS + IBS)</p>
+                              <p className="font-semibold text-emerald-400">
+                                {totalIva > 0 ? `Pagaria ${formatCurrency(totalIva)}` : 'Nada a pagar'}
+                                {temCreditoTotal && <span className="text-xs ml-1">(crédito)</span>}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-3 p-3 bg-emerald-500/20 rounded-lg">
+                            <p className="text-emerald-400 text-sm font-medium">
+                              💰 Você deixaria de pagar {formatCurrency(economiaReal)} com a Reforma Tributária
+                            </p>
+                            {temCreditoTotal && (
+                              <p className="text-emerald-300 text-xs mt-1">
+                                + Crédito acumulado de {formatCurrency(Math.abs(apuracao.apuracao?.saldo?.total || 0))} para compensar em períodos futuros
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-2xl font-bold ${apuracao.diferenca?.valor > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                      {apuracao.diferenca?.valor > 0 ? '+' : '-'} {formatCurrency(Math.abs(apuracao.diferenca?.valor || 0))}
-                    </p>
-                    <p className={`text-sm ${apuracao.diferenca?.valor > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                      {apuracao.diferenca?.valor > 0 ? '+' : ''}{(apuracao.diferenca?.percentual || 0).toFixed(1)}%
-                    </p>
-                  </div>
-                </div>
+                  );
+                })()}
                 
                 {/* Nota explicativa */}
                 <div className="mt-4 p-3 bg-[#0C0C0C] rounded-lg border border-[#333]">
