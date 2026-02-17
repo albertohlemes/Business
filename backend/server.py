@@ -25792,6 +25792,9 @@ async def apurar_pis_cofins(
     # Calcular totalizador por CST (passa company para usar mesma lógica)
     por_cst = await calcular_pis_cofins_por_cst(company_id, competencia, company)
     
+    # Calcular confronto CFOP x CST
+    confronto_cfop_cst = await calcular_confronto_cfop_cst(company_id, competencia, company)
+    
     return {
         "empresa": {
             "id": company_id,
