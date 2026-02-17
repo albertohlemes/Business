@@ -16640,10 +16640,10 @@ def obter_categoria_por_cfop(cfop: str) -> str:
     if cfop.startswith(('165', '265', '1653', '2653')):  # CFOPs de combustível
         return 'combustivel'
     
-    # Bonificações e amostras têm categorias próprias
-    if cfop in ('1910', '2910'):
+    # Bonificações e amostras têm categorias próprias (tanto entrada quanto saída)
+    if cfop in ('1910', '2910', '5910', '6910'):
         return 'bonificacao'
-    if cfop in ('1911', '2911'):
+    if cfop in ('1911', '2911', '5911', '6911'):
         return 'amostra_gratis'
     
     # 1949/2949 são "Outras Entradas"
