@@ -16950,16 +16950,20 @@ async def resolver_alerta_cfop_por_grupo(
     competencia: str,
     cfop_atual: str,
     novo_cfop: str,
-    categoria: str = None,  # Se não informado, será inferida pelo CFOP
+    categoria: str = None,  # Se não informado, será inferida pelo CFOP DESTINO
     salvar_regra: bool = False,
     current_user: User = Depends(get_current_user)
 ):
     """
     Resolve todos os alertas de um CFOP específico em lote.
-    Também classifica automaticamente os produtos baseado no CFOP.
+    Também classifica automaticamente os produtos baseado no CFOP DESTINO (novo_cfop).
     
-    IMPORTANTE: Busca em TODOS os documentos (entrada e saída) pois os alertas
-    podem estar em documentos de saída (5xxx/6xxx) que precisam ser corrigidos.
+    IMPORTANTE: 
+    - A categoria é SEMPRE inferida do novo_cfop (CFOP destino), não do cfop_atual
+    - As regras são salvas com campos padronizados para funcionar tanto no Wizard quanto na Classificação Inteligente
+    - Busca em TODOS os documentos (entrada e saída) pois os alertas podem estar em ambos
+    
+    UNIFICAÇÃO: Este endpoint e a Classificação Inteligente compartilham a mesma base de regras (learned_rules).
     """
     # Buscar TODOS os documentos (entrada e saída) da competência
     documents = await db.xml_documents.find({
@@ -16967,46 +16971,51 @@ async def resolver_alerta_cfop_por_grupo(
         "competencia": competencia
     }).to_list(15000)
     
-    # Determinar categoria baseada no CFOP se não foi informada
+    # IMPORTANTE: Inferir categoria do CFOP DESTINO (novo_cfop), não do cfop_atual
+    # Isso garante que quando o usuário escolhe 1652 (combustível), a categoria será "combustivel"
     categoria_final = categoria or obter_categoria_por_cfop(novo_cfop)
+    
+    # Se ainda não tiver categoria, usar o mapa CFOP_PARA_CATEGORIA
+    if not categoria_final or categoria_final == 'revenda':
+        categoria_mapa = CFOP_PARA_CATEGORIA.get(novo_cfop, '')
+        if categoria_mapa:
+            categoria_final = categoria_mapa
     
     total_resolvidos = 0
     
-    # Mapeamento de CFOP de entrada para saída e vice-versa
+    # Mapeamento COMPLETO de CFOP de entrada para saída e vice-versa
     CFOP_ENTRADA_PARA_SAIDA = {
         '1106': '5106', '1910': '5910', '1911': '5911', '1912': '5912', '1913': '5913',
         '1914': '5914', '1915': '5915', '1916': '5916', '1917': '5917', '1918': '5918',
         '1919': '5919', '1920': '5920', '1921': '5921', '1922': '5922', '1923': '5923',
         '1924': '5924', '1925': '5925', '1929': '5929', '1949': '5949',
         '1201': '5201', '1202': '5202', '1208': '5208', '1209': '5209', '1210': '5210',
-        '1652': '5652', '1653': '5653',  # Combustível
+        '1651': '5651', '1652': '5652', '1653': '5653', '1658': '5658', '1659': '5659',  # Combustível
         '2106': '6106', '2910': '6910', '2911': '6911', '2912': '6912', '2929': '6929', '2949': '6949',
-        '2201': '6201', '2202': '6202', '2652': '6652', '2653': '6653',
+        '2201': '6201', '2202': '6202', '2651': '6651', '2652': '6652', '2653': '6653',
+        '1102': '5102', '2102': '6102',  # Revenda
+        '1101': '5101', '2101': '6101',  # Industrialização
+        '1556': '5556', '2556': '6556',  # Uso/consumo
+        '1551': '5551', '2551': '6551',  # Ativo imobilizado
     }
     
     # Criar mapeamento reverso (saída para entrada)
     CFOP_SAIDA_PARA_ENTRADA = {v: k for k, v in CFOP_ENTRADA_PARA_SAIDA.items()}
     
-    # Adicionar mais mapeamentos de saída para entrada
-    CFOP_SAIDA_PARA_ENTRADA.update({
-        '5929': '1929', '6929': '2929',
-        '5652': '1652', '6652': '2652',  # Combustível comercialização
-        '5653': '1653', '6653': '2653',  # Combustível uso/consumo
-        '5102': '1102', '6102': '2102',  # Revenda
-        '5101': '1101', '6101': '2101',  # Industrialização
-    })
-    
-    # CFOPs a buscar: o informado + equivalentes
-    cfops_buscar = [cfop_atual]
+    # CFOPs a buscar: o informado + equivalentes de entrada/saída
+    cfops_buscar = set([cfop_atual])
     if cfop_atual in CFOP_ENTRADA_PARA_SAIDA:
-        cfops_buscar.append(CFOP_ENTRADA_PARA_SAIDA[cfop_atual])
+        cfops_buscar.add(CFOP_ENTRADA_PARA_SAIDA[cfop_atual])
     if cfop_atual in CFOP_SAIDA_PARA_ENTRADA:
-        cfops_buscar.append(CFOP_SAIDA_PARA_ENTRADA[cfop_atual])
+        cfops_buscar.add(CFOP_SAIDA_PARA_ENTRADA[cfop_atual])
+    
+    # Também buscar pelo CFOP original do emissor (armazenado no campo cfop_original_emissor)
+    cfops_buscar = list(cfops_buscar)
     
     # Set para evitar criar regras duplicadas para o mesmo produto
     produtos_regras_salvas = set()
     
-    logger.info(f"RESOLVER ALERTA CFOP: Buscando CFOPs {cfops_buscar} para converter para {novo_cfop} ({categoria_final})")
+    logger.info(f"RESOLVER ALERTA CFOP: Buscando CFOPs {cfops_buscar} para converter para {novo_cfop} (categoria: {categoria_final})")
     
     for doc in documents:
         produtos = doc.get('produtos', [])
@@ -17014,79 +17023,103 @@ async def resolver_alerta_cfop_por_grupo(
         
         for idx, prod in enumerate(produtos):
             cfop_prod = str(prod.get('cfop', ''))
-            # Buscar tanto o CFOP de entrada quanto o de saída correspondente
-            if prod.get('pendente_revisao_cfop') and cfop_prod in cfops_buscar:
-                cfop_anterior = prod.get('cfop', '')
-                produto_codigo = prod.get('codigo', '')
-                produto_descricao = prod.get('descricao', '')
-                produto_ncm = prod.get('ncm', '')
-                
-                # Atualizar CFOP para o NOVO CFOP indicado pelo usuário
-                produtos[idx]['cfop'] = novo_cfop
-                produtos[idx]['cfop_original_antes_correcao'] = cfop_anterior
-                produtos[idx]['pendente_revisao_cfop'] = False
-                produtos[idx]['cfop_revisado_por'] = current_user.id
-                produtos[idx]['cfop_revisado_em'] = datetime.now(timezone.utc).isoformat()
-                
-                # CLASSIFICAR AUTOMATICAMENTE baseado no CFOP
-                if categoria_final:
-                    produtos[idx]['categoria'] = categoria_final
-                    produtos[idx]['categoria_classificada'] = categoria_final  # Campo correto para classificação
-                    produtos[idx]['categoria_origem'] = 'cfop_manual_wizard'
-                    produtos[idx]['categoria_classificada_em'] = datetime.now(timezone.utc).isoformat()
-                
-                atualizado = True
-                total_resolvidos += 1
-                
-                logger.info(f"RESOLVER ALERTA CFOP: Produto '{produto_descricao[:30]}' CFOP {cfop_anterior} -> {novo_cfop} ({categoria_final})")
-                
-                # Salvar regra para CADA produto único (para que funcione na Classificação Inteligente)
-                if salvar_regra and produto_descricao:
-                    # Chave única: usar código + descrição normalizada
-                    chave_produto = f"{produto_codigo}_{produto_descricao[:50].upper()}"
-                    if chave_produto not in produtos_regras_salvas:
-                        produtos_regras_salvas.add(chave_produto)
+            cfop_emissor = str(prod.get('cfop_original_emissor', ''))
+            
+            # Verificar se o produto deve ser processado:
+            # 1. Está pendente de revisão E
+            # 2. O CFOP atual OU o CFOP do emissor está na lista de busca
+            if prod.get('pendente_revisao_cfop'):
+                cfop_match = cfop_prod in cfops_buscar or cfop_emissor in cfops_buscar
+                if cfop_match:
+                    cfop_anterior = prod.get('cfop', '')
+                    produto_codigo = prod.get('codigo', '')
+                    produto_descricao = prod.get('descricao', '')
+                    produto_ncm = prod.get('ncm', '')
+                    
+                    # Atualizar CFOP para o NOVO CFOP indicado pelo usuário (EXATAMENTE o que ele escolheu)
+                    produtos[idx]['cfop'] = novo_cfop
+                    produtos[idx]['cfop_original_antes_correcao'] = cfop_anterior
+                    produtos[idx]['pendente_revisao_cfop'] = False
+                    produtos[idx]['cfop_revisado_por'] = current_user.id
+                    produtos[idx]['cfop_revisado_em'] = datetime.now(timezone.utc).isoformat()
+                    
+                    # CLASSIFICAR AUTOMATICAMENTE baseado na CATEGORIA DO CFOP DESTINO
+                    if categoria_final:
+                        produtos[idx]['categoria'] = categoria_final
+                        produtos[idx]['categoria_classificada'] = categoria_final
+                        produtos[idx]['categoria_origem'] = 'cfop_manual_wizard'
+                        produtos[idx]['categoria_classificada_em'] = datetime.now(timezone.utc).isoformat()
+                    
+                    atualizado = True
+                    total_resolvidos += 1
+                    
+                    logger.info(f"RESOLVER ALERTA CFOP: Produto '{produto_descricao[:30]}' CFOP {cfop_anterior} -> {novo_cfop} (categoria: {categoria_final})")
+                    
+                    # Salvar regra com campos padronizados (compatível com Wizard E Classificação Inteligente)
+                    if salvar_regra and produto_descricao:
+                        # Usar NCM + descrição normalizada como chave (mesmo padrão da Classificação Inteligente)
+                        descricao_norm = _normalizar_descricao(produto_descricao)
+                        chave_produto = f"{produto_ncm}_{descricao_norm}"
                         
-                        # Verificar se já existe regra para este produto
-                        regra_existente = await db.learned_rules.find_one({
-                            "company_id": company_id,
-                            "$or": [
-                                {"produto_codigo": produto_codigo} if produto_codigo else {},
-                                {"produto_descricao": produto_descricao}
-                            ]
-                        })
-                        
-                        if regra_existente:
-                            # Atualizar regra existente
-                            await db.learned_rules.update_one(
-                                {"id": regra_existente.get('id')},
-                                {"$set": {
-                                    "cfop_correto": novo_cfop,
-                                    "categoria_correta": categoria_final or "conversao_cfop_grupo",
-                                    "ncm": produto_ncm or regra_existente.get('ncm', ''),
-                                    "cfop_original": cfop_anterior,
-                                    "motivo": f"Atualização em lote: {cfop_anterior} → {novo_cfop}" + (f" ({categoria_final})" if categoria_final else ""),
-                                    "aprendido_de": "user_batch_correction",
-                                    "updated_by": current_user.id,
-                                    "updated_at": datetime.now(timezone.utc)
-                                }}
-                            )
-                        else:
-                            # Criar nova regra com dados completos do produto
-                            await db.learned_rules.insert_one({
-                                "id": str(uuid.uuid4()),
+                        if chave_produto not in produtos_regras_salvas:
+                            produtos_regras_salvas.add(chave_produto)
+                            
+                            # Buscar regra existente usando os mesmos campos que a Classificação Inteligente
+                            regra_existente = await db.learned_rules.find_one({
                                 "company_id": company_id,
-                                "produto_descricao": produto_descricao,
-                                "produto_codigo": produto_codigo,
-                                "ncm": produto_ncm,
-                                "cfop_original": cfop_anterior,
-                                "cfop_correto": novo_cfop,
-                                "categoria_correta": categoria_final or "conversao_cfop_grupo",
-                                "motivo": f"Conversão em lote de {cfop_anterior} para {novo_cfop}" + (f" → {categoria_final}" if categoria_final else ""),
-                                "aprendido_de": "user_batch_correction",
-                                "created_by": current_user.id,
-                                "created_at": datetime.now(timezone.utc)
+                                "$or": [
+                                    {"produto_descricao": produto_descricao},
+                                    {"descricao_produto": produto_descricao},
+                                    {"padrao": descricao_norm}
+                                ]
                             })
+                            
+                            if regra_existente:
+                                # Atualizar regra existente com campos padronizados
+                                await db.learned_rules.update_one(
+                                    {"id": regra_existente.get('id')},
+                                    {"$set": {
+                                        # Campos usados pelo Wizard
+                                        "cfop_correto": novo_cfop,
+                                        "categoria_correta": categoria_final,
+                                        "cfop_original": cfop_anterior,
+                                        # Campos usados pela Classificação Inteligente
+                                        "cfop": novo_cfop,
+                                        "categoria": categoria_final,
+                                        # Campos compartilhados
+                                        "ncm": produto_ncm or regra_existente.get('ncm', ''),
+                                        "produto_descricao": produto_descricao,
+                                        "descricao_produto": produto_descricao,
+                                        "padrao": descricao_norm,
+                                        "motivo": f"Wizard: {cfop_anterior} → {novo_cfop} ({categoria_final})",
+                                        "aprendido_de": "wizard_alerta_cfop",
+                                        "updated_by": current_user.id,
+                                        "updated_at": datetime.now(timezone.utc)
+                                    }}
+                                )
+                            else:
+                                # Criar nova regra com TODOS os campos necessários para ambos os sistemas
+                                await db.learned_rules.insert_one({
+                                    "id": str(uuid.uuid4()),
+                                    "company_id": company_id,
+                                    # Campos usados pelo Wizard
+                                    "produto_descricao": produto_descricao,
+                                    "produto_codigo": produto_codigo,
+                                    "cfop_original": cfop_anterior,
+                                    "cfop_correto": novo_cfop,
+                                    "categoria_correta": categoria_final,
+                                    # Campos usados pela Classificação Inteligente
+                                    "descricao_produto": produto_descricao,
+                                    "padrao": descricao_norm,
+                                    "cfop": novo_cfop,
+                                    "categoria": categoria_final,
+                                    # Campos compartilhados
+                                    "ncm": produto_ncm,
+                                    "motivo": f"Wizard: {cfop_anterior} → {novo_cfop} ({categoria_final})",
+                                    "aprendido_de": "wizard_alerta_cfop",
+                                    "created_by": current_user.id,
+                                    "created_at": datetime.now(timezone.utc)
+                                })
         
         if atualizado:
             await db.xml_documents.update_one(
