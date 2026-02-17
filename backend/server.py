@@ -25624,23 +25624,22 @@ async def listar_divergencias_pis_cofins(
         **get_filtro_notas_ativas()
     }
     
-    # ============== OTIMIZAÇÃO PARA GRANDES VOLUMES ==============
+    # ============== PROCESSAMENTO PARA QUALQUER VOLUME ==============
     total_docs = await db.xml_documents.count_documents(query_saidas)
     logger.info(f"PIS/COFINS DIVERGENCIAS: Total documentos = {total_docs}")
     
-    if total_docs > 500:
-        return {
-            "divergencias": [],
-            "totais": {
-                "total_documentos": total_docs,
-                "documentos_com_divergencia": 0,
-                "produtos_divergentes": 0,
-                "_alerta": f"Volume muito grande ({total_docs} documentos). Use filtros de período mais específicos."
-            },
-            "agrupamento": agrupamento
-        }
+    # Para grandes volumes, processar em batches com limite de detalhamento
+    is_grande_volume = total_docs > 500
+    max_divergencias_detalhadas = 200 if is_grande_volume else 5000
     
-    documents = await db.xml_documents.find(query_saidas, {"_id": 0, "xml_content": 0}).to_list(15000)
+    # Buscar documentos em batches para evitar timeout
+    batch_size = 500
+    documents = []
+    cursor = db.xml_documents.find(query_saidas, {"_id": 0, "xml_content": 0})
+    async for doc in cursor:
+        documents.append(doc)
+        if len(documents) >= 15000:  # Limite de segurança
+            break
     
     todas_divergencias = []
     totais = {
