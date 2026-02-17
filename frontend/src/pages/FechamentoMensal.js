@@ -217,6 +217,8 @@ const FechamentoMensal = ({ user, onLogout }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* ICMS */}
               <div className="bg-[#141414] rounded-xl p-5 border border-[#2A2A2A]">
+              {/* ICMS */}
+              <div className="bg-[#141414] rounded-xl p-5 border border-[#2A2A2A]">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                     <Calculator className="w-5 h-5 text-blue-400" />
@@ -240,9 +242,18 @@ const FechamentoMensal = ({ user, onLogout }) => {
                   <div className="border-t border-[#2A2A2A] pt-2 flex justify-between font-semibold">
                     <span className="text-[#A1A1AA]">Saldo</span>
                     <span className={data.icms?.saldo >= 0 ? 'text-red-400' : 'text-green-400'}>
-                      {formatCurrency(data.icms?.saldo)}
+                      {data.icms?.saldo < 0 ? '-' : ''}{formatCurrency(Math.abs(data.icms?.saldo || 0))}
                     </span>
                   </div>
+                  {/* Mostrar valor a recuperar quando saldo é credor */}
+                  {data.icms?.a_recuperar > 0 && (
+                    <div className="border-t border-[#2A2A2A] pt-2 mt-2 flex justify-between">
+                      <span className="text-green-400">A Recuperar</span>
+                      <span className="text-green-400 font-semibold">
+                        {formatCurrency(data.icms?.a_recuperar)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
