@@ -10488,10 +10488,26 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         faturamento_total = total_nfe_saida + total_nfce + total_nfse_prestados + total_cte_saida
     
     # Impostos a pagar (usando valores calculados pela função unificada)
-    icms_pagar = max(0, debito_icms - credito_icms)
+    # ICMS: se credor, mostrar como "A Recuperar"
+    icms_saldo = debito_icms - credito_icms
+    if icms_saldo > 0:
+        icms_pagar = icms_saldo
+        icms_recuperar = 0
+        icms_situacao = "A_RECOLHER"
+    elif icms_saldo < 0:
+        icms_pagar = 0
+        icms_recuperar = abs(icms_saldo)
+        icms_situacao = "A_RECUPERAR"
+    else:
+        icms_pagar = 0
+        icms_recuperar = 0
+        icms_situacao = "ZERADO"
+    
     pis_pagar = max(0, debito_pis - credito_pis)
     cofins_pagar = max(0, debito_cofins - credito_cofins)
     total_impostos_pagar = icms_pagar + pis_pagar + cofins_pagar
+    
+    logger.info(f"DASHBOARD AGREGADO: ICMS Situação={icms_situacao}, A Pagar={icms_pagar}, A Recuperar={icms_recuperar}")
     
     logger.info(f"DASHBOARD AGREGADO: Concluído - Faturamento={faturamento_total}, Entradas={total_entradas}")
     
