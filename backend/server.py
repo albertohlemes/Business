@@ -1402,7 +1402,8 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
     # CFOPs que GERAM crédito (mesmo sendo combustível)
     CFOPS_COM_CREDITO_ESPECIAL = [
         '1651', '2651',  # Compra de combustível p/ INDUSTRIALIZAÇÃO
-        '1652', '2652',  # Compra de combustível p/ COMERCIALIZAÇÃO (gera crédito!)
+        '1652', '2652',  # Compra de combustível p/ COMERCIALIZAÇÃO
+        '1653', '2653',  # Compra de combustível p/ USO/CONSUMO (usuário solicitou crédito)
         '1101', '2101',  # Compra p/ industrialização
         '1102', '2102',  # Compra p/ comercialização
         '1403', '2403',  # Compra p/ comercialização (ST)
