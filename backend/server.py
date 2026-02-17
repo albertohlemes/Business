@@ -1646,22 +1646,37 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
                 entradas_cst[cst_display]['qtd'] += 1
                 
             else:  # saída
-                if calc.get('valor_pis', 0) > 0:
-                    cst_display = '01'  # CST 01 - Tributado
-                    valor_pis = Decimal(str(calc.get('valor_pis', 0)))
-                    valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
-                else:
-                    # Verificar tipo de não incidência
-                    classificacao = calc.get('classificacao', {})
-                    cst_saida = classificacao.get('cst_saida', '49')
-                    if cst_saida == '06':
-                        cst_display = '06'  # CST 06 - Alíquota zero
-                    elif cst_saida == '04':
-                        cst_display = '04'  # CST 04 - Monofásico
-                    else:
-                        cst_display = '49'  # CST 49 - Outras saídas sem incidência
+                # Verificar se deve ser desconsiderado
+                categoria_sem_debito = any(cat in categoria for cat in CATEGORIAS_SEM_DEBITO) if categoria else False
+                cfop_sem_debito = cfop in CFOPS_SEM_DEBITO
+                
+                if categoria_sem_debito or cfop_sem_debito:
+                    # Agrupar como CST 98 - Desconsiderado
+                    cst_display = '98'
                     valor_pis = Decimal('0')
                     valor_cofins = Decimal('0')
+                else:
+                    # Usar a função calcular_pis_cofins_produto
+                    calc = calcular_pis_cofins_produto(
+                        float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
+                    )
+                    
+                    if calc.get('valor_pis', 0) > 0:
+                        cst_display = '01'  # CST 01 - Tributado
+                        valor_pis = Decimal(str(calc.get('valor_pis', 0)))
+                        valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                    else:
+                        # Verificar tipo de não incidência
+                        classificacao = calc.get('classificacao', {})
+                        cst_saida = classificacao.get('cst_saida', '49')
+                        if cst_saida == '06':
+                            cst_display = '06'  # CST 06 - Alíquota zero
+                        elif cst_saida == '04':
+                            cst_display = '04'  # CST 04 - Monofásico
+                        else:
+                            cst_display = '49'  # CST 49 - Outras saídas sem incidência
+                        valor_pis = Decimal('0')
+                        valor_cofins = Decimal('0')
                 
                 if cst_display not in saidas_cst:
                     saidas_cst[cst_display] = {
