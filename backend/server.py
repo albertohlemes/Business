@@ -10605,6 +10605,8 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         },
         "impostos_pagar": {
             "icms": round(icms_pagar, 2),
+            "icms_a_recuperar": round(icms_recuperar, 2),
+            "icms_situacao": icms_situacao,
             "pis": round(pis_pagar, 2),
             "cofins": round(cofins_pagar, 2),
             "iss": 0,
