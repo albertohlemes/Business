@@ -545,13 +545,19 @@ const ReformaTributaria = ({ user, onLogout }) => {
                       <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
                         <span className="text-[#A1A1AA]">CBS (substitui PIS/COFINS)</span>
                         <span className="text-white font-medium">
-                          {formatCurrency(apuracao.apuracao?.saldo?.cbs)}
+                          {formatCurrency(apuracao.apuracao?.a_pagar?.cbs ?? Math.max(0, apuracao.apuracao?.saldo?.cbs || 0))}
+                          {apuracao.apuracao?.saldo?.cbs < 0 && (
+                            <span className="text-xs text-emerald-400 ml-2">(crédito acumulado)</span>
+                          )}
                         </span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
                         <span className="text-[#A1A1AA]">IBS (substitui ICMS/ISS)</span>
                         <span className="text-white font-medium">
-                          {formatCurrency(apuracao.apuracao?.saldo?.ibs)}
+                          {formatCurrency(apuracao.apuracao?.a_pagar?.ibs ?? Math.max(0, apuracao.apuracao?.saldo?.ibs || 0))}
+                          {apuracao.apuracao?.saldo?.ibs < 0 && (
+                            <span className="text-xs text-emerald-400 ml-2">(crédito acumulado)</span>
+                          )}
                         </span>
                       </div>
                       {apuracao.apuracao?.saldo?.is > 0 && (
