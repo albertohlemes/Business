@@ -17213,6 +17213,17 @@ async def resolver_alerta_cfop_individual(
     
     logger.info(f"RESOLVER INDIVIDUAL: Update result = matched={result.matched_count}, modified={result.modified_count}")
     
+    # VERIFICAÇÃO: Confirmar que a atualização foi persistida
+    doc_verificacao = await db.xml_documents.find_one({"id": documento_id}, {"produtos": 1})
+    if doc_verificacao:
+        prod_verificado = doc_verificacao.get('produtos', [])[produto_idx] if produto_idx < len(doc_verificacao.get('produtos', [])) else None
+        if prod_verificado:
+            cfop_verificado = prod_verificado.get('cfop', '')
+            categoria_verificada = prod_verificado.get('categoria_classificada', '')
+            logger.info(f"RESOLVER INDIVIDUAL: VERIFICAÇÃO - CFOP={cfop_verificado}, Categoria={categoria_verificada}")
+            if cfop_verificado != novo_cfop:
+                logger.error(f"RESOLVER INDIVIDUAL: ERRO! CFOP não foi atualizado! Esperado={novo_cfop}, Encontrado={cfop_verificado}")
+    
     # ============ MEMÓRIA IA - SEMPRE SALVAR/ATUALIZAR REGRA ============
     # Verificar se já existe uma regra para este produto (por código OU descrição)
     regra_existente = None
