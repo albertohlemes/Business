@@ -373,6 +373,10 @@ def calcular_apuracao(
     """
     Calcula a apuração mensal do IVA Dual (CBS + IBS)
     Fórmula: Saldo = Débitos - Créditos
+    
+    IMPORTANTE: O saldo pode ser negativo (crédito acumulado).
+    - Saldo positivo = imposto a pagar
+    - Saldo negativo = crédito acumulado (não há imposto a pagar)
     """
     total_creditos_cbs = sum(c.valor_cbs for c in creditos)
     total_creditos_ibs = sum(c.valor_ibs for c in creditos)
@@ -387,6 +391,11 @@ def calcular_apuracao(
     saldo_cbs = total_debitos_cbs - total_creditos_cbs
     saldo_ibs = total_debitos_ibs - total_creditos_ibs
     saldo_total = saldo_cbs + saldo_ibs + total_is
+    
+    # Calcular imposto a pagar (não pode ser negativo)
+    a_pagar_cbs = max(Decimal('0'), saldo_cbs)
+    a_pagar_ibs = max(Decimal('0'), saldo_ibs)
+    a_pagar_total = max(Decimal('0'), saldo_total)
     
     return {
         'creditos': {
@@ -406,10 +415,18 @@ def calcular_apuracao(
             'quantidade': len([d for d in debitos if d.tem_imposto_seletivo])
         },
         'saldo': {
+            # Saldo real (pode ser negativo = crédito acumulado)
             'cbs': float(saldo_cbs),
             'ibs': float(saldo_ibs),
             'is': float(total_is),
             'total': float(saldo_total),
             'situacao': 'a_pagar' if saldo_total > 0 else 'credito_acumulado'
+        },
+        # Valor efetivo a pagar (para comparação com regime atual)
+        'a_pagar': {
+            'cbs': float(a_pagar_cbs),
+            'ibs': float(a_pagar_ibs),
+            'is': float(total_is),
+            'total': float(a_pagar_total)
         }
     }
