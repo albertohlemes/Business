@@ -16646,8 +16646,8 @@ def obter_categoria_por_cfop(cfop: str) -> str:
     if cfop in ('1911', '2911', '5911', '6911'):
         return 'amostra_gratis'
     
-    # 1949/2949 são "Outras Entradas"
-    if cfop in ('1949', '2949'):
+    # 1949/2949/5949/6949 são "Outras Entradas/Saídas" - NÃO é revenda
+    if cfop in ('1949', '2949', '5949', '6949'):
         return 'outras_entradas'
     
     # 1128/2128 são aplicação em serviços
