@@ -1390,8 +1390,7 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
         '1555', '2555',  # Entrada de ativo por conta de contrato
         '1557', '2557',  # Transferência de material p/ uso/consumo
         
-        # DESPESAS / USO E CONSUMO (não geram crédito)
-        '1653', '2653',  # Compra de combustível p/ USO/CONSUMO (despesa)
+        # DESPESAS / USO E CONSUMO (não geram crédito) - EXCETO combustível
         '1658', '2658',  # Compra de serviço de transporte
         '1659', '2659',  # Compra de serviço de comunicação
         '1660', '2660',  # Devolução de venda de combustível
