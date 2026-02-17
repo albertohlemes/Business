@@ -419,7 +419,8 @@ const ReformaTributaria = ({ user, onLogout }) => {
                 {/* Resultado 2027 */}
                 {(() => {
                   const pisCofinsAtual = apuracao.comparativo_regime_atual?.pis_cofins || 0;
-                  const cbsNovo = apuracao.apuracao?.saldo?.cbs || 0;
+                  // Usar a_pagar que é sempre >= 0 (se saldo é negativo, a_pagar = 0)
+                  const cbsNovo = apuracao.apuracao?.a_pagar?.cbs ?? Math.max(0, apuracao.apuracao?.saldo?.cbs || 0);
                   const diferenca = cbsNovo - pisCofinsAtual;
                   const percentual = pisCofinsAtual > 0 ? (diferenca / pisCofinsAtual * 100) : 0;
                   const vaiPagarMais = diferenca > 0;
