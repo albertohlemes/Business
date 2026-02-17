@@ -36114,6 +36114,20 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
                 "situacao": "A_PAGAR" if saldo_total > 0 else "A_RECUPERAR" if saldo_total < 0 else "ZERADO"
             }
         },
+        "comparativo": {
+            "pis_cofins_atual": {
+                "pis": round(total_saidas * 0.0165, 2),  # 1.65%
+                "cofins": round(total_saidas * 0.076, 2),  # 7.6%
+                "total": round(total_saidas * 0.0925, 2)  # PIS + COFINS = 9.25%
+            },
+            "cbs_2027": {
+                "debitos": round(debito_cbs, 2),
+                "creditos": round(credito_cbs, 2),
+                "saldo": round(saldo_cbs, 2)
+            },
+            "economia_2027": round((total_saidas * 0.0925) - saldo_total, 2) if saldo_total > 0 else round(abs(saldo_total), 2),
+            "economia_percentual": round(((total_saidas * 0.0925) - saldo_total) / (total_saidas * 0.0925) * 100, 2) if total_saidas > 0 else 0
+        },
         "detalhes_entradas": [],
         "detalhes_saidas": [],
         "_agregado": True,
