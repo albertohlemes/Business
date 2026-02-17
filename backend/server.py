@@ -36023,8 +36023,8 @@ async def get_apuracao_reforma_tributaria(
     total_docs = await db.xml_documents.count_documents(base_query)
     logger.info(f"REFORMA TRIBUTÁRIA: Total documentos = {total_docs}")
     
-    # Se tiver mais de 10000 docs, usar agregação simplificada
-    if total_docs > 10000:
+    # Se tiver mais de 500 docs, usar agregação simplificada (reduzido de 10000 para 500)
+    if total_docs > 500:
         logger.info(f"REFORMA TRIBUTÁRIA: Usando agregação otimizada para {total_docs} documentos")
         return await _get_reforma_tributaria_aggregated(company, company_id, competencia, config, total_docs)
     
