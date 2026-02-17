@@ -17230,17 +17230,28 @@ async def resolver_alerta_cfop_individual(
     
     now = datetime.now(timezone.utc)
     
+    # Normalizar descrição para comparação (mesmo padrão da Classificação Inteligente)
+    descricao_norm = _normalizar_descricao(produto_descricao)
+    
     if regra_existente:
-        # ATUALIZAR regra existente
+        # ATUALIZAR regra existente com campos padronizados (Wizard + Classificação Inteligente)
         await db.learned_rules.update_one(
             {"id": regra_existente.get('id')},
             {"$set": {
+                # Campos usados pelo Wizard
                 "cfop_correto": novo_cfop,
                 "categoria_correta": categoria_final or "conversao_cfop",
-                "ncm": produto_ncm or regra_existente.get('ncm', ''),
                 "cfop_original": cfop_original_emissor,
-                "motivo": f"Atualização manual: {cfop_anterior} → {novo_cfop}" + (f" ({categoria_final})" if categoria_final else ""),
-                "aprendido_de": "user_correction",
+                # Campos usados pela Classificação Inteligente
+                "cfop": novo_cfop,
+                "categoria": categoria_final or "conversao_cfop",
+                # Campos compartilhados
+                "ncm": produto_ncm or regra_existente.get('ncm', ''),
+                "produto_descricao": produto_descricao,
+                "descricao_produto": produto_descricao,
+                "padrao": descricao_norm,
+                "motivo": f"Correção individual: {cfop_anterior} → {novo_cfop} ({categoria_final})",
+                "aprendido_de": "wizard_individual",
                 "updated_by": current_user.id,
                 "updated_at": now
             }}
@@ -17248,18 +17259,25 @@ async def resolver_alerta_cfop_individual(
         regra_msg = "Regra atualizada na Memória IA"
         logger.info(f"MEMÓRIA IA: Regra ATUALIZADA para produto '{produto_descricao}' → CFOP {novo_cfop}")
     else:
-        # CRIAR nova regra
+        # CRIAR nova regra com TODOS os campos necessários para ambos os sistemas
         nova_regra = {
             "id": str(uuid.uuid4()),
             "company_id": company_id,
+            # Campos usados pelo Wizard
             "produto_descricao": produto_descricao,
             "produto_codigo": produto_codigo,
-            "ncm": produto_ncm,
             "cfop_original": cfop_original_emissor,
             "cfop_correto": novo_cfop,
             "categoria_correta": categoria_final or "conversao_cfop",
-            "motivo": f"Correção manual: {cfop_anterior} → {novo_cfop}" + (f" ({categoria_final})" if categoria_final else ""),
-            "aprendido_de": "user_correction",
+            # Campos usados pela Classificação Inteligente  
+            "descricao_produto": produto_descricao,
+            "padrao": descricao_norm,
+            "cfop": novo_cfop,
+            "categoria": categoria_final or "conversao_cfop",
+            # Campos compartilhados
+            "ncm": produto_ncm,
+            "motivo": f"Correção individual: {cfop_anterior} → {novo_cfop} ({categoria_final})",
+            "aprendido_de": "wizard_individual",
             "created_by": current_user.id,
             "created_at": now
         }
