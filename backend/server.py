@@ -17162,16 +17162,20 @@ async def resolver_alerta_cfop_individual(
     novo_cfop = data.get('novo_cfop')
     categoria = data.get('categoria_destino')
     
+    logger.info(f"RESOLVER INDIVIDUAL: documento_id={documento_id}, produto_idx={produto_idx}, novo_cfop={novo_cfop}, categoria={categoria}")
+    
     if not documento_id or produto_idx is None or not novo_cfop:
         raise HTTPException(status_code=400, detail="documento_id, produto_idx e novo_cfop são obrigatórios")
     
     doc = await db.xml_documents.find_one({"id": documento_id})
     if not doc:
+        logger.error(f"RESOLVER INDIVIDUAL: Documento {documento_id} não encontrado")
         raise HTTPException(status_code=404, detail="Documento não encontrado")
     
     company_id = doc.get('company_id')
     produtos = doc.get('produtos', [])
     if produto_idx >= len(produtos):
+        logger.error(f"RESOLVER INDIVIDUAL: Produto índice {produto_idx} não encontrado (total: {len(produtos)})")
         raise HTTPException(status_code=404, detail="Produto não encontrado")
     
     produto = produtos[produto_idx]
@@ -17181,11 +17185,16 @@ async def resolver_alerta_cfop_individual(
     produto_ncm = produto.get('ncm', '')
     cfop_original_emissor = produto.get('cfop_original_emissor', cfop_anterior)
     
-    # Determinar categoria baseada no CFOP se não foi informada
+    logger.info(f"RESOLVER INDIVIDUAL: Produto '{produto_descricao[:40]}' CFOP {cfop_anterior} -> {novo_cfop}")
+    
+    # Determinar categoria baseada no CFOP DESTINO (novo_cfop), não do cfop_anterior
     categoria_final = categoria or obter_categoria_por_cfop(novo_cfop)
+    
+    logger.info(f"RESOLVER INDIVIDUAL: Categoria final = {categoria_final}")
     
     # Atualizar CFOP no documento
     produtos[produto_idx]['cfop'] = novo_cfop
+    produtos[produto_idx]['cfop_original_antes_correcao'] = cfop_anterior
     produtos[produto_idx]['pendente_revisao_cfop'] = False
     produtos[produto_idx]['cfop_revisado_por'] = current_user.id
     produtos[produto_idx]['cfop_revisado_em'] = datetime.now(timezone.utc).isoformat()
@@ -17197,10 +17206,12 @@ async def resolver_alerta_cfop_individual(
         produtos[produto_idx]['categoria_origem'] = 'memoria_ia_manual'
         produtos[produto_idx]['categoria_classificada_em'] = datetime.now(timezone.utc).isoformat()
     
-    await db.xml_documents.update_one(
+    result = await db.xml_documents.update_one(
         {"id": documento_id},
         {"$set": {"produtos": produtos}}
     )
+    
+    logger.info(f"RESOLVER INDIVIDUAL: Update result = matched={result.matched_count}, modified={result.modified_count}")
     
     # ============ MEMÓRIA IA - SEMPRE SALVAR/ATUALIZAR REGRA ============
     # Verificar se já existe uma regra para este produto (por código OU descrição)
