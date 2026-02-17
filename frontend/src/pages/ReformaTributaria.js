@@ -435,7 +435,7 @@ const ReformaTributaria = ({ user, onLogout }) => {
                   </div>
                 </div>
                 
-                {/* Resultado 2027 */}
+                {/* Resultado 2027 - Economia ou Aumento */}
                 {(() => {
                   const pisCofinsAtual = apuracao.comparativo_regime_atual?.pis_cofins || 0;
                   // Usar a_pagar que é sempre >= 0 (se saldo é negativo, a_pagar = 0)
@@ -443,34 +443,60 @@ const ReformaTributaria = ({ user, onLogout }) => {
                   const diferenca = cbsNovo - pisCofinsAtual;
                   const percentual = pisCofinsAtual > 0 ? (diferenca / pisCofinsAtual * 100) : 0;
                   const vaiPagarMais = diferenca > 0;
+                  const economiaReal = Math.abs(diferenca);
+                  const temCreditoCbs = (apuracao.apuracao?.saldo?.cbs || 0) < 0;
                   
                   return (
-                    <div className={`mt-4 p-4 rounded-xl flex items-center justify-between ${
+                    <div className={`mt-4 p-5 rounded-xl ${
                       vaiPagarMais 
                         ? 'bg-red-500/10 border border-red-500/30' 
                         : 'bg-emerald-500/10 border border-emerald-500/30'
                     }`}>
-                      <div className="flex items-center gap-3">
-                        {vaiPagarMais ? (
-                          <TrendingUp className="w-6 h-6 text-red-400" />
-                        ) : (
-                          <TrendingDown className="w-6 h-6 text-emerald-400" />
-                        )}
-                        <div>
-                          <p className={`font-bold ${vaiPagarMais ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {vaiPagarMais ? '⚠️ Aumento' : '✅ Economia'} em 2027
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {vaiPagarMais ? (
+                            <TrendingUp className="w-6 h-6 text-red-400" />
+                          ) : (
+                            <TrendingDown className="w-6 h-6 text-emerald-400" />
+                          )}
+                          <div>
+                            <p className={`font-bold ${vaiPagarMais ? 'text-red-400' : 'text-emerald-400'}`}>
+                              {vaiPagarMais ? '⚠️ Aumento' : '✅ Economia'} em 2027
+                            </p>
+                            <p className="text-xs text-[#A1A1AA]">CBS vs PIS/COFINS</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-2xl font-bold ${vaiPagarMais ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {vaiPagarMais ? '+' : '-'} {formatCurrency(economiaReal)}
                           </p>
-                          <p className="text-xs text-[#A1A1AA]">CBS vs PIS/COFINS</p>
+                          <p className={`text-sm ${vaiPagarMais ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {percentual.toFixed(1)}%
+                          </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`text-2xl font-bold ${vaiPagarMais ? 'text-red-400' : 'text-emerald-400'}`}>
-                          {vaiPagarMais ? '+' : '-'} {formatCurrency(Math.abs(diferenca))}
-                        </p>
-                        <p className={`text-sm ${vaiPagarMais ? 'text-red-400' : 'text-emerald-400'}`}>
-                          {vaiPagarMais ? '+' : ''}{percentual.toFixed(1)}%
-                        </p>
-                      </div>
+                      
+                      {/* Explicação detalhada da economia */}
+                      {!vaiPagarMais && economiaReal > 0 && (
+                        <div className="mt-4 pt-4 border-t border-emerald-500/20">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-[#A1A1AA] mb-1">Regime Atual (PIS/COFINS)</p>
+                              <p className="font-semibold text-amber-400">Pagaria {formatCurrency(pisCofinsAtual)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[#A1A1AA] mb-1">CBS 2027</p>
+                              <p className="font-semibold text-emerald-400">
+                                {cbsNovo > 0 ? `Pagaria ${formatCurrency(cbsNovo)}` : 'Nada a pagar'}
+                                {temCreditoCbs && <span className="text-xs ml-1">(crédito)</span>}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="mt-3 text-emerald-400 text-sm font-medium">
+                            💰 Você deixaria de pagar {formatCurrency(economiaReal)} com a CBS em 2027
+                          </p>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
