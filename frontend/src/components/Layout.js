@@ -156,7 +156,8 @@ const Layout = ({ user, onLogout, children }) => {
         nav.push({ name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' });
       }
       
-      if (ehIndustria || apuraIcmsSt) {
+      // ICMS ST apenas para contribuintes de ST (indústria ou com flag apuraIcmsSt)
+      if (apuraIcmsSt) {
         nav.push({ name: 'ICMS ST', href: '/apuracao-icms-st', icon: Calculator, testId: 'nav-apuracao-icms-st' });
       }
       
