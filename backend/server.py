@@ -1991,8 +1991,14 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
                 # Determinar CST
                 categoria_sem_credito = any(cat in categoria for cat in CATEGORIAS_SEM_CREDITO) if categoria else False
                 cfop_sem_credito = cfop in CFOPS_SEM_CREDITO
+                cfop_com_credito = cfop in CFOPS_COM_CREDITO
                 
-                if categoria_sem_credito or cfop_sem_credito:
+                # Lógica: CFOP especial tem prioridade (combustível p/ comercialização)
+                if cfop_com_credito and not categoria_sem_credito:
+                    cst = '50'  # Com crédito
+                    valor_pis = valor_base * Decimal('0.0165')
+                    valor_cofins = valor_base * Decimal('0.076')
+                elif categoria_sem_credito or cfop_sem_credito:
                     cst = '98'  # Desconsiderado
                     valor_pis = Decimal('0')
                     valor_cofins = Decimal('0')
