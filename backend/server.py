@@ -23055,20 +23055,28 @@ async def apurar_icms(
                     is_sem_credito_beneficio = produto_sem_credito_icms_beneficio(ncm, descricao, company)
                 
                 # Agrupar por CFOP - Entradas
+                # IMPORTANTE: Se o CFOP está desconsiderado, guardamos o valor original
+                # em valor_icms_original, mas o valor_icms (que aparece na tabela) é zerado
+                is_item_desconsiderado = (is_despesa and desconsiderar_icms_despesas) or (is_st and desconsiderar_icms_st) or is_sem_credito_beneficio
+                
                 if cfop not in entradas_por_cfop:
                     entradas_por_cfop[cfop] = {
                         "cfop": cfop, 
                         "valor_total": 0, 
                         "bc_icms": 0, 
-                        "valor_icms": 0, 
+                        "valor_icms": 0,  # Valor EFETIVO (zerado se desconsiderado)
+                        "valor_icms_original": 0,  # Valor original do XML (para referência)
                         "qtd": 0,
                         "is_despesa": is_despesa,
                         "is_st": is_st,
-                        "desconsiderado": (is_despesa and desconsiderar_icms_despesas) or (is_st and desconsiderar_icms_st) or is_sem_credito_beneficio
+                        "desconsiderado": is_item_desconsiderado
                     }
                 entradas_por_cfop[cfop]["valor_total"] += valor_total
                 entradas_por_cfop[cfop]["bc_icms"] += bc_icms
-                entradas_por_cfop[cfop]["valor_icms"] += valor_icms
+                entradas_por_cfop[cfop]["valor_icms_original"] += valor_icms
+                # Se o CFOP está desconsiderado, NÃO soma no valor_icms da tabela
+                if not is_item_desconsiderado:
+                    entradas_por_cfop[cfop]["valor_icms"] += valor_icms
                 entradas_por_cfop[cfop]["qtd"] += 1
                 
                 # Totais de entradas (sempre soma no total geral)
