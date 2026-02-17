@@ -16449,6 +16449,9 @@ async def resolver_alerta_cfop_por_grupo(
             # Buscar tanto o CFOP de entrada quanto o de saída correspondente
             if prod.get('pendente_revisao_cfop') and cfop_prod in cfops_buscar:
                 cfop_anterior = prod.get('cfop', '')
+                produto_codigo = prod.get('codigo', '')
+                produto_descricao = prod.get('descricao', '')
+                produto_ncm = prod.get('ncm', '')
                 
                 # Atualizar CFOP
                 produtos[idx]['cfop'] = novo_cfop
@@ -16466,19 +16469,53 @@ async def resolver_alerta_cfop_por_grupo(
                 atualizado = True
                 total_resolvidos += 1
                 
-                # Salvar regra se solicitado
-                if salvar_regra and total_resolvidos == 1:  # Salvar apenas uma vez
-                    await db.learned_rules.insert_one({
-                        "id": str(uuid.uuid4()),
-                        "company_id": company_id,
-                        "cfop_original": cfop_anterior,
-                        "cfop_correto": novo_cfop,
-                        "categoria_correta": categoria_final or "conversao_cfop_grupo",
-                        "motivo": f"Conversão em lote de {cfop_anterior} para {novo_cfop}" + (f" → {categoria_final}" if categoria_final else ""),
-                        "aprendido_de": "user_batch_correction",
-                        "created_by": current_user.id,
-                        "created_at": datetime.now(timezone.utc)
-                    })
+                # Salvar regra para CADA produto único (para que funcione na Classificação Inteligente)
+                if salvar_regra and produto_descricao:
+                    # Chave única: usar código + descrição normalizada
+                    chave_produto = f"{produto_codigo}_{produto_descricao[:50].upper()}"
+                    if chave_produto not in produtos_regras_salvas:
+                        produtos_regras_salvas.add(chave_produto)
+                        
+                        # Verificar se já existe regra para este produto
+                        regra_existente = await db.learned_rules.find_one({
+                            "company_id": company_id,
+                            "$or": [
+                                {"produto_codigo": produto_codigo} if produto_codigo else {},
+                                {"produto_descricao": produto_descricao}
+                            ]
+                        })
+                        
+                        if regra_existente:
+                            # Atualizar regra existente
+                            await db.learned_rules.update_one(
+                                {"id": regra_existente.get('id')},
+                                {"$set": {
+                                    "cfop_correto": novo_cfop,
+                                    "categoria_correta": categoria_final or "conversao_cfop_grupo",
+                                    "ncm": produto_ncm or regra_existente.get('ncm', ''),
+                                    "cfop_original": cfop_anterior,
+                                    "motivo": f"Atualização em lote: {cfop_anterior} → {novo_cfop}" + (f" ({categoria_final})" if categoria_final else ""),
+                                    "aprendido_de": "user_batch_correction",
+                                    "updated_by": current_user.id,
+                                    "updated_at": datetime.now(timezone.utc)
+                                }}
+                            )
+                        else:
+                            # Criar nova regra com dados completos do produto
+                            await db.learned_rules.insert_one({
+                                "id": str(uuid.uuid4()),
+                                "company_id": company_id,
+                                "produto_descricao": produto_descricao,
+                                "produto_codigo": produto_codigo,
+                                "ncm": produto_ncm,
+                                "cfop_original": cfop_anterior,
+                                "cfop_correto": novo_cfop,
+                                "categoria_correta": categoria_final or "conversao_cfop_grupo",
+                                "motivo": f"Conversão em lote de {cfop_anterior} para {novo_cfop}" + (f" → {categoria_final}" if categoria_final else ""),
+                                "aprendido_de": "user_batch_correction",
+                                "created_by": current_user.id,
+                                "created_at": datetime.now(timezone.utc)
+                            })
         
         if atualizado:
             await db.xml_documents.update_one(
