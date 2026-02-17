@@ -14720,6 +14720,69 @@ async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str
     
     logger.info(f"VILOES AGREGADO: Encontrados {len(viloes)} vilões, {len(oportunidades)} oportunidades")
     
+    # ============== ANÁLISE POR CATEGORIA (KEYWORD) ==============
+    # Mapear descrições para categorias
+    def extrair_keyword(descricao):
+        if not descricao:
+            return "outros"
+        desc_lower = descricao.lower()
+        
+        keywords_map = {
+            'cerveja': ['cerveja', 'beer', 'pilsen', 'lager', 'ipa'],
+            'refrigerante': ['refrigerante', 'coca', 'pepsi', 'fanta', 'guarana', 'sprite'],
+            'suco': ['suco', 'nectar', 'juice'],
+            'agua': ['agua', 'mineral', 'h2o'],
+            'bebida': ['energetico', 'isotônico', 'energético', 'gatorade', 'red bull'],
+            'destilado': ['whisky', 'vodka', 'gin', 'rum', 'cachaça', 'tequila', 'conhaque'],
+            'vinho': ['vinho', 'wine', 'espumante', 'champagne'],
+            'cigarro': ['cigarro', 'tabaco', 'fumo'],
+            'combustivel': ['gasolina', 'diesel', 'etanol', 'alcool', 'gnv'],
+            'alimento': ['arroz', 'feijão', 'macarrão', 'farinha', 'açucar', 'oleo', 'leite'],
+            'limpeza': ['detergente', 'sabão', 'desinfetante', 'limpa', 'alvejante'],
+            'higiene': ['papel', 'sabonete', 'shampoo', 'creme', 'desodorante'],
+        }
+        
+        for keyword, termos in keywords_map.items():
+            for termo in termos:
+                if termo in desc_lower:
+                    return keyword
+        
+        return "outros"
+    
+    # Agrupar vilões por categoria
+    viloes_por_categoria = {}
+    for v in viloes:
+        keyword = extrair_keyword(v.get('descricao', ''))
+        if keyword not in viloes_por_categoria:
+            viloes_por_categoria[keyword] = {
+                'keyword': keyword,
+                'ncms': [],
+                'impacto_total': 0,
+                'qtd_ncms': 0
+            }
+        viloes_por_categoria[keyword]['ncms'].append(v['ncm'])
+        viloes_por_categoria[keyword]['impacto_total'] += v['impacto_total']
+        viloes_por_categoria[keyword]['qtd_ncms'] += 1
+    
+    # Agrupar oportunidades por categoria
+    oportunidades_por_categoria = {}
+    for o in oportunidades:
+        keyword = extrair_keyword(o.get('descricao', ''))
+        if keyword not in oportunidades_por_categoria:
+            oportunidades_por_categoria[keyword] = {
+                'keyword': keyword,
+                'ncms': [],
+                'beneficio_total': 0,
+                'qtd_ncms': 0
+            }
+        oportunidades_por_categoria[keyword]['ncms'].append(o['ncm'])
+        oportunidades_por_categoria[keyword]['beneficio_total'] += o.get('beneficio_total', 0)
+        oportunidades_por_categoria[keyword]['qtd_ncms'] += 1
+    
+    # Converter para listas ordenadas
+    viloes_cat_list = sorted(viloes_por_categoria.values(), key=lambda x: x['impacto_total'], reverse=True)
+    oportunidades_cat_list = sorted(oportunidades_por_categoria.values(), key=lambda x: x['beneficio_total'], reverse=True)
+    
     return {
         "empresa": company_id,
         "competencia": competencia,
@@ -14729,8 +14792,8 @@ async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str
             "oportunidades": oportunidades
         },
         "por_keyword": {
-            "viloes": [],  # Não calculado na versão agregada
-            "oportunidades": []
+            "viloes": viloes_cat_list,
+            "oportunidades": oportunidades_cat_list
         },
         "resumo": {
             "total_viloes": len(viloes),
