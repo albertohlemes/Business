@@ -22916,6 +22916,17 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
             "beneficio_fiscal": {"bc_icms": 0, "valor_icms": 0, "qtd_itens": 0, "produtos": []},
             "total_icms_desconsiderado": round(icms_despesa_desc + icms_st_desc, 2)
         },
+        "compras_liquidas": {
+            "brutas": round(total_compras_brutas, 2),
+            "devolucoes": round(total_devolucao_compras, 2),
+            "liquidas": round(compras_liquidas_agg, 2)
+        },
+        "vendas_liquidas": {
+            "brutas": round(total_vendas_brutas, 2),
+            "devolucoes": round(total_devolucao_vendas, 2),
+            "liquidas": round(vendas_liquidas_agg, 2)
+        },
+        "markup": round(markup_agg, 2),
         "_agregado": True,
         "_total_docs": total_docs,
         "_alerta": f"Apuração simplificada: {total_docs} documentos processados via agregação"
