@@ -35603,8 +35603,22 @@ async def complete_wizard_step(
         # IMPORTANTE: Buscar TODOS os CFOPs pendentes e aplicar ações
         # Se o usuário não definiu ação para um CFOP, a ação padrão é "manter"
         acoes_cfops = step_data.get("acoes_cfops", {})
+        cfops_individuais = step_data.get("cfops_individuais", {})
         
-        # 1. Primeiro, buscar TODOS os CFOPs únicos que estão pendentes
+        logger.info(f"WIZARD STEP 3: Recebido acoes_cfops={acoes_cfops.keys()}, cfops_individuais={len(cfops_individuais)} itens")
+        
+        # Mapeamento de CFOP saída para entrada (para busca)
+        CFOP_SAIDA_PARA_ENTRADA_WIZARD = {
+            '5106': '1106', '5910': '1910', '5911': '1911', '5912': '1912', '5913': '1913',
+            '5914': '1914', '5915': '1915', '5916': '1916', '5917': '1917', '5918': '1918',
+            '5919': '1919', '5920': '1920', '5921': '1921', '5922': '1922', '5923': '1923',
+            '5924': '5924', '5925': '1925', '5929': '1929', '5949': '1949',
+            '5201': '1201', '5202': '1202', '5208': '1208', '5209': '1209', '5210': '1210',
+            '6106': '2106', '6910': '2910', '6911': '2911', '6912': '2912', '6929': '2929', '6949': '2949',
+            '6201': '2201', '6202': '2202',
+        }
+        
+        # 1. Primeiro, buscar TODOS os documentos com CFOPs pendentes
         docs_pendentes = await db.xml_documents.find({
             "company_id": company_id,
             "competencia": competencia,
@@ -35612,22 +35626,24 @@ async def complete_wizard_step(
             "produtos.pendente_revisao_cfop": True
         }).to_list(length=None)
         
+        logger.info(f"WIZARD STEP 3: Encontrados {len(docs_pendentes)} documentos com produtos pendentes")
+        
+        # Construir mapa de CFOPs (original do emissor -> entrada convertida)
         cfops_pendentes = set()
         for doc in docs_pendentes:
             for p in doc.get("produtos", []):
                 if p.get("pendente_revisao_cfop"):
-                    cfop = str(p.get("cfop", ""))
-                    if cfop:
-                        cfops_pendentes.add(cfop)
+                    cfop_atual = str(p.get("cfop", ""))
+                    cfop_emissor = str(p.get("cfop_original_emissor", ""))
+                    if cfop_atual:
+                        cfops_pendentes.add(cfop_atual)
+                    if cfop_emissor:
+                        cfops_pendentes.add(cfop_emissor)
         
-        # 2. Para cada CFOP pendente, aplicar a ação definida ou a ação padrão "manter"
-        for cfop in cfops_pendentes:
-            if cfop not in acoes_cfops:
-                # Ação padrão: manter o CFOP atual
-                acoes_cfops[cfop] = {"acao": "manter", "cfop_destino": cfop}
+        logger.info(f"WIZARD STEP 3: CFOPs pendentes encontrados: {cfops_pendentes}")
         
-        # 3. Processar as ações
-        for cfop, acao_data in acoes_cfops.items():
+        # 2. Processar ações - Agora buscar por CFOP atual OU cfop_original_emissor
+        for cfop_chave, acao_data in acoes_cfops.items():
             # Suportar formato antigo (string) e novo (objeto)
             if isinstance(acao_data, str):
                 acao = acao_data
@@ -35636,24 +35652,48 @@ async def complete_wizard_step(
                 acao = acao_data.get("acao", "manter")
                 cfop_destino_manual = acao_data.get("cfop_destino")
             
+            # CFOPs a buscar: o informado + equivalente de entrada (caso seja CFOP de saída)
+            cfops_buscar = set([cfop_chave])
+            if cfop_chave in CFOP_SAIDA_PARA_ENTRADA_WIZARD:
+                cfops_buscar.add(CFOP_SAIDA_PARA_ENTRADA_WIZARD[cfop_chave])
+            # Também adicionar conversão simples 5xxx->1xxx, 6xxx->2xxx
+            if cfop_chave.startswith('5'):
+                cfops_buscar.add(cfop_chave.replace('5', '1', 1))
+            elif cfop_chave.startswith('6'):
+                cfops_buscar.add(cfop_chave.replace('6', '2', 1))
+            
+            cfops_buscar = list(cfops_buscar)
+            
+            logger.info(f"WIZARD STEP 3: Processando CFOP {cfop_chave}, acao={acao}, cfop_destino={cfop_destino_manual}, buscando CFOPs: {cfops_buscar}")
+            
+            # Buscar documentos que tenham produtos com CFOPs na lista (atual OU original do emissor)
+            docs = await db.xml_documents.find({
+                "company_id": company_id,
+                "competencia": competencia,
+                "tipo": "entrada",
+                "$or": [
+                    {"produtos.cfop": {"$in": cfops_buscar}},
+                    {"produtos.cfop_original_emissor": {"$in": cfops_buscar}}
+                ]
+            }).to_list(length=5000)
+            
+            logger.info(f"WIZARD STEP 3: Encontrados {len(docs)} documentos para CFOP {cfop_chave}")
+            
             if acao == "manter":
                 # Apenas remover o flag pendente_revisao_cfop sem alterar o CFOP
                 # MAS TAMBÉM definir categoria_classificada baseada no CFOP atual
-                docs = await db.xml_documents.find({
-                    "company_id": company_id,
-                    "competencia": competencia,
-                    "tipo": "entrada",
-                    "produtos.cfop": cfop
-                }).to_list(length=1000)
-                
                 count = 0
                 for doc in docs:
                     produtos_atualizados = doc.get("produtos", [])
                     alterado = False
                     for p in produtos_atualizados:
-                        if str(p.get("cfop")) == cfop and p.get("pendente_revisao_cfop"):
+                        cfop_prod = str(p.get("cfop", ""))
+                        cfop_emissor = str(p.get("cfop_original_emissor", ""))
+                        
+                        # Verificar se este produto corresponde ao CFOP do alerta
+                        if p.get("pendente_revisao_cfop") and (cfop_prod in cfops_buscar or cfop_emissor in cfops_buscar):
                             # Determinar categoria baseada no CFOP
-                            categoria_cfop = obter_categoria_por_cfop(cfop)
+                            categoria_cfop = obter_categoria_por_cfop(cfop_prod)
                             
                             p["pendente_revisao_cfop"] = False
                             p["cfop_revisado_wizard"] = True
@@ -35675,29 +35715,25 @@ async def complete_wizard_step(
                             {"$set": {"produtos": produtos_atualizados}}
                         )
                 
-                actions_taken.append(f"CFOP {cfop}: {count} produtos mantidos e classificados")
+                actions_taken.append(f"CFOP {cfop_chave}: {count} produtos mantidos e classificados")
             
             elif acao == "converter_compra":
                 # Converter para CFOP de compra (entradas)
-                cfop_destino = cfop_destino_manual or ("1102" if cfop.startswith("1") else "2102")
+                cfop_destino = cfop_destino_manual or ("1102" if cfop_chave.startswith(("1", "5")) else "2102")
                 
                 # Determinar categoria baseada no CFOP de destino
                 categoria_cfop = obter_categoria_por_cfop(cfop_destino)
-                
-                docs = await db.xml_documents.find({
-                    "company_id": company_id,
-                    "competencia": competencia,
-                    "tipo": "entrada",
-                    "produtos.cfop": cfop
-                }).to_list(length=1000)
                 
                 count = 0
                 for doc in docs:
                     produtos_atualizados = doc.get("produtos", [])
                     alterado = False
                     for p in produtos_atualizados:
-                        if str(p.get("cfop")) == cfop and p.get("pendente_revisao_cfop"):
-                            p["cfop_original_distinto"] = cfop
+                        cfop_prod = str(p.get("cfop", ""))
+                        cfop_emissor = str(p.get("cfop_original_emissor", ""))
+                        
+                        if p.get("pendente_revisao_cfop") and (cfop_prod in cfops_buscar or cfop_emissor in cfops_buscar):
+                            p["cfop_original_distinto"] = cfop_prod
                             p["cfop"] = cfop_destino
                             p["pendente_revisao_cfop"] = False
                             p["cfop_convertido_wizard"] = True
@@ -35719,7 +35755,7 @@ async def complete_wizard_step(
                             {"$set": {"produtos": produtos_atualizados}}
                         )
                 
-                actions_taken.append(f"CFOP {cfop} → {cfop_destino}: {count} produtos convertidos e classificados")
+                actions_taken.append(f"CFOP {cfop_chave} → {cfop_destino}: {count} produtos convertidos e classificados")
             
             elif acao == "converter_manual" and cfop_destino_manual:
                 # Converter para CFOP digitado manualmente
@@ -35728,20 +35764,20 @@ async def complete_wizard_step(
                 # Determinar categoria baseada no CFOP de destino
                 categoria_cfop = obter_categoria_por_cfop(cfop_destino)
                 
-                docs = await db.xml_documents.find({
-                    "company_id": company_id,
-                    "competencia": competencia,
-                    "tipo": "entrada",
-                    "produtos.cfop": cfop
-                }).to_list(length=1000)
+                logger.info(f"WIZARD STEP 3 MANUAL: Convertendo {cfop_chave} → {cfop_destino}, categoria={categoria_cfop}")
                 
                 count = 0
                 for doc in docs:
                     produtos_atualizados = doc.get("produtos", [])
                     alterado = False
-                    for p in produtos_atualizados:
-                        if str(p.get("cfop")) == cfop and p.get("pendente_revisao_cfop"):
-                            p["cfop_original_distinto"] = cfop
+                    for idx, p in enumerate(produtos_atualizados):
+                        cfop_prod = str(p.get("cfop", ""))
+                        cfop_emissor = str(p.get("cfop_original_emissor", ""))
+                        
+                        if p.get("pendente_revisao_cfop") and (cfop_prod in cfops_buscar or cfop_emissor in cfops_buscar):
+                            logger.info(f"WIZARD STEP 3 MANUAL: Produto '{p.get('descricao', '')[:30]}' CFOP {cfop_prod} → {cfop_destino}")
+                            
+                            p["cfop_original_distinto"] = cfop_prod
                             p["cfop"] = cfop_destino
                             p["pendente_revisao_cfop"] = False
                             p["cfop_convertido_wizard"] = True
@@ -35758,12 +35794,50 @@ async def complete_wizard_step(
                             count += 1
                     
                     if alterado:
-                        await db.xml_documents.update_one(
+                        result = await db.xml_documents.update_one(
                             {"id": doc["id"]},
                             {"$set": {"produtos": produtos_atualizados}}
                         )
+                        logger.info(f"WIZARD STEP 3 MANUAL: Update doc {doc['id'][:8]} = matched={result.matched_count}, modified={result.modified_count}")
                 
-                actions_taken.append(f"CFOP {cfop} → {cfop_destino}: {count} produtos convertidos e classificados (manual)")
+                actions_taken.append(f"CFOP {cfop_chave} → {cfop_destino}: {count} produtos convertidos e classificados (manual)")
+                logger.info(f"WIZARD STEP 3 MANUAL: Total de {count} produtos convertidos")
+        
+        # 3. Processar CFOPs individuais por produto (se houver)
+        if cfops_individuais:
+            logger.info(f"WIZARD STEP 3: Processando {len(cfops_individuais)} CFOPs individuais")
+            for key, cfop_destino in cfops_individuais.items():
+                # key formato: "cfop_docId_prodIdx"
+                parts = key.split("_")
+                if len(parts) >= 3:
+                    cfop_original = parts[0]
+                    doc_id = parts[1]
+                    prod_idx = int(parts[2]) if parts[2].isdigit() else None
+                    
+                    if doc_id and prod_idx is not None:
+                        doc = await db.xml_documents.find_one({"id": doc_id})
+                        if doc:
+                            produtos = doc.get("produtos", [])
+                            if prod_idx < len(produtos):
+                                categoria_cfop = obter_categoria_por_cfop(cfop_destino)
+                                
+                                produtos[prod_idx]["cfop_original_distinto"] = produtos[prod_idx].get("cfop", "")
+                                produtos[prod_idx]["cfop"] = cfop_destino
+                                produtos[prod_idx]["pendente_revisao_cfop"] = False
+                                produtos[prod_idx]["cfop_individual_wizard"] = True
+                                produtos[prod_idx]["cfop_revisado_em"] = datetime.now(timezone.utc).isoformat()
+                                
+                                if categoria_cfop:
+                                    produtos[prod_idx]["categoria"] = categoria_cfop
+                                    produtos[prod_idx]["categoria_classificada"] = categoria_cfop
+                                    produtos[prod_idx]["categoria_origem"] = "wizard_individual"
+                                    produtos[prod_idx]["categoria_classificada_em"] = datetime.now(timezone.utc).isoformat()
+                                
+                                await db.xml_documents.update_one(
+                                    {"id": doc_id},
+                                    {"$set": {"produtos": produtos}}
+                                )
+                                actions_taken.append(f"Produto individual → CFOP {cfop_destino}")
         
         # 4. SINCRONIZAÇÃO FINAL: Garantir que NENHUM produto ficou com pendente_revisao_cfop=True
         # Isso é uma proteção extra para garantir consistência
