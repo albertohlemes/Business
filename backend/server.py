@@ -36402,7 +36402,14 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
             "saldo": {
                 "cbs": round(saldo_cbs, 2),
                 "ibs": round(saldo_ibs, 2),
-                "total": round(saldo_total, 2)
+                "total": round(saldo_total, 2),
+                "situacao": "a_pagar" if saldo_total > 0 else "credito_acumulado"
+            },
+            # Valor efetivo a pagar (sempre >= 0, para comparação com regime atual)
+            "a_pagar": {
+                "cbs": round(max(0, saldo_cbs), 2),
+                "ibs": round(max(0, saldo_ibs), 2),
+                "total": round(max(0, saldo_total), 2)
             }
         },
         "comparativo_regime_atual": {
