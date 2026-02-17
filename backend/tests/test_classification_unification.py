@@ -117,6 +117,18 @@ class TestObterCFOPPorCategoria:
         from server import obter_cfop_por_categoria
         resultado = obter_cfop_por_categoria('bonificacao', '2102')
         assert resultado.startswith('2')
+    
+    def test_outras_entradas_gera_cfop_correto(self):
+        """Categoria outras_entradas deve gerar CFOP x949"""
+        from server import obter_cfop_por_categoria
+        resultado = obter_cfop_por_categoria('outras_entradas', '1102')
+        assert resultado == '1949'
+    
+    def test_outras_entradas_interestadual_gera_cfop_correto(self):
+        """Categoria outras_entradas interestadual deve gerar CFOP 2949"""
+        from server import obter_cfop_por_categoria
+        resultado = obter_cfop_por_categoria('outras_entradas', '2102')
+        assert resultado == '2949'
 
 
 class TestNormalizacaoDescricao:
