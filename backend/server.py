@@ -1295,6 +1295,15 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
     
     Lei 14.592/2023: ICMS excluído da base de cálculo nas entradas E saídas.
     
+    IMPORTANTE: Considera a categoria_classificada do produto para determinar
+    se gera ou não crédito/débito. Categorias que NÃO geram crédito/débito:
+    - devolucao: Devoluções são desconsideradas
+    - bonificacao: Bonificações não geram crédito de PIS/COFINS
+    - brinde: Similar a bonificação
+    - transferencia: Transferências entre filiais
+    - remessa: Remessas (demonstração, conserto, etc.)
+    - ativo_imobilizado: Depende da natureza (pode gerar crédito em 48 meses)
+    
     Retorna:
     {
         'pis_creditos': float,
@@ -1308,6 +1317,64 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
     }
     """
     from decimal import Decimal, ROUND_HALF_UP
+    
+    # Categorias que NÃO geram crédito de PIS/COFINS (entradas)
+    CATEGORIAS_SEM_CREDITO = [
+        'devolucao', 'devolução', 'dev', 
+        'bonificacao', 'bonificação', 'brinde', 'amostra',
+        'transferencia', 'transferência', 
+        'remessa', 'demonstracao', 'demonstração', 'conserto',
+        'uso_consumo', 'uso consumo',
+        'imobilizado_sem_credito'
+    ]
+    
+    # Categorias que NÃO geram débito de PIS/COFINS (saídas)
+    CATEGORIAS_SEM_DEBITO = [
+        'devolucao', 'devolução', 'dev',
+        'transferencia', 'transferência',
+        'remessa', 'demonstracao', 'demonstração', 'conserto',
+        'bonificacao', 'bonificação', 'brinde', 'amostra'
+    ]
+    
+    # CFOPs que não geram crédito (devoluções, remessas, etc.)
+    CFOPS_SEM_CREDITO = [
+        '1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209',  # Devoluções
+        '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209',  # Devoluções interestaduais
+        '1410', '1411', '2410', '2411',  # Devoluções de vendas
+        '1913', '2913',  # Retorno de remessa
+        '1914', '2914',  # Retorno demonstração
+        '1915', '2915',  # Retorno conserto
+        '1916', '2916',  # Retorno beneficiamento
+        '1917', '2917',  # Retorno armazém
+        '1918', '2918',  # Retorno depósito
+        '1919', '2919',  # Retorno venda entrega futura
+        '1920', '2920',  # Retorno locação
+        '1921', '2921',  # Retorno exposição
+        '1949', '2949',  # Outras entradas não especificadas
+        '1556', '2556',  # Compra de ativo (crédito em 48 meses - tratamento especial)
+        '1407', '2407',  # Transferências (entradas)
+        '1408', '2408', '1409', '2409',  # Outras transferências
+    ]
+    
+    # CFOPs que não geram débito (devoluções, remessas, etc.)
+    CFOPS_SEM_DEBITO = [
+        '5201', '5202', '5203', '5204', '5205', '5206', '5207', '5208', '5209',  # Devoluções
+        '6201', '6202', '6203', '6204', '6205', '6206', '6207', '6208', '6209',  # Devoluções interestaduais
+        '5410', '5411', '6410', '6411',  # Devoluções de compras
+        '5913', '6913',  # Remessa para demonstração
+        '5914', '6914',  # Remessa conserto
+        '5915', '6915',  # Remessa beneficiamento
+        '5916', '6916',  # Remessa armazém
+        '5917', '6917',  # Remessa depósito
+        '5918', '6918',  # Remessa locação
+        '5919', '6919',  # Remessa exposição
+        '5920', '6920',  # Remessa industrialização
+        '5949', '6949',  # Outras saídas não especificadas
+        '5407', '6407',  # Transferências (saídas)
+        '5408', '6408', '5409', '6409',  # Outras transferências
+        '5910', '6910',  # Bonificação/doação
+        '5911', '6911',  # Brinde
+    ]
     
     # Configurações da empresa
     perfil_empresa = company.get('perfil_comercial', 'VAREJO') or 'VAREJO'
@@ -1329,16 +1396,22 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
         'debitos_pis': Decimal('0'),
         'debitos_cofins': Decimal('0'),
         'base_credito': Decimal('0'),
-        'base_debito': Decimal('0')
+        'base_debito': Decimal('0'),
+        'desconsiderados_credito': Decimal('0'),
+        'desconsiderados_debito': Decimal('0')
     }
     
-    # Buscar TODOS os documentos (não usar batches para garantir mesma ordem de processamento)
+    # Buscar TODOS os documentos (incluindo categoria_classificada)
     docs = await db.xml_documents.find(
         query, 
-        {"produtos": 1, "tipo": 1, "tipo_operacao": 1, "modelo": 1}
+        {"produtos": 1, "tipo": 1, "tipo_operacao": 1, "modelo": 1, "desconsiderada_devolucao": 1}
     ).to_list(length=50000)
     
     for doc in docs:
+        # Pular documentos já marcados como desconsiderados por devolução
+        if doc.get('desconsiderada_devolucao'):
+            continue
+            
         # Determinar tipo de operação
         tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
         if not tipo_operacao:
@@ -1356,16 +1429,34 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
             valor_total = Decimal(str(prod.get('valor_total', 0) or 0))
             v_icms = Decimal(str(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0))
             
+            # Obter categoria classificada do produto
+            categoria = str(prod.get('categoria_classificada', '') or prod.get('categoria', '') or '').lower().strip()
+            
             # Lei 14.592/2023: Excluir ICMS da base em entradas E saídas
             valor_base = max(Decimal('0'), valor_total - v_icms)
             
-            # Usar a função calcular_pis_cofins_produto para determinar tributação
-            regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
-            calc = calcular_pis_cofins_produto(
-                float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
-            )
-            
             if tipo_operacao == 'entrada':
+                # ============================================================
+                # VERIFICAR SE GERA CRÉDITO (baseado na categoria E no CFOP)
+                # ============================================================
+                
+                # 1. Verificar se categoria foi classificada como sem crédito
+                categoria_sem_credito = any(cat in categoria for cat in CATEGORIAS_SEM_CREDITO) if categoria else False
+                
+                # 2. Verificar se CFOP não gera crédito
+                cfop_sem_credito = cfop in CFOPS_SEM_CREDITO
+                
+                # Se categoria OU CFOP indica que não gera crédito, pular
+                if categoria_sem_credito or cfop_sem_credito:
+                    totais['desconsiderados_credito'] += valor_base
+                    continue
+                
+                # Usar a função calcular_pis_cofins_produto para determinar tributação
+                regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
+                calc = calcular_pis_cofins_produto(
+                    float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
+                )
+                
                 if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
                     # Usar Decimal para precisão
                     pis = Decimal(str(calc.get('valor_pis', 0)))
@@ -1373,7 +1464,29 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                     totais['creditos_pis'] += pis
                     totais['creditos_cofins'] += cofins
                     totais['base_credito'] += valor_base
+                    
             else:  # saída
+                # ============================================================
+                # VERIFICAR SE GERA DÉBITO (baseado na categoria E no CFOP)
+                # ============================================================
+                
+                # 1. Verificar se categoria foi classificada como sem débito
+                categoria_sem_debito = any(cat in categoria for cat in CATEGORIAS_SEM_DEBITO) if categoria else False
+                
+                # 2. Verificar se CFOP não gera débito
+                cfop_sem_debito = cfop in CFOPS_SEM_DEBITO
+                
+                # Se categoria OU CFOP indica que não gera débito, pular
+                if categoria_sem_debito or cfop_sem_debito:
+                    totais['desconsiderados_debito'] += valor_base
+                    continue
+                
+                # Usar a função calcular_pis_cofins_produto para determinar tributação
+                regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
+                calc = calcular_pis_cofins_produto(
+                    float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
+                )
+                
                 if calc.get('valor_pis', 0) > 0:
                     pis = Decimal(str(calc.get('valor_pis', 0)))
                     cofins = Decimal(str(calc.get('valor_cofins', 0)))
@@ -1398,7 +1511,11 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
         'pis_saldo': round(pis_debitos - pis_creditos, 2),
         'cofins_saldo': round(cofins_debitos - cofins_creditos, 2),
         'base_credito': arredondar(totais['base_credito']),
-        'base_debito': arredondar(totais['base_debito'])
+        'base_debito': arredondar(totais['base_debito']),
+        'desconsiderados': {
+            'base_credito': arredondar(totais['desconsiderados_credito']),
+            'base_debito': arredondar(totais['desconsiderados_debito'])
+        }
     }
 
 
