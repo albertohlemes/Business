@@ -1689,7 +1689,7 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
         '6920', '6921', '6922', '6923', '6924', '6925', '6949'
     ]
     # CFOPs que SEMPRE geram crédito (combustível p/ comercialização)
-    CFOPS_COM_CREDITO = ['1651', '2651', '1652', '2652', '1101', '2101', '1102', '2102', '1403', '2403']
+    CFOPS_COM_CREDITO = ['1651', '2651', '1652', '2652', '1653', '2653', '1101', '2101', '1102', '2102', '1403', '2403']
     
     # Estruturas para agrupar por CST calculado
     entradas_cst = {}  # cst -> {valor_base, valor_pis, valor_cofins, qtd}
@@ -1915,7 +1915,7 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
         '6920', '6921', '6922', '6923', '6924', '6925', '6949'
     ]
     # CFOPs que SEMPRE geram crédito (combustível p/ comercialização)
-    CFOPS_COM_CREDITO = ['1651', '2651', '1652', '2652', '1101', '2101', '1102', '2102', '1403', '2403']
+    CFOPS_COM_CREDITO = ['1651', '2651', '1652', '2652', '1653', '2653', '1101', '2101', '1102', '2102', '1403', '2403']
     
     # Descrições dos CFOPs
     CFOP_DESCRICOES = {
