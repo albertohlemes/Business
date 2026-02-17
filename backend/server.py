@@ -1510,12 +1510,16 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
             if tipo_operacao == 'entrada':
                 # ============================================================
                 # VERIFICAR SE GERA CRÉDITO (baseado na categoria E no CFOP)
+                # Prioridade: 1) Categoria classificada, 2) CFOP especial, 3) CFOP padrão
                 # ============================================================
                 
                 # 1. Verificar se categoria foi classificada como sem crédito
                 categoria_sem_credito = any(cat in categoria for cat in CATEGORIAS_SEM_CREDITO) if categoria else False
                 
-                # 2. Verificar se CFOP não gera crédito
+                # 2. CFOPs que SEMPRE geram crédito (combustível p/ comercialização, compras p/ revenda)
+                cfop_com_credito_especial = cfop in CFOPS_COM_CREDITO_ESPECIAL
+                
+                # 3. Verificar se CFOP está na lista de sem crédito
                 cfop_sem_credito = cfop in CFOPS_SEM_CREDITO
                 
                 # Se categoria OU CFOP indica que não gera crédito, pular
