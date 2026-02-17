@@ -571,7 +571,10 @@ const ReformaTributaria = ({ user, onLogout }) => {
                       <div className="flex justify-between items-center p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
                         <span className="text-purple-400 font-semibold">TOTAL IVA</span>
                         <span className="text-purple-400 font-bold text-xl">
-                          {formatCurrency(Math.abs(apuracao.apuracao?.saldo?.total || 0))}
+                          {formatCurrency(apuracao.apuracao?.a_pagar?.total ?? Math.max(0, apuracao.apuracao?.saldo?.total || 0))}
+                          {apuracao.apuracao?.saldo?.total < 0 && (
+                            <span className="text-xs text-emerald-400 ml-2">(crédito)</span>
+                          )}
                         </span>
                       </div>
                     </div>
