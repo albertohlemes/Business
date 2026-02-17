@@ -1319,6 +1319,26 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
     from decimal import Decimal, ROUND_HALF_UP
     
     # ============================================================
+    # CATEGORIAS que NÃO geram crédito de PIS/COFINS (entradas)
+    # ============================================================
+    CATEGORIAS_SEM_CREDITO = [
+        'devolucao', 'devolução', 'dev', 
+        'bonificacao', 'bonificação', 'brinde', 'amostra',
+        'transferencia', 'transferência', 
+        'remessa', 'demonstracao', 'demonstração', 'conserto',
+        'uso_consumo', 'uso consumo', 'despesa',
+        'imobilizado', 'ativo_imobilizado'
+    ]
+    
+    # CATEGORIAS que NÃO geram débito de PIS/COFINS (saídas)
+    CATEGORIAS_SEM_DEBITO = [
+        'devolucao', 'devolução', 'dev',
+        'transferencia', 'transferência',
+        'remessa', 'demonstracao', 'demonstração', 'conserto',
+        'bonificacao', 'bonificação', 'brinde', 'amostra'
+    ]
+    
+    # ============================================================
     # CFOPs que NÃO geram crédito de PIS/COFINS (entradas)
     # ============================================================
     CFOPS_SEM_CREDITO = [
