@@ -36551,11 +36551,16 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
             "valor": round(max(0, saldo_total) - pis_cofins_total_real, 2),
             "percentual": round(((max(0, saldo_total) - pis_cofins_total_real) / pis_cofins_total_real * 100) if pis_cofins_total_real > 0 else 0, 2)
         },
-        "detalhes_entradas": [],
-        "detalhes_saidas": [],
+        # Detalhes dos produtos (para aba Detalhes)
+        "detalhes": {
+            "entradas": detalhes_entradas[:100],  # Limitar para frontend
+            "saidas": detalhes_saidas[:100]
+        },
+        "detalhes_entradas": detalhes_entradas[:100],  # Manter compatibilidade
+        "detalhes_saidas": detalhes_saidas[:100],
         "_agregado": True,
         "_total_docs": total_docs,
-        "_alerta": f"Apuração simplificada: {total_docs} documentos processados via agregação"
+        "_alerta": f"Apuração simplificada: {total_docs} documentos processados via agregação. Exibindo amostra de até 100 produtos por tipo."
     }
 
 @api_router.get("/reforma-tributaria/config/{company_id}")
