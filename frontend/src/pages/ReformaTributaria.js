@@ -305,7 +305,7 @@ const ReformaTributaria = ({ user, onLogout }) => {
                   </p>
                 </div>
 
-                {/* Saldo/A Pagar */}
+                {/* Saldo/A Pagar ou Crédito Acumulado */}
                 <div className={`bg-gradient-to-br from-[#141414] to-[#1a1a1a] border rounded-xl p-5 ${
                   apuracao.apuracao?.saldo?.situacao === 'a_pagar' 
                     ? 'border-red-500/50' 
@@ -313,29 +313,43 @@ const ReformaTributaria = ({ user, onLogout }) => {
                 }`}>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-[#A1A1AA] text-sm">
-                      {apuracao.apuracao?.saldo?.situacao === 'a_pagar' ? 'A Pagar' : 'Crédito Acumulado'}
+                      {apuracao.apuracao?.saldo?.situacao === 'a_pagar' ? 'Saldo a Pagar' : 'Resultado IVA Dual'}
                     </span>
                     <DollarSign className={`w-5 h-5 ${
                       apuracao.apuracao?.saldo?.situacao === 'a_pagar' ? 'text-red-400' : 'text-emerald-400'
                     }`} />
                   </div>
-                  <p className={`text-2xl font-bold ${
-                    apuracao.apuracao?.saldo?.situacao === 'a_pagar' ? 'text-red-400' : 'text-emerald-400'
-                  }`}>
-                    {formatCurrency(apuracao.apuracao?.a_pagar?.total ?? Math.max(0, apuracao.apuracao?.saldo?.total || 0))}
-                  </p>
-                  <div className="mt-2 text-xs text-[#666] space-y-1">
-                    <p>CBS: {formatCurrency(apuracao.apuracao?.a_pagar?.cbs ?? Math.max(0, apuracao.apuracao?.saldo?.cbs || 0))}</p>
-                    <p>IBS: {formatCurrency(apuracao.apuracao?.a_pagar?.ibs ?? Math.max(0, apuracao.apuracao?.saldo?.ibs || 0))}</p>
-                    {apuracao.apuracao?.saldo?.is > 0 && (
-                      <p>IS: {formatCurrency(apuracao.apuracao?.saldo?.is)}</p>
-                    )}
-                    {apuracao.apuracao?.saldo?.total < 0 && (
-                      <p className="text-emerald-400 mt-2">
-                        Crédito: {formatCurrency(Math.abs(apuracao.apuracao?.saldo?.total))}
+                  
+                  {apuracao.apuracao?.saldo?.situacao === 'a_pagar' ? (
+                    // Quando há valor a pagar
+                    <>
+                      <p className="text-2xl font-bold text-red-400">
+                        {formatCurrency(apuracao.apuracao?.a_pagar?.total ?? apuracao.apuracao?.saldo?.total)}
                       </p>
-                    )}
-                  </div>
+                      <div className="mt-2 text-xs text-[#666] space-y-1">
+                        <p>CBS: {formatCurrency(apuracao.apuracao?.saldo?.cbs)}</p>
+                        <p>IBS: {formatCurrency(apuracao.apuracao?.saldo?.ibs)}</p>
+                      </div>
+                    </>
+                  ) : (
+                    // Quando há crédito acumulado (não paga nada)
+                    <>
+                      <p className="text-2xl font-bold text-emerald-400">
+                        R$ 0,00
+                      </p>
+                      <p className="text-xs text-emerald-400 mt-1">Nada a pagar!</p>
+                      <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                        <p className="text-xs text-[#A1A1AA] mb-1">Crédito Acumulado:</p>
+                        <p className="text-lg font-bold text-emerald-400">
+                          {formatCurrency(Math.abs(apuracao.apuracao?.saldo?.total || 0))}
+                        </p>
+                        <div className="mt-2 text-xs text-[#666] space-y-1">
+                          <p>CBS: {formatCurrency(Math.abs(apuracao.apuracao?.saldo?.cbs || 0))}</p>
+                          <p>IBS: {formatCurrency(Math.abs(apuracao.apuracao?.saldo?.ibs || 0))}</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
