@@ -36967,9 +36967,10 @@ async def get_relatorio_reforma_tributaria_pdf(
         'apuracao': apuracao,
         'comparativo_regime_atual': regime_atual,
         'diferenca': {
-            'valor': float(apuracao['saldo']['total']) - regime_atual['total'],
+            # Usar 'a_pagar' (sempre >= 0) para comparação justa
+            'valor': float(apuracao.get('a_pagar', {}).get('total', max(0, apuracao['saldo']['total']))) - regime_atual['total'],
             'percentual': (
-                ((float(apuracao['saldo']['total']) - regime_atual['total']) / regime_atual['total'] * 100)
+                ((float(apuracao.get('a_pagar', {}).get('total', max(0, apuracao['saldo']['total']))) - regime_atual['total']) / regime_atual['total'] * 100)
                 if regime_atual['total'] > 0 else 0
             )
         },
