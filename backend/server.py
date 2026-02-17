@@ -1522,8 +1522,15 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                 # 3. Verificar se CFOP está na lista de sem crédito
                 cfop_sem_credito = cfop in CFOPS_SEM_CREDITO
                 
-                # Se categoria OU CFOP indica que não gera crédito, pular
-                if categoria_sem_credito or cfop_sem_credito:
+                # LÓGICA DE DECISÃO:
+                # - Se CFOP é especial (combustível p/ comercialização), SEMPRE gera crédito
+                # - Se categoria foi classificada como sem crédito, não gera crédito
+                # - Se CFOP está na lista de sem crédito, não gera crédito
+                if cfop_com_credito_especial and not categoria_sem_credito:
+                    # CFOP especial (combustível p/ comercialização) - GERA crédito
+                    pass  # Continua para o cálculo normal
+                elif categoria_sem_credito or cfop_sem_credito:
+                    # Desconsiderado
                     totais['desconsiderados_credito'] += valor_base
                     continue
                 
@@ -1533,7 +1540,15 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                     float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
                 )
                 
-                if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
+                # Se CFOP é especial (combustível p/ comercialização), forçar crédito
+                if cfop_com_credito_especial:
+                    # Alíquotas padrão: PIS 1,65% e COFINS 7,6%
+                    pis = valor_base * Decimal('0.0165')
+                    cofins = valor_base * Decimal('0.076')
+                    totais['creditos_pis'] += pis
+                    totais['creditos_cofins'] += cofins
+                    totais['base_credito'] += valor_base
+                elif calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
                     # Usar Decimal para precisão
                     pis = Decimal(str(calc.get('valor_pis', 0)))
                     cofins = Decimal(str(calc.get('valor_cofins', 0)))
