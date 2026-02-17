@@ -63,6 +63,26 @@ class TestCategoriasPorCFOP:
         """CFOP 1201 deve ser classificado como devolução"""
         from server import obter_categoria_por_cfop
         assert obter_categoria_por_cfop('1201') == 'devolucao'
+    
+    def test_outras_entradas_estadual(self):
+        """CFOP 1949 deve ser classificado como outras_entradas, NÃO revenda"""
+        from server import obter_categoria_por_cfop
+        assert obter_categoria_por_cfop('1949') == 'outras_entradas'
+    
+    def test_outras_entradas_interestadual(self):
+        """CFOP 2949 deve ser classificado como outras_entradas, NÃO revenda"""
+        from server import obter_categoria_por_cfop
+        assert obter_categoria_por_cfop('2949') == 'outras_entradas'
+    
+    def test_outras_saidas_estadual(self):
+        """CFOP 5949 (saída) deve ser classificado como outras_entradas, NÃO revenda"""
+        from server import obter_categoria_por_cfop
+        assert obter_categoria_por_cfop('5949') == 'outras_entradas'
+    
+    def test_outras_saidas_interestadual(self):
+        """CFOP 6949 (saída) deve ser classificado como outras_entradas, NÃO revenda"""
+        from server import obter_categoria_por_cfop
+        assert obter_categoria_por_cfop('6949') == 'outras_entradas'
 
 
 class TestObterCFOPPorCategoria:
