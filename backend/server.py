@@ -22959,8 +22959,8 @@ async def apurar_icms(
     total_docs = await db.xml_documents.count_documents(query)
     logger.info(f"ICMS: Total documentos = {total_docs}")
     
-    # Se tiver mais de 10000 docs, usar agregação simplificada
-    if total_docs > 10000:
+    # Se tiver mais de 500 docs, usar agregação simplificada (reduzido de 10000 para 500)
+    if total_docs > 500:
         logger.info(f"ICMS: Usando agregação otimizada para {total_docs} documentos")
         return await _get_icms_aggregated(company, company_id, competencia, query, total_docs, CFOPS_DESPESA, CFOPS_ST, desconsiderar_icms_despesas, desconsiderar_icms_st, beneficio_fiscal_icms)
     
@@ -24460,7 +24460,7 @@ async def apurar_ipi(
     total_docs = await db.xml_documents.count_documents(query)
     logger.info(f"IPI: Total documentos = {total_docs}")
     
-    if total_docs > 10000:
+    if total_docs > 500:
         logger.info(f"IPI: Usando agregação otimizada para {total_docs} documentos")
         return await _get_ipi_aggregated(company, company_id, competencia, query, total_docs)
     
