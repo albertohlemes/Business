@@ -12751,7 +12751,7 @@ async def analise_aliquotas_saida(
     total_docs = await db.xml_documents.count_documents(query)
     logger.info(f"ANALISE-ALIQUOTAS-SAIDA: Total documentos = {total_docs}")
     
-    if total_docs > 10000:
+    if total_docs > 500:
         return {
             "empresa": company.get('razao_social', ''),
             "competencia": competencia,
@@ -25243,7 +25243,7 @@ async def listar_divergencias_pis_cofins(
     total_docs = await db.xml_documents.count_documents(query_saidas)
     logger.info(f"PIS/COFINS DIVERGENCIAS: Total documentos = {total_docs}")
     
-    if total_docs > 10000:
+    if total_docs > 500:
         return {
             "divergencias": [],
             "totais": {
@@ -34042,7 +34042,7 @@ async def get_wizard_step_data(
             total_docs = await db.xml_documents.count_documents(base_query)
             logger.info(f"WIZARD REFORMA TRIBUTÁRIA: Total documentos = {total_docs}")
             
-            if total_docs > 10000:
+            if total_docs > 500:
                 # Usar agregação para grandes volumes
                 logger.info(f"WIZARD REFORMA TRIBUTÁRIA: Usando agregação otimizada para {total_docs} documentos")
                 
