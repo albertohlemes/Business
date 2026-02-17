@@ -1724,7 +1724,238 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
     }
 
 
-def calcular_credito_presumido_icms_transportadora(valor_debito_icms: float, percentual: float = 20.0) -> float:
+async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company: dict = None) -> dict:
+    """
+    Calcula o confronto CFOP x CST para PIS/COFINS.
+    Mostra quais CFOPs foram considerados (CST 50) e desconsiderados (CST 98).
+    
+    Retorna:
+    - entradas_cfop_cst: lista de CFOPs com seus CSTs nas entradas
+    - saidas_cfop_cst: lista de CFOPs com seus CSTs nas saídas
+    """
+    from decimal import Decimal, ROUND_HALF_UP
+    
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    
+    if company is None:
+        company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+        if not company:
+            company = {}
+    
+    # Configurações da empresa
+    perfil_empresa = company.get('perfil_comercial', 'VAREJO') or 'VAREJO'
+    perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
+    perfil = perfis[0] if perfis else 'VAREJO'
+    regime = company.get('regime_tributario', 'lucro_real')
+    regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
+    
+    # Categorias e CFOPs desconsiderados
+    CATEGORIAS_SEM_CREDITO = ['devolucao', 'devolução', 'bonificacao', 'bonificação', 'brinde', 'transferencia', 'remessa']
+    CATEGORIAS_SEM_DEBITO = ['devolucao', 'devolução', 'transferencia', 'remessa', 'bonificacao', 'bonificação', 'brinde']
+    CFOPS_SEM_CREDITO = ['1201', '1202', '1203', '1204', '1205', '1206', '2201', '2202', '2203', '2204', '2205', '2206', 
+                        '1410', '1411', '2410', '2411', '1913', '2913', '1914', '2914', '1407', '2407', '1949', '2949']
+    CFOPS_SEM_DEBITO = ['5201', '5202', '5203', '5204', '5205', '5206', '6201', '6202', '6203', '6204', '6205', '6206',
+                       '5410', '5411', '6410', '6411', '5913', '6913', '5914', '6914', '5407', '6407', '5910', '6910', '5949', '6949']
+    
+    # Descrições dos CFOPs
+    CFOP_DESCRICOES = {
+        '1101': 'Compra p/ industrialização', '1102': 'Compra p/ comercialização',
+        '1201': 'Devolução de venda (industria)', '1202': 'Devolução de venda (comércio)',
+        '1403': 'Compra p/ comercialização (ST)', '1407': 'Transferência p/ comercialização',
+        '1410': 'Devolução de venda (ST)', '1411': 'Devolução de venda (ST cons. final)',
+        '1556': 'Compra de ativo imobilizado', '1913': 'Retorno de remessa p/ demonstração',
+        '1914': 'Retorno de remessa p/ conserto', '1949': 'Outra entrada não especificada',
+        '2101': 'Compra p/ industrialização (interestadual)', '2102': 'Compra p/ comercialização (interestadual)',
+        '2201': 'Devolução de venda (interestadual)', '2202': 'Devolução de venda comércio (interestadual)',
+        '2403': 'Compra p/ comercialização ST (interestadual)', '2407': 'Transferência (interestadual)',
+        '2410': 'Devolução de venda ST (interestadual)', '2556': 'Compra ativo imobilizado (interestadual)',
+        '2913': 'Retorno de remessa (interestadual)', '2949': 'Outra entrada (interestadual)',
+        '5101': 'Venda de produção', '5102': 'Venda de mercadoria',
+        '5201': 'Devolução de compra (industria)', '5202': 'Devolução de compra (comércio)',
+        '5403': 'Venda de mercadoria (ST)', '5407': 'Transferência de mercadoria',
+        '5410': 'Devolução de compra (ST)', '5910': 'Bonificação/doação', '5911': 'Brinde',
+        '5913': 'Remessa p/ demonstração', '5914': 'Remessa p/ conserto', '5949': 'Outra saída',
+        '6101': 'Venda produção (interestadual)', '6102': 'Venda mercadoria (interestadual)',
+        '6201': 'Devolução compra (interestadual)', '6202': 'Devolução compra comércio (interestadual)',
+        '6403': 'Venda mercadoria ST (interestadual)', '6407': 'Transferência (interestadual)',
+        '6910': 'Bonificação (interestadual)', '6949': 'Outra saída (interestadual)'
+    }
+    
+    # Descrições dos CSTs
+    CST_DESCRICOES = {
+        '01': 'Tributado (débito)',
+        '04': 'Monofásico',
+        '06': 'Alíquota zero',
+        '49': 'Outras saídas',
+        '50': 'Com direito a crédito',
+        '70': 'Sem direito a crédito',
+        '73': 'Alíquota zero',
+        '98': 'Desconsiderado',
+        '99': 'Outros'
+    }
+    
+    # Buscar documentos
+    docs = await db.xml_documents.find(
+        query, 
+        {"produtos": 1, "tipo": 1, "tipo_operacao": 1, "desconsiderada_devolucao": 1}
+    ).to_list(length=50000)
+    
+    # Estruturas para agrupar por CFOP + CST
+    entradas_cfop_cst = {}  # chave: "cfop_cst" -> dados
+    saidas_cfop_cst = {}
+    
+    for doc in docs:
+        if doc.get('desconsiderada_devolucao'):
+            continue
+            
+        tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
+        if not tipo_operacao:
+            produtos = doc.get('produtos', [])
+            if produtos:
+                cfop = str(produtos[0].get('cfop', ''))
+                if cfop and cfop[0] in ['1', '2', '3']:
+                    tipo_operacao = 'entrada'
+                elif cfop and cfop[0] in ['5', '6', '7']:
+                    tipo_operacao = 'saida'
+        
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            ncm = str(prod.get('ncm', '')).replace('.', '')
+            valor_total = Decimal(str(prod.get('valor_total', 0) or 0))
+            v_icms = Decimal(str(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0))
+            categoria = str(prod.get('categoria_classificada', '') or prod.get('categoria', '') or '').lower().strip()
+            
+            valor_base = max(Decimal('0'), valor_total - v_icms)
+            
+            if tipo_operacao == 'entrada':
+                # Determinar CST
+                categoria_sem_credito = any(cat in categoria for cat in CATEGORIAS_SEM_CREDITO) if categoria else False
+                cfop_sem_credito = cfop in CFOPS_SEM_CREDITO
+                
+                if categoria_sem_credito or cfop_sem_credito:
+                    cst = '98'  # Desconsiderado
+                    valor_pis = Decimal('0')
+                    valor_cofins = Decimal('0')
+                else:
+                    calc = calcular_pis_cofins_produto(float(valor_base), ncm, cfop, 'entrada', perfil, regime_calc)
+                    if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
+                        cst = '50'
+                        valor_pis = Decimal(str(calc.get('valor_pis', 0)))
+                        valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                    else:
+                        classificacao = calc.get('classificacao', {})
+                        tipo_trib = classificacao.get('tipo', '')
+                        if tipo_trib == 'ALIQUOTA_ZERO':
+                            cst = '73'
+                        else:
+                            cst = '70'
+                        valor_pis = Decimal('0')
+                        valor_cofins = Decimal('0')
+                
+                chave = f"{cfop}_{cst}"
+                if chave not in entradas_cfop_cst:
+                    entradas_cfop_cst[chave] = {
+                        'cfop': cfop,
+                        'cfop_descricao': CFOP_DESCRICOES.get(cfop, 'Operação não identificada'),
+                        'cst': cst,
+                        'cst_descricao': CST_DESCRICOES.get(cst, 'Outros'),
+                        'valor_base': Decimal('0'),
+                        'valor_pis': Decimal('0'),
+                        'valor_cofins': Decimal('0'),
+                        'qtd': 0,
+                        'considerado': cst not in ['98', '70']
+                    }
+                entradas_cfop_cst[chave]['valor_base'] += valor_base
+                entradas_cfop_cst[chave]['valor_pis'] += valor_pis
+                entradas_cfop_cst[chave]['valor_cofins'] += valor_cofins
+                entradas_cfop_cst[chave]['qtd'] += 1
+                
+            else:  # saída
+                categoria_sem_debito = any(cat in categoria for cat in CATEGORIAS_SEM_DEBITO) if categoria else False
+                cfop_sem_debito = cfop in CFOPS_SEM_DEBITO
+                
+                if categoria_sem_debito or cfop_sem_debito:
+                    cst = '98'  # Desconsiderado
+                    valor_pis = Decimal('0')
+                    valor_cofins = Decimal('0')
+                else:
+                    calc = calcular_pis_cofins_produto(float(valor_base), ncm, cfop, 'saida', perfil, regime_calc)
+                    if calc.get('valor_pis', 0) > 0:
+                        cst = '01'
+                        valor_pis = Decimal(str(calc.get('valor_pis', 0)))
+                        valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                    else:
+                        classificacao = calc.get('classificacao', {})
+                        cst_saida = classificacao.get('cst_saida', '49')
+                        if cst_saida == '06':
+                            cst = '06'
+                        elif cst_saida == '04':
+                            cst = '04'
+                        else:
+                            cst = '49'
+                        valor_pis = Decimal('0')
+                        valor_cofins = Decimal('0')
+                
+                chave = f"{cfop}_{cst}"
+                if chave not in saidas_cfop_cst:
+                    saidas_cfop_cst[chave] = {
+                        'cfop': cfop,
+                        'cfop_descricao': CFOP_DESCRICOES.get(cfop, 'Operação não identificada'),
+                        'cst': cst,
+                        'cst_descricao': CST_DESCRICOES.get(cst, 'Outros'),
+                        'valor_base': Decimal('0'),
+                        'valor_pis': Decimal('0'),
+                        'valor_cofins': Decimal('0'),
+                        'qtd': 0,
+                        'considerado': cst not in ['98', '49']
+                    }
+                saidas_cfop_cst[chave]['valor_base'] += valor_base
+                saidas_cfop_cst[chave]['valor_pis'] += valor_pis
+                saidas_cfop_cst[chave]['valor_cofins'] += valor_cofins
+                saidas_cfop_cst[chave]['qtd'] += 1
+    
+    def arredondar(valor: Decimal) -> float:
+        return float(valor.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+    
+    # Converter para lista ordenada
+    entradas_lista = sorted([
+        {
+            'cfop': dados['cfop'],
+            'cfop_descricao': dados['cfop_descricao'],
+            'cst': dados['cst'],
+            'cst_descricao': dados['cst_descricao'],
+            'valor_base': arredondar(dados['valor_base']),
+            'valor_pis': arredondar(dados['valor_pis']),
+            'valor_cofins': arredondar(dados['valor_cofins']),
+            'qtd_itens': dados['qtd'],
+            'considerado': dados['considerado']
+        }
+        for dados in entradas_cfop_cst.values()
+    ], key=lambda x: (0 if x['considerado'] else 1, x['cfop']))
+    
+    saidas_lista = sorted([
+        {
+            'cfop': dados['cfop'],
+            'cfop_descricao': dados['cfop_descricao'],
+            'cst': dados['cst'],
+            'cst_descricao': dados['cst_descricao'],
+            'valor_base': arredondar(dados['valor_base']),
+            'valor_pis': arredondar(dados['valor_pis']),
+            'valor_cofins': arredondar(dados['valor_cofins']),
+            'qtd_itens': dados['qtd'],
+            'considerado': dados['considerado']
+        }
+        for dados in saidas_cfop_cst.values()
+    ], key=lambda x: (0 if x['considerado'] else 1, x['cfop']))
+    
+    return {
+        'entradas_cfop_cst': entradas_lista,
+        'saidas_cfop_cst': saidas_lista
+    }
     """
     Calcula o crédito presumido de ICMS para transportadoras.
     Conforme RICMS SP, Art. 70, XI - crédito de 20% do valor do débito nas prestações de serviço de transporte.
