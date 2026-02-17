@@ -32021,6 +32021,7 @@ async def get_fechamento_mensal(
     """
     Retorna a apuração consolidada de todos os impostos para a competência.
     Combina ICMS, PIS, COFINS, ISS e IPI em um único relatório.
+    IMPORTANTE: Usa valores unificados do endpoint de PIS/COFINS para consistência.
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
@@ -32032,6 +32033,14 @@ async def get_fechamento_mensal(
     regime = company.get('regime_tributario', 'lucro_presumido')
     is_simples = regime == 'simples_nacional'
     tipo_atividade = company.get('tipo_atividade', 'comercio')
+    
+    # Verificar se empresa é contribuinte de IPI (indústria ou equiparado)
+    perfis_comerciais = company.get('perfis_comerciais', []) or []
+    equiparado_industria = company.get('equiparado_industria', False)
+    eh_industria = tipo_atividade == 'industria' or 'industria' in perfis_comerciais or equiparado_industria
+    
+    # Verificar se é contribuinte de ICMS-ST
+    apura_icms_st = company.get('apura_icms_st', False)
     
     # Verificar se já existe fechamento para esta competência
     fechamento_existente = await db.fechamentos_mensais.find_one(
@@ -32074,27 +32083,43 @@ async def get_fechamento_mensal(
     
     icms_saldo = icms_debito - icms_credito
     
-    # Calcular PIS/COFINS
-    pis_debito = 0
-    pis_credito = 0
-    cofins_debito = 0
-    cofins_credito = 0
-    
-    for doc in saidas:
-        for prod in doc.get('produtos', []):
-            pis_debito += float(prod.get('v_pis', 0) or 0)
-            cofins_debito += float(prod.get('v_cofins', 0) or 0)
-    
-    for doc in entradas:
-        for prod in doc.get('produtos', []):
-            cst_pis = str(prod.get('cst_pis', '') or prod.get('cst_pis_calculado', ''))
-            # CSTs com crédito: 50-56, 60-66
-            if cst_pis in ['50', '51', '52', '53', '54', '55', '56', '60', '61', '62', '63', '64', '65', '66']:
-                pis_credito += float(prod.get('v_pis', 0) or 0)
-                cofins_credito += float(prod.get('v_cofins', 0) or 0)
-    
-    pis_saldo = pis_debito - pis_credito
-    cofins_saldo = cofins_debito - cofins_credito
+    # ============================================================
+    # BUSCAR PIS/COFINS REAL da função unificada (para consistência)
+    # Isso garante que os valores batem com o menu PIS/COFINS
+    # ============================================================
+    try:
+        pis_cofins_real = await calcular_pis_cofins_unificado(company_id, competencia, company)
+        pis_credito = pis_cofins_real.get('pis_creditos', 0)
+        pis_debito = pis_cofins_real.get('pis_debitos', 0)
+        pis_saldo = pis_debito - pis_credito
+        
+        cofins_credito = pis_cofins_real.get('cofins_creditos', 0)
+        cofins_debito = pis_cofins_real.get('cofins_debitos', 0)
+        cofins_saldo = cofins_debito - cofins_credito
+        
+        logger.info(f"FECHAMENTO MENSAL: Usando PIS/COFINS unificado - PIS saldo={pis_saldo:.2f}, COFINS saldo={cofins_saldo:.2f}")
+    except Exception as e:
+        logger.error(f"FECHAMENTO MENSAL: Erro ao buscar PIS/COFINS real: {e}")
+        # Fallback para cálculo manual (menos preciso)
+        pis_debito = 0
+        pis_credito = 0
+        cofins_debito = 0
+        cofins_credito = 0
+        
+        for doc in saidas:
+            for prod in doc.get('produtos', []):
+                pis_debito += float(prod.get('v_pis', 0) or 0)
+                cofins_debito += float(prod.get('v_cofins', 0) or 0)
+        
+        for doc in entradas:
+            for prod in doc.get('produtos', []):
+                cst_pis = str(prod.get('cst_pis', '') or prod.get('cst_pis_calculado', ''))
+                if cst_pis in ['50', '51', '52', '53', '54', '55', '56', '60', '61', '62', '63', '64', '65', '66']:
+                    pis_credito += float(prod.get('v_pis', 0) or 0)
+                    cofins_credito += float(prod.get('v_cofins', 0) or 0)
+        
+        pis_saldo = pis_debito - pis_credito
+        cofins_saldo = cofins_debito - cofins_credito
     
     # Calcular ISS (apenas se empresa presta serviços)
     iss_total = 0
@@ -32103,24 +32128,30 @@ async def get_fechamento_mensal(
         for doc in nfse_saida:
             iss_total += float(doc.get('total_iss', 0) or doc.get('valor_iss', 0) or 0)
     
-    # Calcular IPI
+    # Calcular IPI (apenas se empresa é contribuinte - indústria)
     ipi_debito = 0
     ipi_credito = 0
+    ipi_saldo = 0
     
-    for doc in saidas:
-        for prod in doc.get('produtos', []):
-            ipi_debito += float(prod.get('v_ipi', 0) or 0)
+    if eh_industria:
+        for doc in saidas:
+            for prod in doc.get('produtos', []):
+                ipi_debito += float(prod.get('v_ipi', 0) or 0)
+        
+        for doc in entradas:
+            for prod in doc.get('produtos', []):
+                ipi_credito += float(prod.get('v_ipi', 0) or 0)
+        
+        ipi_saldo = ipi_debito - ipi_credito
     
-    for doc in entradas:
-        for prod in doc.get('produtos', []):
-            ipi_credito += float(prod.get('v_ipi', 0) or 0)
-    
-    ipi_saldo = ipi_debito - ipi_credito
-    
-    # Total de impostos a pagar
+    # Total de impostos a pagar (apenas valores positivos)
     total_impostos = 0
     if not is_simples:
-        total_impostos = max(icms_saldo, 0) + max(pis_saldo, 0) + max(cofins_saldo, 0) + iss_total + max(ipi_saldo, 0)
+        total_impostos = max(pis_saldo, 0) + max(cofins_saldo, 0) + iss_total
+        if eh_industria:
+            total_impostos += max(ipi_saldo, 0)
+        # ICMS só entra se for a pagar (não se for credor)
+        total_impostos += max(icms_saldo, 0)
     
     # Buscar saldo credor disponível
     saldo_credor = await db.saldos_credores.find_one(
@@ -32128,7 +32159,8 @@ async def get_fechamento_mensal(
         {"_id": 0}
     )
     
-    return {
+    # Montar resposta
+    response = {
         "company_id": company_id,
         "competencia": competencia,
         "regime_tributario": regime,
@@ -32147,9 +32179,9 @@ async def get_fechamento_mensal(
             "debito": round(icms_debito, 2),
             "credito": round(icms_credito, 2),
             "saldo": round(icms_saldo, 2),
-            "st": round(icms_st, 2),
+            "st": round(icms_st, 2) if apura_icms_st else 0,
             "a_pagar": round(max(icms_saldo, 0), 2),
-            "a_compensar": round(abs(min(icms_saldo, 0)), 2)
+            "a_recuperar": round(abs(min(icms_saldo, 0)), 2)  # Valor a recuperar quando credor
         },
         "pis": {
             "debito": round(pis_debito, 2),
@@ -32169,24 +32201,32 @@ async def get_fechamento_mensal(
             "total": round(iss_total, 2),
             "a_pagar": round(iss_total, 2)
         },
-        "ipi": {
-            "debito": round(ipi_debito, 2),
-            "credito": round(ipi_credito, 2),
-            "saldo": round(ipi_saldo, 2),
-            "a_pagar": round(max(ipi_saldo, 0), 2),
-            "a_compensar": round(abs(min(ipi_saldo, 0)), 2)
-        },
         "total_impostos": {
             "a_pagar": round(total_impostos, 2),
             "icms": round(max(icms_saldo, 0), 2),
             "pis": round(max(pis_saldo, 0), 2),
             "cofins": round(max(cofins_saldo, 0), 2),
-            "iss": round(iss_total, 2),
-            "ipi": round(max(ipi_saldo, 0), 2)
+            "iss": round(iss_total, 2)
         },
         "saldo_credor_anterior": saldo_credor.get('saldo_a_transportar') if saldo_credor else None,
-        "observacoes": fechamento_existente.get('observacoes') if fechamento_existente else ""
+        "observacoes": fechamento_existente.get('observacoes') if fechamento_existente else "",
+        # Flags para frontend saber o que exibir
+        "_eh_industria": eh_industria,
+        "_apura_icms_st": apura_icms_st
     }
+    
+    # Adicionar IPI apenas se for contribuinte
+    if eh_industria:
+        response["ipi"] = {
+            "debito": round(ipi_debito, 2),
+            "credito": round(ipi_credito, 2),
+            "saldo": round(ipi_saldo, 2),
+            "a_pagar": round(max(ipi_saldo, 0), 2),
+            "a_compensar": round(abs(min(ipi_saldo, 0)), 2)
+        }
+        response["total_impostos"]["ipi"] = round(max(ipi_saldo, 0), 2)
+    
+    return response
 
 
 @api_router.post("/fechamento-mensal/{company_id}")
