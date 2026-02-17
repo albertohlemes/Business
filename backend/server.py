@@ -1402,62 +1402,169 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
     }
 
 
-async def calcular_pis_cofins_por_cst(company_id: str, competencia: str) -> dict:
+async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company: dict = None) -> dict:
     """
-    Calcula totalizadores de PIS/COFINS agrupados por CST.
-    Retorna um dicionário com:
+    Calcula totalizadores de PIS/COFINS agrupados por CST CALCULADO (não do XML).
+    
+    IMPORTANTE: Esta função usa a mesma lógica de calcular_pis_cofins_unificado
+    para garantir consistência. O CST é determinado pelas regras fiscais:
+    - CST 50: Operação com direito a crédito (entradas tributadas normalmente)
+    - CST 70: Operação sem direito a crédito (monofásicos, presumido)
+    - CST 73: Alíquota zero (cesta básica, NCMs específicos)
+    - CST 01: Saída tributada
+    - CST 06: Saída com alíquota zero
+    - CST 49: Saída sem incidência (remessas, devoluções)
+    
+    Retorna:
     - entradas_por_cst: lista de totais por CST nas entradas
     - saidas_por_cst: lista de totais por CST nas saídas
     """
+    from decimal import Decimal, ROUND_HALF_UP
+    
     query = {
         "company_id": company_id,
         "competencia": competencia,
         **get_filtro_notas_ativas()
     }
     
-    # Pipeline para agregar por CST de PIS/COFINS
-    pipeline = [
-        {"$match": query},
-        {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": False}},
+    # Buscar empresa se não fornecida
+    if company is None:
+        company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+        if not company:
+            company = {}
+    
+    # Configurações da empresa
+    perfil_empresa = company.get('perfil_comercial', 'VAREJO') or 'VAREJO'
+    perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
+    perfil = perfis[0] if perfis else 'VAREJO'
+    regime = company.get('regime_tributario', 'lucro_real')
+    regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
+    
+    # Buscar documentos
+    docs = await db.xml_documents.find(
+        query, 
+        {"produtos": 1, "tipo": 1, "tipo_operacao": 1}
+    ).to_list(length=50000)
+    
+    # Estruturas para agrupar por CST calculado
+    entradas_cst = {}  # cst -> {valor_base, valor_pis, valor_cofins, qtd}
+    saidas_cst = {}    # cst -> {valor_base, valor_pis, valor_cofins, qtd}
+    
+    for doc in docs:
+        # Determinar tipo de operação
+        tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
+        if not tipo_operacao:
+            produtos = doc.get('produtos', [])
+            if produtos:
+                cfop = str(produtos[0].get('cfop', ''))
+                if cfop and cfop[0] in ['1', '2', '3']:
+                    tipo_operacao = 'entrada'
+                elif cfop and cfop[0] in ['5', '6', '7']:
+                    tipo_operacao = 'saida'
+        
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', '')).replace('.', '')
+            cfop = str(prod.get('cfop', ''))
+            valor_total = Decimal(str(prod.get('valor_total', 0) or 0))
+            v_icms = Decimal(str(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0))
+            
+            # Lei 14.592/2023: Excluir ICMS da base
+            valor_base = max(Decimal('0'), valor_total - v_icms)
+            
+            # Usar a função calcular_pis_cofins_produto para determinar CST e valores
+            calc = calcular_pis_cofins_produto(
+                float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
+            )
+            
+            # CST calculado baseado nas regras fiscais
+            cst_calculado = calc.get('cst', '99')
+            
+            if tipo_operacao == 'entrada':
+                # Para entradas, o CST depende se gera crédito ou não
+                if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
+                    cst_display = '50'  # CST 50 - Com direito a crédito
+                    valor_pis = Decimal(str(calc.get('valor_pis', 0)))
+                    valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                else:
+                    # Verificar se é alíquota zero ou sem crédito
+                    classificacao = calc.get('classificacao', {})
+                    tipo_tributacao = classificacao.get('tipo', '')
+                    if tipo_tributacao == 'ALIQUOTA_ZERO':
+                        cst_display = '73'  # CST 73 - Alíquota zero
+                    else:
+                        cst_display = '70'  # CST 70 - Sem direito a crédito
+                    valor_pis = Decimal('0')
+                    valor_cofins = Decimal('0')
+                
+                if cst_display not in entradas_cst:
+                    entradas_cst[cst_display] = {
+                        'valor_base': Decimal('0'),
+                        'valor_pis': Decimal('0'),
+                        'valor_cofins': Decimal('0'),
+                        'qtd': 0
+                    }
+                entradas_cst[cst_display]['valor_base'] += valor_base
+                entradas_cst[cst_display]['valor_pis'] += valor_pis
+                entradas_cst[cst_display]['valor_cofins'] += valor_cofins
+                entradas_cst[cst_display]['qtd'] += 1
+                
+            else:  # saída
+                if calc.get('valor_pis', 0) > 0:
+                    cst_display = '01'  # CST 01 - Tributado
+                    valor_pis = Decimal(str(calc.get('valor_pis', 0)))
+                    valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                else:
+                    # Verificar tipo de não incidência
+                    classificacao = calc.get('classificacao', {})
+                    cst_saida = classificacao.get('cst_saida', '49')
+                    if cst_saida == '06':
+                        cst_display = '06'  # CST 06 - Alíquota zero
+                    elif cst_saida == '04':
+                        cst_display = '04'  # CST 04 - Monofásico
+                    else:
+                        cst_display = '49'  # CST 49 - Outras saídas sem incidência
+                    valor_pis = Decimal('0')
+                    valor_cofins = Decimal('0')
+                
+                if cst_display not in saidas_cst:
+                    saidas_cst[cst_display] = {
+                        'valor_base': Decimal('0'),
+                        'valor_pis': Decimal('0'),
+                        'valor_cofins': Decimal('0'),
+                        'qtd': 0
+                    }
+                saidas_cst[cst_display]['valor_base'] += valor_base
+                saidas_cst[cst_display]['valor_pis'] += valor_pis
+                saidas_cst[cst_display]['valor_cofins'] += valor_cofins
+                saidas_cst[cst_display]['qtd'] += 1
+    
+    # Converter para lista ordenada
+    def arredondar(valor: Decimal) -> float:
+        return float(valor.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+    
+    entradas_por_cst = sorted([
         {
-            "$group": {
-                "_id": {
-                    "tipo": {"$ifNull": ["$tipo", "$tipo_operacao"]},
-                    "cst_pis": {"$ifNull": ["$produtos.cst_pis", "99"]},
-                    "cst_cofins": {"$ifNull": ["$produtos.cst_cofins", "99"]}
-                },
-                "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
-                "valor_pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_pis", 0]}}},
-                "valor_cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_cofins", 0]}}},
-                "qtd_itens": {"$sum": 1}
-            }
-        },
-        {"$sort": {"_id.tipo": 1, "_id.cst_pis": 1}}
-    ]
-    
-    cursor = db.xml_documents.aggregate(pipeline, allowDiskUse=True)
-    results = await cursor.to_list(length=200)
-    
-    entradas_por_cst = []
-    saidas_por_cst = []
-    
-    for item in results:
-        tipo = (item['_id']['tipo'] or '').lower().strip()
-        is_entrada = tipo in ['entrada', 'entry', 'input']
-        
-        cst_data = {
-            "cst_pis": item['_id'].get('cst_pis', '99'),
-            "cst_cofins": item['_id'].get('cst_cofins', '99'),
-            "valor_base": round(item.get('valor_total', 0), 2),
-            "valor_pis": round(item.get('valor_pis', 0), 2),
-            "valor_cofins": round(item.get('valor_cofins', 0), 2),
-            "qtd_itens": item.get('qtd_itens', 0)
+            "cst_pis": cst,
+            "cst_cofins": cst,
+            "valor_base": arredondar(dados['valor_base']),
+            "valor_pis": arredondar(dados['valor_pis']),
+            "valor_cofins": arredondar(dados['valor_cofins']),
+            "qtd_itens": dados['qtd']
         }
-        
-        if is_entrada:
-            entradas_por_cst.append(cst_data)
-        else:
-            saidas_por_cst.append(cst_data)
+        for cst, dados in entradas_cst.items()
+    ], key=lambda x: x['cst_pis'])
+    
+    saidas_por_cst = sorted([
+        {
+            "cst_pis": cst,
+            "cst_cofins": cst,
+            "valor_base": arredondar(dados['valor_base']),
+            "valor_pis": arredondar(dados['valor_pis']),
+            "valor_cofins": arredondar(dados['valor_cofins']),
+            "qtd_itens": dados['qtd']
+        }
+        for cst, dados in saidas_cst.items()
+    ], key=lambda x: x['cst_pis'])
     
     return {
         'entradas_por_cst': entradas_por_cst,
