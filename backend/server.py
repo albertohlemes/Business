@@ -25797,6 +25797,10 @@ async def listar_divergencias_pis_cofins(
         if doc_tem_divergencia:
             totais['documentos_com_divergencia'] += 1
     
+    # Adicionar informação sobre limitação de detalhamento
+    if is_grande_volume and totais['produtos_divergentes'] > max_divergencias_detalhadas:
+        totais['_info'] = f"Exibindo {len(todas_divergencias)} de {totais['produtos_divergentes']} divergências encontradas. Os totais consideram todas as divergências."
+    
     # Agrupar conforme solicitado
     resultado = {}
     
