@@ -16493,7 +16493,7 @@ CFOP_PARA_CATEGORIA = {
     # COMPRAS PARA REVENDA/COMERCIALIZAÇÃO (produto)
     '1102': 'produto', '2102': 'produto',  # Compra para comercialização
     '1403': 'produto', '2403': 'produto',  # Compra em operação de substituição tributária
-    '1949': 'produto', '2949': 'produto',  # Outras entradas (geralmente mercadoria)
+    '1949': 'outras_entradas', '2949': 'outras_entradas',  # Outras entradas NÃO especificadas (NÃO é revenda)
     
     # BONIFICAÇÃO, DOAÇÃO, BRINDE
     '1910': 'bonificacao', '2910': 'bonificacao',  # Entrada de bonificação, doação ou brinde
