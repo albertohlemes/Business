@@ -1560,14 +1560,26 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
     # Buscar documentos
     docs = await db.xml_documents.find(
         query, 
-        {"produtos": 1, "tipo": 1, "tipo_operacao": 1}
+        {"produtos": 1, "tipo": 1, "tipo_operacao": 1, "desconsiderada_devolucao": 1}
     ).to_list(length=50000)
+    
+    # Categorias e CFOPs que não geram crédito/débito (mesma lógica de calcular_pis_cofins_unificado)
+    CATEGORIAS_SEM_CREDITO = ['devolucao', 'devolução', 'bonificacao', 'bonificação', 'brinde', 'transferencia', 'remessa']
+    CATEGORIAS_SEM_DEBITO = ['devolucao', 'devolução', 'transferencia', 'remessa', 'bonificacao', 'bonificação', 'brinde']
+    CFOPS_SEM_CREDITO = ['1201', '1202', '1203', '1204', '1205', '1206', '2201', '2202', '2203', '2204', '2205', '2206', 
+                        '1410', '1411', '2410', '2411', '1913', '2913', '1914', '2914', '1407', '2407', '1949', '2949']
+    CFOPS_SEM_DEBITO = ['5201', '5202', '5203', '5204', '5205', '5206', '6201', '6202', '6203', '6204', '6205', '6206',
+                       '5410', '5411', '6410', '6411', '5913', '6913', '5914', '6914', '5407', '6407', '5910', '6910', '5949', '6949']
     
     # Estruturas para agrupar por CST calculado
     entradas_cst = {}  # cst -> {valor_base, valor_pis, valor_cofins, qtd}
     saidas_cst = {}    # cst -> {valor_base, valor_pis, valor_cofins, qtd}
     
     for doc in docs:
+        # Pular documentos desconsiderados
+        if doc.get('desconsiderada_devolucao'):
+            continue
+            
         # Determinar tipo de operação
         tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
         if not tipo_operacao:
@@ -1585,33 +1597,41 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
             valor_total = Decimal(str(prod.get('valor_total', 0) or 0))
             v_icms = Decimal(str(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0))
             
+            # Obter categoria classificada
+            categoria = str(prod.get('categoria_classificada', '') or prod.get('categoria', '') or '').lower().strip()
+            
             # Lei 14.592/2023: Excluir ICMS da base
             valor_base = max(Decimal('0'), valor_total - v_icms)
             
-            # Usar a função calcular_pis_cofins_produto para determinar CST e valores
-            calc = calcular_pis_cofins_produto(
-                float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
-            )
-            
-            # CST calculado baseado nas regras fiscais
-            cst_calculado = calc.get('cst', '99')
-            
             if tipo_operacao == 'entrada':
-                # Para entradas, o CST depende se gera crédito ou não
-                if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
-                    cst_display = '50'  # CST 50 - Com direito a crédito
-                    valor_pis = Decimal(str(calc.get('valor_pis', 0)))
-                    valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
-                else:
-                    # Verificar se é alíquota zero ou sem crédito
-                    classificacao = calc.get('classificacao', {})
-                    tipo_tributacao = classificacao.get('tipo', '')
-                    if tipo_tributacao == 'ALIQUOTA_ZERO':
-                        cst_display = '73'  # CST 73 - Alíquota zero
-                    else:
-                        cst_display = '70'  # CST 70 - Sem direito a crédito
+                # Verificar se deve ser desconsiderado
+                categoria_sem_credito = any(cat in categoria for cat in CATEGORIAS_SEM_CREDITO) if categoria else False
+                cfop_sem_credito = cfop in CFOPS_SEM_CREDITO
+                
+                if categoria_sem_credito or cfop_sem_credito:
+                    # Agrupar como CST 98 - Desconsiderado
+                    cst_display = '98'
                     valor_pis = Decimal('0')
                     valor_cofins = Decimal('0')
+                else:
+                    # Usar a função calcular_pis_cofins_produto para determinar CST e valores
+                    calc = calcular_pis_cofins_produto(
+                        float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
+                    )
+                    
+                    if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
+                        cst_display = '50'  # CST 50 - Com direito a crédito
+                        valor_pis = Decimal(str(calc.get('valor_pis', 0)))
+                        valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                    else:
+                        classificacao = calc.get('classificacao', {})
+                        tipo_tributacao = classificacao.get('tipo', '')
+                        if tipo_tributacao == 'ALIQUOTA_ZERO':
+                            cst_display = '73'  # CST 73 - Alíquota zero
+                        else:
+                            cst_display = '70'  # CST 70 - Sem direito a crédito
+                        valor_pis = Decimal('0')
+                        valor_cofins = Decimal('0')
                 
                 if cst_display not in entradas_cst:
                     entradas_cst[cst_display] = {
