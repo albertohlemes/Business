@@ -305,7 +305,7 @@ const ReformaTributaria = ({ user, onLogout }) => {
                   </p>
                 </div>
 
-                {/* Saldo */}
+                {/* Saldo/A Pagar */}
                 <div className={`bg-gradient-to-br from-[#141414] to-[#1a1a1a] border rounded-xl p-5 ${
                   apuracao.apuracao?.saldo?.situacao === 'a_pagar' 
                     ? 'border-red-500/50' 
@@ -322,13 +322,18 @@ const ReformaTributaria = ({ user, onLogout }) => {
                   <p className={`text-2xl font-bold ${
                     apuracao.apuracao?.saldo?.situacao === 'a_pagar' ? 'text-red-400' : 'text-emerald-400'
                   }`}>
-                    {formatCurrency(Math.abs(apuracao.apuracao?.saldo?.total || 0))}
+                    {formatCurrency(apuracao.apuracao?.a_pagar?.total ?? Math.max(0, apuracao.apuracao?.saldo?.total || 0))}
                   </p>
                   <div className="mt-2 text-xs text-[#666] space-y-1">
-                    <p>CBS: {formatCurrency(apuracao.apuracao?.saldo?.cbs)}</p>
-                    <p>IBS: {formatCurrency(apuracao.apuracao?.saldo?.ibs)}</p>
+                    <p>CBS: {formatCurrency(apuracao.apuracao?.a_pagar?.cbs ?? Math.max(0, apuracao.apuracao?.saldo?.cbs || 0))}</p>
+                    <p>IBS: {formatCurrency(apuracao.apuracao?.a_pagar?.ibs ?? Math.max(0, apuracao.apuracao?.saldo?.ibs || 0))}</p>
                     {apuracao.apuracao?.saldo?.is > 0 && (
                       <p>IS: {formatCurrency(apuracao.apuracao?.saldo?.is)}</p>
+                    )}
+                    {apuracao.apuracao?.saldo?.total < 0 && (
+                      <p className="text-emerald-400 mt-2">
+                        Crédito: {formatCurrency(Math.abs(apuracao.apuracao?.saldo?.total))}
+                      </p>
                     )}
                   </div>
                 </div>
