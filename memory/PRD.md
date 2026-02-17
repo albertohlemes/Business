@@ -27,6 +27,21 @@ Aplicação de análise fiscal com problemas críticos de performance e consist�
 
 ## O que foi implementado
 
+### Data: 11/12/2025 - Sessão 3 (Fork) - CONTINUAÇÃO
+**Status: Bug de persistência em investigação**
+
+O sistema de classificação foi unificado, mas há um bug onde as atualizações feitas via Wizard/Alerta de CFOP não estão sendo persistidas no MongoDB. Foram adicionados logs detalhados para diagnóstico:
+- Verificação pós-update para confirmar persistência
+- Tentativa automática de correção com update específico por campo
+- Logs para identificar exatamente onde o problema ocorre
+
+**Ações de debug pendentes**:
+1. Verificar logs do backend após classificação
+2. Confirmar se update_one está retornando matched_count=1, modified_count=1
+3. Investigar se há problema de transação/conexão
+
+---
+
 ### Data: 11/12/2025 - Sessão 3 (Fork)
 **Funcionalidade: Unificação Completa do Sistema de Classificação**
 
