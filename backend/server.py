@@ -16957,11 +16957,14 @@ async def resolver_alerta_cfop_por_grupo(
     """
     Resolve todos os alertas de um CFOP específico em lote.
     Também classifica automaticamente os produtos baseado no CFOP.
+    
+    IMPORTANTE: Busca em TODOS os documentos (entrada e saída) pois os alertas
+    podem estar em documentos de saída (5xxx/6xxx) que precisam ser corrigidos.
     """
+    # Buscar TODOS os documentos (entrada e saída) da competência
     documents = await db.xml_documents.find({
         "company_id": company_id,
-        "competencia": competencia,
-        "tipo": "entrada"
+        "competencia": competencia
     }).to_list(15000)
     
     # Determinar categoria baseada no CFOP se não foi informada
@@ -16969,24 +16972,41 @@ async def resolver_alerta_cfop_por_grupo(
     
     total_resolvidos = 0
     
-    # Mapeamento de CFOP de entrada para saída (reverso) para encontrar dados antigos
+    # Mapeamento de CFOP de entrada para saída e vice-versa
     CFOP_ENTRADA_PARA_SAIDA = {
         '1106': '5106', '1910': '5910', '1911': '5911', '1912': '5912', '1913': '5913',
         '1914': '5914', '1915': '5915', '1916': '5916', '1917': '5917', '1918': '5918',
         '1919': '5919', '1920': '5920', '1921': '5921', '1922': '5922', '1923': '5923',
         '1924': '5924', '1925': '5925', '1929': '5929', '1949': '5949',
         '1201': '5201', '1202': '5202', '1208': '5208', '1209': '5209', '1210': '5210',
+        '1652': '5652', '1653': '5653',  # Combustível
         '2106': '6106', '2910': '6910', '2911': '6911', '2912': '6912', '2929': '6929', '2949': '6949',
-        '2201': '6201', '2202': '6202',
+        '2201': '6201', '2202': '6202', '2652': '6652', '2653': '6653',
     }
     
-    # CFOPs a buscar: o informado + equivalente de saída (para dados antigos)
+    # Criar mapeamento reverso (saída para entrada)
+    CFOP_SAIDA_PARA_ENTRADA = {v: k for k, v in CFOP_ENTRADA_PARA_SAIDA.items()}
+    
+    # Adicionar mais mapeamentos de saída para entrada
+    CFOP_SAIDA_PARA_ENTRADA.update({
+        '5929': '1929', '6929': '2929',
+        '5652': '1652', '6652': '2652',  # Combustível comercialização
+        '5653': '1653', '6653': '2653',  # Combustível uso/consumo
+        '5102': '1102', '6102': '2102',  # Revenda
+        '5101': '1101', '6101': '2101',  # Industrialização
+    })
+    
+    # CFOPs a buscar: o informado + equivalentes
     cfops_buscar = [cfop_atual]
     if cfop_atual in CFOP_ENTRADA_PARA_SAIDA:
         cfops_buscar.append(CFOP_ENTRADA_PARA_SAIDA[cfop_atual])
+    if cfop_atual in CFOP_SAIDA_PARA_ENTRADA:
+        cfops_buscar.append(CFOP_SAIDA_PARA_ENTRADA[cfop_atual])
     
     # Set para evitar criar regras duplicadas para o mesmo produto
     produtos_regras_salvas = set()
+    
+    logger.info(f"RESOLVER ALERTA CFOP: Buscando CFOPs {cfops_buscar} para converter para {novo_cfop} ({categoria_final})")
     
     for doc in documents:
         produtos = doc.get('produtos', [])
@@ -17001,8 +17021,9 @@ async def resolver_alerta_cfop_por_grupo(
                 produto_descricao = prod.get('descricao', '')
                 produto_ncm = prod.get('ncm', '')
                 
-                # Atualizar CFOP
+                # Atualizar CFOP para o NOVO CFOP indicado pelo usuário
                 produtos[idx]['cfop'] = novo_cfop
+                produtos[idx]['cfop_original_antes_correcao'] = cfop_anterior
                 produtos[idx]['pendente_revisao_cfop'] = False
                 produtos[idx]['cfop_revisado_por'] = current_user.id
                 produtos[idx]['cfop_revisado_em'] = datetime.now(timezone.utc).isoformat()
@@ -17011,11 +17032,13 @@ async def resolver_alerta_cfop_por_grupo(
                 if categoria_final:
                     produtos[idx]['categoria'] = categoria_final
                     produtos[idx]['categoria_classificada'] = categoria_final  # Campo correto para classificação
-                    produtos[idx]['categoria_origem'] = 'cfop_auto'
+                    produtos[idx]['categoria_origem'] = 'cfop_manual_wizard'
                     produtos[idx]['categoria_classificada_em'] = datetime.now(timezone.utc).isoformat()
                 
                 atualizado = True
                 total_resolvidos += 1
+                
+                logger.info(f"RESOLVER ALERTA CFOP: Produto '{produto_descricao[:30]}' CFOP {cfop_anterior} -> {novo_cfop} ({categoria_final})")
                 
                 # Salvar regra para CADA produto único (para que funcione na Classificação Inteligente)
                 if salvar_regra and produto_descricao:
