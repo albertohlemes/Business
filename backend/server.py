@@ -18088,6 +18088,7 @@ def obter_cfop_por_categoria(categoria: str, cfop_atual: str) -> str:
         'servico': '933',       # Serviço tomado (NFS-e)
         'bonificacao': '910',   # Bonificação/Doação
         'devolucao': '201',     # Devolução de compra
+        'outras_entradas': '949',  # Outras entradas não especificadas
     }
     
     # Mapeamento com ST (4xx) - mercadorias com substituição tributária
@@ -18104,6 +18105,7 @@ def obter_cfop_por_categoria(categoria: str, cfop_atual: str) -> str:
         'servico': '933',       # Serviço
         'bonificacao': '910',   # Bonificação
         'devolucao': '201',     # Devolução
+        'outras_entradas': '949',  # Outras entradas não especificadas
     }
     
     categoria_lower = categoria.lower() if categoria else ''
