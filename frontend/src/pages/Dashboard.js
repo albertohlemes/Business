@@ -677,15 +677,19 @@ const Dashboard = ({ user, onLogout }) => {
                             <span className="font-medium text-red-400">{formatCurrency(stats.debitos.icms)}</span>
                           </div>
                           <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
-                            <span className="text-[#A1A1AA]">A Pagar:</span>
+                            <span className="text-[#A1A1AA]">
+                              {stats.impostos_pagar.icms > 0 ? 'A Pagar:' : 'A Recuperar:'}
+                            </span>
                             <span className={stats.impostos_pagar.icms > 0 ? 'text-red-400' : 'text-emerald-400'}>
-                              {formatCurrency(stats.impostos_pagar.icms)}
+                              {formatCurrency(stats.impostos_pagar.icms > 0 ? stats.impostos_pagar.icms : stats.icms_a_recuperar || Math.abs(stats.creditos.icms - stats.debitos.icms))}
                             </span>
                           </div>
+                          {stats.impostos_pagar.icms > 0 && (
                           <div className="text-xs text-[#666] pt-1 space-y-0.5">
                             <div>% Saídas: {((stats.impostos_pagar.icms / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
                             <div>% Vendas: {((stats.impostos_pagar.icms / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
                           </div>
+                          )}
                         </div>
                       </div>
                     )}
