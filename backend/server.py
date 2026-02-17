@@ -22250,17 +22250,26 @@ async def _get_apuracao_movimento_aggregated(company: dict, company_id: str, com
         cfop = str(item['_id'].get('cfop', '0000'))
         qtd_docs = len(item.get('qtd_docs', []))
         
+        # Verificar se o CFOP é de despesa ou ST (para marcar como desconsiderado)
+        is_despesa = cfop in CFOPS_DESPESA
+        is_st = cfop in CFOPS_ST
+        is_desconsiderado = (is_despesa and desconsiderar_icms_despesas) or (is_st and desconsiderar_icms_st)
+        
         dados_cfop = {
             "cfop": cfop,
             "qtd_docs": qtd_docs,
             "qtd_produtos": item['qtd_produtos'],
             "valor_total": round(item['valor_total'], 2),
             "bc_icms": round(item['bc_icms'], 2),
-            "valor_icms": round(item['valor_icms'], 2),
+            "valor_icms": round(item['valor_icms'], 2) if not is_desconsiderado else 0,  # Zerar se desconsiderado
+            "valor_icms_original": round(item['valor_icms'], 2),  # Guardar valor original
             "bc_pis_cofins": round(item['bc_pis_cofins'], 2),
             "valor_pis": round(item['valor_pis'], 2),
             "valor_cofins": round(item['valor_cofins'], 2),
-            "valor_ipi": round(item['valor_ipi'], 2)
+            "valor_ipi": round(item['valor_ipi'], 2),
+            "is_despesa": is_despesa,
+            "is_st": is_st,
+            "desconsiderado": is_desconsiderado
         }
         
         if tipo == 'entrada':
@@ -22269,7 +22278,9 @@ async def _get_apuracao_movimento_aggregated(company: dict, company_id: str, com
             totais_entradas["qtd_produtos"] += item['qtd_produtos']
             totais_entradas["valor_total"] += item['valor_total']
             totais_entradas["bc_icms"] += item['bc_icms']
-            totais_entradas["valor_icms"] += item['valor_icms']
+            # Só somar ICMS se NÃO for desconsiderado
+            if not is_desconsiderado:
+                totais_entradas["valor_icms"] += item['valor_icms']
             totais_entradas["bc_pis_cofins"] += item['bc_pis_cofins']
             totais_entradas["valor_pis"] += item['valor_pis']
             totais_entradas["valor_cofins"] += item['valor_cofins']
