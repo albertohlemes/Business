@@ -36147,7 +36147,7 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
             total_saidas = float(item.get('valor_total', 0) or 0)
             qtd_prod_saidas = int(item.get('qtd_produtos', 0) or 0)
     
-    # Calcular impostos
+    # Calcular impostos CBS/IBS (Reforma Tributária)
     credito_cbs = total_entradas * aliquota_cbs
     credito_ibs = total_entradas * aliquota_ibs
     credito_total = credito_cbs + credito_ibs
@@ -36158,6 +36158,38 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
     
     saldo_cbs = debito_cbs - credito_cbs
     saldo_ibs = debito_ibs - credito_ibs
+    saldo_total = saldo_cbs + saldo_ibs
+    
+    # ============================================================
+    # BUSCAR PIS/COFINS REAL da função unificada (para comparativo)
+    # Isso garante consistência com o menu PIS/COFINS
+    # ============================================================
+    logger.info(f"REFORMA TRIBUTÁRIA: Buscando PIS/COFINS real para comparativo")
+    try:
+        pis_cofins_real = await calcular_pis_cofins_unificado(company_id, competencia, company)
+        pis_credito_real = pis_cofins_real.get('pis_creditos', 0)
+        pis_debito_real = pis_cofins_real.get('pis_debitos', 0)
+        pis_saldo_real = pis_debito_real - pis_credito_real
+        
+        cofins_credito_real = pis_cofins_real.get('cofins_creditos', 0)
+        cofins_debito_real = pis_cofins_real.get('cofins_debitos', 0)
+        cofins_saldo_real = cofins_debito_real - cofins_credito_real
+        
+        pis_cofins_total_real = max(0, pis_saldo_real + cofins_saldo_real)
+        
+        logger.info(f"REFORMA TRIBUTÁRIA: PIS/COFINS real - PIS saldo={pis_saldo_real:.2f}, COFINS saldo={cofins_saldo_real:.2f}, Total={pis_cofins_total_real:.2f}")
+    except Exception as e:
+        logger.error(f"REFORMA TRIBUTÁRIA: Erro ao buscar PIS/COFINS real: {e}")
+        # Fallback para cálculo estimado
+        pis_debito_real = total_saidas * 0.0165
+        pis_credito_real = total_entradas * 0.0165
+        pis_saldo_real = pis_debito_real - pis_credito_real
+        
+        cofins_debito_real = total_saidas * 0.076
+        cofins_credito_real = total_entradas * 0.076
+        cofins_saldo_real = cofins_debito_real - cofins_credito_real
+        
+        pis_cofins_total_real = max(0, pis_saldo_real + cofins_saldo_real)
     saldo_total = debito_total - credito_total
     
     # Calcular PIS/COFINS atual para comparativo
