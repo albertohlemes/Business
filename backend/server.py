@@ -23088,7 +23088,8 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
                 "valor_total": round(total_entradas, 2),
                 "valor_total_por_documento": round(total_entradas, 2),
                 "bc_icms": round(sum(c.get('bc_icms', 0) for c in entradas_por_cfop.values()), 2),
-                "valor_icms": round(credito_icms + icms_despesa_desc + icms_st_desc, 2),
+                "valor_icms": round(credito_icms, 2),  # Valor EFETIVO (sem desconsiderados)
+                "valor_icms_original": round(credito_icms + icms_despesa_desc + icms_st_desc, 2),  # Valor original para referência
                 "valor_icms_st": round(sum(c.get('valor_icms_st', 0) for c in entradas_por_cfop.values()), 2),
                 "qtd_documentos": total_docs // 2,
                 "qtd_itens": sum(c.get('qtd_itens', 0) for c in entradas_por_cfop.values())
