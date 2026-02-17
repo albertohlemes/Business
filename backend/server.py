@@ -25815,9 +25815,11 @@ async def apurar_pis_cofins(
         "detalhamento": {
             "base_credito": resultado_unificado['base_credito'],
             "base_debito": resultado_unificado['base_debito'],
+            "desconsiderados": resultado_unificado.get('desconsiderados', {}),
             "nota": "Valores calculados com função unificada - Lei 14.592/2023 (ICMS excluído da base)"
         },
-        "por_cst": por_cst
+        "por_cst": por_cst,
+        "confronto_cfop_cst": confronto_cfop_cst
     }
 
 
