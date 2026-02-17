@@ -2041,7 +2041,7 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
                 cfop_sem_debito = cfop in CFOPS_SEM_DEBITO
                 
                 if categoria_sem_debito or cfop_sem_debito:
-                    cst = '98'  # Desconsiderado
+                    cst = '49'  # Saídas sem débito = CST 49 (não 98)
                     valor_pis = Decimal('0')
                     valor_cofins = Decimal('0')
                 else:
@@ -2073,7 +2073,7 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
                         'valor_pis': Decimal('0'),
                         'valor_cofins': Decimal('0'),
                         'qtd': 0,
-                        'considerado': cst not in ['98', '49']
+                        'considerado': cst not in ['49']  # Saídas: CST 49 = não considerado
                     }
                 saidas_cfop_cst[chave]['valor_base'] += valor_base
                 saidas_cfop_cst[chave]['valor_pis'] += valor_pis
