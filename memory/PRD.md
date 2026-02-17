@@ -27,6 +27,56 @@ Aplicação de análise fiscal com problemas críticos de performance e consist�
 
 ## O que foi implementado
 
+### Data: 11/12/2025 - Sessão 3 (Fork)
+**Funcionalidade: Unificação Completa do Sistema de Classificação**
+
+**Problema Reportado**: 
+- Quando o usuário classificava um produto no Wizard de Alerta de CFOP (ex: "ARLA" como "combustível" com CFOP 1652), o sistema ignorava o CFOP escolhido e aplicava uma conversão genérica.
+- CFOPs de bonificação quando convertidos não mantinham a natureza correta.
+- As regras salvas pelo Wizard não eram reconhecidas pela Classificação Inteligente e vice-versa.
+
+**Solução Implementada**:
+
+1. **Unificação dos campos em `learned_rules`**:
+   - Agora TODOS os pontos de entrada de classificação (Wizard grupo, Wizard individual, Classificação Inteligente) salvam regras com os MESMOS campos padronizados:
+     - Campos Wizard: `produto_descricao`, `cfop_correto`, `categoria_correta`
+     - Campos Classificação Inteligente: `descricao_produto`, `padrao`, `cfop`, `categoria`
+     - Campos compartilhados: `ncm`, `company_id`, `id`
+
+2. **Inferência de categoria do CFOP DESTINO**:
+   - A função `resolver_alerta_cfop_por_grupo()` agora infere a categoria a partir do `novo_cfop` (CFOP que o usuário escolheu), NÃO do `cfop_atual`
+   - Exemplo: Se o usuário escolhe CFOP 1652, a categoria será "combustivel" (não uma conversão genérica)
+
+3. **Mapeamento de bonificação corrigido**:
+   - A função `obter_categoria_por_cfop()` agora reconhece CFOPs de bonificação tanto de ENTRADA quanto de SAÍDA:
+     - 1910, 2910 → bonificação (entrada)
+     - 5910, 6910 → bonificação (saída)
+   - Idem para amostra grátis: 1911, 2911, 5911, 6911
+
+4. **Busca de produtos melhorada no Wizard**:
+   - A busca agora considera tanto o `cfop` atual quanto o `cfop_original_emissor`
+   - Garante que produtos que tiveram CFOP convertido na importação sejam encontrados
+
+5. **Testes automatizados**:
+   - Criado `/app/backend/tests/test_classification_unification.py` com 19 testes cobrindo:
+     - Categorias por CFOP (bonificação, combustível, amostra grátis, devolução)
+     - Geração de CFOP por categoria
+     - Normalização de descrições
+     - Validação de campos padronizados
+
+**Arquivos Modificados**:
+- `/app/backend/server.py`: Funções `resolver_alerta_cfop_por_grupo`, `resolver_alerta_cfop_individual`, `obter_categoria_por_cfop`
+- `/app/backend/tests/test_classification_unification.py` (novo)
+
+**Resultado**:
+- ✅ Wizard e Classificação Inteligente usam a mesma base de regras
+- ✅ CFOP escolhido pelo usuário é respeitado
+- ✅ Categoria é inferida do CFOP destino
+- ✅ CFOPs de bonificação de entrada e saída são reconhecidos
+- ✅ Testes automatizados para evitar regressões
+
+---
+
 ### Data: 10/12/2025 - Sessão 2
 **Funcionalidade: Classificação Unificada e Cálculo de PIS/COFINS com Categorias**
 
@@ -72,19 +122,22 @@ Aplicação de análise fiscal com problemas críticos de performance e consist�
 
 ## Backlog
 
-### P0 (Crítico)
+### P0 (Crítico) - CONCLUÍDO
 - [x] Classificação Unificada (Alertas CFOP, Wizard, Classificação Inteligente)
 - [x] Cálculo PIS/COFINS considerando categorias (devolução, bonificação)
 - [x] CFOPs desconsiderados não geram crédito/débito
+- [x] CFOP escolhido pelo usuário é respeitado (não conversão automática)
+- [x] Campos de regras padronizados entre Wizard e Classificação Inteligente
 
 ### P1 (Alta Prioridade)
 - [ ] Testar fluxo completo de classificação em produção
 - [ ] Validar cálculos após classificações
+- [ ] Implementar totalizador por CST nas abas de CRÉDITOS/DÉBITOS do PIS/COFINS
 
 ### P2 (Média Prioridade)
 - [ ] Pacote de instalação On-Premise (Docker Compose)
 - [ ] Corrigir página Insights IA
-- [ ] Implementar testes automatizados com pytest
+- [ ] Implementar testes automatizados com pytest para todas as funções críticas
 - [ ] Refatorar server.py (separar em módulos)
 
 ## Credenciais de Teste
