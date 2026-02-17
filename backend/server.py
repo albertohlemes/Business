@@ -10556,7 +10556,7 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     if icms_saldo > 0:
         icms_pagar = icms_saldo
         icms_recuperar = 0
-        icms_situacao = "A_RECOLHER"
+        icms_situacao = "A_PAGAR"
     elif icms_saldo < 0:
         icms_pagar = 0
         icms_recuperar = abs(icms_saldo)
