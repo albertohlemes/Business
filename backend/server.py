@@ -10354,33 +10354,57 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     
     # ============================================================
     # BUSCAR ICMS DIRETAMENTE DO ENDPOINT apuracao-icms
-    # NÃO RECALCULA - apenas pega os valores de lá
+    # Usa a MESMA função agregada para garantir consistência
     # ============================================================
-    logger.info(f"DASHBOARD AGREGADO: Buscando ICMS direto do apuracao-icms...")
+    logger.info(f"DASHBOARD AGREGADO: Buscando ICMS usando a mesma lógica do endpoint...")
     
     try:
-        # Chamar a lógica interna do endpoint apuracao-icms
-        icms_result = await _calcular_apuracao_icms_interno(company_id, competencia, company)
+        # Flags da empresa
+        desconsiderar_icms_despesas = company.get('desconsiderar_icms_despesas', False)
+        desconsiderar_icms_st = company.get('desconsiderar_icms_st', False)
+        beneficio_fiscal_icms = company.get('beneficio_fiscal_icms', False)
         
-        # Pegar os valores EXATOS - NÃO RECALCULA NADA
-        credito_icms = icms_result.get('credito_icms', 0)
-        debito_icms = icms_result.get('debito_icms', 0)
-        total_entradas_cfop = icms_result.get('total_entradas', 0)
-        total_saidas_cfop = icms_result.get('total_saidas', 0)
-        compras_liquidas = icms_result.get('compras_liquidas', 0)
-        vendas_liquidas = icms_result.get('vendas_liquidas', 0)
+        # CFOPs de DESPESA e ST (mesmos do endpoint)
+        CFOPS_DESPESA = [
+            '1407', '2407', '1556', '2556', '1557', '2557', '1128', '2128',
+            '1551', '2551', '1406', '2406', '1653', '2653', '1126', '2126',
+            '1352', '2352', '1353', '2353', '1354', '2354'
+        ]
+        CFOPS_ST = [
+            '1403', '2403', '1409', '2409', '1410', '2410', '1411', '2411',
+            '1414', '2414', '1415', '2415', '1651', '2651', '1652', '2652'
+        ]
+        
+        # Chamar a mesma função agregada usada pelo endpoint de ICMS
+        icms_result = await _get_icms_aggregated(
+            company, company_id, competencia, base_query, total_docs,
+            CFOPS_DESPESA, CFOPS_ST, desconsiderar_icms_despesas, 
+            desconsiderar_icms_st, beneficio_fiscal_icms
+        )
+        
+        # Pegar os valores EXATOS da apuração
+        credito_icms = icms_result.get('apuracao', {}).get('credito_icms', 0)
+        debito_icms = icms_result.get('apuracao', {}).get('debito_icms', 0)
+        saldo_icms = icms_result.get('apuracao', {}).get('saldo', 0)
+        situacao_icms = icms_result.get('apuracao', {}).get('situacao', 'ZERADO')
+        total_entradas_cfop = icms_result.get('entradas', {}).get('totais', {}).get('valor_total', 0)
+        total_saidas_cfop = icms_result.get('saidas', {}).get('totais', {}).get('valor_total', 0)
+        compras_liquidas = icms_result.get('compras_liquidas', {}).get('liquidas', 0)
+        vendas_liquidas = icms_result.get('vendas_liquidas', {}).get('liquidas', 0)
         markup_calc = icms_result.get('markup', 0)
-        total_compras_brutas = icms_result.get('compras_brutas', 0)
-        total_devolucao_compras = icms_result.get('devolucao_compras', 0)
-        total_vendas_brutas = icms_result.get('vendas_brutas', 0)
-        total_devolucao_vendas = icms_result.get('devolucao_vendas', 0)
+        total_compras_brutas = icms_result.get('compras_liquidas', {}).get('brutas', 0)
+        total_devolucao_compras = icms_result.get('compras_liquidas', {}).get('devolucoes', 0)
+        total_vendas_brutas = icms_result.get('vendas_liquidas', {}).get('brutas', 0)
+        total_devolucao_vendas = icms_result.get('vendas_liquidas', {}).get('devolucoes', 0)
         
-        logger.info(f"DASHBOARD (DO ENDPOINT): ICMS Créd={credito_icms}, Déb={debito_icms}")
+        logger.info(f"DASHBOARD (DO ICMS AGREGADO): ICMS Créd={credito_icms}, Déb={debito_icms}, Situação={situacao_icms}")
         
     except Exception as e:
         logger.error(f"Erro ao buscar ICMS do endpoint: {e}")
         credito_icms = 0
         debito_icms = 0
+        saldo_icms = 0
+        situacao_icms = "ZERADO"
         total_entradas_cfop = 0
         total_saidas_cfop = 0
         compras_liquidas = 0
