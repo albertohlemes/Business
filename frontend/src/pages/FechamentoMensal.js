@@ -331,7 +331,8 @@ const FechamentoMensal = ({ user, onLogout }) => {
                 </div>
               )}
 
-              {/* IPI */}
+              {/* IPI - Apenas para indústria */}
+              {data._eh_industria && data.ipi && (
               <div className="bg-[#141414] rounded-xl p-5 border border-[#2A2A2A]">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -361,6 +362,7 @@ const FechamentoMensal = ({ user, onLogout }) => {
                   </div>
                 </div>
               </div>
+              )}
             </div>
 
             {/* Total Consolidado */}
