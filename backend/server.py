@@ -36344,6 +36344,117 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
         pis_cofins_total_real = max(0, pis_saldo_real + cofins_saldo_real)
     saldo_total = debito_total - credito_total
     
+    # ============================================================
+    # BUSCAR DETALHES DOS PRODUTOS (amostra limitada para performance)
+    # ============================================================
+    detalhes_entradas = []
+    detalhes_saidas = []
+    
+    try:
+        # Pipeline para buscar detalhes de entradas (créditos)
+        pipeline_entradas = [
+            {
+                "$match": {
+                    "company_id": company_id,
+                    "competencia": competencia,
+                    "desconsiderada_devolucao": {"$ne": True},
+                    "$or": [
+                        {"tipo": {"$in": ["entrada", "entry", "input"]}},
+                        {"tipo_operacao": {"$in": ["entrada", "entry", "input"]}}
+                    ]
+                }
+            },
+            {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": False}},
+            {"$limit": 200},  # Limitar para performance
+            {
+                "$project": {
+                    "numero_nfe": 1,
+                    "emitente_nome": 1,
+                    "produto": "$produtos.descricao",
+                    "ncm": "$produtos.ncm",
+                    "cfop": "$produtos.cfop",
+                    "valor_produto": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}
+                }
+            }
+        ]
+        
+        cursor_entradas = db.xml_documents.aggregate(pipeline_entradas, allowDiskUse=True)
+        docs_entradas = await cursor_entradas.to_list(length=200)
+        
+        for doc in docs_entradas:
+            valor_produto = float(doc.get('valor_produto', 0) or 0)
+            credito_cbs_item = valor_produto * aliquota_cbs
+            credito_ibs_item = valor_produto * aliquota_ibs
+            credito_total_item = credito_cbs_item + credito_ibs_item
+            
+            detalhes_entradas.append({
+                'numero_nfe': doc.get('numero_nfe', ''),
+                'emitente': doc.get('emitente_nome', ''),
+                'produto': doc.get('produto', ''),
+                'ncm': doc.get('ncm', ''),
+                'cfop': doc.get('cfop', ''),
+                'cst': 'IVA',
+                'valor_produto': round(valor_produto, 2),
+                'cbs': round(credito_cbs_item, 2),
+                'ibs': round(credito_ibs_item, 2),
+                'valor_total': round(credito_total_item, 2)
+            })
+        
+        # Pipeline para buscar detalhes de saídas (débitos)
+        pipeline_saidas = [
+            {
+                "$match": {
+                    "company_id": company_id,
+                    "competencia": competencia,
+                    "desconsiderada_devolucao": {"$ne": True},
+                    "$or": [
+                        {"tipo": {"$in": ["saida", "output", "exit"]}},
+                        {"tipo_operacao": {"$in": ["saida", "output", "exit"]}},
+                        {"tipo": {"$nin": ["entrada", "entry", "input"]}},
+                    ]
+                }
+            },
+            {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": False}},
+            {"$limit": 200},  # Limitar para performance
+            {
+                "$project": {
+                    "numero_nfe": 1,
+                    "emitente_nome": 1,
+                    "destinatario_nome": 1,
+                    "produto": "$produtos.descricao",
+                    "ncm": "$produtos.ncm",
+                    "cfop": "$produtos.cfop",
+                    "valor_produto": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}
+                }
+            }
+        ]
+        
+        cursor_saidas = db.xml_documents.aggregate(pipeline_saidas, allowDiskUse=True)
+        docs_saidas = await cursor_saidas.to_list(length=200)
+        
+        for doc in docs_saidas:
+            valor_produto = float(doc.get('valor_produto', 0) or 0)
+            debito_cbs_item = valor_produto * aliquota_cbs
+            debito_ibs_item = valor_produto * aliquota_ibs
+            debito_total_item = debito_cbs_item + debito_ibs_item
+            
+            detalhes_saidas.append({
+                'numero_nfe': doc.get('numero_nfe', ''),
+                'emitente': doc.get('emitente_nome', '') or doc.get('destinatario_nome', ''),
+                'produto': doc.get('produto', ''),
+                'ncm': doc.get('ncm', ''),
+                'cfop': doc.get('cfop', ''),
+                'cst': 'IVA',
+                'valor_produto': round(valor_produto, 2),
+                'cbs': round(debito_cbs_item, 2),
+                'ibs': round(debito_ibs_item, 2),
+                'valor_total': round(debito_total_item, 2)
+            })
+        
+        logger.info(f"REFORMA TRIBUTÁRIA AGREGADO: Detalhes carregados - {len(detalhes_entradas)} entradas, {len(detalhes_saidas)} saídas")
+    except Exception as e:
+        logger.error(f"REFORMA TRIBUTÁRIA AGREGADO: Erro ao buscar detalhes: {e}")
+    
     # Calcular PIS/COFINS atual para comparativo
     pis_debito_atual = total_saidas * 0.0165  # 1.65%
     pis_credito_atual = total_entradas * 0.0165
