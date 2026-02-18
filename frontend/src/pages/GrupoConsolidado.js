@@ -13,7 +13,7 @@ import {
  * Exibe dados consolidados de todas as empresas do grupo (matriz + filiais)
  * Só deve aparecer para empresas que são matriz de um grupo empresarial
  */
-const GrupoConsolidado = () => {
+const GrupoConsolidado = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia } = useAppContext();
   const [activeTab, setActiveTab] = useState('indicadores');
   const [loading, setLoading] = useState(true);
