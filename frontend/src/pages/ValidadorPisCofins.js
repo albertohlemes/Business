@@ -775,7 +775,6 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
           <TipoFiltro tipo="monofasico" label="Monofásico" cor="bg-blue-600/30 text-blue-400" />
           <TipoFiltro tipo="aliquota_diferenciada" label="Alíq. Difer." cor="bg-yellow-600/30 text-yellow-400" />
           <TipoFiltro tipo="tributado" label="Tributado" cor="bg-purple-600/30 text-purple-400" />
-          <TipoFiltro tipo="isento" label="Isento" cor="bg-gray-600/30 text-gray-400" />
         </div>
 
         <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
