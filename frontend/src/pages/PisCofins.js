@@ -538,17 +538,57 @@ const PisCofins = ({ user, onLogout }) => {
     const tipoAtividade = selectedCompany?.tipo_atividade || 'comercio';
     const temServicos = tipoAtividade === 'servicos' || tipoAtividade === 'mista';
     
+    // Saldo credor anterior
+    const saldoCredorAnterior = dadosRegime.saldo_credor_anterior || { pis: 0, cofins: 0, icms: 0, origem: null };
+    const temSaldoCredorAnterior = (saldoCredorAnterior.pis > 0 || saldoCredorAnterior.cofins > 0);
+    
+    // Saldo a transportar para próxima competência
+    const saldoATransportar = dadosRegime.saldo_a_transportar || { pis: 0, cofins: 0, total: 0 };
+    const temSaldoTransportar = (saldoATransportar.pis > 0 || saldoATransportar.cofins > 0);
+    
     // Determinar se é credor ou devedor
-    const saldoPIS = dadosRegime.saldo.pis;
-    const saldoCOFINS = dadosRegime.saldo.cofins;
-    const saldoTotal = dadosRegime.saldo.total;
+    const saldoPIS = dadosRegime.saldo?.pis || 0;
+    const saldoCOFINS = dadosRegime.saldo?.cofins || 0;
+    const saldoTotal = dadosRegime.saldo?.total || 0;
     
     const isPISCredor = saldoPIS < 0;
     const isCOFINSCredor = saldoCOFINS < 0;
     const isTotalCredor = saldoTotal < 0;
     
+    // Imposto a pagar (já considerando saldo anterior)
+    const impostoAPagar = dadosRegime.imposto_a_pagar || { pis: 0, cofins: 0, total: 0 };
+    
     return (
       <div className="space-y-6">
+        {/* Saldo Credor Anterior - Mostrar somente se tiver valor */}
+        {temSaldoCredorAnterior && (
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+            <h3 className="text-sm font-medium text-blue-400 mb-3 flex items-center gap-2">
+              <ArrowDown className="w-4 h-4" />
+              Saldo Credor Anterior
+              {saldoCredorAnterior.origem && (
+                <span className="text-xs bg-blue-500/20 px-2 py-0.5 rounded-full">
+                  {saldoCredorAnterior.origem === 'cadastro' ? 'Do Cadastro' : `De ${saldoCredorAnterior.competencia_origem}`}
+                </span>
+              )}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <p className="text-[#A1A1AA] text-sm">PIS a Compensar</p>
+                <p className="text-lg font-bold text-blue-400">{formatCurrency(saldoCredorAnterior.pis)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[#A1A1AA] text-sm">COFINS a Compensar</p>
+                <p className="text-lg font-bold text-blue-400">{formatCurrency(saldoCredorAnterior.cofins)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[#A1A1AA] text-sm">Total a Compensar</p>
+                <p className="text-lg font-bold text-blue-400">{formatCurrency(saldoCredorAnterior.pis + saldoCredorAnterior.cofins)}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Cards de Resumo - PIS */}
         <div className="mb-2">
           <h3 className="text-sm font-medium text-[#C8A951] mb-3 flex items-center gap-2">
@@ -572,8 +612,8 @@ const PisCofins = ({ user, onLogout }) => {
             />
             <ResumoCard
               titulo={isPISCredor ? "PIS a Recuperar" : "PIS a Pagar"}
-              valor={Math.abs(saldoPIS)}
-              subtitulo={isPISCredor ? 'Crédito acumulado' : 'Imposto devido'}
+              valor={impostoAPagar.pis > 0 ? impostoAPagar.pis : Math.abs(saldoPIS)}
+              subtitulo={isPISCredor ? 'Crédito acumulado' : (temSaldoCredorAnterior ? 'Já compensado saldo anterior' : 'Imposto devido')}
               icon={isPISCredor ? TrendingUp : DollarSign}
               corIcone={isPISCredor ? "bg-blue-600" : "bg-amber-600"}
               corValor={isPISCredor ? "text-blue-400" : "text-amber-400"}
@@ -604,8 +644,8 @@ const PisCofins = ({ user, onLogout }) => {
             />
             <ResumoCard
               titulo={isCOFINSCredor ? "COFINS a Recuperar" : "COFINS a Pagar"}
-              valor={Math.abs(saldoCOFINS)}
-              subtitulo={isCOFINSCredor ? 'Crédito acumulado' : 'Imposto devido'}
+              valor={impostoAPagar.cofins > 0 ? impostoAPagar.cofins : Math.abs(saldoCOFINS)}
+              subtitulo={isCOFINSCredor ? 'Crédito acumulado' : (temSaldoCredorAnterior ? 'Já compensado saldo anterior' : 'Imposto devido')}
               icon={isCOFINSCredor ? TrendingUp : DollarSign}
               corIcone={isCOFINSCredor ? "bg-blue-600" : "bg-amber-600"}
               corValor={isCOFINSCredor ? "text-blue-400" : "text-amber-400"}
@@ -615,7 +655,7 @@ const PisCofins = ({ user, onLogout }) => {
 
         {/* Total Geral */}
         <div className="bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/10 border border-[#C8A951]/30 rounded-xl p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center">
               <p className="text-[#A1A1AA] text-sm">Total Créditos</p>
               <p className="text-xl font-bold text-green-400">{formatCurrency(dadosRegime.creditos.total)}</p>
@@ -624,14 +664,44 @@ const PisCofins = ({ user, onLogout }) => {
               <p className="text-[#A1A1AA] text-sm">Total Débitos</p>
               <p className="text-xl font-bold text-red-400">{formatCurrency(dadosRegime.debitos_total.total)}</p>
             </div>
+            {temSaldoCredorAnterior && (
+              <div className="text-center">
+                <p className="text-[#A1A1AA] text-sm">(-) Saldo Anterior</p>
+                <p className="text-xl font-bold text-blue-400">{formatCurrency(saldoCredorAnterior.pis + saldoCredorAnterior.cofins)}</p>
+              </div>
+            )}
             <div className="text-center">
               <p className="text-[#A1A1AA] text-sm">{isTotalCredor ? 'Total a Recuperar' : 'Total a Pagar'}</p>
               <p className={`text-2xl font-bold ${isTotalCredor ? 'text-blue-400' : 'text-[#C8A951]'}`}>
-                {formatCurrency(Math.abs(saldoTotal))}
+                {formatCurrency(impostoAPagar.total > 0 ? impostoAPagar.total : Math.abs(saldoTotal))}
               </p>
             </div>
           </div>
         </div>
+
+        {/* Saldo a Transportar - Mostrar somente se tiver crédito a transportar */}
+        {temSaldoTransportar && (
+          <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
+            <h3 className="text-sm font-medium text-purple-400 mb-3 flex items-center gap-2">
+              <ArrowUp className="w-4 h-4" />
+              Saldo Credor a Transportar para Próxima Competência
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <p className="text-[#A1A1AA] text-sm">PIS</p>
+                <p className="text-lg font-bold text-purple-400">{formatCurrency(saldoATransportar.pis)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[#A1A1AA] text-sm">COFINS</p>
+                <p className="text-lg font-bold text-purple-400">{formatCurrency(saldoATransportar.cofins)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[#A1A1AA] text-sm">Total</p>
+                <p className="text-lg font-bold text-purple-400">{formatCurrency(saldoATransportar.total)}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Detalhamento de Créditos */}
         <SecaoColapsavel
