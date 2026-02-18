@@ -34027,10 +34027,17 @@ async def get_impostos_grupo(
         icms_a_pagar = max(0, icms_saldo)
         icms_a_recuperar = max(0, -icms_saldo)
         
-        # Calcular IRPJ/CSLL (Lucro Presumido)
+        # IRPJ/CSLL - Usa os mesmos parâmetros configurados na empresa
+        # Isso garante consistência com as páginas individuais
         tipo_atividade = empresa.get("tipo_atividade", "comercio")
-        perc_irpj = 8.0 if tipo_atividade != "servicos" else 32.0
-        perc_csll = 12.0 if tipo_atividade != "servicos" else 32.0
+        
+        # Buscar percentuais de presunção configurados na empresa
+        if tipo_atividade == "servicos":
+            perc_irpj = float(empresa.get("percentual_presuncao_servicos_irpj", 32.0))
+            perc_csll = float(empresa.get("percentual_presuncao_servicos_csll", 32.0))
+        else:
+            perc_irpj = float(empresa.get("percentual_presuncao_irpj", 8.0))
+            perc_csll = float(empresa.get("percentual_presuncao_csll", 12.0))
         
         base_irpj = faturamento * (perc_irpj / 100)
         base_csll = faturamento * (perc_csll / 100)
