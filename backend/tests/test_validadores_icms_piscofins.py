@@ -327,7 +327,7 @@ class TestValidadorICMSExceptionApplication:
 # VALIDADOR PIS/COFINS - Por CFOP Tests
 # ============================================================
 
-class TestValidadorPisCofins PorCfop:
+class TestValidadorPisCofinsPorCfop:
     """Tests for /api/validador-pis-cofins/{company_id}/por-cfop endpoint"""
     
     def test_endpoint_returns_200(self, auth_headers):
@@ -384,16 +384,11 @@ class TestValidadorPisCofins PorCfop:
             print(f"✅ Saida CFOPs have all required fields")
 
 
-class TestValidadorPisCofinsPorCfop:
-    """Fix class name typo"""
-    pass
-
-
 # ============================================================
 # VALIDADOR PIS/COFINS - Por NCM Tests
 # ============================================================
 
-class TestValidadorPisCofins PorNCM:
+class TestValidadorPisCofinsPorNCM:
     """Tests for /api/validador-pis-cofins/{company_id}/por-ncm endpoint"""
     
     def test_endpoint_returns_200(self, auth_headers):
@@ -430,11 +425,6 @@ class TestValidadorPisCofins PorNCM:
             print(f"   COFINS praticada: {ncm.get('aliquota_cofins_praticada')}%")
         else:
             print("⚠️ No NCMs found")
-
-
-class TestValidadorPisCofinsPorNCM:
-    """Fix class name typo"""
-    pass
 
 
 # ============================================================
