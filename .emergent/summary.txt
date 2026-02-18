@@ -1,73 +1,59 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou uma revisão completa do sistema de validação fiscal (PIS/COFINS, ICMS) para torná-lo mais automatizado e intuitivo. Ao longo da sessão, os requisitos evoluíram para incluir:
+O usuário solicitou uma revisão completa do sistema de validação fiscal (PIS/COFINS, ICMS) e, ao longo do tempo, os requisitos evoluíram para um sistema complexo de Matriz-Filial.
 
 PRODUCT REQUIREMENTS:
-1.  **Revisão do Validador PIS/COFINS (P0 - CRÍTICO)**: Utilizar NCM completo (8 dígitos), adicionar filtros por tipo de tributação, garantir que produtos com CFOPs de exceção não apareçam na listagem, e adicionar botões para reaplicar regras e exportar divergências.
-2.  **Revisão do Validador ICMS (P0)**: Tornar contadores de status filtros clicáveis, tornar colunas ordenáveis, corrigir a lógica para produtos com ST (Substituição Tributária) e adicionar edição de regra na lista.
-3.  **Consistência do Sistema (P0)**: Garantir que todas as apurações (tela principal, wizard, importação por IA) utilizem as regras customizadas da empresa com a prioridade correta (Exceção CFOP > Regra Customizada > Regra Padrão).
-4.  **Melhoras de UI/UX (P1)**: Mover validadores para um grupo AÇÕES, remover a aba Divergências, e garantir que validadores apareçam apenas para empresas que não são do Simples Nacional.
-5.  **Novas Funcionalidades (P0)**:
-    *   Implementar um sistema de Matriz-Filial, onde CFOPs de transferência não geram débito/crédito, e a matriz possui relatórios consolidados (PIS/COFINS, IRPJ/CSLL, Carga Tributária).
-    *   Ao clicar no número de uma nota fiscal em qualquer tela, o sistema deve abrir a nota fiscal exata em uma nova aba.
-    *   O cálculo comparativo entre regimes tributários (Lucro Real vs. Presumido) deve aplicar as mesmas regras customizadas em ambos os cenários.
+1.  **Funcionalidade Matriz-Filial (P0 - CRÍTICO)**:
+    *   CFOPs de transferência não devem gerar débito/crédito de PIS/COFINS, IRPJ, ou CSLL, pois a apuração é centralizada na matriz.
+    *   O sistema deve permitir o cadastro de grupos econômicos, vinculando filiais a uma matriz.
+    *   **NOVO REQUISITO (PIVOT)**: Em vez de modificar as telas existentes, criar um novo item de menu chamado **Grupo Consolidado**, visível apenas para a empresa matriz. Este menu deve conter uma página com 6 abas:
+        1.  **Indicadores**: Totais de entradas, compras, saídas e vendas para todo o grupo.
+        2.  **ICMS**: Visão separada para Matriz, Filial(is) e Consolidado.
+        3.  **PIS/COFINS**: Visão separada para Matriz, Filial(is) e Consolidado.
+        4.  **IRPJ/CSLL**: Visão separada para Matriz, Filial(is) e Consolidado.
+        5.  **RET (Regime Especial de Tributação)**: Visão separada para Matriz, Filial(is) e Consolidado.
+        6.  **Reforma Tributária**: Comparativo de cenários para Matriz, Filial(is) e Consolidado.
+2.  **Correção de Bug (P0 - CONCLUÍDO)**: O cálculo comparativo de regimes tributários (Lucro Real vs. Presumido) estava incorreto, usando a receita total em vez da receita tributável para o cenário hipotético do Presumido. O agente corrigiu a lógica no endpoint .
+3.  **Dívida Técnica (P1)**: Continuar a refatoração do backend monolítico .
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-Uma aplicação full-stack (React/FastAPI/MongoDB) com validadores fiscais e funcionalidades de apuração. Nesta sessão, o agente realizou uma refatoração parcial do backend, extraindo constantes, utilitários e modelos Pydantic do arquivo monolítico  para uma estrutura de diretórios mais organizada (, ). Diversos bugs e inconsistências foram corrigidos: a navegação para notas fiscais específicas foi consertada, filtros de CFOP de exceção foram aprimorados, e a lógica de cálculo foi sincronizada entre o validador, o detalhamento da apuração e o comparativo de regimes para garantir que as regras customizadas da empresa sejam aplicadas de forma consistente. O agente também implementou a lógica para ocultar os validadores para empresas do Simples Nacional.
+Uma aplicação full-stack (React/FastAPI/MongoDB). Nesta sessão, o agente implementou a lógica de backend para a funcionalidade Matriz-Filial, incluindo a exclusão de CFOPs de transferência dos cálculos de impostos e a criação de endpoints para relatórios consolidados (). Foi corrigido um bug crítico no cálculo do comparativo de regimes tributários. O agente tentou implementar uma UI dinâmica nas páginas existentes para exibir dados consolidados, mas o usuário rejeitou a abordagem, solicitando um redesenho completo. O agente então reverteu as alterações da UI e iniciou a criação da nova página Grupo Consolidado.
 
 **Last working item**:
--   **Last item agent was working**: Implementação da nova funcionalidade de Matriz-Filial, começando pela primeira etapa: fazer com que CFOPs de transferência (ex: 1152, 2152, 5152) não gerem débitos ou créditos de PIS/COFINS, pois o imposto é centralizado na matriz.
+-   **Last item agent was working**: O agente estava respondendo a um pedido de redesenho completo do usuário. Após reverter as modificações de UI nas páginas ,  e , ele começou a criar a nova página  para abrigar a nova funcionalidade de relatórios consolidados com 6 abas.
 -   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: backend testing agent (ou ) para validar os endpoints  e  após a modificação, garantindo que os itens com CFOPs de transferência sejam excluídos das bases de cálculo.
+-   **Which testing method agent to use?**: both. Esta é uma feature grande que exigirá testes de backend para os endpoints de consolidação e testes de frontend para a nova página complexa com múltiplas abas.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Implementar lógica para que CFOPs de transferência não gerem débito/crédito de PIS/COFINS (P0 - HIGHEST).
--   **Issue 2**: Implementar o sistema de cadastro de Matriz-Filial (P0).
--   **Issue 3**: Implementar relatórios consolidados para a Matriz (P0).
+-   **Issue 1**: O modal de seleção de empresa aparece sobrepondo outras funcionalidades quando não há uma empresa selecionada no contexto global, dificultando o acesso a páginas que deveriam ser globais, como Grupos Empresariais. (P1 - MEDIUM)
 
 **Issues Detail**:
--   **Issue 1: CFOPs de transferência não devem gerar crédito/débito de PIS/COFINS**
-    -   **Attempted fixes**: O agente identificou a lista de CFOPs de transferência em .
+-   **Issue 1: Modal de seleção de empresa sobrepõe a UI**
+    -   **Attempted fixes**: O agente tentou garantir que o link Grupos Empresariais estivesse disponível mesmo sem uma empresa selecionada, mas o modal global do  continua a ser exibido na frente.
     -   **Next debug checklist**:
-        1.  Modificar os endpoints de apuração e detalhamento de PIS/COFINS em  para tratar os CFOPs de transferência como exceções.
-        2.  Esses itens não devem compor a base de cálculo de créditos nem de débitos.
-        3.  Testar se os totais de PIS/COFINS são calculados corretamente após a exclusão desses itens.
-    -   **Why fix this issue and what will be achieved with the fix?**: Corrigir o cálculo fiscal para seguir a legislação, onde o imposto de transferências é apurado de forma centralizada na matriz.
+        1.  Investigar o  em  que dispara o modal.
+        2.  Adicionar uma lógica para que o modal não seja exibido em rotas específicas que não dependem de uma empresa selecionada (ex: ).
+        3.  Verificar se o contexto  pode ser ajustado para lidar com esse caso de uso.
+    -   **Why fix this issue and what will be achieved with the fix?**: Melhorar a usabilidade e permitir acesso direto a funcionalidades globais sem a necessidade de selecionar uma empresa primeiro, o que é um fluxo confuso para o usuário.
     -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: Não.
 
--   **Issue 2: Implementar sistema de cadastro de Matriz-Filial**
-    -   **Attempted fixes**: Nenhum.
-    -   **Next debug checklist**:
-        1.  Alterar o schema da coleção  no MongoDB para incluir um campo .
-        2.  Atualizar a interface de cadastro/edição de empresa para permitir a seleção de uma empresa matriz.
-        3.  Criar/ajustar os endpoints no backend para gerenciar essa relação.
-    -   **Why fix this issue and what will be achieved with the fix?**: É um pré-requisito para a consolidação de relatórios, uma demanda crítica do usuário.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on other issue**: Não, mas o Issue 3 depende deste.
-
--   **Issue 3: Implementar relatórios consolidados para a Matriz**
-    -   **Attempted fixes**: Nenhum.
-    -   **Next debug checklist**:
-        1.  Desenvolver novos endpoints que, ao serem chamados com o ID de uma matriz, agreguem os dados fiscais (PIS/COFINS, IRPJ/CSLL) de todas as suas filiais.
-        2.  Criar novas visualizações no frontend para exibir esses dados consolidados no dashboard da matriz.
-    -   **Why fix this issue and what will be achieved with the fix?**: Fornecer uma visão unificada da situação fiscal do grupo empresarial.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on other issue**: Issue 2.
-
 **In progress Task List**:
--   **Task 1: Concluir refatoração do  (Dívida Técnica - P1)**
-    -   **Where to resume**: Extrair os endpoints (rotas da API) dos validadores ICMS e PIS/COFINS de  para seus próprios arquivos de  em  (ex: ).
-    -   **What will be achieved with this?**: Melhorar drasticamente a manutenibilidade e organização do código, reduzindo o risco de bugs futuros.
+-   **Task 1: Implementar página Grupo Consolidado (P0 - HIGHEST)**
+    -   **Where to resume**: Continuar o desenvolvimento do arquivo . A estrutura básica com as 6 abas foi criada, mas o conteúdo de cada aba precisa ser implementado.
+    -   **What will be achieved with this?**: Atender à principal demanda do usuário para uma visão centralizada e detalhada dos impostos de seu grupo econômico.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on something**: Não. Os endpoints de backend necessários já foram, em grande parte, criados ou estendidos.
+
+-   **Task 2: Concluir refatoração do  (Dívida Técnica - P1)**
+    -   **Where to resume**: Extrair os endpoints (rotas da API) dos validadores ICMS, PIS/COFINS e outros de  para seus próprios arquivos de  em .
+    -   **What will be achieved with this?**: Melhorar a manutenibilidade e organização do código, reduzindo o risco de bugs futuros.
     -   **Status**: IN PROGRESS
     -   **Should Test frontend/backend/both after fix?**: backend (teste de regressão completo).
     -   **Blocked on something**: Não.
@@ -101,8 +87,8 @@ HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test
   /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
     from crypt import crypt as _crypt
 
-backend/server.py:41344
-  /app/backend/server.py:41344: DeprecationWarning: 
+backend/server.py:41883
+  /app/backend/server.py:41883: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -123,91 +109,93 @@ backend/server.py:41344
 =========================== short test summary info ============================
 ERROR test_ai_classification.py
 !!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-========================= 4 warnings, 1 error in 6.36s ========================= mais abrangente para o backend.
+========================= 4 warnings, 1 error in 5.08s ========================= mais abrangente para o backend.
 
 **Completed work in this session**
--   **Refatoração do Backend (Parcial)**: Extração bem-sucedida de constantes, utilitários e modelos Pydantic do  para a nova estrutura em  e .
--   **Correções de UI e Navegação**:
-    -   Corrigido o clique no número da NF para abrir o documento específico em uma nova aba ().
-    -   Ocultados os menus dos validadores para empresas do Simples Nacional ().
--   **Correções na Lógica Fiscal**:
-    -   Sincronizada a aplicação de regras customizadas entre o validador, o detalhamento da apuração e o comparativo de regimes.
-    -   Ajustado o CST de CFOPs de exceção para 98 (ou 50 para combustíveis) nos relatórios detalhados.
-    -   Adicionados CFOPs de despesa/ativo à lista de exceções para serem corretamente filtrados do validador.
+-   **Correção de Bug Crítico**: Corrigido o cálculo do PIS/COFINS hipotético para o Lucro Presumido no comparativo de regimes tributários (). O cálculo agora usa a base de faturamento tributável em vez da receita bruta.
+-   **Backend Matriz-Filial**:
+    -   Implementada a lógica em  para que CFOPs de transferência não gerem débitos/créditos de PIS/COFINS.
+    -   Estendido o endpoint  para incluir IRPJ/CSLL e a carga tributária total (com ICMS).
+    -   Criado um novo endpoint  para verificar se uma empresa é matriz.
+-   **Reversão de UI**: As alterações de UI que adicionavam painéis dinâmicos às páginas ,  e  foram totalmente revertidas conforme solicitado pelo usuário. O componente  foi criado e usado, mas agora está obsoleto.
+-   **Melhoria de Acesso**: Adicionado um card de atalho no Dashboard e um link permanente no menu lateral para a página .
 
 **Earlier issues found/mentioned but not fixed**
 -   Nenhum.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Dívida técnica no monolito .
--   **Recurrence count**: 6+
--   **Status**: IN PROGRESS. A refatoração foi iniciada, extraindo modelos e utilitários. O próximo passo é extrair as rotas.
+-   **Recurrence count**: 7+
+-   **Status**: IN PROGRESS. A refatoração continua pendente, focando agora na extração das rotas da API.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   Refatoração incremental de um backend monolítico FastAPI.
--   Lógica fiscal complexa envolvendo CFOPs, CSTs, Regimes Tributários e regras customizadas.
--   Gerenciamento de estado e parâmetros de URL em React.
+-   Refatoração de um backend monolítico FastAPI.
+-   Lógica fiscal complexa (CFOP, CST, Regimes Tributários).
+-   Desenvolvimento de UI condicional (exibir menus/páginas apenas para empresas matrizes).
+-   Criação de relatórios de BI consolidados que agregam dados de múltiplas entidades (empresas).
 
 **key DB schema**
--   **companies**: Necessitará de um novo campo  para a funcionalidade Matriz-Filial.
+-   **companies**: Contém o campo  que define a estrutura Matriz-Filial.
+-   **grupos_empresariais**: Armazena a definição dos grupos, qual empresa é a matriz e quais são as filiais.
 
 **changes in tech stack**
 -   Nenhuma.
 
 **All files of reference**
 -    (Principal arquivo de backend, extensivamente modificado)
--    (NOVO)
--    (NOVO)
--    (NOVO)
--    (NOVO)
+-    (NOVO, em desenvolvimento)
+-    (REVERTIDO)
+-    (REVERTIDO)
+-    (REVERTIDO)
 -    (MODIFICADO)
 -    (MODIFICADO)
+-    (CRIADO, agora obsoleto)
 
 **Areas that need refactoring**:
--   ** (CRÍTICO)**: A lógica dos endpoints ainda reside neste arquivo. A extração das rotas para  é a próxima etapa crítica da refatoração.
--   ** e **: Componentes grandes e complexos que se beneficiariam de uma decomposição em subcomponentes.
+-   ** (CRÍTICO)**: A extração das rotas para  continua sendo a principal dívida técnica.
+-   ****: Este componente foi criado para a abordagem de UI que foi rejeitada. Deve ser removido para evitar código morto.
 
 **key api endpoints**
--    (MODIFICADO)
--    (MODIFICADO)
+-    (CORRIGIDO)
+-    (ESTENDIDO)
+-    (NOVO)
 
 **Critical Info for New Agent**
--   **Prioridade Máxima**: Continuar a implementação da funcionalidade Matriz-Filial, começando por tratar os CFOPs de transferência para que não gerem PIS/COFINS.
--   **Refatoração em Andamento**: A refatoração do  foi aprovada pelo usuário. Prossiga de forma segura, movendo os endpoints para arquivos de router dedicados como próximo passo.
--   **Consistência Fiscal**: Lembre-se que as diferentes partes do sistema (apuração, detalhamento, comparativo) devem sempre usar a mesma lógica de regras para se manterem sincronizadas. Qualquer alteração em uma parte provavelmente precisará ser replicada nas outras.
+-   **PIVOT DE REQUISITO**: O usuário rejeitou a ideia de adicionar painéis consolidados às páginas de impostos existentes. **NÃO continue essa implementação**. Todo o esforço deve ser focado na criação da nova página , que centralizará todos os relatórios do grupo em 6 abas distintas.
+-   **REUTILIZAÇÃO DE LÓGICA**: O backend já possui a lógica para calcular e agregar os dados consolidados (). Esta lógica deve ser reutilizada e, se necessário, estendida para popular as abas da nova página .
+-   **FOCO NA NOVA PÁGINA**: A tarefa de maior prioridade é construir a página . O esqueleto do arquivo e as abas já foram criados. O próximo passo é implementar o conteúdo de cada aba, buscando os dados do backend.
 
 **documents and test reports created in this job**
 -    (Atualizado durante a sessão)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  : Iniciar sistema Matriz-Filial e tratar CFOPs de transferência. **(Em andamento)**
-2.  : Validadores só para não-Simples; comparativo de regime deve usar regras customizadas. **(Concluído)**
-3.  : CFOPs de exceção devem ser CST 98; combustível é CST 50. **(Concluído)**
-4.  : CFOPs de exceção (1556, 1910) estão com CST 50 e deveriam ser 98/70. **(Concluído)**
-5.  : Regra de alíquota zero funciona no validador mas não no detalhamento da apuração. **(Concluído)**
-6.  : Itens classificados como despesas/ativos (CFOP 1556, 1407) ainda aparecem no validador. **(Concluído)**
-7.  : Clicar na NF não abre a nota exata, só o menu. **(Concluído)**
-8.  : Ao clicar na NF na Classificação Inteligente, deve abrir em nova aba. **(Concluído)**
-9.  : Seguir com a sugestão de refatoração, com cuidado. **(Em andamento)**
-10. : Verificar se a importação com IA funciona corretamente. **(Concluído)**
+10. : Cria um novo menu Grupo Consolidado com 6 abas específicas e reverte as mudanças anteriores. **(Em andamento)**
+9. : O design anterior não ficou bom. **(Ação: Reverter e redesenhar)**
+8. : Implemente a carga tributária consolidada (PIS+COFINS+IRPJ+CSLL+ICMS). **(Concluído)**
+7. : Onde eu abro o modal para criar/vincular grupos? **(Resolvido, link de menu movido)**
+6. : Onde eu vinculo matriz e filial? **(Resolvido, funcionalidade explicada)**
+5. : Implemente o relatório de IRPJ/CSLL consolidado. **(Concluído)**
+4. : FAZER PO URGENTE. **(Nota de prioridade)**
+3. : Usei um exemplo da base produtiva, empresa 6751. **(Contexto para o bug)**
+2. : FZ PO URGENTE. O cálculo comparativo de regime tributário está incorreto. **(Bug reportado e corrigido)**
+1. : CFOPs de transferência não devem gerar débito/crédito. **(Concluído no backend)**
 
 **Project Health Check:**
 -   **Broken**: N/A
 -   **Mocked**: N/A
--   **Complex/Fragile**:
-    -   : **CRÍTICO**. Ainda sobrecarregado com a lógica de todos os endpoints, tornando-o frágil e difícil de manter. A continuação da refatoração é vital.
+-   **Complex/Fragile**:  continua sendo um monolito frágil e precisa urgentemente de refatoração.
 
 **3rd Party Integrations**
 -   Nenhuma.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO (agente realizou testes manuais via ).
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: Nenhuma identificada.
+-   **Known regressions**: Nenhuma.
 
 **Credentials to test flow:**
 -   **Environment**:  / 
@@ -215,4 +203,4 @@ ERROR test_ai_classification.py
 -   **Competência**: 
 
 **What agent forgot to execute**
--   Nenhum item solicitado pelo usuário foi esquecido. O trabalho atual é uma continuação direta da última solicitação do usuário.</analysis>
+-   Nada foi esquecido. O agente seguiu as instruções do usuário, incluindo o pedido de reversão e redesenho da funcionalidade principal. A tarefa atual é uma continuação direta da última e mais prioritária solicitação do usuário.</analysis>
