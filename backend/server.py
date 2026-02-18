@@ -37752,22 +37752,30 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
             "pis": round(max(0, pis_saldo_real), 2),
             "cofins": round(max(0, cofins_saldo_real), 2),
             "pis_cofins": round(pis_cofins_total_real, 2),
-            "icms": 0,  # ICMS não é calculado na reforma tributária
-            "total": round(pis_cofins_total_real, 2),
+            "icms": round(icms_saldo_real, 2),
+            "total": round(pis_cofins_total_real + icms_saldo_real, 2),
             "debito_bruto": {
                 "pis": round(pis_debito_real, 2),
                 "cofins": round(cofins_debito_real, 2),
-                "total": round(pis_debito_real + cofins_debito_real, 2)
+                "icms": round(icms_debito_real, 2),
+                "total": round(pis_debito_real + cofins_debito_real + icms_debito_real, 2)
             },
             "credito_bruto": {
                 "pis": round(pis_credito_real, 2),
                 "cofins": round(cofins_credito_real, 2),
-                "total": round(pis_credito_real + cofins_credito_real, 2)
+                "icms": round(icms_credito_real, 2),
+                "total": round(pis_credito_real + cofins_credito_real + icms_credito_real, 2)
             },
             "detalhamento": {
+                "pis_debito": round(pis_debito_real, 2),
+                "pis_credito": round(pis_credito_real, 2),
                 "pis_saldo": round(pis_saldo_real, 2),
+                "cofins_debito": round(cofins_debito_real, 2),
+                "cofins_credito": round(cofins_credito_real, 2),
                 "cofins_saldo": round(cofins_saldo_real, 2),
-                "icms_saldo": 0
+                "icms_debito": round(icms_debito_real, 2),
+                "icms_credito": round(icms_credito_real, 2),
+                "icms_saldo": round(icms_saldo_real, 2)
             }
         },
         # Diferença para comparação (usando a_pagar que é sempre >= 0)
