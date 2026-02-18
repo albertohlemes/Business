@@ -1,6 +1,6 @@
 # Changelog - Aurion Fiscal
 
-## [18/02/2026] - Correção Bug Crítico PIS/COFINS
+## [18/02/2026] - Correções de Segurança e Bug Crítico
 
 ### Corrigido
 - **BUG CRÍTICO**: Página de apuração PIS/COFINS exibindo tela em branco/valores zerados
@@ -9,10 +9,16 @@
   - Todo o bloco de processamento de produtos (linhas 1503-1625) estava com indentação incorreta
 - **Solução**: Corrigida a indentação de 120+ linhas de código no processamento de documentos
 
+### Segurança - Controle de Acesso Grupos Empresariais
+- **Problema reportado**: Qualquer usuário podia ver os botões de Editar/Excluir grupos empresariais
+- **Correção**: Adicionada verificação de role no frontend (`GruposEmpresariais.js`)
+  - Botões "Novo Grupo", "Editar" e "Excluir" agora só aparecem para usuários com role `admin`, `super_admin` ou `master`
+  - Backend já tinha a validação correta (retornava 403 Forbidden), mas o frontend não escondia os botões
+- **Arquivos modificados**: `/app/frontend/src/pages/GruposEmpresariais.js`
+
 ### Verificado
-- Endpoint `/api/pis-cofins/apuracao/{company_id}` agora retorna valores corretamente
-- Teste com COMERCIAL RS LTDA (01/2026): Créditos PIS R$141.885,52, COFINS R$653.533,17
-- Interface carregando corretamente com todos os dados de apuração
+- Endpoint `/api/pis-cofins/apuracao/{company_id}` retornando valores corretamente
+- Controle de acesso funcionando - botões de ação só visíveis para admins
 
 ---
 
