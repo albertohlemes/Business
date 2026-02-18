@@ -71,7 +71,7 @@ const Documents = ({ user, onLogout }) => {
   const { startUpload, isUploading: globalUploading, progress: globalProgress, currentFile, uploadResults: globalResults, uploadError: globalError, clearResults, notifyDocumentsChanged } = useUpload();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const highlightDocId = searchParams.get('highlight');
+  const highlightDocId = searchParams.get('highlight') || searchParams.get('doc');
   const urlOperacao = searchParams.get('operacao'); // 'entrada' ou 'saida'
   const urlTipo = searchParams.get('tipo'); // 'nfe', 'nfce', 'cte', 'servicos_tomados', etc.
   
@@ -92,7 +92,12 @@ const Documents = ({ user, onLogout }) => {
         }
       }
     }
-  }, [urlOperacao, urlTipo]);
+    // Se tiver highlightDocId mas não tiver operação/tipo, definir entrada/nfe como padrão
+    else if (highlightDocId && !operacao) {
+      setOperacao('entrada');
+      setTipoDoc('nfe');
+    }
+  }, [urlOperacao, urlTipo, highlightDocId]);
   
   // Estados de dados
   const [documents, setDocuments] = useState([]);
