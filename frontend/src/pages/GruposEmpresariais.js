@@ -440,7 +440,7 @@ const GruposEmpresariais = ({ user, onLogout }) => {
               ) : consolidadoData && (
                 <div className="space-y-6">
                   {/* Cards de Resumo */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div className="bg-[#0C0C0C] rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Building2 className="w-4 h-4 text-blue-400" />
@@ -465,9 +465,77 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                     <div className="bg-[#0C0C0C] rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <DollarSign className="w-4 h-4 text-[#C8A951]" />
+                        <span className="text-sm text-[#A1A1AA]">Impostos Federais</span>
+                      </div>
+                      <p className="text-2xl font-bold text-[#C8A951]">
+                        {formatCurrency((consolidadoData.pis?.a_pagar || 0) + (consolidadoData.cofins?.a_pagar || 0))}
+                      </p>
+                      <p className="text-xs text-[#A1A1AA] mt-1">PIS + COFINS</p>
+                    </div>
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="w-4 h-4 text-orange-400" />
                         <span className="text-sm text-[#A1A1AA]">Total Impostos</span>
                       </div>
-                      <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(consolidadoData.total_impostos)}</p>
+                      <p className="text-2xl font-bold text-orange-400">{formatCurrency(consolidadoData.total_impostos)}</p>
+                    </div>
+                  </div>
+
+                  {/* Alerta de Transferências */}
+                  {consolidadoData.transferencias_desconsideradas > 0 && (
+                    <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4 flex items-center gap-3">
+                      <AlertTriangle className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                      <div>
+                        <p className="text-blue-400 font-medium">Transferências Desconsideradas</p>
+                        <p className="text-sm text-[#A1A1AA]">
+                          {formatCurrency(consolidadoData.transferencias_desconsideradas)} em operações de transferência 
+                          entre matriz e filiais foram excluídos do cálculo de PIS/COFINS (centralizado na matriz).
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Resumo PIS/COFINS Consolidado */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <h4 className="text-sm text-[#A1A1AA] mb-3 flex items-center gap-2">
+                        <DollarSign className="w-4 h-4" />
+                        PIS Consolidado
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-[#A1A1AA]">Débitos:</span>
+                          <span className="text-red-400">{formatCurrency(consolidadoData.pis?.debito)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#A1A1AA]">Créditos:</span>
+                          <span className="text-green-400">{formatCurrency(consolidadoData.pis?.credito)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-[#2A2A2A] pt-2">
+                          <span className="text-white font-medium">A Pagar:</span>
+                          <span className="text-[#C8A951] font-bold">{formatCurrency(consolidadoData.pis?.a_pagar)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <h4 className="text-sm text-[#A1A1AA] mb-3 flex items-center gap-2">
+                        <DollarSign className="w-4 h-4" />
+                        COFINS Consolidado
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-[#A1A1AA]">Débitos:</span>
+                          <span className="text-red-400">{formatCurrency(consolidadoData.cofins?.debito)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#A1A1AA]">Créditos:</span>
+                          <span className="text-green-400">{formatCurrency(consolidadoData.cofins?.credito)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-[#2A2A2A] pt-2">
+                          <span className="text-white font-medium">A Pagar:</span>
+                          <span className="text-[#C8A951] font-bold">{formatCurrency(consolidadoData.cofins?.a_pagar)}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
