@@ -19,7 +19,30 @@ const Layout = ({ user, onLogout, children }) => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [menuMode, setMenuMode] = useState('vertical');
+  const [isMatriz, setIsMatriz] = useState(false);
   const { selectedCompany, selectedCompetencia, openSelector, uploadProgress, finishUpload } = useAppContext();
+
+  // Verificar se a empresa selecionada é matriz de um grupo
+  useEffect(() => {
+    const checkIsMatriz = async () => {
+      if (!selectedCompany?.id) {
+        setIsMatriz(false);
+        return;
+      }
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(
+          `${API}/empresa/${selectedCompany.id}/grupo-info`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setIsMatriz(response.data?.is_matriz || false);
+      } catch (err) {
+        console.error('Erro ao verificar matriz:', err);
+        setIsMatriz(false);
+      }
+    };
+    checkIsMatriz();
+  }, [selectedCompany?.id]);
 
   // Load menu preference from user
   useEffect(() => {
