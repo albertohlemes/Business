@@ -486,8 +486,8 @@ const Layout = ({ user, onLogout, children }) => {
           <div className="hidden md:block border-t border-[#2A2A2A] bg-[#141414]">
             <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
               <nav className="flex items-center gap-1 py-2 overflow-x-auto">
-                {navigation.map((item) => (
-                  <NavItemHorizontal key={item.name} item={item} />
+                {navigation.map((item, index) => (
+                  <NavItemHorizontal key={item.name || `sep-${index}`} item={item} />
                 ))}
               </nav>
             </div>
