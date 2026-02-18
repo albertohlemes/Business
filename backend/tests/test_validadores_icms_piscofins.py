@@ -527,8 +527,9 @@ class TestValidadorPisCofinsRegras:
         )
         
         assert update_response.status_code == 200, f"Expected 200, got {update_response.status_code}"
-        updated = update_response.json()
-        assert "ATUALIZADO" in updated.get("descricao", "")
+        update_data_response = update_response.json()
+        updated = update_data_response.get("regra", update_data_response)
+        assert "ATUALIZADO" in updated.get("descricao", ""), f"Expected ATUALIZADO in descricao. Got: {updated}"
         assert updated.get("aliquota_pis") == 0.5
         
         print(f"✅ PUT regra succeeded")
