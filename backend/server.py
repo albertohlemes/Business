@@ -40059,6 +40059,7 @@ async def criar_regra_piscofins(
         tipo=regra.tipo,
         chave=regra.chave.strip(),
         descricao=regra.descricao,
+        tipo_regra=regra.tipo_regra,
         aliquota_pis=regra.aliquota_pis,
         aliquota_cofins=regra.aliquota_cofins,
         gera_credito=regra.gera_credito,
