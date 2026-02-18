@@ -419,9 +419,18 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
   };
 
   // Seção de NCMs (apenas produtos em CFOPs normais)
+  const [filtroTipoNcm, setFiltroTipoNcm] = useState('todos');
+  
   const SecaoNcms = () => {
     const ncmsLista = dados?.ncms?.lista || [];
     const stats = dados?.ncms?.estatisticas || {};
+
+    // Contar NCMs por tipo de regra
+    const contagemTipoNcm = {};
+    ncmsLista.forEach(item => {
+      const tipo = item.tipo_regra || (item.fonte_regra === 'sem_regra' ? 'sem_regra' : 'tributado');
+      contagemTipoNcm[tipo] = (contagemTipoNcm[tipo] || 0) + 1;
+    });
 
     // Filtrar
     let ncmsFiltrados = ncmsLista.filter(item => {
@@ -430,7 +439,10 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
         item.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.produtos_exemplo?.some(p => p.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchStatus = filtroStatus === 'todos' || item.status === filtroStatus;
-      return matchSearch && matchStatus;
+      const matchTipo = filtroTipoNcm === 'todos' || 
+        (filtroTipoNcm === 'sem_regra' && item.fonte_regra === 'sem_regra') ||
+        (filtroTipoNcm !== 'sem_regra' && item.tipo_regra === filtroTipoNcm);
+      return matchSearch && matchStatus && matchTipo;
     });
 
     // Ordenar
@@ -452,6 +464,24 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
         return bVal.localeCompare(aVal);
       });
     }
+
+    // Filtro por tipo de tributação
+    const TipoFiltroNcm = ({ tipo, label, cor }) => {
+      const count = contagemTipoNcm[tipo] || 0;
+      const isAtivo = filtroTipoNcm === tipo;
+      return (
+        <button
+          onClick={() => setFiltroTipoNcm(isAtivo ? 'todos' : tipo)}
+          className={`text-xs px-2 py-1 rounded transition-all ${
+            isAtivo 
+              ? `${cor} ring-1 ring-offset-1 ring-offset-[#0C0C0C]` 
+              : 'bg-[#1A1A1A] text-[#A1A1AA] hover:bg-[#2A2A2A]'
+          }`}
+        >
+          {label} ({count})
+        </button>
+      );
+    };
 
     const ContadorFiltro = ({ valor, label, status, cor, corBg, corBorder }) => {
       const isAtivo = filtroStatus === status;
