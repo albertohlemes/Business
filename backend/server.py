@@ -1610,13 +1610,24 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                         totais['base_debito'] += valor_base
     
     # Arredondar para 2 casas decimais no final
-    def arredondar(valor: Decimal) -> float:
-        return float(valor.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+    def arredondar(valor) -> float:
+        try:
+            if valor is None:
+                return 0.0
+            if not isinstance(valor, Decimal):
+                valor = Decimal(str(valor))
+            return float(valor.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+        except:
+            return 0.0
     
-    pis_creditos = arredondar(totais['creditos_pis'])
-    pis_debitos = arredondar(totais['debitos_pis'])
-    cofins_creditos = arredondar(totais['creditos_cofins'])
-    cofins_debitos = arredondar(totais['debitos_cofins'])
+    try:
+        pis_creditos = arredondar(totais['creditos_pis'])
+        pis_debitos = arredondar(totais['debitos_pis'])
+        cofins_creditos = arredondar(totais['creditos_cofins'])
+        cofins_debitos = arredondar(totais['debitos_cofins'])
+    except Exception as e:
+        logger.error(f"Erro ao arredondar totais PIS/COFINS: {e}")
+        pis_creditos = pis_debitos = cofins_creditos = cofins_debitos = 0.0
     
     return {
         'pis_creditos': pis_creditos,
