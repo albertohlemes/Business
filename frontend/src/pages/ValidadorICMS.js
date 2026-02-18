@@ -156,6 +156,35 @@ const ValidadorICMS = ({ user, onLogout }) => {
     });
   };
 
+  const [inicializando, setInicializando] = useState(false);
+  
+  const handleInicializarRegras = async () => {
+    if (!window.confirm('Isso criará regras de ICMS automaticamente baseadas nos NCMs encontrados nas suas vendas e no Regulamento ICMS do seu estado. Deseja continuar?')) {
+      return;
+    }
+    
+    setInicializando(true);
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      const response = await axios.post(
+        `${API}/validador-icms/${selectedCompany.id}/inicializar-regras?competencia=${encodeURIComponent(selectedCompetencia)}`,
+        {},
+        { headers }
+      );
+      
+      alert(`${response.data.regras_criadas} regras foram criadas! Você pode editá-las na aba "Regras".`);
+      fetchData();
+      setActiveTab('regras');
+    } catch (err) {
+      console.error('Erro ao inicializar regras:', err);
+      alert('Erro ao inicializar regras: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setInicializando(false);
+    }
+  };
+
   // Filtrar dados
   const filtrarDados = (dados) => {
     if (!dados) return [];
