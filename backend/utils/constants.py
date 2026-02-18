@@ -146,3 +146,20 @@ def is_cfop_sem_debito(cfop: str) -> bool:
 def get_aliquotas_regime(regime: str) -> dict:
     """Retorna as alíquotas de PIS/COFINS para um regime tributário"""
     return ALIQUOTAS_PIS_COFINS.get(regime, ALIQUOTAS_PIS_COFINS['lucro_presumido'])
+
+
+# Re-exportar funções de outros módulos para centralizar imports
+from utils.db_utils import (
+    get_filtro_notas_ativas,
+    get_filtro_notas_ativas_sem_locacao,
+    is_documento_entrada
+)
+
+from utils.fiscal_constants import (
+    ALIQUOTAS_INTERESTADUAIS,
+    get_aliquota_interestadual,
+    CFOPS_EXCECAO_ENTRADA,
+    CFOPS_EXCECAO_SAIDA,
+    TIPOS_REGRA_PIS_COFINS,
+    REGRAS_PIS_COFINS_PADRAO
+)
