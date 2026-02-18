@@ -437,7 +437,35 @@ const GrupoConsolidado = ({ user, onLogout }) => {
                       {markupMatriz >= 0 ? '+' : ''}{formatPercent(markupMatriz)}
                     </span>
                   </div>
-                  <ValorLinha label="Total Federal" valor={matriz?.total_federal} color="text-[#C8A951]" bold />
+                  {/* Impostos Individualizados */}
+                  <div className="grid grid-cols-5 gap-1 mt-2 text-xs">
+                    <div className="text-center">
+                      <span className="text-[#A1A1AA]">PIS</span>
+                      <p className={`font-medium ${(matriz?.pis?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatCurrency(Math.abs(matriz?.pis?.saldo || 0))}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-[#A1A1AA]">COFINS</span>
+                      <p className={`font-medium ${(matriz?.cofins?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatCurrency(Math.abs(matriz?.cofins?.saldo || 0))}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-[#A1A1AA]">ICMS</span>
+                      <p className={`font-medium ${(matriz?.icms?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatCurrency(Math.abs(matriz?.icms?.saldo || 0))}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-[#A1A1AA]">IRPJ</span>
+                      <p className="font-medium text-red-400">{formatCurrency(matriz?.irpj?.total || 0)}</p>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-[#A1A1AA]">CSLL</span>
+                      <p className="font-medium text-red-400">{formatCurrency(matriz?.csll?.devido || 0)}</p>
+                    </div>
+                  </div>
                 </div>
               </EmpresaCard>
 
@@ -457,7 +485,35 @@ const GrupoConsolidado = ({ user, onLogout }) => {
                             {markupFilial >= 0 ? '+' : ''}{formatPercent(markupFilial)}
                           </span>
                         </div>
-                        <ValorLinha label="Total Federal" valor={filial?.total_federal} color="text-[#C8A951]" bold />
+                        {/* Impostos Individualizados */}
+                        <div className="grid grid-cols-5 gap-1 mt-2 text-xs">
+                          <div className="text-center">
+                            <span className="text-[#A1A1AA]">PIS</span>
+                            <p className={`font-medium ${(filial?.pis?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {formatCurrency(Math.abs(filial?.pis?.saldo || 0))}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <span className="text-[#A1A1AA]">COFINS</span>
+                            <p className={`font-medium ${(filial?.cofins?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {formatCurrency(Math.abs(filial?.cofins?.saldo || 0))}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <span className="text-[#A1A1AA]">ICMS</span>
+                            <p className={`font-medium ${(filial?.icms?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {formatCurrency(Math.abs(filial?.icms?.saldo || 0))}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <span className="text-[#A1A1AA]">IRPJ</span>
+                            <p className="font-medium text-red-400">{formatCurrency(filial?.irpj?.total || 0)}</p>
+                          </div>
+                          <div className="text-center">
+                            <span className="text-[#A1A1AA]">CSLL</span>
+                            <p className="font-medium text-red-400">{formatCurrency(filial?.csll?.devido || 0)}</p>
+                          </div>
+                        </div>
                       </div>
                     </EmpresaCard>
                   );
@@ -476,7 +532,35 @@ const GrupoConsolidado = ({ user, onLogout }) => {
                       {markupConsolidado >= 0 ? '+' : ''}{formatPercent(markupConsolidado)}
                     </span>
                   </div>
-                  <ValorLinha label="Total Federal" valor={consolidado?.total_federal} color="text-[#C8A951]" bold />
+                  {/* Impostos Individualizados */}
+                  <div className="grid grid-cols-5 gap-1 mt-2 text-xs">
+                    <div className="text-center">
+                      <span className="text-[#C8A951]">PIS</span>
+                      <p className={`font-medium ${(consolidado?.pis?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatCurrency(Math.abs(consolidado?.pis?.saldo || 0))}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-[#C8A951]">COFINS</span>
+                      <p className={`font-medium ${(consolidado?.cofins?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatCurrency(Math.abs(consolidado?.cofins?.saldo || 0))}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-[#C8A951]">ICMS</span>
+                      <p className={`font-medium ${(consolidado?.icms?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatCurrency(Math.abs(consolidado?.icms?.saldo || 0))}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-[#C8A951]">IRPJ</span>
+                      <p className="font-medium text-red-400">{formatCurrency(consolidado?.irpj?.total || 0)}</p>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-[#C8A951]">CSLL</span>
+                      <p className="font-medium text-red-400">{formatCurrency(consolidado?.csll?.devido || 0)}</p>
+                    </div>
+                  </div>
                   <p className="text-center text-sm text-[#A1A1AA] mt-2">
                     {formatPercent(consolidado?.percentual)} do faturamento
                   </p>
