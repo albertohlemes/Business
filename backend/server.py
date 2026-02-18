@@ -26520,6 +26520,31 @@ async def detalhamento_pis_cofins(
     
     documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(15000)
     
+    # ==========================================================================
+    # BUSCAR REGRAS CUSTOMIZADAS DA EMPRESA PARA USO CONSISTENTE
+    # ==========================================================================
+    regras_empresa = await db.regras_pis_cofins.find({
+        "company_id": company_id,
+        "ativo": True
+    }).to_list(length=1000)
+    
+    # Indexar regras por NCM (completo e prefixos)
+    regras_por_ncm = {}
+    for r in regras_empresa:
+        if r.get('tipo') == 'ncm':
+            chave = str(r.get('chave', '')).replace('.', '').strip()
+            regras_por_ncm[chave] = r
+    
+    def buscar_regra_ncm(ncm: str):
+        """Busca regra para NCM: tenta completo, depois prefixos menores"""
+        if not ncm or len(ncm) < 4:
+            return None
+        for i in range(len(ncm), 3, -1):
+            prefixo = ncm[:i]
+            if prefixo in regras_por_ncm:
+                return regras_por_ncm[prefixo]
+        return None
+    
     # Estrutura para agrupar
     entradas = {}  # chave: NCM_CFOP_CST
     saidas = {}
@@ -26538,9 +26563,50 @@ async def detalhamento_pis_cofins(
             # Base de cálculo = Valor Total - ICMS (Lei 14.592/2023)
             valor_base = max(0, valor_total - v_icms)
             
-            # Calcular valores corretos
-            calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, tipo_op, perfil_empresa, regime_para_calculo)
-            cst = calc.get('cst', '01' if tipo_op == 'saida' else '50')
+            # ==========================================================================
+            # PRIORIZAR REGRA CUSTOMIZADA DA EMPRESA, SENÃO USA CÁLCULO PADRÃO
+            # ==========================================================================
+            regra_empresa = buscar_regra_ncm(ncm)
+            
+            if regra_empresa:
+                # USAR REGRA DA EMPRESA
+                aliq_pis = float(regra_empresa.get('aliquota_pis', 0) or 0)
+                aliq_cofins = float(regra_empresa.get('aliquota_cofins', 0) or 0)
+                gera_credito = regra_empresa.get('gera_credito', False)
+                gera_debito = regra_empresa.get('gera_debito', False)
+                cst_entrada = regra_empresa.get('cst_esperado_entrada', '70')
+                cst_saida = regra_empresa.get('cst_esperado_saida', '06')
+                tipo_regra = regra_empresa.get('tipo_regra', 'aliquota_zero')
+                
+                if tipo_op == 'entrada':
+                    cst = cst_entrada
+                    if gera_credito:
+                        valor_pis = valor_base * aliq_pis / 100
+                        valor_cofins = valor_base * aliq_cofins / 100
+                    else:
+                        valor_pis = 0
+                        valor_cofins = 0
+                else:
+                    cst = cst_saida
+                    if gera_debito:
+                        valor_pis = valor_base * aliq_pis / 100
+                        valor_cofins = valor_base * aliq_cofins / 100
+                    else:
+                        valor_pis = 0
+                        valor_cofins = 0
+                
+                classificacao = f"REGRA_{tipo_regra.upper()}"
+            else:
+                # Calcular usando função padrão
+                calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, tipo_op, perfil_empresa, regime_para_calculo)
+                cst = calc.get('cst', '01' if tipo_op == 'saida' else '50')
+                aliq_pis = calc.get('aliquota_pis', 0)
+                aliq_cofins = calc.get('aliquota_cofins', 0)
+                valor_pis = calc.get('valor_pis', 0)
+                valor_cofins = calc.get('valor_cofins', 0)
+                gera_credito = calc.get('gera_credito', False)
+                gera_debito = calc.get('gera_debito', False)
+                classificacao = calc.get('classificacao', {}).get('grupo', 'REGRA_GERAL')
             
             chave = f"{ncm}_{cfop}_{cst}"
             
@@ -26550,24 +26616,24 @@ async def detalhamento_pis_cofins(
                         'ncm': ncm,
                         'cfop': cfop,
                         'cst': cst,
-                        'classificacao': calc.get('classificacao', {}).get('grupo', 'REGRA_GERAL'),
+                        'classificacao': classificacao,
                         'quantidade': 0,
                         'valor_base': 0,
-                        'aliquota_pis': calc.get('aliquota_pis', 0),
-                        'aliquota_cofins': calc.get('aliquota_cofins', 0),
+                        'aliquota_pis': aliq_pis,
+                        'aliquota_cofins': aliq_cofins,
                         'valor_pis': 0,
                         'valor_cofins': 0,
-                        'gera_credito': calc.get('gera_credito', False)
+                        'gera_credito': gera_credito
                     }
                 entradas[chave]['quantidade'] += 1
                 entradas[chave]['valor_base'] += valor_base
-                entradas[chave]['valor_pis'] += calc.get('valor_pis', 0)
-                entradas[chave]['valor_cofins'] += calc.get('valor_cofins', 0)
+                entradas[chave]['valor_pis'] += valor_pis
+                entradas[chave]['valor_cofins'] += valor_cofins
                 
                 subtotais_entrada['quantidade'] += 1
                 subtotais_entrada['valor_base'] += valor_base
-                subtotais_entrada['valor_pis'] += calc.get('valor_pis', 0)
-                subtotais_entrada['valor_cofins'] += calc.get('valor_cofins', 0)
+                subtotais_entrada['valor_pis'] += valor_pis
+                subtotais_entrada['valor_cofins'] += valor_cofins
             else:
                 if chave not in saidas:
                     saidas[chave] = {
