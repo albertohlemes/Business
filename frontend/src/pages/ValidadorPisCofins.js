@@ -223,6 +223,71 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
     }
   };
 
+  // Estado para aplicação de regras (Rever CST)
+  const [aplicandoRegras, setAplicandoRegras] = useState(false);
+
+  const handleAplicarRegras = async (tipoOperacao) => {
+    const msgConfirm = tipoOperacao === 'entrada' 
+      ? 'Isso aplicará as regras de PIS/COFINS nos CSTs de ENTRADA de todos os documentos. Deseja continuar?'
+      : tipoOperacao === 'saida'
+      ? 'Isso aplicará as regras de PIS/COFINS nos CSTs de SAÍDA de todos os documentos. Deseja continuar?'
+      : 'Isso aplicará as regras de PIS/COFINS nos CSTs de ENTRADA e SAÍDA de todos os documentos. Deseja continuar?';
+    
+    if (!window.confirm(msgConfirm)) return;
+    
+    setAplicandoRegras(true);
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      const response = await axios.post(
+        `${API}/validador-pis-cofins/${selectedCompany.id}/aplicar-regras?competencia=${encodeURIComponent(selectedCompetencia)}&tipo_operacao=${tipoOperacao}`,
+        {},
+        { headers }
+      );
+      
+      const { total_processados, total_alterados, novas_regras_criadas } = response.data;
+      
+      let mensagem = `Processamento concluído!\n\n`;
+      mensagem += `• ${total_processados} produtos analisados\n`;
+      mensagem += `• ${total_alterados} CSTs atualizados\n`;
+      
+      if (novas_regras_criadas > 0) {
+        mensagem += `\n${novas_regras_criadas} novas regras foram criadas automaticamente e estão disponíveis na aba "Regras" para auditoria.`;
+      }
+      
+      alert(mensagem);
+      fetchData();
+    } catch (err) {
+      console.error('Erro ao aplicar regras:', err);
+      alert('Erro ao aplicar regras: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setAplicandoRegras(false);
+    }
+  };
+
+  // Salvar regra diretamente ao editar um NCM na listagem
+  const handleSalvarRegraRapida = async (ncm, tipoRegra, descricao) => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      await axios.post(
+        `${API}/validador-pis-cofins/${selectedCompany.id}/criar-regra-ncm`,
+        {
+          ncm,
+          tipo_regra: tipoRegra,
+          descricao
+        },
+        { headers }
+      );
+      
+      fetchData();
+    } catch (err) {
+      console.error('Erro ao salvar regra:', err);
+    }
+  };
+
   const handleCriarRegraNcm = (item) => {
     let tipoInicial = 'tributado';
     if (item.aliquota_pis_praticada === 0 && item.aliquota_cofins_praticada === 0) {
