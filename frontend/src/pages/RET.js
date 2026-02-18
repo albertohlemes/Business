@@ -429,7 +429,7 @@ const RET = ({ user, onLogout }) => {
             </div>
 
             {/* Melhor Regime - Destaque */}
-            {melhorRegime && (
+            {melhorRegime && segundoMelhorRegime && (
               <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl p-6">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-green-500/20 rounded-full">
@@ -438,24 +438,7 @@ const RET = ({ user, onLogout }) => {
                   <div className="flex-1">
                     <h3 className="text-green-400 font-bold text-xl">Regime Mais Econômico: {melhorRegime.nome}</h3>
                     <p className="text-[#A1A1AA]">
-                      {(() => {
-                        // Calcular economia corretamente
-                        // Comparar com o pior regime disponível
-                        const totais = [];
-                        if (!simplesIndisponivel && dadosAtivos?.simples?.total !== undefined) {
-                          totais.push(dadosAtivos.simples.total);
-                        }
-                        if (dadosAtivos?.presumido?.total !== undefined) {
-                          totais.push(dadosAtivos.presumido.total);
-                        }
-                        if (dadosAtivos?.real?.total !== undefined) {
-                          totais.push(dadosAtivos.real.total);
-                        }
-                        // Economia = pior regime - melhor regime
-                        const piorRegime = Math.max(...totais);
-                        const economia = piorRegime - melhorRegime.total;
-                        return `Economia de até ${formatCurrency(economia)} em comparação com outros regimes`;
-                      })()}
+                      Economia de {formatCurrency(segundoMelhorRegime.total - melhorRegime.total)} em comparação com {segundoMelhorRegime.nome}
                     </p>
                   </div>
                   <div className="text-right">
