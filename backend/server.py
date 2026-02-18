@@ -1353,6 +1353,33 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
     perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
     perfil = perfis[0] if perfis else 'VAREJO'
     regime = company.get('regime_tributario', 'lucro_real')
+    is_presumido = regime == 'lucro_presumido'
+    
+    # ==========================================================================
+    # BUSCAR REGRAS DA EMPRESA PARA USO CONSISTENTE EM TODA A APLICAÇÃO
+    # ==========================================================================
+    regras_empresa = await db.regras_pis_cofins.find({
+        "company_id": company_id,
+        "ativo": True
+    }).to_list(length=1000)
+    
+    # Indexar regras por NCM (completo e prefixos)
+    regras_por_ncm = {}
+    for r in regras_empresa:
+        if r['tipo'] == 'ncm':
+            chave = r['chave'].replace('.', '').strip()
+            regras_por_ncm[chave] = r
+    
+    def buscar_regra_ncm(ncm: str):
+        """Busca regra para NCM: tenta completo, depois prefixos menores"""
+        if not ncm or len(ncm) < 4:
+            return None
+        # Tentar NCM completo, depois prefixos menores
+        for i in range(len(ncm), 3, -1):
+            prefixo = ncm[:i]
+            if prefixo in regras_por_ncm:
+                return regras_por_ncm[prefixo]
+        return None
     
     # Query base com filtro de notas ativas
     query = {
