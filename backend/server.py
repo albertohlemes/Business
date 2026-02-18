@@ -1343,9 +1343,15 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
         'base_debito': float
     }
     """
-    from decimal import Decimal, ROUND_HALF_UP
-    # IMPORTAR constantes do serviço para garantir UMA ÚNICA fonte de verdade
-    from services.pis_cofins_calculator import CFOPS_SEM_CREDITO as CFOPS_SEM_CREDITO_SERVICO, CFOPS_SEM_DEBITO as CFOPS_SEM_DEBITO_SERVICO
+    try:
+        from decimal import Decimal, ROUND_HALF_UP
+        # IMPORTAR constantes do serviço para garantir UMA ÚNICA fonte de verdade
+        try:
+            from services.pis_cofins_calculator import CFOPS_SEM_CREDITO as CFOPS_SEM_CREDITO_SERVICO, CFOPS_SEM_DEBITO as CFOPS_SEM_DEBITO_SERVICO
+        except ImportError:
+            logger.warning("Não foi possível importar constantes do serviço pis_cofins_calculator")
+            CFOPS_SEM_CREDITO_SERVICO = []
+            CFOPS_SEM_DEBITO_SERVICO = []
     
     # ============================================================
     # CATEGORIAS que NÃO geram crédito de PIS/COFINS (entradas)
