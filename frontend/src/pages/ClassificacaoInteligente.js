@@ -24,7 +24,7 @@ const NFsList = ({ ocorrencias, maxVisible = 2 }) => {
     e.stopPropagation();
     e.preventDefault();
     // Navegar para a página de documentos com o documento selecionado
-    window.location.href = `/documentos?doc=${docId}&highlight=true`;
+    window.location.href = `/documents?doc=${docId}&highlight=true`;
   };
   
   return (
