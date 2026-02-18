@@ -1,0 +1,72 @@
+{
+  "summary": "Tested Grupo Consolidado feature for AURION Sistema Fiscal. Fixed critical bug in GrupoConsolidado.js where user/onLogout props were not passed to Layout component. All backend endpoints pass (6/6). Frontend functionality verified: menu appears only for matriz companies, all 6 tabs work correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_grupo_consolidado.py",
+    "/app/test_reports/pytest/pytest_grupo_consolidado.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Layout.js correctly checks if company is matriz via /api/empresa/{company_id}/grupo-info endpoint",
+    "Menu 'Grupo Consolidado' appears in IMPOSTOS section only when isMatriz is true",
+    "GrupoConsolidado.js component now correctly receives and passes user/onLogout props to Layout",
+    "Backend endpoints grupo-info and impostos-grupo return correct consolidated data for matriz + filiais"
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/GrupoConsolidado.js"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "alberto.lemes@businessconta.com.br",
+    "password": "@Ahl142536",
+    "empresa_matriz_id": "d7f30ea1-9df3-4124-a561-12984ffff64b",
+    "empresa_matriz_nome": "COMERCIAL RS LTDA",
+    "empresa_matriz_codigo": "6026"
+  },
+  "seed_data_creation": "None - used existing Grupo Comercial RS with 1 matriz + 1 filial",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Grupo Consolidado feature is fully functional. The group 'Grupo Comercial RS' contains COMERCIAL RS LTDA (matriz, code 6026) and TEKNOLINK SJC (filial). Menu appears correctly only when matriz company is selected. All 6 tabs (Indicadores, ICMS, PIS/COFINS, IRPJ/CSLL, RET, Reforma Tributária) work correctly.",
+  "features_verified": {
+    "menu_visibility_for_matriz": {
+      "status": "PASSED",
+      "details": "Menu 'Grupo Consolidado' with 'GRUPO' badge appears in IMPOSTOS section only when COMERCIAL RS LTDA (matriz) is selected"
+    },
+    "grupo_info_endpoint": {
+      "status": "PASSED",
+      "details": "GET /api/empresa/{company_id}/grupo-info returns correct is_matriz, grupo, matriz, filiais data"
+    },
+    "impostos_grupo_endpoint": {
+      "status": "PASSED",
+      "details": "GET /api/empresa/{company_id}/impostos-grupo returns consolidated data for matriz + filiais with competencia parameter"
+    },
+    "page_loading": {
+      "status": "PASSED",
+      "details": "/grupo-consolidado page loads correctly with header, tabs, and consolidated data"
+    },
+    "tabs_functionality": {
+      "status": "PASSED",
+      "details": "All 6 tabs (Indicadores, ICMS, PIS/COFINS, IRPJ/CSLL, RET, Reforma Tributária) navigate correctly and show appropriate data"
+    },
+    "consolidated_display": {
+      "status": "PASSED",
+      "details": "Page displays MATRIZ card, FILIAL cards, and CONSOLIDADO DO GRUPO summary with correct styling"
+    }
+  },
+  "bug_fixed": {
+    "description": "GrupoConsolidado.js was not passing user and onLogout props to Layout component, causing 'Cannot read properties of undefined (reading name)' error",
+    "root_cause": "Component signature was missing props from router",
+    "fix_applied": "Added { user, onLogout } props to component and passed them to all Layout instances"
+  }
+}
