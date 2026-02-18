@@ -17965,19 +17965,12 @@ async def get_classification_suggestions_v2(
                 
             elif historico:
                 # Produto existe no histórico - aplicar classificação automaticamente!
+                # MAS APENAS se o CFOP atual permitir (não é CFOP especial)
                 grupo = produtos_ja_classificados[chave_atual]
                 grupo['codigo'] = codigo
                 grupo['descricao'] = descricao_original
                 grupo['ncm'] = ncm
-                # CORREÇÃO: Mostrar o CFOP do histórico, não o CFOP antigo do banco
-                cfop_do_historico = historico.get('cfop', '')
-                cfop_atual_prod = prod.get('cfop', '')
-                # Ajustar prefixo se necessário
-                if cfop_do_historico and cfop_atual_prod:
-                    prefixo_atual = cfop_atual_prod[0] if cfop_atual_prod[0] in ['1', '2'] else '1'
-                    if cfop_do_historico[0] in ['1', '2'] and cfop_do_historico[0] != prefixo_atual:
-                        cfop_do_historico = prefixo_atual + cfop_do_historico[1:]
-                grupo['cfop_atual'] = cfop_do_historico or cfop_atual_prod
+                grupo['cfop_atual'] = prod.get('cfop', '')  # Manter CFOP do produto
                 grupo['categoria_atual'] = historico['categoria']
                 grupo['quantidade'] += prod.get('quantidade', 0)
                 grupo['valor_total'] += prod.get('valor_total', 0)
@@ -17991,25 +17984,10 @@ async def get_classification_suggestions_v2(
                 grupo['fonte_classificacao'] = historico['fonte']
                 
                 # Marcar para atualizar no banco (aplicar classificação automaticamente)
-                # IMPORTANTE: Atualizar TANTO a categoria QUANTO o CFOP baseado na regra
+                # APENAS atualizar categoria, NÃO o CFOP (CFOP já está correto da importação)
                 prod['categoria_classificada'] = historico['categoria']
                 prod['classificacao_automatica'] = True
                 prod['fonte_classificacao'] = historico['fonte']
-                
-                # CORREÇÃO: Também atualizar o CFOP se a regra tiver um CFOP definido
-                if historico.get('cfop'):
-                    cfop_historico = historico['cfop']
-                    # Preservar o prefixo estadual/interestadual do CFOP atual
-                    cfop_atual_prod = str(prod.get('cfop', ''))
-                    if cfop_atual_prod:
-                        prefixo_atual = cfop_atual_prod[0] if cfop_atual_prod[0] in ['1', '2'] else '1'
-                        # Se o CFOP do histórico tem prefixo diferente, ajustar
-                        if cfop_historico[0] in ['1', '2'] and cfop_historico[0] != prefixo_atual:
-                            # Converter prefixo: 1xxx -> 2xxx ou vice-versa
-                            cfop_historico = prefixo_atual + cfop_historico[1:]
-                        prod['cfop'] = cfop_historico
-                        prod['cfop_origem'] = 'regra_historico'
-                
                 doc_modificado = True
                 
             else:
