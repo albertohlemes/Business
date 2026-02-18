@@ -356,6 +356,8 @@ CFOPS_SEM_DEBITO = [
     '5923', '6923',  # Remessa de mercadoria por conta e ordem de terceiros
     '5924', '6924',  # Remessa para industrialização por conta e ordem do adquirente
     '5925', '6925',  # Retorno de mercadoria recebida para industrialização
+    '5926', '6926',  # Lançamento efetuado a título de reclassificação de mercadoria
+    '5927', '6927',  # Lançamento efetuado a título de baixa de estoque (cupom fiscal)
     '5949', '6949',  # Outra saída de mercadoria ou prestação de serviço não especificado
     '5929', '6929',  # Lançamento efetuado em decorrência de emissão de documento fiscal
     '5931', '6931',  # Lançamento efetuado em decorrência da responsabilidade de retenção
@@ -372,6 +374,16 @@ CFOPS_SEM_DEBITO = [
     '5603', '6603',  # Ressarcimento de ICMS retido por substituição tributária
     '5605', '6605',  # Transferência de saldo devedor de ICMS
     '5606', '6606',  # Utilização de saldo credor de ICMS
+    # Remessas diversas
+    '5901', '6901',  # Remessa para industrialização por encomenda
+    '5902', '6902',  # Retorno de mercadoria utilizada na industrialização por encomenda
+    '5903', '6903',  # Retorno de mercadoria recebida para industrialização
+    '5904', '6904',  # Remessa para venda fora do estabelecimento
+    '5905', '6905',  # Remessa para depósito fechado ou armazém geral
+    '5906', '6906',  # Retorno de mercadoria depositada em depósito fechado ou armazém
+    '5907', '6907',  # Retorno simbólico de mercadoria depositada
+    '5908', '6908',  # Remessa de bem por conta de contrato de comodato
+    '5909', '6909',  # Retorno de bem recebido por conta de contrato de comodato
 ]
 
 # =============================================================================
