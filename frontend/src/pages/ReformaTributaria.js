@@ -8,7 +8,6 @@ import {
 import axios from 'axios';
 import { useAppContext } from '../context/AppContext';
 import Layout from '../components/Layout';
-import GrupoEmpresarialPanel from '../components/GrupoEmpresarialPanel';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
