@@ -13,7 +13,7 @@ import os
 import re
 
 # Use the production URL from environment
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://apuracao-test.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://pis-cofins-fix.preview.emergentagent.com')
 
 # Test credentials provided in review request
 TEST_EMAIL = "alberto.lemes@businessconta.com.br"
