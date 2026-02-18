@@ -2019,9 +2019,6 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
                             cst = '49'  # Outras saídas
                         valor_pis = Decimal('0')
                         valor_cofins = Decimal('0')
-                    else:
-                        valor_pis = Decimal('0')
-                        valor_cofins = Decimal('0')
                 
                 chave = f"{cfop}_{cst}"
                 if chave not in saidas_cfop_cst:
