@@ -71,7 +71,10 @@ const Documents = ({ user, onLogout }) => {
   const { startUpload, isUploading: globalUploading, progress: globalProgress, currentFile, uploadResults: globalResults, uploadError: globalError, clearResults, notifyDocumentsChanged } = useUpload();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const highlightDocId = searchParams.get('highlight') || searchParams.get('doc');
+  // Priorizar 'doc' sobre 'highlight' - highlight=true é apenas um flag, não um ID
+  const docParam = searchParams.get('doc');
+  const highlightParam = searchParams.get('highlight');
+  const highlightDocId = docParam || (highlightParam && highlightParam !== 'true' ? highlightParam : null);
   const urlOperacao = searchParams.get('operacao'); // 'entrada' ou 'saida'
   const urlTipo = searchParams.get('tipo'); // 'nfe', 'nfce', 'cte', 'servicos_tomados', etc.
   
