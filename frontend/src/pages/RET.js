@@ -409,6 +409,14 @@ const RET = ({ user, onLogout }) => {
           </div>
         ) : dadosAtivos ? (
           <div className="space-y-6">
+            {/* Painel de Grupo Empresarial - Mostrar se for matriz */}
+            <GrupoEmpresarialPanel
+              companyId={selectedCompany?.id}
+              competencia={selectedCompetencia}
+              token={localStorage.getItem('token')}
+              tipoImposto="todos"
+            />
+            
             {/* Resumo do Período */}
             <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
