@@ -801,6 +801,27 @@ const Dashboard = ({ user, onLogout }) => {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Card de Atalho - Grupos Empresariais */}
+                  <Link 
+                    to="/grupos-empresariais"
+                    className="mt-4 bg-gradient-to-r from-[#1A1A1A] to-[#141414] border border-[#2A2A2A] hover:border-[#C8A951]/50 rounded-lg p-4 flex items-center justify-between group transition-all duration-300"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-lg bg-[#C8A951]/20 flex items-center justify-center group-hover:bg-[#C8A951]/30 transition-colors">
+                        <Building2 className="w-6 h-6 text-[#C8A951]" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-white group-hover:text-[#C8A951] transition-colors">
+                          Grupos Empresariais (Matriz-Filial)
+                        </h4>
+                        <p className="text-sm text-[#A1A1AA]">
+                          Gerencie holdings, vincule matriz e filiais, e veja relatórios consolidados
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-[#A1A1AA] group-hover:text-[#C8A951] group-hover:translate-x-1 transition-all" />
+                  </Link>
                 </>
               )}
             </div>
