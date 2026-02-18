@@ -652,17 +652,20 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                           <tr className="bg-[#0C0C0C] font-semibold">
                             <td className="px-4 py-3 text-white">TOTAL CONSOLIDADO</td>
                             <td className="px-4 py-3 text-right text-white">{formatCurrency(consolidadoData.resumo?.total_saidas)}</td>
-                            <td className={`px-4 py-3 text-right ${consolidadoData.icms?.saldo >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                              {formatCurrency(consolidadoData.icms?.saldo)}
+                            <td className="px-4 py-3 text-right text-red-400">
+                              {formatCurrency(consolidadoData.pis?.a_pagar)}
                             </td>
-                            <td className={`px-4 py-3 text-right ${consolidadoData.pis?.saldo >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                              {formatCurrency(consolidadoData.pis?.saldo)}
+                            <td className="px-4 py-3 text-right text-red-400">
+                              {formatCurrency(consolidadoData.cofins?.a_pagar)}
                             </td>
-                            <td className={`px-4 py-3 text-right ${consolidadoData.cofins?.saldo >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                              {formatCurrency(consolidadoData.cofins?.saldo)}
+                            <td className="px-4 py-3 text-right text-purple-400">
+                              {formatCurrency(consolidadoData.irpj?.total)}
+                            </td>
+                            <td className="px-4 py-3 text-right text-purple-400">
+                              {formatCurrency(consolidadoData.csll?.devido)}
                             </td>
                             <td className="px-4 py-3 text-right text-[#C8A951] font-bold">
-                              {formatCurrency((consolidadoData.pis?.a_pagar || 0) + (consolidadoData.cofins?.a_pagar || 0))}
+                              {formatCurrency(consolidadoData.total_impostos_federais)}
                             </td>
                           </tr>
                         </tfoot>
