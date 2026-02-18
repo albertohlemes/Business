@@ -26900,6 +26900,16 @@ async def detalhamento_pis_cofins(
             'itens': lista_saidas,
             'subtotais': subtotais_saida
         },
+        'transferencias': {
+            'itens': lista_transferencias,
+            'subtotais': {
+                'quantidade': subtotais_transferencia['quantidade'],
+                'valor_base': round(subtotais_transferencia['valor_base'], 2),
+                'valor_pis': 0,
+                'valor_cofins': 0,
+                'motivo': 'Transferência entre matriz e filial - imposto federal centralizado na matriz'
+            }
+        },
         'saldo': saldo_final
     }
 
