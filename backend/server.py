@@ -39695,7 +39695,7 @@ async def validador_piscofins_dados(
                 status = 'divergente'
         
         ncms_resultado.append({
-            'ncm': ncm_4,
+            'ncm': ncm_key,
             'descricao': (regra_padrao or {}).get('descricao', '') or (regra or {}).get('descricao', ''),
             'produtos_exemplo': dados['produtos_exemplo'],
             'quantidade': dados['quantidade'],
