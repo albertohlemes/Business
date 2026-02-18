@@ -561,6 +561,14 @@ const PisCofins = ({ user, onLogout }) => {
     
     return (
       <div className="space-y-6">
+        {/* Painel de Grupo Empresarial - Mostrar se for matriz */}
+        <GrupoEmpresarialPanel
+          companyId={selectedCompany?.id}
+          competencia={selectedCompetencia}
+          token={localStorage.getItem('token')}
+          tipoImposto="pis_cofins"
+        />
+        
         {/* Saldo Credor Anterior - Mostrar somente se tiver valor */}
         {temSaldoCredorAnterior && (
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
