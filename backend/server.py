@@ -37593,59 +37593,72 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
     except Exception as e:
         logger.error(f"REFORMA TRIBUTÁRIA AGREGADO: Erro ao buscar detalhes: {e}")
     
-    # Calcular PIS/COFINS atual para comparativo
-    pis_debito_atual = total_saidas * 0.0165  # 1.65%
-    pis_credito_atual = total_entradas * 0.0165
-    cofins_debito_atual = total_saidas * 0.076  # 7.6%
-    cofins_credito_atual = total_entradas * 0.076
-    
-    pis_saldo = pis_debito_atual - pis_credito_atual
-    cofins_saldo = cofins_debito_atual - cofins_credito_atual
-    pis_cofins_total = pis_saldo + cofins_saldo
+    # Calcular PIS/COFINS atual para comparativo - USAR FUNÇÃO CENTRALIZADA
+    try:
+        resultado_pis_cofins = await calcular_pis_cofins_unificado(company_id, competencia, company)
+        pis_debito_real = resultado_pis_cofins['pis_debitos']
+        pis_credito_real = resultado_pis_cofins['pis_creditos']
+        cofins_debito_real = resultado_pis_cofins['cofins_debitos']
+        cofins_credito_real = resultado_pis_cofins['cofins_creditos']
+        pis_saldo_real = resultado_pis_cofins['pis_saldo']
+        cofins_saldo_real = resultado_pis_cofins['cofins_saldo']
+        pis_cofins_total_real = pis_saldo_real + cofins_saldo_real
+        logger.info(f"REFORMA TRIBUTÁRIA AGREGADO: PIS/COFINS - crédito PIS={pis_credito_real:.2f}, débito PIS={pis_debito_real:.2f}")
+    except Exception as e:
+        logger.error(f"REFORMA TRIBUTÁRIA AGREGADO: Erro ao calcular PIS/COFINS: {e}")
+        pis_debito_real = total_saidas * 0.0165
+        pis_credito_real = total_entradas * 0.0165
+        cofins_debito_real = total_saidas * 0.076
+        cofins_credito_real = total_entradas * 0.076
+        pis_saldo_real = pis_debito_real - pis_credito_real
+        cofins_saldo_real = cofins_debito_real - cofins_credito_real
+        pis_cofins_total_real = pis_saldo_real + cofins_saldo_real
     
     # ============================================================
-    # BUSCAR ICMS para comparativo com regime atual
+    # BUSCAR ICMS - USAR A MESMA FUNÇÃO DO MENU ICMS
     # ============================================================
-    logger.info(f"REFORMA TRIBUTÁRIA AGREGADO: Buscando ICMS para comparativo")
+    logger.info(f"REFORMA TRIBUTÁRIA AGREGADO: Buscando ICMS usando função padrão")
     icms_debito_real = 0
     icms_credito_real = 0
+    icms_saldo_real = 0
     
     try:
-        # Pipeline para ICMS de saídas (débitos)
-        pipeline_icms_debito = [
-            {
-                "$match": {
-                    "company_id": company_id,
-                    "competencia": competencia,
-                    "desconsiderada_devolucao": {"$ne": True},
-                    "$or": [
-                        {"tipo": {"$in": ["saida", "exit", "output"]}},
-                        {"tipo_operacao": {"$in": ["saida", "exit", "output"]}}
-                    ]
-                }
-            },
-            {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": False}},
-            {
-                "$group": {
-                    "_id": None,
-                    "total_icms": {
-                        "$sum": {
-                            "$toDouble": {
-                                "$ifNull": [
-                                    {"$ifNull": ["$produtos.v_icms", "$produtos.valor_icms"]}, 
-                                    0
-                                ]
-                            }
-                        }
-                    }
-                }
-            }
+        # Usar a mesma função do menu ICMS para consistência
+        CFOPS_DESPESA = [
+            '1407', '2407', '1556', '2556', '1557', '2557', '1128', '2128',
+            '1551', '2551', '1406', '2406', '1653', '2653', '1126', '2126',
+            '1352', '2352', '1353', '2353', '1354', '2354',
+        ]
+        CFOPS_ST = [
+            '1403', '2403', '1409', '2409', '1410', '2410', '1411', '2411',
+            '1414', '2414', '1415', '2415', '1651', '2651', '1652', '2652',
         ]
         
-        cursor_icms_debito = db.xml_documents.aggregate(pipeline_icms_debito, allowDiskUse=True)
-        resultado_icms_debito = await cursor_icms_debito.to_list(length=1)
-        if resultado_icms_debito:
-            icms_debito_real = float(resultado_icms_debito[0].get('total_icms', 0) or 0)
+        desconsiderar_icms_despesas = company.get('desconsiderar_icms_despesas', False)
+        desconsiderar_icms_st = company.get('desconsiderar_icms_st', False)
+        beneficio_fiscal_icms = company.get('beneficio_fiscal_icms', False)
+        
+        query_icms = {
+            "company_id": company_id,
+            "competencia": competencia
+        }
+        
+        icms_result = await _get_icms_aggregated(
+            company, company_id, competencia, query_icms, total_docs,
+            CFOPS_DESPESA, CFOPS_ST, desconsiderar_icms_despesas, 
+            desconsiderar_icms_st, beneficio_fiscal_icms
+        )
+        
+        apuracao_icms = icms_result.get('apuracao', {})
+        icms_credito_real = apuracao_icms.get('credito_icms', 0)
+        icms_debito_real = apuracao_icms.get('debito_icms', 0)
+        icms_saldo_real = apuracao_icms.get('saldo', 0)
+        
+        logger.info(f"REFORMA TRIBUTÁRIA AGREGADO: ICMS - crédito={icms_credito_real:.2f}, débito={icms_debito_real:.2f}, saldo={icms_saldo_real:.2f}")
+    except Exception as e:
+        logger.error(f"REFORMA TRIBUTÁRIA AGREGADO: Erro ao calcular ICMS: {e}")
+        import traceback
+        traceback.print_exc()
         
         # Pipeline para ICMS de entradas (créditos) - apenas se Lucro Real
         regime_empresa = company.get('regime_tributario', 'lucro_real')
