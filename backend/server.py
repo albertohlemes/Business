@@ -38897,11 +38897,12 @@ async def validador_icms_por_produto(
             
             if excecao_aplicada:
                 aliq_esperada = excecao_aplicada.get('aliquota')
-            elif is_st:
-                # Produtos com ST: o ICMS próprio destacado é 0% na venda
+            elif is_st or regra.get('aplica_st', False):
+                # Produtos com ST (detectado pelo CST ou marcado na regra):
+                # O ICMS próprio destacado é 0% na venda
                 # O ICMS já foi recolhido por substituição tributária
-                # CSTs 10, 30, 60, 70 indicam operações com ST
                 aliq_esperada = 0.0
+                is_st = True  # Marcar como ST para o status
             elif tipo_op == 'interestadual':
                 # Determinar alíquota interestadual
                 if uf_dest and uf_dest in ALIQUOTAS_INTERESTADUAIS['sul_sudeste']:
