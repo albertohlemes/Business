@@ -121,8 +121,12 @@ const Layout = ({ user, onLogout, children }) => {
     // ═══════════════════════════════════════════════════════════
     nav.push({ type: 'separator', label: 'Ações' });
     nav.push({ name: 'Classificação Inteligente', href: '/classificacao-inteligente', icon: Brain, testId: 'nav-classificacao-inteligente' });
-    nav.push({ name: 'Validador PIS/COFINS', href: '/validador-pis-cofins', icon: AlertTriangle, testId: 'nav-validador-pis-cofins' });
-    nav.push({ name: 'Validador ICMS', href: '/validador-icms', icon: AlertTriangle, testId: 'nav-validador-icms' });
+    
+    // Validadores só aparecem para empresas que NÃO são do Simples Nacional
+    if (regimeTributario !== 'simples_nacional') {
+      nav.push({ name: 'Validador PIS/COFINS', href: '/validador-pis-cofins', icon: AlertTriangle, testId: 'nav-validador-pis-cofins' });
+      nav.push({ name: 'Validador ICMS', href: '/validador-icms', icon: AlertTriangle, testId: 'nav-validador-icms' });
+    }
     
     if (regimeTributario === 'simples_nacional') {
       nav.push({ name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' });
