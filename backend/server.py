@@ -35680,8 +35680,25 @@ async def complete_wizard_step(
             logger.info(f"WIZARD STEP 3: Encontrados {len(docs)} documentos para CFOP {cfop_chave}")
             
             if acao == "manter":
-                # Apenas remover o flag pendente_revisao_cfop sem alterar o CFOP
-                # MAS TAMBÉM definir categoria_classificada baseada no CFOP atual
+                # "Manter" na verdade significa "Converter para o CFOP de entrada sugerido"
+                # O cfop_destino é o CFOP de ENTRADA equivalente (ex: 5910 → 1910)
+                # Se cfop_destino for diferente do CFOP atual, ATUALIZAR o CFOP
+                cfop_destino = cfop_destino_manual if cfop_destino_manual else None
+                
+                # Se não tiver cfop_destino explícito, calcular o CFOP de entrada equivalente
+                if not cfop_destino:
+                    if cfop_chave.startswith('5'):
+                        cfop_destino = '1' + cfop_chave[1:]  # 5910 → 1910
+                    elif cfop_chave.startswith('6'):
+                        cfop_destino = '2' + cfop_chave[1:]  # 6910 → 2910
+                    else:
+                        cfop_destino = cfop_chave
+                
+                # Determinar categoria baseada no CFOP de DESTINO (não do atual)
+                categoria_cfop = obter_categoria_por_cfop(cfop_destino)
+                
+                logger.info(f"WIZARD STEP 3 MANTER: CFOP {cfop_chave} → {cfop_destino}, categoria={categoria_cfop}")
+                
                 count = 0
                 for doc in docs:
                     produtos_atualizados = doc.get("produtos", [])
@@ -35692,9 +35709,9 @@ async def complete_wizard_step(
                         
                         # Verificar se este produto corresponde ao CFOP do alerta
                         if p.get("pendente_revisao_cfop") and (cfop_prod in cfops_buscar or cfop_emissor in cfops_buscar):
-                            # Determinar categoria baseada no CFOP
-                            categoria_cfop = obter_categoria_por_cfop(cfop_prod)
-                            
+                            # ATUALIZAR o CFOP para o destino
+                            p["cfop_original_distinto"] = cfop_prod
+                            p["cfop"] = cfop_destino
                             p["pendente_revisao_cfop"] = False
                             p["cfop_revisado_wizard"] = True
                             p["cfop_revisado_em"] = datetime.now(timezone.utc).isoformat()
@@ -35706,6 +35723,7 @@ async def complete_wizard_step(
                                 p["categoria_origem"] = "wizard_manter"
                                 p["categoria_classificada_em"] = datetime.now(timezone.utc).isoformat()
                             
+                            logger.info(f"WIZARD STEP 3 MANTER: Produto '{p.get('descricao', '')[:30]}' CFOP {cfop_prod} → {cfop_destino} ({categoria_cfop})")
                             alterado = True
                             count += 1
                     
@@ -35715,7 +35733,7 @@ async def complete_wizard_step(
                             {"$set": {"produtos": produtos_atualizados}}
                         )
                 
-                actions_taken.append(f"CFOP {cfop_chave}: {count} produtos mantidos e classificados")
+                actions_taken.append(f"CFOP {cfop_chave} → {cfop_destino}: {count} produtos convertidos e classificados")
             
             elif acao == "converter_compra":
                 # Converter para CFOP de compra (entradas)
