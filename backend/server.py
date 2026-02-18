@@ -1647,39 +1647,20 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
         logger.error(f"Erro ao arredondar totais PIS/COFINS: {e}")
         pis_creditos = pis_debitos = cofins_creditos = cofins_debitos = 0.0
     
-        return {
-            'pis_creditos': pis_creditos,
-            'pis_debitos': pis_debitos,
-            'cofins_creditos': cofins_creditos,
-            'cofins_debitos': cofins_debitos,
-            'pis_saldo': round(pis_debitos - pis_creditos, 2),
-            'cofins_saldo': round(cofins_debitos - cofins_creditos, 2),
-            'base_credito': arredondar(totais['base_credito']),
-            'base_debito': arredondar(totais['base_debito']),
-            'desconsiderados': {
-                'base_credito': arredondar(totais['desconsiderados_credito']),
-                'base_debito': arredondar(totais['desconsiderados_debito'])
-            }
+    return {
+        'pis_creditos': pis_creditos,
+        'pis_debitos': pis_debitos,
+        'cofins_creditos': cofins_creditos,
+        'cofins_debitos': cofins_debitos,
+        'pis_saldo': round(pis_debitos - pis_creditos, 2),
+        'cofins_saldo': round(cofins_debitos - cofins_creditos, 2),
+        'base_credito': arredondar(totais['base_credito']),
+        'base_debito': arredondar(totais['base_debito']),
+        'desconsiderados': {
+            'base_credito': arredondar(totais['desconsiderados_credito']),
+            'base_debito': arredondar(totais['desconsiderados_debito'])
         }
-    except Exception as e:
-        logger.error(f"Erro CRÍTICO em calcular_pis_cofins_unificado: {str(e)}")
-        import traceback
-        logger.error(traceback.format_exc())
-        # Retorna valores zerados em caso de erro para não quebrar a aplicação
-        return {
-            'pis_creditos': 0.0,
-            'pis_debitos': 0.0,
-            'cofins_creditos': 0.0,
-            'cofins_debitos': 0.0,
-            'pis_saldo': 0.0,
-            'cofins_saldo': 0.0,
-            'base_credito': 0.0,
-            'base_debito': 0.0,
-            'desconsiderados': {
-                'base_credito': 0.0,
-                'base_debito': 0.0
-            }
-        }
+    }
 
 
 async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company: dict = None) -> dict:
