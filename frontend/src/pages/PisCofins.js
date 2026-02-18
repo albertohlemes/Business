@@ -1056,7 +1056,12 @@ const PisCofins = ({ user, onLogout }) => {
                       <TabelaConfrontoNew 
                         dados={saidas} 
                         tipo="SAIDA" 
-                        subtotal={saidas.filter(s => s.considerado).reduce((acc, item) => ({
+                        subtotal={totaisCentralizados ? {
+                          qtd: saidas.filter(s => s.considerado).reduce((acc, item) => acc + (item.qtd_itens || 0), 0),
+                          valor_base: totaisCentralizados.base_debito || subtotalSaidas.valor_base,
+                          valor_pis: totaisCentralizados.debito_pis,
+                          valor_cofins: totaisCentralizados.debito_cofins
+                        } : saidas.filter(s => s.considerado).reduce((acc, item) => ({
                           qtd: acc.qtd + (item.qtd_itens || 0),
                           valor_base: acc.valor_base + (item.valor_base || 0),
                           valor_pis: acc.valor_pis + (item.valor_pis || 0),
