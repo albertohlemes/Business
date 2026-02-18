@@ -2,6 +2,47 @@
 Constantes fiscais compartilhadas entre os módulos de validação
 """
 
+# =============================================================================
+# CFOPs DE TRANSFERÊNCIA (entre matriz e filiais)
+# Esses CFOPs NÃO geram débito NEM crédito de PIS/COFINS, pois o imposto 
+# federal é centralizado na matriz. Também não geram IRPJ/CSLL.
+# =============================================================================
+CFOPS_TRANSFERENCIA = [
+    # ENTRADAS de transferência (série 1xxx = internas, 2xxx = interestaduais)
+    '1151',  # Transferência p/ industrialização
+    '1152',  # Transferência p/ comercialização
+    '1153',  # Transferência de energia elétrica
+    '1154',  # Transferência p/ utilização na prestação de serviço
+    '1408',  # Transferência p/ industrialização em operação com mercadoria ST
+    '1409',  # Transferência p/ comercialização em operação com mercadoria ST
+    '2151',  # Transferência p/ industrialização (interestadual)
+    '2152',  # Transferência p/ comercialização (interestadual)
+    '2153',  # Transferência de energia elétrica (interestadual)
+    '2154',  # Transferência p/ utilização na prestação de serviço (interestadual)
+    '2408',  # Transferência p/ industrialização em operação com mercadoria ST (interestadual)
+    '2409',  # Transferência p/ comercialização em operação com mercadoria ST (interestadual)
+    # SAÍDAS de transferência (série 5xxx = internas, 6xxx = interestaduais)
+    '5151',  # Transferência p/ industrialização
+    '5152',  # Transferência p/ comercialização  
+    '5153',  # Transferência de energia elétrica
+    '5155',  # Transferência de produção do estabelecimento p/ industrialização
+    '5156',  # Transferência de mercadoria adquirida ou recebida de terceiros
+    '5408',  # Transferência p/ industrialização em operação com mercadoria ST
+    '5409',  # Transferência p/ comercialização em operação com mercadoria ST
+    '6151',  # Transferência p/ industrialização (interestadual)
+    '6152',  # Transferência p/ comercialização (interestadual)
+    '6153',  # Transferência de energia elétrica (interestadual)
+    '6155',  # Transferência de produção do estabelecimento p/ industrialização (interestadual)
+    '6156',  # Transferência de mercadoria adquirida ou recebida de terceiros (interestadual)
+    '6408',  # Transferência p/ industrialização em operação com mercadoria ST (interestadual)
+    '6409',  # Transferência p/ comercialização em operação com mercadoria ST (interestadual)
+]
+
+def is_cfop_transferencia(cfop: str) -> bool:
+    """Verifica se um CFOP é de transferência (entre matriz e filiais)"""
+    return str(cfop).strip() in CFOPS_TRANSFERENCIA
+
+
 # Alíquotas interestaduais de ICMS por região
 ALIQUOTAS_INTERESTADUAIS = {
     # Origem Sul/Sudeste (exceto ES) para Norte/Nordeste/Centro-Oeste/ES = 7%
