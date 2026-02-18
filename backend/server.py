@@ -1461,27 +1461,44 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                     totais['desconsiderados_credito'] += valor_base
                     continue
                 
-                # Usar a função calcular_pis_cofins_produto para determinar tributação
-                regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
-                calc = calcular_pis_cofins_produto(
-                    float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
-                )
+                # ==========================================================
+                # USAR REGRA DA EMPRESA SE EXISTIR, SENÃO CÁLCULO PADRÃO
+                # ==========================================================
+                regra_empresa = buscar_regra_ncm(ncm)
                 
-                # Se CFOP é especial (combustível p/ comercialização), forçar crédito
-                if cfop_com_credito_especial:
-                    # Alíquotas padrão: PIS 1,65% e COFINS 7,6%
-                    pis = valor_base * Decimal('0.0165')
-                    cofins = valor_base * Decimal('0.076')
-                    totais['creditos_pis'] += pis
-                    totais['creditos_cofins'] += cofins
-                    totais['base_credito'] += valor_base
-                elif calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
-                    # Usar Decimal para precisão
-                    pis = Decimal(str(calc.get('valor_pis', 0)))
-                    cofins = Decimal(str(calc.get('valor_cofins', 0)))
-                    totais['creditos_pis'] += pis
-                    totais['creditos_cofins'] += cofins
-                    totais['base_credito'] += valor_base
+                if regra_empresa:
+                    # USAR REGRA DA EMPRESA
+                    gera_credito = regra_empresa.get('gera_credito', True)
+                    if gera_credito:
+                        aliq_pis = Decimal(str(regra_empresa.get('aliquota_pis', 1.65) or 1.65))
+                        aliq_cofins = Decimal(str(regra_empresa.get('aliquota_cofins', 7.6) or 7.6))
+                        pis = (valor_base * aliq_pis / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                        cofins = (valor_base * aliq_cofins / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                        totais['creditos_pis'] += pis
+                        totais['creditos_cofins'] += cofins
+                        totais['base_credito'] += valor_base
+                else:
+                    # Usar a função calcular_pis_cofins_produto para determinar tributação
+                    regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
+                    calc = calcular_pis_cofins_produto(
+                        float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
+                    )
+                    
+                    # Se CFOP é especial (combustível p/ comercialização), forçar crédito
+                    if cfop_com_credito_especial:
+                        # Alíquotas padrão: PIS 1,65% e COFINS 7,6%
+                        pis = valor_base * Decimal('0.0165')
+                        cofins = valor_base * Decimal('0.076')
+                        totais['creditos_pis'] += pis
+                        totais['creditos_cofins'] += cofins
+                        totais['base_credito'] += valor_base
+                    elif calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
+                        # Usar Decimal para precisão
+                        pis = Decimal(str(calc.get('valor_pis', 0)))
+                        cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                        totais['creditos_pis'] += pis
+                        totais['creditos_cofins'] += cofins
+                        totais['base_credito'] += valor_base
                     
             else:  # saída
                 # ============================================================
@@ -1499,18 +1516,41 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                     totais['desconsiderados_debito'] += valor_base
                     continue
                 
-                # Usar a função calcular_pis_cofins_produto para determinar tributação
-                regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
-                calc = calcular_pis_cofins_produto(
-                    float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
-                )
+                # ==========================================================
+                # USAR REGRA DA EMPRESA SE EXISTIR, SENÃO CÁLCULO PADRÃO
+                # ==========================================================
+                regra_empresa = buscar_regra_ncm(ncm)
                 
-                if calc.get('valor_pis', 0) > 0:
-                    pis = Decimal(str(calc.get('valor_pis', 0)))
-                    cofins = Decimal(str(calc.get('valor_cofins', 0)))
-                    totais['debitos_pis'] += pis
-                    totais['debitos_cofins'] += cofins
-                    totais['base_debito'] += valor_base
+                if regra_empresa:
+                    # USAR REGRA DA EMPRESA
+                    gera_debito = regra_empresa.get('gera_debito', True)
+                    if gera_debito:
+                        aliq_pis = Decimal(str(regra_empresa.get('aliquota_pis', 1.65) or 1.65))
+                        aliq_cofins = Decimal(str(regra_empresa.get('aliquota_cofins', 7.6) or 7.6))
+                        
+                        # Se lucro presumido e regra não especifica, usar alíquotas cumulativas
+                        if is_presumido and regra_empresa.get('tipo_regra') == 'tributado':
+                            aliq_pis = Decimal('0.65')
+                            aliq_cofins = Decimal('3.0')
+                        
+                        pis = (valor_base * aliq_pis / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                        cofins = (valor_base * aliq_cofins / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                        totais['debitos_pis'] += pis
+                        totais['debitos_cofins'] += cofins
+                        totais['base_debito'] += valor_base
+                else:
+                    # Usar a função calcular_pis_cofins_produto para determinar tributação
+                    regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
+                    calc = calcular_pis_cofins_produto(
+                        float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
+                    )
+                    
+                    if calc.get('valor_pis', 0) > 0:
+                        pis = Decimal(str(calc.get('valor_pis', 0)))
+                        cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                        totais['debitos_pis'] += pis
+                        totais['debitos_cofins'] += cofins
+                        totais['base_debito'] += valor_base
     
     # Arredondar para 2 casas decimais no final
     def arredondar(valor: Decimal) -> float:
