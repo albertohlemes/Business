@@ -327,64 +327,73 @@ class TestValidadorICMSExceptionApplication:
 
 
 # ============================================================
-# VALIDADOR PIS/COFINS - Por CFOP Tests
+# VALIDADOR PIS/COFINS - /dados endpoint Tests (Unified endpoint)
+# Note: The old /por-cfop endpoint was removed. The unified /dados endpoint
+# now returns both CFOPs de Exceção and NCMs data.
 # ============================================================
 
-class TestValidadorPisCofinsPorCfop:
-    """Tests for /api/validador-pis-cofins/{company_id}/por-cfop endpoint"""
+class TestValidadorPisCofinsDados:
+    """Tests for /api/validador-pis-cofins/{company_id}/dados endpoint"""
     
     def test_endpoint_returns_200(self, auth_headers):
         """Test endpoint returns 200 status"""
         response = requests.get(
-            f"{BASE_URL}/api/validador-pis-cofins/{COMPANY_ID}/por-cfop",
+            f"{BASE_URL}/api/validador-pis-cofins/{COMPANY_ID}/dados",
             params={"competencia": COMPETENCIA},
             headers=auth_headers
         )
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         print(f"✅ Endpoint returned 200")
     
-    def test_response_separates_entradas_saidas(self, auth_headers):
-        """Test response contains entradas and saidas separately"""
+    def test_response_has_cfops_excecao(self, auth_headers):
+        """Test response contains cfops_excecao with entradas and saidas"""
         response = requests.get(
-            f"{BASE_URL}/api/validador-pis-cofins/{COMPANY_ID}/por-cfop",
+            f"{BASE_URL}/api/validador-pis-cofins/{COMPANY_ID}/dados",
             params={"competencia": COMPETENCIA},
             headers=auth_headers
         )
         data = response.json()
         
-        assert "entradas" in data, "Response must have 'entradas' field"
-        assert "saidas" in data, "Response must have 'saidas' field"
-        assert isinstance(data["entradas"], list), "entradas must be a list"
-        assert isinstance(data["saidas"], list), "saidas must be a list"
+        assert "cfops_excecao" in data, "Response must have 'cfops_excecao' field"
+        cfops_excecao = data["cfops_excecao"]
+        assert "entradas" in cfops_excecao, "cfops_excecao must have 'entradas' field"
+        assert "saidas" in cfops_excecao, "cfops_excecao must have 'saidas' field"
+        assert isinstance(cfops_excecao["entradas"], list), "entradas must be a list"
+        assert isinstance(cfops_excecao["saidas"], list), "saidas must be a list"
         
-        print(f"✅ Response separates entradas and saidas")
-        print(f"   Entradas: {len(data['entradas'])} CFOPs")
-        print(f"   Saidas: {len(data['saidas'])} CFOPs")
+        print(f"✅ Response has cfops_excecao with entradas and saidas")
+        print(f"   Entradas: {len(cfops_excecao['entradas'])} CFOPs de exceção")
+        print(f"   Saidas: {len(cfops_excecao['saidas'])} CFOPs de exceção")
     
-    def test_cfop_items_have_required_fields(self, auth_headers):
-        """Test CFOP items have required fields"""
+    def test_cfops_excecao_have_required_fields(self, auth_headers):
+        """Test CFOP exceção items have required fields"""
         response = requests.get(
-            f"{BASE_URL}/api/validador-pis-cofins/{COMPANY_ID}/por-cfop",
+            f"{BASE_URL}/api/validador-pis-cofins/{COMPANY_ID}/dados",
             params={"competencia": COMPETENCIA},
             headers=auth_headers
         )
         data = response.json()
+        cfops_excecao = data.get("cfops_excecao", {})
         
-        required_fields = ["cfop", "tipo", "quantidade", "valor_total", "valor_pis", "valor_cofins", "status"]
+        required_fields = ["cfop", "descricao", "quantidade", "valor_total", "status"]
         
         # Check entradas
-        if data["entradas"]:
-            entrada = data["entradas"][0]
+        entradas = cfops_excecao.get("entradas", [])
+        if entradas:
+            entrada = entradas[0]
             for field in required_fields:
-                assert field in entrada, f"Entrada CFOP must have '{field}' field"
-            print(f"✅ Entrada CFOPs have all required fields")
+                assert field in entrada, f"CFOP exceção entrada must have '{field}' field"
+            print(f"✅ Entradas CFOPs exceção have required fields")
+            print(f"   Sample: {entrada.get('cfop')} - {entrada.get('descricao')}")
         
         # Check saidas
-        if data["saidas"]:
-            saida = data["saidas"][0]
+        saidas = cfops_excecao.get("saidas", [])
+        if saidas:
+            saida = saidas[0]
             for field in required_fields:
-                assert field in saida, f"Saida CFOP must have '{field}' field"
-            print(f"✅ Saida CFOPs have all required fields")
+                assert field in saida, f"CFOP exceção saída must have '{field}' field"
+            print(f"✅ Saídas CFOPs exceção have required fields")
+            print(f"   Sample: {saida.get('cfop')} - {saida.get('descricao')}")
 
 
 # ============================================================
