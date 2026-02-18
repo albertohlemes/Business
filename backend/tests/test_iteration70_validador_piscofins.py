@@ -192,16 +192,17 @@ class TestRegraCrudWithExcecoes:
         
         # Verify the regra was created with excecoes
         data = response.json()
-        assert data.get("excecoes") is not None
-        assert len(data.get("excecoes", [])) == 1
-        assert data["excecoes"][0]["chave"] == "PRODUTO_ESPECIAL"
+        regra = data.get("regra", data)  # Response wraps in "regra" key
+        assert regra.get("excecoes") is not None
+        assert len(regra.get("excecoes", [])) == 1
+        assert regra["excecoes"][0]["chave"] == "PRODUTO_ESPECIAL"
         
-        print(f"Created regra with ID: {data.get('id')}")
+        print(f"Created regra with ID: {regra.get('id')}")
         
         # Cleanup - delete the test regra
-        if data.get("id"):
+        if regra.get("id"):
             requests.delete(
-                f"{BASE_URL}/api/validador-pis-cofins/{TEST_COMPANY_ID}/regras/{data['id']}",
+                f"{BASE_URL}/api/validador-pis-cofins/{TEST_COMPANY_ID}/regras/{regra['id']}",
                 headers=auth_headers
             )
     
@@ -230,7 +231,9 @@ class TestRegraCrudWithExcecoes:
             json=nova_regra
         )
         assert create_response.status_code in [200, 201]
-        regra_id = create_response.json().get("id")
+        create_data = create_response.json()
+        regra_created = create_data.get("regra", create_data)
+        regra_id = regra_created.get("id")
         
         # Now update with excecoes
         update_data = {
@@ -252,9 +255,10 @@ class TestRegraCrudWithExcecoes:
             headers=auth_headers,
             json=update_data
         )
-        assert update_response.status_code == 200
+        assert update_response.status_code == 200, f"Update failed: {update_response.text}"
         
-        updated_regra = update_response.json()
+        update_data = update_response.json()
+        updated_regra = update_data.get("regra", update_data)
         assert len(updated_regra.get("excecoes", [])) == 1
         
         # Cleanup
