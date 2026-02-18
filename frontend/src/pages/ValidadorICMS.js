@@ -501,6 +501,27 @@ const ValidadorICMS = ({ user, onLogout }) => {
 
   // Tab Regras
   const TabRegras = () => {
+    // Ordenar regras
+    let regrasSorted = [...regras];
+    if (sortConfigRegras.key) {
+      regrasSorted.sort((a, b) => {
+        let aVal = a[sortConfigRegras.key];
+        let bVal = b[sortConfigRegras.key];
+        
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          return sortConfigRegras.direction === 'asc' ? aVal - bVal : bVal - aVal;
+        }
+        
+        aVal = String(aVal || '').toLowerCase();
+        bVal = String(bVal || '').toLowerCase();
+        
+        if (sortConfigRegras.direction === 'asc') {
+          return aVal.localeCompare(bVal);
+        }
+        return bVal.localeCompare(aVal);
+      });
+    }
+
     return (
       <div className="space-y-6">
         {/* Sugestões de Regras */}
@@ -594,18 +615,30 @@ const ValidadorICMS = ({ user, onLogout }) => {
             <table className="w-full text-sm">
               <thead className="bg-[#0C0C0C]">
                 <tr>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">Tipo</th>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">Chave</th>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">Descrição</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Alíq. Interna</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Alíq. Interest.</th>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">Base Legal</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Status</th>
+                  <th className="text-left py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortRegras('tipo')}>
+                    <div className="flex items-center gap-1">Tipo {getSortIcon(sortConfigRegras, 'tipo')}</div>
+                  </th>
+                  <th className="text-left py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortRegras('chave')}>
+                    <div className="flex items-center gap-1">Chave {getSortIcon(sortConfigRegras, 'chave')}</div>
+                  </th>
+                  <th className="text-left py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortRegras('descricao')}>
+                    <div className="flex items-center gap-1">Descrição {getSortIcon(sortConfigRegras, 'descricao')}</div>
+                  </th>
+                  <th className="text-center py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortRegras('aliquota_interna')}>
+                    <div className="flex items-center justify-center gap-1">Alíq. Int. {getSortIcon(sortConfigRegras, 'aliquota_interna')}</div>
+                  </th>
+                  <th className="text-center py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortRegras('aliquota_interestadual_sul_sudeste')}>
+                    <div className="flex items-center justify-center gap-1">Alíq. Inter. {getSortIcon(sortConfigRegras, 'aliquota_interestadual_sul_sudeste')}</div>
+                  </th>
+                  <th className="text-left py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortRegras('base_legal')}>
+                    <div className="flex items-center gap-1">Base Legal {getSortIcon(sortConfigRegras, 'base_legal')}</div>
+                  </th>
+                  <th className="text-center py-3 px-4 text-[#A1A1AA]">ST</th>
                   <th className="text-center py-3 px-4 text-[#A1A1AA]">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {regras.map((regra, idx) => (
+                {regrasSorted.map((regra, idx) => (
                   <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
                     <td className="py-3 px-4">
                       <span className={`px-2 py-0.5 rounded text-xs ${regra.tipo === 'ncm' ? 'bg-purple-600/20 text-purple-400' : 'bg-blue-600/20 text-blue-400'}`}>
@@ -624,10 +657,10 @@ const ValidadorICMS = ({ user, onLogout }) => {
                       {regra.base_legal || '-'}
                     </td>
                     <td className="py-3 px-4 text-center">
-                      {regra.ativo ? (
-                        <span className="text-xs bg-green-600/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
+                      {regra.aplica_st ? (
+                        <span className="text-xs bg-orange-600/20 text-orange-400 px-2 py-0.5 rounded">ST</span>
                       ) : (
-                        <span className="text-xs bg-gray-600/20 text-gray-400 px-2 py-0.5 rounded">Inativo</span>
+                        <span className="text-xs text-[#666]">-</span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-center">
