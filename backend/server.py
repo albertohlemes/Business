@@ -1466,33 +1466,33 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                         tipo_operacao = 'saida'
             
             for prod in doc.get('produtos', []):
-            try:
-                ncm = str(prod.get('ncm', '')).replace('.', '')
-                cfop = str(prod.get('cfop', ''))
+                try:
+                    ncm = str(prod.get('ncm', '')).replace('.', '')
+                    cfop = str(prod.get('cfop', ''))
+                    
+                    # Tratamento robusto de valores numéricos
+                    valor_total_raw = prod.get('valor_total', 0)
+                    if valor_total_raw is None or valor_total_raw == '' or valor_total_raw == 'null':
+                        valor_total_raw = 0
+                    valor_total = Decimal(str(valor_total_raw))
+                    
+                    v_icms_raw = prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0
+                    if v_icms_raw is None or v_icms_raw == '' or v_icms_raw == 'null':
+                        v_icms_raw = 0
+                    v_icms = Decimal(str(v_icms_raw))
+                except Exception as e:
+                    logger.warning(f"Erro ao processar produto PIS/COFINS: {e}")
+                    continue
                 
-                # Tratamento robusto de valores numéricos
-                valor_total_raw = prod.get('valor_total', 0)
-                if valor_total_raw is None or valor_total_raw == '' or valor_total_raw == 'null':
-                    valor_total_raw = 0
-                valor_total = Decimal(str(valor_total_raw))
-                
-                v_icms_raw = prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0
-                if v_icms_raw is None or v_icms_raw == '' or v_icms_raw == 'null':
-                    v_icms_raw = 0
-                v_icms = Decimal(str(v_icms_raw))
-            except Exception as e:
-                logger.warning(f"Erro ao processar produto PIS/COFINS: {e}")
-                continue
-            
-            # ==========================================================
-            # VERIFICAR SE É CFOP DE TRANSFERÊNCIA (MATRIZ-FILIAL)
-            # CFOPs de transferência NÃO geram crédito NEM débito de PIS/COFINS
-            # O imposto federal é centralizado na matriz
-            # ==========================================================
-            if is_cfop_transferencia(cfop):
-                # Transferência não entra na base de cálculo
-                totais['desconsiderados_credito'] += valor_total if tipo_operacao == 'entrada' else Decimal('0')
-                totais['desconsiderados_debito'] += valor_total if tipo_operacao == 'saida' else Decimal('0')
+                # ==========================================================
+                # VERIFICAR SE É CFOP DE TRANSFERÊNCIA (MATRIZ-FILIAL)
+                # CFOPs de transferência NÃO geram crédito NEM débito de PIS/COFINS
+                # O imposto federal é centralizado na matriz
+                # ==========================================================
+                if is_cfop_transferencia(cfop):
+                    # Transferência não entra na base de cálculo
+                    totais['desconsiderados_credito'] += valor_total if tipo_operacao == 'entrada' else Decimal('0')
+                    totais['desconsiderados_debito'] += valor_total if tipo_operacao == 'saida' else Decimal('0')
                 continue
             
             # Obter categoria classificada do produto
