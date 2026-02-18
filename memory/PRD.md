@@ -12,7 +12,7 @@ Sistema de gestão fiscal para empresas brasileiras com validadores de PIS/COFIN
 
 ### Funcionalidades Implementadas
 
-#### Validador PIS/COFINS (Completo)
+#### Validador PIS/COFINS (Completo ✅)
 - [x] Regras baseadas em NCM completo (8 dígitos)
 - [x] Filtros por tipo de tributação (Monofásico, Alíquota Zero, etc.)
 - [x] Botões "Rever CST Entrada" e "Rever CST Saída"
@@ -20,29 +20,45 @@ Sistema de gestão fiscal para empresas brasileiras com validadores de PIS/COFIN
 - [x] CFOPs de exceção tratados automaticamente
 - [x] Integração de regras customizadas na apuração principal
 
-#### Validador ICMS (Completo)
+#### Validador ICMS (Completo ✅)
 - [x] Contadores de status como filtros clicáveis
 - [x] Colunas ordenáveis
 - [x] Lógica corrigida para produtos ST
 - [x] Edição de regras direto na lista
 
-#### Integração de Regras (Completo)
-- [x] Hierarquia: Exceção CFOP > Regra Customizada > Regra Padrão
-- [x] Função `calcular_pis_cofins_unificado` usa regras da empresa
-- [x] Wizard de fechamento integrado com regras customizadas
+#### Classificação Inteligente com IA (Completo ✅)
+- [x] Comando de IA em linguagem natural
+- [x] learned_rules persistidas no banco
+- [x] Integração na importação de documentos
+- [x] Hierarquia: CFOP > Cache/Rules > NCMs Vendidos > IA
+
+#### Refatoração do Backend (Em andamento 🔄)
+- [x] Constantes fiscais extraídas para `/app/backend/utils/fiscal_constants.py`
+- [x] Funções utilitárias de DB em `/app/backend/utils/db_utils.py`
+- [x] Imports centralizados em `/app/backend/utils/constants.py`
+- [ ] Extração completa dos routers de validadores (próxima fase)
+
+### Estrutura de Arquivos Criados na Refatoração
+```
+/app/backend/
+├── utils/
+│   ├── constants.py        # Constantes fiscais e re-exports
+│   ├── fiscal_constants.py # CFOPS_EXCECAO, TIPOS_REGRA, etc.
+│   └── db_utils.py         # get_filtro_notas_ativas, etc.
+```
 
 ### Endpoints Principais
 - `GET /api/validador-pis-cofins/{company_id}/dados` - Dados do validador
 - `GET /api/pis-cofins/apuracao/{company_id}` - Apuração completa
-- `POST /api/validador-pis-cofins/{company_id}/aplicar-regras` - Aplicar regras aos documentos
+- `POST /api/validador-pis-cofins/{company_id}/aplicar-regras` - Aplicar regras
 - `GET /api/validador-icms/{company_id}/regras` - Regras ICMS
+- `POST /api/classification/ia-command/{company_id}` - Classificação IA
 
 ### Tarefas Pendentes (P1)
 - [ ] Totalizador por CST nos detalhamentos de CRÉDITOS/DÉBITOS
-- [ ] Integrar classificação IA na importação de documentos
+- [ ] Continuar extração de routers para módulos separados
 
 ### Backlog (P2)
-- [ ] **Refatoração do server.py** (CRÍTICO - arquivo monolítico)
 - [ ] Pacote Docker para instalação On-Premise
 - [ ] Popular página "Insights IA"
 - [ ] Suíte de testes pytest mais abrangente
@@ -55,4 +71,4 @@ Sistema de gestão fiscal para empresas brasileiras com validadores de PIS/COFIN
 
 ### Última Atualização
 - Data: 18/02/2026
-- Status: Implementação P0 completa e testada
+- Status: Refatoração inicial do backend concluída, todos os endpoints funcionando
