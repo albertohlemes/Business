@@ -1454,18 +1454,18 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
             if doc.get('desconsiderada_devolucao'):
                 continue
             
-        # Determinar tipo de operação
-        tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
-        if not tipo_operacao:
-            produtos = doc.get('produtos', [])
-            if produtos:
-                cfop = str(produtos[0].get('cfop', ''))
-                if cfop and cfop[0] in ['1', '2', '3']:
-                    tipo_operacao = 'entrada'
-                elif cfop and cfop[0] in ['5', '6', '7']:
-                    tipo_operacao = 'saida'
-        
-        for prod in doc.get('produtos', []):
+            # Determinar tipo de operação
+            tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
+            if not tipo_operacao:
+                produtos = doc.get('produtos', [])
+                if produtos:
+                    cfop = str(produtos[0].get('cfop', ''))
+                    if cfop and cfop[0] in ['1', '2', '3']:
+                        tipo_operacao = 'entrada'
+                    elif cfop and cfop[0] in ['5', '6', '7']:
+                        tipo_operacao = 'saida'
+            
+            for prod in doc.get('produtos', []):
             try:
                 ncm = str(prod.get('ncm', '')).replace('.', '')
                 cfop = str(prod.get('cfop', ''))
