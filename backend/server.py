@@ -34219,10 +34219,26 @@ async def get_grupo_consolidado(
     consolidado["cofins"]["saldo"] = round(consolidado["cofins"]["debito"] - consolidado["cofins"]["credito"], 2)
     consolidado["cofins"]["a_pagar"] = round(max(consolidado["cofins"]["saldo"], 0), 2)
     
+    # IRPJ/CSLL: Arredondar valores
+    consolidado["irpj"]["base_presumida"] = round(consolidado["irpj"]["base_presumida"], 2)
+    consolidado["irpj"]["devido"] = round(consolidado["irpj"]["devido"], 2)
+    consolidado["irpj"]["adicional"] = round(consolidado["irpj"]["adicional"], 2)
+    consolidado["irpj"]["total"] = round(consolidado["irpj"]["total"], 2)
+    consolidado["csll"]["base_presumida"] = round(consolidado["csll"]["base_presumida"], 2)
+    consolidado["csll"]["devido"] = round(consolidado["csll"]["devido"], 2)
+    
+    # Total de impostos federais (PIS + COFINS + IRPJ + CSLL)
+    consolidado["total_impostos_federais"] = round(
+        consolidado["pis"]["a_pagar"] + 
+        consolidado["cofins"]["a_pagar"] + 
+        consolidado["irpj"]["total"] + 
+        consolidado["csll"]["devido"], 
+        2
+    )
+    
     consolidado["total_impostos"] = round(
         consolidado["icms"]["a_pagar"] + 
-        consolidado["pis"]["a_pagar"] + 
-        consolidado["cofins"]["a_pagar"], 
+        consolidado["total_impostos_federais"], 
         2
     )
     
