@@ -112,6 +112,11 @@ const Layout = ({ user, onLogout, children }) => {
       nav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
       nav.push({ name: 'Simples Nacional', href: '/simples-nacional', icon: Star, testId: 'nav-simples-nacional' });
       
+      // Grupo Consolidado - apenas para empresas matriz (sem empresa selecionada)
+      if (isMatriz) {
+        nav.push({ name: 'Grupo Consolidado', href: '/grupo-consolidado', icon: Users, testId: 'nav-grupo-consolidado', badge: 'GRUPO', badgeColor: 'amber' });
+      }
+      
       // 📈 ANÁLISES
       nav.push({ type: 'separator', label: 'Análises' });
       nav.push({ name: 'Reforma Tributária', href: '/reforma-tributaria', icon: Calculator, testId: 'nav-reforma-tributaria' });
