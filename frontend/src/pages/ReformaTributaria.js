@@ -372,131 +372,179 @@ const ReformaTributaria = ({ user, onLogout }) => {
                   </div>
                 </div>
                 
-                {/* Cards 2027 - CBS vs PIS/COFINS */}
-                <div className="grid grid-cols-2 gap-6">
-                  {/* PIS/COFINS Atual */}
-                  <div className="bg-[#0C0C0C] rounded-xl p-5 border border-[#333]">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                      <span className="text-amber-400 font-semibold">PIS/COFINS ATUAL</span>
+                {/* Tabela comparativa PIS/COFINS vs CBS - FORMATO SIMPLIFICADO */}
+                <div className="bg-[#0C0C0C] rounded-xl overflow-hidden border border-[#333]">
+                  {/* Cabeçalho */}
+                  <div className="grid grid-cols-4 gap-0 bg-[#1a1a1a] text-sm font-semibold">
+                    <div className="p-3 text-[#A1A1AA]">IMPOSTO</div>
+                    <div className="p-3 text-emerald-400 text-center">CRÉDITO</div>
+                    <div className="p-3 text-red-400 text-center">DÉBITO</div>
+                    <div className="p-3 text-[#C8A951] text-center">SALDO</div>
+                  </div>
+                  
+                  {/* PIS Atual */}
+                  <div className="grid grid-cols-4 gap-0 border-t border-[#333] hover:bg-[#1a1a1a] transition-colors">
+                    <div className="p-3 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                      <span className="text-amber-400 font-medium">PIS</span>
                     </div>
-                    <p className="text-sm text-[#666] mb-4">Será extinto em 2027</p>
-                    
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
-                        <span className="text-[#A1A1AA]">PIS</span>
-                        <span className="text-white font-medium">
-                          {formatCurrency(apuracao.comparativo_regime_atual?.pis || 0)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
-                        <span className="text-[#A1A1AA]">COFINS</span>
-                        <span className="text-white font-medium">
-                          {formatCurrency(apuracao.comparativo_regime_atual?.cofins || 0)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center p-4 bg-amber-500/10 rounded-lg border border-amber-500/30">
-                        <span className="text-amber-400 font-semibold">TOTAL</span>
-                        <span className="text-amber-400 font-bold text-xl">
-                          {formatCurrency(apuracao.comparativo_regime_atual?.pis_cofins)}
-                        </span>
-                      </div>
+                    <div className="p-3 text-center text-emerald-400">
+                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_pis || 0)}
+                    </div>
+                    <div className="p-3 text-center text-red-400">
+                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_pis || 0)}
+                    </div>
+                    <div className="p-3 text-center">
+                      {(() => {
+                        const saldo = (apuracao.comparativo_regime_atual?.debito_pis || 0) - (apuracao.comparativo_regime_atual?.credito_pis || 0);
+                        return saldo > 0 
+                          ? <span className="text-red-400 font-medium">Pagar {formatCurrency(saldo)}</span>
+                          : <span className="text-[#C8A951] font-medium">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                      })()}
                     </div>
                   </div>
                   
-                  {/* CBS 2027 */}
-                  <div className="bg-[#0C0C0C] rounded-xl p-5 border border-blue-500/30">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                      <span className="text-blue-400 font-semibold">CBS 2027</span>
+                  {/* COFINS Atual */}
+                  <div className="grid grid-cols-4 gap-0 border-t border-[#333] hover:bg-[#1a1a1a] transition-colors">
+                    <div className="p-3 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                      <span className="text-amber-400 font-medium">COFINS</span>
                     </div>
-                    <p className="text-sm text-[#666] mb-4">Alíquota: {config.aliquota_cbs}%</p>
-                    
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
-                        <span className="text-[#A1A1AA]">CBS Débitos</span>
-                        <span className="text-red-400 font-medium">
-                          {formatCurrency(apuracao.apuracao?.debitos?.cbs)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center p-3 bg-[#141414] rounded-lg">
-                        <span className="text-[#A1A1AA]">CBS Créditos</span>
-                        <span className="text-emerald-400 font-medium">
-                          - {formatCurrency(apuracao.apuracao?.creditos?.cbs)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
-                        <span className="text-blue-400 font-semibold">A PAGAR CBS</span>
-                        <span className="text-blue-400 font-bold text-xl">
-                          {formatCurrency(apuracao.apuracao?.a_pagar?.cbs ?? Math.max(0, apuracao.apuracao?.saldo?.cbs || 0))}
-                        </span>
-                      </div>
+                    <div className="p-3 text-center text-emerald-400">
+                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_cofins || 0)}
+                    </div>
+                    <div className="p-3 text-center text-red-400">
+                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_cofins || 0)}
+                    </div>
+                    <div className="p-3 text-center">
+                      {(() => {
+                        const saldo = (apuracao.comparativo_regime_atual?.debito_cofins || 0) - (apuracao.comparativo_regime_atual?.credito_cofins || 0);
+                        return saldo > 0 
+                          ? <span className="text-red-400 font-medium">Pagar {formatCurrency(saldo)}</span>
+                          : <span className="text-[#C8A951] font-medium">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                      })()}
+                    </div>
+                  </div>
+                  
+                  {/* Total PIS/COFINS */}
+                  <div className="grid grid-cols-4 gap-0 border-t-2 border-amber-500/30 bg-amber-500/5">
+                    <div className="p-3 font-bold text-amber-400">TOTAL ATUAL</div>
+                    <div className="p-3 text-center text-emerald-400 font-bold">
+                      {formatCurrency((apuracao.comparativo_regime_atual?.credito_pis || 0) + (apuracao.comparativo_regime_atual?.credito_cofins || 0))}
+                    </div>
+                    <div className="p-3 text-center text-red-400 font-bold">
+                      {formatCurrency((apuracao.comparativo_regime_atual?.debito_pis || 0) + (apuracao.comparativo_regime_atual?.debito_cofins || 0))}
+                    </div>
+                    <div className="p-3 text-center">
+                      {(() => {
+                        const saldo = apuracao.comparativo_regime_atual?.pis_cofins || 0;
+                        const credito = (apuracao.comparativo_regime_atual?.credito_pis || 0) + (apuracao.comparativo_regime_atual?.credito_cofins || 0);
+                        const debito = (apuracao.comparativo_regime_atual?.debito_pis || 0) + (apuracao.comparativo_regime_atual?.debito_cofins || 0);
+                        const saldoReal = debito - credito;
+                        return saldoReal > 0 
+                          ? <span className="text-red-400 font-bold">Pagar {formatCurrency(saldoReal)}</span>
+                          : <span className="text-[#C8A951] font-bold">Recuperar {formatCurrency(Math.abs(saldoReal))}</span>;
+                      })()}
+                    </div>
+                  </div>
+                  
+                  {/* Separador */}
+                  <div className="h-2 bg-[#1a1a1a]"></div>
+                  
+                  {/* CBS 2027 */}
+                  <div className="grid grid-cols-4 gap-0 border-t border-[#333] hover:bg-[#1a1a1a] transition-colors">
+                    <div className="p-3 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      <span className="text-blue-400 font-medium">CBS 2027</span>
+                      <span className="text-xs text-[#666]">({config.aliquota_cbs}%)</span>
+                    </div>
+                    <div className="p-3 text-center text-emerald-400">
+                      {formatCurrency(apuracao.apuracao?.creditos?.cbs || 0)}
+                    </div>
+                    <div className="p-3 text-center text-red-400">
+                      {formatCurrency(apuracao.apuracao?.debitos?.cbs || 0)}
+                    </div>
+                    <div className="p-3 text-center">
+                      {(() => {
+                        const saldo = apuracao.apuracao?.saldo?.cbs || 0;
+                        return saldo > 0 
+                          ? <span className="text-red-400 font-medium">Pagar {formatCurrency(saldo)}</span>
+                          : <span className="text-[#C8A951] font-medium">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                      })()}
                     </div>
                   </div>
                 </div>
                 
                 {/* Resultado 2027 - Economia ou Aumento */}
                 {(() => {
-                  const pisCofinsAtual = apuracao.comparativo_regime_atual?.pis_cofins || 0;
-                  // Usar a_pagar que é sempre >= 0 (se saldo é negativo, a_pagar = 0)
-                  const cbsNovo = apuracao.apuracao?.a_pagar?.cbs ?? Math.max(0, apuracao.apuracao?.saldo?.cbs || 0);
-                  const diferenca = cbsNovo - pisCofinsAtual;
-                  const percentual = pisCofinsAtual > 0 ? (diferenca / pisCofinsAtual * 100) : 0;
-                  const vaiPagarMais = diferenca > 0;
-                  const economiaReal = Math.abs(diferenca);
-                  const temCreditoCbs = (apuracao.apuracao?.saldo?.cbs || 0) < 0;
+                  const creditoPisCofins = (apuracao.comparativo_regime_atual?.credito_pis || 0) + (apuracao.comparativo_regime_atual?.credito_cofins || 0);
+                  const debitoPisCofins = (apuracao.comparativo_regime_atual?.debito_pis || 0) + (apuracao.comparativo_regime_atual?.debito_cofins || 0);
+                  const saldoPisCofins = debitoPisCofins - creditoPisCofins;
+                  
+                  const saldoCbs = apuracao.apuracao?.saldo?.cbs || 0;
+                  
+                  // Comparação: negativo = crédito, positivo = débito
+                  // Se ambos são credores (negativos), menor saldo = mais crédito = melhor
+                  // Se ambos são devedores (positivos), menor saldo = menos a pagar = melhor
+                  const diferencaSaldo = saldoCbs - saldoPisCofins;
+                  const cbsMelhor = diferencaSaldo < 0;
+                  const economiaValor = Math.abs(diferencaSaldo);
                   
                   return (
                     <div className={`mt-4 p-5 rounded-xl ${
-                      vaiPagarMais 
-                        ? 'bg-red-500/10 border border-red-500/30' 
-                        : 'bg-emerald-500/10 border border-emerald-500/30'
+                      cbsMelhor 
+                        ? 'bg-emerald-500/10 border border-emerald-500/30' 
+                        : 'bg-red-500/10 border border-red-500/30'
                     }`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          {vaiPagarMais ? (
-                            <TrendingUp className="w-6 h-6 text-red-400" />
-                          ) : (
+                          {cbsMelhor ? (
                             <TrendingDown className="w-6 h-6 text-emerald-400" />
+                          ) : (
+                            <TrendingUp className="w-6 h-6 text-red-400" />
                           )}
                           <div>
-                            <p className={`font-bold ${vaiPagarMais ? 'text-red-400' : 'text-emerald-400'}`}>
-                              {vaiPagarMais ? '⚠️ Aumento' : '✅ Economia'} em 2027
+                            <p className={`font-bold ${cbsMelhor ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {cbsMelhor ? '✅ CBS é mais vantajosa' : '⚠️ PIS/COFINS atual é melhor'}
                             </p>
-                            <p className="text-xs text-[#A1A1AA]">CBS vs PIS/COFINS</p>
+                            <p className="text-xs text-[#A1A1AA]">
+                              {saldoPisCofins < 0 && saldoCbs < 0 
+                                ? 'Ambos geram crédito - comparando qual gera mais' 
+                                : 'Comparando saldos finais'}
+                            </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className={`text-2xl font-bold ${vaiPagarMais ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {vaiPagarMais ? '+' : '-'} {formatCurrency(economiaReal)}
+                          <p className={`text-2xl font-bold ${cbsMelhor ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {cbsMelhor ? '↓' : '↑'} {formatCurrency(economiaValor)}
                           </p>
-                          <p className={`text-sm ${vaiPagarMais ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {percentual.toFixed(1)}%
+                          <p className="text-xs text-[#A1A1AA]">
+                            {cbsMelhor 
+                              ? (saldoPisCofins < 0 && saldoCbs < 0 ? 'Mais crédito com CBS' : 'Economia com CBS')
+                              : (saldoPisCofins < 0 && saldoCbs < 0 ? 'Menos crédito com CBS' : 'Pagaria mais com CBS')}
                           </p>
                         </div>
                       </div>
                       
-                      {/* Explicação detalhada da economia */}
-                      {!vaiPagarMais && economiaReal > 0 && (
-                        <div className="mt-4 pt-4 border-t border-emerald-500/20">
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <p className="text-[#A1A1AA] mb-1">Regime Atual (PIS/COFINS)</p>
-                              <p className="font-semibold text-amber-400">Pagaria {formatCurrency(pisCofinsAtual)}</p>
-                            </div>
-                            <div>
-                              <p className="text-[#A1A1AA] mb-1">CBS 2027</p>
-                              <p className="font-semibold text-emerald-400">
-                                {cbsNovo > 0 ? `Pagaria ${formatCurrency(cbsNovo)}` : 'Nada a pagar'}
-                                {temCreditoCbs && <span className="text-xs ml-1">(crédito)</span>}
-                              </p>
-                            </div>
-                          </div>
-                          <p className="mt-3 text-emerald-400 text-sm font-medium">
-                            💰 Você deixaria de pagar {formatCurrency(economiaReal)} com a CBS em 2027
-                          </p>
+                      {/* Detalhamento */}
+                      <div className="mt-4 pt-4 border-t border-[#333] grid grid-cols-2 gap-4 text-sm">
+                        <div className="bg-[#0C0C0C] p-3 rounded-lg">
+                          <p className="text-[#666] mb-1">PIS/COFINS Atual</p>
+                          {saldoPisCofins > 0 ? (
+                            <p className="font-bold text-red-400">Pagar {formatCurrency(saldoPisCofins)}</p>
+                          ) : (
+                            <p className="font-bold text-[#C8A951]">Crédito {formatCurrency(Math.abs(saldoPisCofins))}</p>
+                          )}
                         </div>
-                      )}
+                        <div className="bg-[#0C0C0C] p-3 rounded-lg">
+                          <p className="text-[#666] mb-1">CBS 2027</p>
+                          {saldoCbs > 0 ? (
+                            <p className="font-bold text-red-400">Pagar {formatCurrency(saldoCbs)}</p>
+                          ) : (
+                            <p className="font-bold text-[#C8A951]">Crédito {formatCurrency(Math.abs(saldoCbs))}</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   );
                 })()}
