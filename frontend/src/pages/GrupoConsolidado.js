@@ -639,7 +639,7 @@ const GrupoConsolidado = ({ user, onLogout }) => {
   // Se não é matriz, mostrar mensagem
   if (grupoInfo && !grupoInfo.is_matriz) {
     return (
-      <Layout>
+      <Layout user={user} onLogout={onLogout}>
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Building2 className="w-16 h-16 text-[#A1A1AA] mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">Empresa não é matriz</h2>
