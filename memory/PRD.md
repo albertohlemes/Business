@@ -8,7 +8,35 @@ Sistema de inteligência fiscal automatizada para empresas brasileiras. Processa
 
 ## Funcionalidades Implementadas
 
-### Sessão Atual (18/02/2026)
+### Sessão Atual (18/02/2026 - Atualização 2)
+
+#### Validador ICMS - Melhorias de UI/UX ✅
+
+**1. Contadores como Botões de Filtro**
+- Total, OK, Alerta, Divergente, Sem Regra agora são clicáveis
+- Filtram a tabela instantaneamente
+- Visual indica filtro ativo (ring dourado)
+- `data-testid="filter-icms-{status}"` para automação
+
+**2. Colunas Ordenáveis em Todas as Abas**
+- **Por Produto**: 8 colunas ordenáveis (Produto, NCM, Qtd, Valor, Alíq. Prat., Alíq. Esp., Diverg., Status)
+- **Por NCM**: 6 colunas ordenáveis (NCM, Qtd Itens, Valor Total, Alíq. Prat., Alíq. Esp., Status)
+- **Regras**: 6 colunas ordenáveis (Tipo, Chave, Descrição, Alíq. Int., Alíq. Inter., Base Legal)
+- Ícones de seta indicam direção da ordenação
+
+**3. Correção de Produtos ST**
+- Produtos com CST 10, 30, 60, 70 (Substituição Tributária) agora têm alíquota esperada 0%
+- Não acusa mais divergência incorreta para vendas de produtos ST
+- Flag `is_st` adicionado nos dados do produto
+
+#### Validador PIS/COFINS - NCM Completo ✅
+
+**1. NCM de 8 Dígitos**
+- Agrupamento agora por NCM completo (8 dígitos) ao invés de 4
+- Permite diferenciação de tributação por desdobramento
+- Regras podem ser criadas para NCM específico ou prefixo (fallback)
+
+### Sessão Anterior (18/02/2026)
 
 #### Validador PIS/COFINS Redesenhado (P0) ✅
 
@@ -69,6 +97,7 @@ Sistema de inteligência fiscal automatizada para empresas brasileiras. Processa
 ### P2 - Média Prioridade
 - [ ] Pacote Docker On-Premise
 - [ ] Página "Insights IA"
+- [ ] Refatorar server.py - extrair lógica dos validadores para módulos separados
 
 ---
 
@@ -87,7 +116,7 @@ Sistema de inteligência fiscal automatizada para empresas brasileiras. Processa
 └── frontend/
     └── src/pages/
         ├── ValidadorPisCofins.js  # Reescrito
-        └── ValidadorICMS.js
+        └── ValidadorICMS.js       # Atualizado - filtros e ordenação
 ```
 
 ### Modelos de Dados
@@ -106,6 +135,20 @@ Sistema de inteligência fiscal automatizada para empresas brasileiras. Processa
 }
 ```
 
+#### RegraICMS
+```python
+{
+  "tipo": "ncm" | "produto",
+  "chave": str,
+  "aliquota_interna": float,
+  "aliquota_interestadual_sul_sudeste": float,
+  "aliquota_interestadual_outros": float,
+  "aliquota_st": float,
+  "aplica_st": bool,
+  "excecoes": [...]
+}
+```
+
 ---
 
 ## Credenciais de Teste
@@ -117,4 +160,4 @@ Sistema de inteligência fiscal automatizada para empresas brasileiras. Processa
 ---
 
 **Última Atualização:** 18/02/2026
-**Status:** Todas as tarefas P0 concluídas
+**Status:** Todas as tarefas P0 concluídas, melhorias de UI/UX implementadas
