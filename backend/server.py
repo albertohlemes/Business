@@ -17858,17 +17858,94 @@ async def get_classification_suggestions_v2(
             descricao_original = prod.get('descricao', '')
             ncm = str(prod.get('ncm', '') or '').strip()
             descricao_norm = _normalizar_descricao(descricao_original)
-            chave_atual = f"{codigo}_{descricao_original[:50]}"
-            chave_historico = f"{ncm}_{descricao_norm}"
+            cfop_produto = str(prod.get('cfop', ''))
+            
+            # CORREÇÃO CRÍTICA: CFOPs especiais SEMPRE determinam a categoria
+            # Não usar histórico para bonificação, devolução, etc.
+            cfop_define_categoria = False
+            categoria_pelo_cfop = None
+            
+            # Lista de CFOPs que SEMPRE definem a categoria (independente do histórico/IA)
+            CFOPS_BONIFICACAO = ['1910', '2910', '5910', '6910']
+            CFOPS_DEVOLUCAO = ['1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209',
+                              '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209',
+                              '5201', '5202', '5203', '5204', '5205', '5206', '5207', '5208', '5209',
+                              '6201', '6202', '6203', '6204', '6205', '6206', '6207', '6208', '6209']
+            CFOPS_AMOSTRA = ['1911', '2911', '5911', '6911']
+            CFOPS_OUTRAS_ENTRADAS = ['1949', '2949', '5949', '6949']
+            CFOPS_RETORNO_INDUSTRIALIZACAO = ['1124', '1125', '2124', '2125']
+            CFOPS_EMBALAGEM = ['1920', '1921', '2920', '2921', '5920', '5921', '6920', '6921']
+            
+            if cfop_produto in CFOPS_BONIFICACAO:
+                cfop_define_categoria = True
+                categoria_pelo_cfop = 'bonificacao'
+            elif cfop_produto in CFOPS_DEVOLUCAO:
+                cfop_define_categoria = True
+                categoria_pelo_cfop = 'devolucao'
+            elif cfop_produto in CFOPS_AMOSTRA:
+                cfop_define_categoria = True
+                categoria_pelo_cfop = 'amostra_gratis'
+            elif cfop_produto in CFOPS_OUTRAS_ENTRADAS:
+                cfop_define_categoria = True
+                categoria_pelo_cfop = 'outras_entradas'
+            elif cfop_produto in CFOPS_RETORNO_INDUSTRIALIZACAO:
+                cfop_define_categoria = True
+                categoria_pelo_cfop = 'retorno_industrializacao'
+            elif cfop_produto in CFOPS_EMBALAGEM:
+                cfop_define_categoria = True
+                categoria_pelo_cfop = 'embalagem'
+            
+            # Chave para agrupamento visual (produto + CFOP determina o grupo)
+            # Isso garante que o mesmo produto com CFOPs diferentes apareça em grupos separados
+            chave_atual = f"{codigo}_{descricao_original[:50]}_{cfop_produto[:2]}"  # Prefixo CFOP para separar operações
+            
+            # Chave para histórico (NCM + descrição + tipo operação)
+            # Bonificação, devolução, etc. NÃO usam histórico - categoria é pelo CFOP
+            if cfop_define_categoria:
+                chave_historico = None  # Não buscar histórico para CFOPs especiais
+            else:
+                chave_historico = f"{ncm}_{descricao_norm}"
             
             # Verificar se já tem classificação no documento atual
             categoria_atual = prod.get('categoria_classificada', '')
             ja_classificado_no_doc = categoria_atual and categoria_atual not in ['', 'pendente', 'pendente_classificacao']
             
-            # Verificar se existe no histórico
-            historico = historico_classificacoes.get(chave_historico)
+            # Verificar se existe no histórico (apenas se CFOP não define categoria)
+            historico = historico_classificacoes.get(chave_historico) if chave_historico else None
             
-            if ja_classificado_no_doc:
+            # PRIORIDADE: 
+            # 1. CFOP especial define categoria (bonificação, devolução, etc.)
+            # 2. Classificação manual já existente no documento
+            # 3. Histórico de classificações anteriores
+            # 4. Produto novo (pendente)
+            
+            if cfop_define_categoria:
+                # CFOP ESPECIAL: Categoria definida pelo CFOP, não pelo histórico/IA
+                grupo = produtos_ja_classificados[chave_atual]
+                grupo['codigo'] = codigo
+                grupo['descricao'] = descricao_original
+                grupo['ncm'] = ncm
+                grupo['cfop_atual'] = cfop_produto
+                grupo['categoria_atual'] = categoria_pelo_cfop
+                grupo['quantidade'] += prod.get('quantidade', 0)
+                grupo['valor_total'] += prod.get('valor_total', 0)
+                grupo['ocorrencias'].append({
+                    'doc_id': doc['id'],
+                    'numero_nfe': doc.get('numero_nfe', ''),
+                    'nf': doc.get('numero_nfe', ''),
+                    'produto_idx': produto_idx
+                })
+                grupo['fonte_classificacao'] = 'cfop_especial'
+                grupo['classificacao_automatica'] = True
+                
+                # Atualizar no banco se categoria não estava correta
+                if categoria_atual != categoria_pelo_cfop:
+                    prod['categoria_classificada'] = categoria_pelo_cfop
+                    prod['categoria_origem'] = 'cfop_especial'
+                    prod['categoria_classificada_em'] = datetime.now(timezone.utc).isoformat()
+                    doc_modificado = True
+                
+            elif ja_classificado_no_doc:
                 # Produto já foi classificado manualmente nesta competência
                 grupo = produtos_ja_classificados[chave_atual]
                 grupo['codigo'] = codigo
