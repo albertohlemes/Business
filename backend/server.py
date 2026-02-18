@@ -2004,7 +2004,7 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
                     valor_cofins = Decimal('0')
                 else:
                     # Chamar função que retorna cst_calculado, aliq_zero, etc.
-                    calc = calcular_cst_pis_cofins(ncm, cfop, 'entrada', perfil, regime_calc, '')
+                    calc = calcular_cst_pis_cofins(ncm, cfop, 'entrada', '', regime_calc)
                     cst = calc.get('cst_calculado', '70')
                     
                     # Se tem crédito (CST 50), calcular valores
