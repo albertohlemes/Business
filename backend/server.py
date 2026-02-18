@@ -34164,7 +34164,8 @@ async def get_grupo_consolidado(
             "razao_social": company.get("razao_social"),
             "cnpj": company.get("cnpj"),
             "uf": company.get("uf"),
-            "regime_tributario": company.get("regime_tributario", "lucro_presumido"),
+            "regime_tributario": regime_tributario,
+            "tipo_atividade": tipo_atividade,
             "is_matriz": empresa_id == grupo.get("matriz_id"),
             "entradas": round(total_entradas, 2),
             "saidas": round(total_saidas, 2),
@@ -34177,7 +34178,16 @@ async def get_grupo_consolidado(
             "pis_saldo": round(pis_saldo, 2),
             "cofins_credito": round(cofins_credito, 2),
             "cofins_debito": round(cofins_debito, 2),
-            "cofins_saldo": round(cofins_saldo, 2)
+            "cofins_saldo": round(cofins_saldo, 2),
+            # IRPJ/CSLL
+            "irpj_base": round(base_irpj, 2),
+            "irpj_devido": round(irpj_devido, 2),
+            "irpj_adicional": round(irpj_adicional, 2),
+            "irpj_total": round(irpj_total, 2),
+            "csll_base": round(base_csll, 2),
+            "csll_devido": round(csll_devido, 2),
+            "perc_presuncao_irpj": perc_presuncao_irpj,
+            "perc_presuncao_csll": perc_presuncao_csll
         }
         consolidado["empresas"].append(empresa_data)
         
