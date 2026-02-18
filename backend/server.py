@@ -1698,7 +1698,7 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
             if tipo_operacao == 'entrada':
                 # Verificar se deve ser desconsiderado
                 categoria_sem_credito = any(cat in categoria for cat in CATEGORIAS_SEM_CREDITO) if categoria else False
-                cfop_sem_credito = cfop in CFOPS_SEM_CREDITO
+                cfop_sem_credito = cfop in CFOPS_SEM_CREDITO_CALC
                 cfop_com_credito = cfop in CFOPS_COM_CREDITO
                 
                 # Lógica: CFOP especial tem prioridade, mas categoria pode sobrescrever
