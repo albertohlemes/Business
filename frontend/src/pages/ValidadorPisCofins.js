@@ -828,14 +828,13 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
                         item.tipo_regra === 'aliquota_zero' ? 'bg-green-600/20 text-green-400' :
                         item.tipo_regra === 'monofasico' ? 'bg-blue-600/20 text-blue-400' :
                         item.tipo_regra === 'aliquota_diferenciada' ? 'bg-yellow-600/20 text-yellow-400' :
-                        item.tipo_regra === 'isento' ? 'bg-gray-600/20 text-gray-400' :
+                        item.tipo_regra === 'tributado_presumido' ? 'bg-cyan-600/20 text-cyan-400' :
                         'bg-purple-600/20 text-purple-400'
                       }`}>
                         {item.tipo_regra === 'aliquota_zero' ? 'Alíq. Zero' :
                          item.tipo_regra === 'monofasico' ? 'Monofásico' :
                          item.tipo_regra === 'aliquota_diferenciada' ? 'Alíq. Difer.' :
-                         item.tipo_regra === 'isento' ? 'Isento' :
-                         item.tipo_regra === 'suspensao' ? 'Suspensão' :
+                         item.tipo_regra === 'tributado_presumido' ? 'Trib. Presumido' :
                          'Tributado'}
                       </span>
                     )}
