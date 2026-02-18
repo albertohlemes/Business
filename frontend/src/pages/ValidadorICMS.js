@@ -300,7 +300,7 @@ const ValidadorICMS = ({ user, onLogout }) => {
 
   // Tab Por Produto
   const TabPorProduto = () => {
-    const dadosFiltrados = filtrarDados(dadosPorProduto?.produtos);
+    const dadosFiltrados = filtrarDados(dadosPorProduto?.produtos, sortConfigProduto);
     
     return (
       <div className="space-y-4">
@@ -311,14 +311,30 @@ const ValidadorICMS = ({ user, onLogout }) => {
             <table className="w-full text-sm">
               <thead className="bg-[#0C0C0C]">
                 <tr>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">Produto</th>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">NCM</th>
-                  <th className="text-right py-3 px-4 text-[#A1A1AA]">Qtd</th>
-                  <th className="text-right py-3 px-4 text-[#A1A1AA]">Valor</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Alíq. Praticada</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Alíq. Esperada</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Divergência</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Status</th>
+                  <th className="text-left py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortProduto('descricao')}>
+                    <div className="flex items-center gap-1">Produto {getSortIcon(sortConfigProduto, 'descricao')}</div>
+                  </th>
+                  <th className="text-left py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortProduto('ncm')}>
+                    <div className="flex items-center gap-1">NCM {getSortIcon(sortConfigProduto, 'ncm')}</div>
+                  </th>
+                  <th className="text-right py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortProduto('quantidade')}>
+                    <div className="flex items-center justify-end gap-1">Qtd {getSortIcon(sortConfigProduto, 'quantidade')}</div>
+                  </th>
+                  <th className="text-right py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortProduto('valor_total')}>
+                    <div className="flex items-center justify-end gap-1">Valor {getSortIcon(sortConfigProduto, 'valor_total')}</div>
+                  </th>
+                  <th className="text-center py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortProduto('aliquota_praticada')}>
+                    <div className="flex items-center justify-center gap-1">Alíq. Prat. {getSortIcon(sortConfigProduto, 'aliquota_praticada')}</div>
+                  </th>
+                  <th className="text-center py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortProduto('aliquota_esperada')}>
+                    <div className="flex items-center justify-center gap-1">Alíq. Esp. {getSortIcon(sortConfigProduto, 'aliquota_esperada')}</div>
+                  </th>
+                  <th className="text-center py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortProduto('divergencia')}>
+                    <div className="flex items-center justify-center gap-1">Diverg. {getSortIcon(sortConfigProduto, 'divergencia')}</div>
+                  </th>
+                  <th className="text-center py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortProduto('status')}>
+                    <div className="flex items-center justify-center gap-1">Status {getSortIcon(sortConfigProduto, 'status')}</div>
+                  </th>
                   <th className="text-center py-3 px-4 text-[#A1A1AA]">Ações</th>
                 </tr>
               </thead>
@@ -329,6 +345,7 @@ const ValidadorICMS = ({ user, onLogout }) => {
                       <div className="max-w-[200px]">
                         <p className="text-white text-sm truncate" title={item.descricao}>{item.descricao}</p>
                         <p className="text-xs text-[#666]">{item.codigo}</p>
+                        {item.is_st && <span className="text-xs bg-orange-600/20 text-orange-400 px-1 py-0.5 rounded">ST</span>}
                       </div>
                     </td>
                     <td className="py-3 px-4 font-mono text-[#C8A951]">{item.ncm}</td>
