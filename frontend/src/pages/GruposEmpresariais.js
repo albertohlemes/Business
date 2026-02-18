@@ -593,16 +593,6 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                       </div>
                     </div>
                   </div>
-                          <span className="text-[#A1A1AA]">Créditos:</span>
-                          <span className="text-green-400">{formatCurrency(consolidadoData.cofins?.credito)}</span>
-                        </div>
-                        <div className="flex justify-between border-t border-[#2A2A2A] pt-2">
-                          <span className="text-white font-medium">A Pagar:</span>
-                          <span className="text-[#C8A951] font-bold">{formatCurrency(consolidadoData.cofins?.a_pagar)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                   
                   {/* Tabela por Empresa */}
                   <div>
@@ -613,9 +603,10 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                           <tr className="text-[#A1A1AA] bg-[#0C0C0C]">
                             <th className="text-left px-4 py-2">Empresa</th>
                             <th className="text-right px-4 py-2">Saídas</th>
-                            <th className="text-right px-4 py-2">ICMS Saldo</th>
-                            <th className="text-right px-4 py-2">PIS Saldo</th>
-                            <th className="text-right px-4 py-2">COFINS Saldo</th>
+                            <th className="text-right px-4 py-2">PIS</th>
+                            <th className="text-right px-4 py-2">COFINS</th>
+                            <th className="text-right px-4 py-2">IRPJ</th>
+                            <th className="text-right px-4 py-2">CSLL</th>
                             <th className="text-right px-4 py-2">Total Federal</th>
                           </tr>
                         </thead>
@@ -631,20 +622,28 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                                   )}
                                   <span className="text-white">{emp.razao_social}</span>
                                 </div>
-                                <p className="text-xs text-[#A1A1AA]">{emp.cnpj} • {emp.regime_tributario?.replace('_', ' ').toUpperCase()}</p>
+                                <p className="text-xs text-[#A1A1AA]">{emp.cnpj} • {emp.tipo_atividade?.toUpperCase() || 'COMERCIO'}</p>
                               </td>
                               <td className="px-4 py-3 text-right text-white">{formatCurrency(emp.saidas)}</td>
-                              <td className={`px-4 py-3 text-right font-medium ${emp.icms_saldo >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                                {formatCurrency(emp.icms_saldo)}
+                              <td className={`px-4 py-3 text-right font-medium ${emp.pis_saldo > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                {formatCurrency(Math.max(emp.pis_saldo, 0))}
                               </td>
-                              <td className={`px-4 py-3 text-right font-medium ${emp.pis_saldo >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                                {formatCurrency(emp.pis_saldo)}
+                              <td className={`px-4 py-3 text-right font-medium ${emp.cofins_saldo > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                {formatCurrency(Math.max(emp.cofins_saldo, 0))}
                               </td>
-                              <td className={`px-4 py-3 text-right font-medium ${emp.cofins_saldo >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                                {formatCurrency(emp.cofins_saldo)}
+                              <td className="px-4 py-3 text-right font-medium text-purple-400">
+                                {formatCurrency(emp.irpj_total || 0)}
+                              </td>
+                              <td className="px-4 py-3 text-right font-medium text-purple-400">
+                                {formatCurrency(emp.csll_devido || 0)}
                               </td>
                               <td className="px-4 py-3 text-right font-bold text-[#C8A951]">
-                                {formatCurrency((emp.pis_saldo > 0 ? emp.pis_saldo : 0) + (emp.cofins_saldo > 0 ? emp.cofins_saldo : 0))}
+                                {formatCurrency(
+                                  (emp.pis_saldo > 0 ? emp.pis_saldo : 0) + 
+                                  (emp.cofins_saldo > 0 ? emp.cofins_saldo : 0) + 
+                                  (emp.irpj_total || 0) + 
+                                  (emp.csll_devido || 0)
+                                )}
                               </td>
                             </tr>
                           ))}
