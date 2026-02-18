@@ -39681,8 +39681,10 @@ async def validador_piscofins_dados(
             'aliquota_cofins_praticada': round(aliq_cofins_praticada, 2),
             'aliquota_pis_esperada': round(aliq_pis_esperada, 2) if aliq_pis_esperada else None,
             'aliquota_cofins_esperada': round(aliq_cofins_esperada, 2) if aliq_cofins_esperada else None,
-            'cst_praticado': cst_mais_comum,
-            'cst_esperado': cst_esperado,
+            'cst_praticado_entrada': cst_entrada_praticado,
+            'cst_praticado': cst_saida_praticado,
+            'cst_esperado_entrada': cst_esperado_entrada,
+            'cst_esperado': cst_esperado_saida,
             'status': status,
             'fonte_regra': fonte_regra,
             'regra_id': regra.get('id') if regra else None
