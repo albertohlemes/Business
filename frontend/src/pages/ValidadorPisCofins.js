@@ -64,26 +64,6 @@ const TIPOS_REGRA = {
     gera_credito: true,
     gera_debito: true,
     descricao_tipo: 'Alíquota específica por NCM'
-  },
-  isento: {
-    label: 'Isento',
-    cst_entrada: '73',
-    cst_saida: '08',
-    aliquota_pis: 0,
-    aliquota_cofins: 0,
-    gera_credito: false,
-    gera_debito: false,
-    descricao_tipo: 'Operação isenta de PIS/COFINS'
-  },
-  suspensao: {
-    label: 'Suspensão',
-    cst_entrada: '70',
-    cst_saida: '09',
-    aliquota_pis: 0,
-    aliquota_cofins: 0,
-    gera_credito: false,
-    gera_debito: false,
-    descricao_tipo: 'Operação com suspensão'
   }
 };
 
