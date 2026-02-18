@@ -34,7 +34,7 @@ const NFsList = ({ ocorrencias, maxVisible = 2 }) => {
           <button
             onClick={(e) => handleNFClick(e, o.doc_id)}
             className="text-[#C8A951] hover:text-[#FFD700] hover:underline font-mono text-[10px] bg-[#1a1a1a] px-1.5 py-0.5 rounded border border-[#333] hover:border-[#C8A951] transition-colors cursor-pointer"
-            title={`Abrir NF-e ${o.nf || o.numero_nfe} no menu Documentos`}
+            title={`Abrir NF-e ${o.nf || o.numero_nfe} em nova aba`}
           >
             {o.nf || o.numero_nfe || '?'}
           </button>
