@@ -39632,17 +39632,20 @@ async def validador_piscofins_dados(
         
         aliq_pis_praticada = max(set(dados['aliquotas_pis']), key=dados['aliquotas_pis'].count) if dados['aliquotas_pis'] else 0
         aliq_cofins_praticada = max(set(dados['aliquotas_cofins']), key=dados['aliquotas_cofins'].count) if dados['aliquotas_cofins'] else 0
-        cst_mais_comum = max(set(dados['csts_pis']), key=dados['csts_pis'].count) if dados['csts_pis'] else None
+        cst_entrada_praticado = max(set(dados['csts_pis_entrada']), key=dados['csts_pis_entrada'].count) if dados['csts_pis_entrada'] else None
+        cst_saida_praticado = max(set(dados['csts_pis_saida']), key=dados['csts_pis_saida'].count) if dados['csts_pis_saida'] else None
         
         aliq_pis_esperada = None
         aliq_cofins_esperada = None
-        cst_esperado = None
+        cst_esperado_entrada = None
+        cst_esperado_saida = None
         fonte_regra = None
         
         if regra:
             aliq_pis_esperada = regra.get('aliquota_pis', 1.65)
             aliq_cofins_esperada = regra.get('aliquota_cofins', 7.6)
-            cst_esperado = regra.get('cst_esperado_saida')
+            cst_esperado_entrada = regra.get('cst_esperado_entrada')
+            cst_esperado_saida = regra.get('cst_esperado_saida')
             fonte_regra = 'empresa'
         elif regra_padrao:
             aliq_pis_esperada = regra_padrao.get('aliquota_pis', 0.0165) * 100 if regra_padrao.get('aliquota_pis', 0) < 1 else regra_padrao.get('aliquota_pis', 1.65)
