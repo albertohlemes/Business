@@ -130,4 +130,4 @@ CFOPS_EXCECAO_SEM_CREDITO_DEBITO = {
 ---
 
 **Última Atualização:** 18/02/2026
-**Status:** Sistema de aplicação de regras implementado. Pronto para integração com importação IA.
+**Status:** Sistema de aplicação de regras implementado. Menu reorganizado. Wizard integrado.
