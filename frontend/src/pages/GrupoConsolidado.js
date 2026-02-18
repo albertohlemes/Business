@@ -174,56 +174,224 @@ const GrupoConsolidado = ({ user, onLogout }) => {
 
     const { matriz, filiais, consolidado } = dadosGrupo;
 
+    // Funções auxiliares para calcular markup e saldos
+    const calcMarkup = (vendas, compras) => {
+      if (!compras || compras === 0) return 0;
+      return ((vendas / compras) - 1) * 100;
+    };
+
+    const getSaldoImposto = (imposto) => {
+      const saldo = imposto?.saldo || 0;
+      if (saldo < 0) {
+        return { valor: Math.abs(saldo), tipo: 'recuperar', color: 'text-green-400' };
+      } else if (saldo > 0) {
+        return { valor: saldo, tipo: 'pagar', color: 'text-red-400' };
+      }
+      return { valor: 0, tipo: 'neutro', color: 'text-[#A1A1AA]' };
+    };
+
+    // Card de Imposto Individual
+    const ImpostoCard = ({ nome, imposto, faturamento, corNome = 'text-white' }) => {
+      const saldo = getSaldoImposto(imposto);
+      const percentual = faturamento > 0 ? (saldo.valor / faturamento * 100) : 0;
+      
+      return (
+        <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+          <div className="flex justify-between items-center mb-3">
+            <h4 className={`font-semibold ${corNome}`}>{nome}</h4>
+            <span className={`text-xs px-2 py-0.5 rounded ${
+              saldo.tipo === 'recuperar' ? 'bg-green-500/20 text-green-400' :
+              saldo.tipo === 'pagar' ? 'bg-red-500/20 text-red-400' :
+              'bg-[#2A2A2A] text-[#A1A1AA]'
+            }`}>
+              {saldo.tipo === 'recuperar' ? 'CREDOR' : saldo.tipo === 'pagar' ? 'DEVEDOR' : 'NEUTRO'}
+            </span>
+          </div>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-[#A1A1AA]">Débito</span>
+              <span className="text-red-400">{formatCurrency(imposto?.debito)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[#A1A1AA]">Crédito</span>
+              <span className="text-green-400">{formatCurrency(imposto?.credito)}</span>
+            </div>
+            <div className="border-t border-[#2A2A2A] my-2" />
+            <div className="flex justify-between font-semibold">
+              <span className="text-white">{saldo.tipo === 'recuperar' ? 'A Recuperar' : 'A Pagar'}</span>
+              <span className={saldo.color}>{formatCurrency(saldo.valor)}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-[#A1A1AA]">% s/ Faturamento</span>
+              <span className="text-[#A1A1AA]">{formatPercent(percentual)}</span>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     switch (activeTab) {
       case 'indicadores':
+        const markupMatriz = calcMarkup(matriz?.indicadores?.vendas, matriz?.indicadores?.compras);
+        const markupConsolidado = calcMarkup(consolidado?.indicadores?.vendas, consolidado?.indicadores?.compras);
+        
         return (
           <div className="space-y-6">
             {/* Cards de Indicadores Consolidados */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-[#0C0C0C] rounded-xl p-6 border border-[#2A2A2A]">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-green-400" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="bg-[#0C0C0C] rounded-xl p-5 border border-[#2A2A2A]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-green-400" />
                   </div>
                   <div>
-                    <p className="text-[#A1A1AA] text-sm">Total Entradas</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(consolidado?.indicadores?.entradas)}</p>
+                    <p className="text-[#A1A1AA] text-xs">Total Entradas</p>
+                    <p className="text-xl font-bold text-white">{formatCurrency(consolidado?.indicadores?.entradas)}</p>
                   </div>
                 </div>
               </div>
               
-              <div className="bg-[#0C0C0C] rounded-xl p-6 border border-[#2A2A2A]">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                    <Package className="w-6 h-6 text-blue-400" />
+              <div className="bg-[#0C0C0C] rounded-xl p-5 border border-[#2A2A2A]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                    <Package className="w-5 h-5 text-blue-400" />
                   </div>
                   <div>
-                    <p className="text-[#A1A1AA] text-sm">Total Compras</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(consolidado?.indicadores?.compras)}</p>
+                    <p className="text-[#A1A1AA] text-xs">Total Compras</p>
+                    <p className="text-xl font-bold text-white">{formatCurrency(consolidado?.indicadores?.compras)}</p>
                   </div>
                 </div>
               </div>
               
-              <div className="bg-[#0C0C0C] rounded-xl p-6 border border-[#2A2A2A]">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-lg bg-red-500/20 flex items-center justify-center">
-                    <TrendingDown className="w-6 h-6 text-red-400" />
+              <div className="bg-[#0C0C0C] rounded-xl p-5 border border-[#2A2A2A]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+                    <TrendingDown className="w-5 h-5 text-red-400" />
                   </div>
                   <div>
-                    <p className="text-[#A1A1AA] text-sm">Total Saídas</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(consolidado?.indicadores?.saidas)}</p>
+                    <p className="text-[#A1A1AA] text-xs">Total Saídas</p>
+                    <p className="text-xl font-bold text-white">{formatCurrency(consolidado?.indicadores?.saidas)}</p>
                   </div>
                 </div>
               </div>
               
-              <div className="bg-[#0C0C0C] rounded-xl p-6 border border-[#2A2A2A]">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-lg bg-[#C8A951]/20 flex items-center justify-center">
-                    <ShoppingCart className="w-6 h-6 text-[#C8A951]" />
+              <div className="bg-[#0C0C0C] rounded-xl p-5 border border-[#2A2A2A]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-[#C8A951]/20 flex items-center justify-center">
+                    <ShoppingCart className="w-5 h-5 text-[#C8A951]" />
                   </div>
                   <div>
-                    <p className="text-[#A1A1AA] text-sm">Total Vendas</p>
-                    <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(consolidado?.indicadores?.vendas)}</p>
+                    <p className="text-[#A1A1AA] text-xs">Total Vendas</p>
+                    <p className="text-xl font-bold text-[#C8A951]">{formatCurrency(consolidado?.indicadores?.vendas)}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Card de Markup */}
+              <div className="bg-[#0C0C0C] rounded-xl p-5 border border-purple-500/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-[#A1A1AA] text-xs">Markup Consolidado</p>
+                    <p className={`text-xl font-bold ${markupConsolidado >= 0 ? 'text-purple-400' : 'text-red-400'}`}>
+                      {markupConsolidado >= 0 ? '+' : ''}{formatPercent(markupConsolidado)}
+                    </p>
+                    <p className="text-xs text-[#A1A1AA]">Vendas / Compras</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Impostos Individualizados - Consolidado */}
+            <div className="bg-[#0C0C0C] rounded-xl p-6 border border-[#C8A951]/30">
+              <h3 className="text-lg font-semibold text-[#C8A951] mb-4 flex items-center gap-2">
+                <Calculator className="w-5 h-5" />
+                Impostos Consolidados do Grupo
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <ImpostoCard nome="PIS" imposto={consolidado?.pis} faturamento={consolidado?.faturamento} corNome="text-blue-400" />
+                <ImpostoCard nome="COFINS" imposto={consolidado?.cofins} faturamento={consolidado?.faturamento} corNome="text-blue-400" />
+                <ImpostoCard nome="ICMS" imposto={consolidado?.icms} faturamento={consolidado?.faturamento} corNome="text-orange-400" />
+                <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                  <h4 className="font-semibold text-purple-400 mb-3">IRPJ</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-[#A1A1AA]">Base</span>
+                      <span className="text-white">{formatCurrency(consolidado?.irpj?.base)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#A1A1AA]">IRPJ 15%</span>
+                      <span className="text-purple-400">{formatCurrency(consolidado?.irpj?.devido)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#A1A1AA]">Adicional</span>
+                      <span className="text-purple-400">{formatCurrency(consolidado?.irpj?.adicional)}</span>
+                    </div>
+                    <div className="border-t border-[#2A2A2A] my-2" />
+                    <div className="flex justify-between font-semibold">
+                      <span className="text-white">Total IRPJ</span>
+                      <span className="text-red-400">{formatCurrency(consolidado?.irpj?.total)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#A1A1AA]">% s/ Faturamento</span>
+                      <span className="text-[#A1A1AA]">{formatPercent((consolidado?.irpj?.total || 0) / (consolidado?.faturamento || 1) * 100)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                  <h4 className="font-semibold text-purple-400 mb-3">CSLL</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-[#A1A1AA]">Base</span>
+                      <span className="text-white">{formatCurrency(consolidado?.csll?.base)}</span>
+                    </div>
+                    <div className="border-t border-[#2A2A2A] my-2" />
+                    <div className="flex justify-between font-semibold">
+                      <span className="text-white">CSLL 9%</span>
+                      <span className="text-red-400">{formatCurrency(consolidado?.csll?.devido)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#A1A1AA]">% s/ Faturamento</span>
+                      <span className="text-[#A1A1AA]">{formatPercent((consolidado?.csll?.devido || 0) / (consolidado?.faturamento || 1) * 100)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Totalizador */}
+              <div className="mt-4 p-4 bg-[#C8A951]/10 rounded-lg border border-[#C8A951]/30">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  <div>
+                    <p className="text-sm text-[#A1A1AA]">Total Federal</p>
+                    <p className="text-xl font-bold text-[#C8A951]">{formatCurrency(consolidado?.total_federal)}</p>
+                    <p className="text-xs text-[#A1A1AA]">{formatPercent((consolidado?.total_federal || 0) / (consolidado?.faturamento || 1) * 100)} s/ faturamento</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#A1A1AA]">PIS + COFINS</p>
+                    <p className={`text-xl font-bold ${
+                      (consolidado?.pis?.saldo || 0) + (consolidado?.cofins?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {formatCurrency(Math.abs((consolidado?.pis?.saldo || 0) + (consolidado?.cofins?.saldo || 0)))}
+                    </p>
+                    <p className="text-xs text-[#A1A1AA]">
+                      {(consolidado?.pis?.saldo || 0) + (consolidado?.cofins?.saldo || 0) < 0 ? 'Saldo Credor' : 'A Pagar'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#A1A1AA]">IRPJ + CSLL</p>
+                    <p className="text-xl font-bold text-red-400">{formatCurrency((consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0))}</p>
+                    <p className="text-xs text-[#A1A1AA]">A Pagar</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#A1A1AA]">ICMS</p>
+                    <p className={`text-xl font-bold ${consolidado?.icms?.saldo < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {formatCurrency(Math.abs(consolidado?.icms?.saldo || 0))}
+                    </p>
+                    <p className="text-xs text-[#A1A1AA]">
+                      {consolidado?.icms?.saldo < 0 ? 'Saldo Credor' : 'A Pagar'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -237,22 +405,37 @@ const GrupoConsolidado = ({ user, onLogout }) => {
                 <ValorLinha label="Saídas" valor={matriz?.indicadores?.saidas} />
                 <ValorLinha label="Vendas" valor={matriz?.indicadores?.vendas} />
                 <div className="border-t border-[#2A2A2A] mt-2 pt-2">
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-[#A1A1AA] text-sm">Markup</span>
+                    <span className={`font-bold ${markupMatriz >= 0 ? 'text-purple-400' : 'text-red-400'}`}>
+                      {markupMatriz >= 0 ? '+' : ''}{formatPercent(markupMatriz)}
+                    </span>
+                  </div>
                   <ValorLinha label="Total Federal" valor={matriz?.total_federal} color="text-[#C8A951]" bold />
                 </div>
               </EmpresaCard>
 
               <div className="space-y-4">
-                {filiais?.map((filial) => (
-                  <EmpresaCard key={filial.id} titulo={filial.razao_social} empresa={filial} tipo="filial">
-                    <ValorLinha label="Entradas" valor={filial?.indicadores?.entradas} />
-                    <ValorLinha label="Compras" valor={filial?.indicadores?.compras} />
-                    <ValorLinha label="Saídas" valor={filial?.indicadores?.saidas} />
-                    <ValorLinha label="Vendas" valor={filial?.indicadores?.vendas} />
-                    <div className="border-t border-[#2A2A2A] mt-2 pt-2">
-                      <ValorLinha label="Total Federal" valor={filial?.total_federal} color="text-[#C8A951]" bold />
-                    </div>
-                  </EmpresaCard>
-                ))}
+                {filiais?.map((filial) => {
+                  const markupFilial = calcMarkup(filial?.indicadores?.vendas, filial?.indicadores?.compras);
+                  return (
+                    <EmpresaCard key={filial.id} titulo={filial.razao_social} empresa={filial} tipo="filial">
+                      <ValorLinha label="Entradas" valor={filial?.indicadores?.entradas} />
+                      <ValorLinha label="Compras" valor={filial?.indicadores?.compras} />
+                      <ValorLinha label="Saídas" valor={filial?.indicadores?.saidas} />
+                      <ValorLinha label="Vendas" valor={filial?.indicadores?.vendas} />
+                      <div className="border-t border-[#2A2A2A] mt-2 pt-2">
+                        <div className="flex justify-between items-center py-1">
+                          <span className="text-[#A1A1AA] text-sm">Markup</span>
+                          <span className={`font-bold ${markupFilial >= 0 ? 'text-purple-400' : 'text-red-400'}`}>
+                            {markupFilial >= 0 ? '+' : ''}{formatPercent(markupFilial)}
+                          </span>
+                        </div>
+                        <ValorLinha label="Total Federal" valor={filial?.total_federal} color="text-[#C8A951]" bold />
+                      </div>
+                    </EmpresaCard>
+                  );
+                })}
               </div>
 
               <EmpresaCard titulo="CONSOLIDADO DO GRUPO" tipo="consolidado">
@@ -261,6 +444,12 @@ const GrupoConsolidado = ({ user, onLogout }) => {
                 <ValorLinha label="Saídas" valor={consolidado?.indicadores?.saidas} />
                 <ValorLinha label="Vendas" valor={consolidado?.indicadores?.vendas} />
                 <div className="border-t border-[#C8A951]/30 mt-2 pt-2">
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-[#A1A1AA] text-sm">Markup</span>
+                    <span className={`font-bold ${markupConsolidado >= 0 ? 'text-purple-400' : 'text-red-400'}`}>
+                      {markupConsolidado >= 0 ? '+' : ''}{formatPercent(markupConsolidado)}
+                    </span>
+                  </div>
                   <ValorLinha label="Total Federal" valor={consolidado?.total_federal} color="text-[#C8A951]" bold />
                   <p className="text-center text-sm text-[#A1A1AA] mt-2">
                     {formatPercent(consolidado?.percentual)} do faturamento
