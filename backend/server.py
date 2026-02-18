@@ -1419,8 +1419,8 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                 # 2. CFOPs que SEMPRE geram crédito (combustível p/ comercialização, compras p/ revenda)
                 cfop_com_credito_especial = cfop in CFOPS_COM_CREDITO_ESPECIAL
                 
-                # 3. Verificar se CFOP está na lista de sem crédito
-                cfop_sem_credito = cfop in CFOPS_SEM_CREDITO
+                # 3. Verificar se CFOP está na lista de sem crédito (do serviço centralizado)
+                cfop_sem_credito = cfop in CFOPS_SEM_CREDITO_LOCAL
                 
                 # LÓGICA DE DECISÃO:
                 # - Se CFOP é especial (combustível p/ comercialização), SEMPRE gera crédito
@@ -1464,8 +1464,8 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                 # 1. Verificar se categoria foi classificada como sem débito
                 categoria_sem_debito = any(cat in categoria for cat in CATEGORIAS_SEM_DEBITO) if categoria else False
                 
-                # 2. Verificar se CFOP não gera débito
-                cfop_sem_debito = cfop in CFOPS_SEM_DEBITO
+                # 2. Verificar se CFOP não gera débito (do serviço centralizado)
+                cfop_sem_debito = cfop in CFOPS_SEM_DEBITO_LOCAL
                 
                 # Se categoria OU CFOP indica que não gera débito, pular
                 if categoria_sem_debito or cfop_sem_debito:
