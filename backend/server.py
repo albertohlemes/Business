@@ -39598,14 +39598,14 @@ async def validador_piscofins_dados(
                     if is_saida:
                         ncms_agregados[ncm_key]['csts_pis_saida'].append(cst_pis)
                     else:
-                        ncms_agregados[ncm_4]['csts_pis_entrada'].append(cst_pis)
+                        ncms_agregados[ncm_key]['csts_pis_entrada'].append(cst_pis)
                 if is_saida:
-                    ncms_agregados[ncm_4]['saidas'] += 1
+                    ncms_agregados[ncm_key]['saidas'] += 1
                 else:
-                    ncms_agregados[ncm_4]['entradas'] += 1
-                if len(ncms_agregados[ncm_4]['produtos_exemplo']) < 2:
-                    if descricao and descricao not in ncms_agregados[ncm_4]['produtos_exemplo']:
-                        ncms_agregados[ncm_4]['produtos_exemplo'].append(descricao[:40])
+                    ncms_agregados[ncm_key]['entradas'] += 1
+                if len(ncms_agregados[ncm_key]['produtos_exemplo']) < 2:
+                    if descricao and descricao not in ncms_agregados[ncm_key]['produtos_exemplo']:
+                        ncms_agregados[ncm_key]['produtos_exemplo'].append(descricao[:40])
     
     # Processar CFOPs exceção
     cfops_exc_entradas_list = []
