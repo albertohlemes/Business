@@ -539,7 +539,7 @@ const ValidadorICMS = ({ user, onLogout }) => {
     
     return (
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-        <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl w-full max-w-lg">
+        <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
             <h3 className="text-white font-semibold">
               {modalRegra.id ? 'Editar Regra' : 'Nova Regra de ICMS'}
@@ -550,92 +550,170 @@ const ValidadorICMS = ({ user, onLogout }) => {
           </div>
           
           <div className="p-4 space-y-4">
-            {/* Tipo */}
-            <div>
-              <label className="block text-sm text-[#A1A1AA] mb-1">Tipo</label>
-              <select
-                value={novaRegra.tipo}
-                onChange={(e) => setNovaRegra({...novaRegra, tipo: e.target.value})}
-                className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
-              >
-                <option value="ncm">NCM</option>
-                <option value="produto">Produto</option>
-              </select>
-            </div>
-            
-            {/* Chave */}
-            <div>
-              <label className="block text-sm text-[#A1A1AA] mb-1">
-                {novaRegra.tipo === 'ncm' ? 'NCM (pode ser prefixo, ex: 1905)' : 'Código ou Descrição do Produto'}
-              </label>
-              <input
-                type="text"
-                value={novaRegra.chave}
-                onChange={(e) => setNovaRegra({...novaRegra, chave: e.target.value})}
-                placeholder={novaRegra.tipo === 'ncm' ? 'Ex: 19059090' : 'Ex: FARINHA PANKO'}
-                className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
-              />
+            {/* Tipo e Chave */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-[#A1A1AA] mb-1">Tipo</label>
+                <select
+                  value={novaRegra.tipo}
+                  onChange={(e) => setNovaRegra({...novaRegra, tipo: e.target.value})}
+                  className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
+                >
+                  <option value="ncm">NCM</option>
+                  <option value="produto">Produto</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-[#A1A1AA] mb-1">
+                  {novaRegra.tipo === 'ncm' ? 'NCM' : 'Código/Descrição'}
+                </label>
+                <input
+                  type="text"
+                  value={novaRegra.chave}
+                  onChange={(e) => setNovaRegra({...novaRegra, chave: e.target.value})}
+                  placeholder={novaRegra.tipo === 'ncm' ? 'Ex: 2208' : 'Ex: CERVEJA'}
+                  className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
+                />
+              </div>
             </div>
             
             {/* Descrição */}
             <div>
-              <label className="block text-sm text-[#A1A1AA] mb-1">Descrição da Regra</label>
+              <label className="block text-sm text-[#A1A1AA] mb-1">Descrição</label>
               <input
                 type="text"
                 value={novaRegra.descricao}
                 onChange={(e) => setNovaRegra({...novaRegra, descricao: e.target.value})}
-                placeholder="Ex: Produtos de padaria e confeitaria"
+                placeholder="Ex: Bebidas alcoólicas destiladas"
                 className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
               />
             </div>
             
-            {/* Alíquotas */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-[#A1A1AA] mb-1">Alíquota Esperada (%)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={novaRegra.aliquota_esperada}
-                  onChange={(e) => setNovaRegra({...novaRegra, aliquota_esperada: parseFloat(e.target.value)})}
-                  className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
-                />
+            {/* Alíquotas por tipo de operação */}
+            <div className="bg-[#0C0C0C] rounded-lg p-4">
+              <h4 className="text-white font-medium mb-3">Alíquotas por Tipo de Operação</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs text-[#A1A1AA] mb-1">Interna (%)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={novaRegra.aliquota_interna}
+                    onChange={(e) => setNovaRegra({...novaRegra, aliquota_interna: parseFloat(e.target.value) || 0})}
+                    className="w-full bg-[#141414] border border-[#2A2A2A] rounded px-2 py-1.5 text-white text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-[#A1A1AA] mb-1">Interestadual S/SE (%)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={novaRegra.aliquota_interestadual_sul_sudeste}
+                    onChange={(e) => setNovaRegra({...novaRegra, aliquota_interestadual_sul_sudeste: parseFloat(e.target.value) || 0})}
+                    className="w-full bg-[#141414] border border-[#2A2A2A] rounded px-2 py-1.5 text-white text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-[#A1A1AA] mb-1">Interestadual Outros (%)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={novaRegra.aliquota_interestadual_outros}
+                    onChange={(e) => setNovaRegra({...novaRegra, aliquota_interestadual_outros: parseFloat(e.target.value) || 0})}
+                    className="w-full bg-[#141414] border border-[#2A2A2A] rounded px-2 py-1.5 text-white text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-[#A1A1AA] mb-1">ST (se aplicável)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={novaRegra.aliquota_st}
+                    onChange={(e) => setNovaRegra({...novaRegra, aliquota_st: parseFloat(e.target.value) || 0})}
+                    className="w-full bg-[#141414] border border-[#2A2A2A] rounded px-2 py-1.5 text-white text-sm"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm text-[#A1A1AA] mb-1">Alíquota Reduzida (%) <span className="text-[#666]">opcional</span></label>
+              
+              <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={novaRegra.aplica_st}
+                  onChange={(e) => setNovaRegra({...novaRegra, aplica_st: e.target.checked})}
+                  className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C]"
+                />
+                <span className="text-sm text-[#A1A1AA]">Produto com ST (espera 0% na saída para atacado/varejo)</span>
+              </label>
+            </div>
+            
+            {/* Exceções */}
+            <div className="bg-[#0C0C0C] rounded-lg p-4">
+              <h4 className="text-white font-medium mb-3">Exceções (opcional)</h4>
+              <p className="text-xs text-[#666] mb-3">
+                Ex: Bebidas destiladas 25%, mas Cachaça/Aguardente 18%
+              </p>
+              
+              {/* Lista de exceções */}
+              {novaRegra.excecoes?.length > 0 && (
+                <div className="mb-3 space-y-2">
+                  {novaRegra.excecoes.map((exc, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-[#141414] rounded px-3 py-2">
+                      <span className="text-white text-sm flex-1">
+                        <span className="text-[#C8A951]">{exc.chave}</span>: {exc.aliquota}%
+                        {exc.descricao && <span className="text-[#666] ml-2">({exc.descricao})</span>}
+                      </span>
+                      <button
+                        onClick={() => handleRemoverExcecao(idx)}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Adicionar exceção */}
+              <div className="grid grid-cols-4 gap-2">
+                <input
+                  type="text"
+                  placeholder="Chave (ex: cachaca)"
+                  value={novaExcecao.chave}
+                  onChange={(e) => setNovaExcecao({...novaExcecao, chave: e.target.value})}
+                  className="bg-[#141414] border border-[#2A2A2A] rounded px-2 py-1.5 text-white text-sm"
+                />
+                <input
+                  type="text"
+                  placeholder="Descrição"
+                  value={novaExcecao.descricao}
+                  onChange={(e) => setNovaExcecao({...novaExcecao, descricao: e.target.value})}
+                  className="bg-[#141414] border border-[#2A2A2A] rounded px-2 py-1.5 text-white text-sm"
+                />
                 <input
                   type="number"
+                  placeholder="Alíq %"
                   step="0.01"
-                  value={novaRegra.aliquota_reduzida || ''}
-                  onChange={(e) => setNovaRegra({...novaRegra, aliquota_reduzida: e.target.value ? parseFloat(e.target.value) : null})}
-                  placeholder="Ex: 12"
-                  className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
+                  value={novaExcecao.aliquota || ''}
+                  onChange={(e) => setNovaExcecao({...novaExcecao, aliquota: parseFloat(e.target.value) || 0})}
+                  className="bg-[#141414] border border-[#2A2A2A] rounded px-2 py-1.5 text-white text-sm"
                 />
+                <button
+                  onClick={handleAdicionarExcecao}
+                  className="bg-blue-600/20 text-blue-400 rounded px-2 py-1.5 text-sm hover:bg-blue-600/30"
+                >
+                  + Add
+                </button>
               </div>
             </div>
             
-            {/* Condição Redução */}
-            {novaRegra.aliquota_reduzida && (
-              <div>
-                <label className="block text-sm text-[#A1A1AA] mb-1">Condição para Redução</label>
-                <input
-                  type="text"
-                  value={novaRegra.condicao_reducao}
-                  onChange={(e) => setNovaRegra({...novaRegra, condicao_reducao: e.target.value})}
-                  placeholder="Ex: Venda para consumidor final ou empresa do Simples"
-                  className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
-                />
-              </div>
-            )}
-            
             {/* Base Legal */}
             <div>
-              <label className="block text-sm text-[#A1A1AA] mb-1">Base Legal <span className="text-[#666]">opcional</span></label>
+              <label className="block text-sm text-[#A1A1AA] mb-1">Base Legal</label>
               <input
                 type="text"
                 value={novaRegra.base_legal}
                 onChange={(e) => setNovaRegra({...novaRegra, base_legal: e.target.value})}
-                placeholder="Ex: RICMS SP Art. 54, II"
+                placeholder="Ex: RICMS SP Art. 54"
                 className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
               />
             </div>
