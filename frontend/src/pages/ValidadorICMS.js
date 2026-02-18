@@ -543,10 +543,13 @@ const ValidadorICMS = ({ user, onLogout }) => {
                               tipo: regra.tipo,
                               chave: regra.chave,
                               descricao: regra.descricao,
-                              aliquota_esperada: regra.aliquota_esperada,
-                              aliquota_reduzida: regra.aliquota_reduzida,
-                              condicao_reducao: regra.condicao_reducao || '',
-                              base_legal: regra.base_legal || ''
+                              aliquota_interna: regra.aliquota_interna,
+                              aliquota_interestadual_sul_sudeste: regra.aliquota_interestadual_sul_sudeste || 12,
+                              aliquota_interestadual_outros: regra.aliquota_interestadual_outros || 7,
+                              aliquota_st: regra.aliquota_st || 0,
+                              excecoes: regra.excecoes || [],
+                              base_legal: regra.base_legal || '',
+                              aplica_st: regra.aplica_st || false
                             });
                             setModalRegra(regra);
                           }}
