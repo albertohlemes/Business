@@ -33972,6 +33972,10 @@ async def get_grupo_consolidado(
 ):
     """
     Retorna o dashboard consolidado de todas as empresas do grupo.
+    
+    IMPORTANTE: PIS e COFINS são calculados usando a função centralizada
+    que considera as regras da empresa e EXCLUI CFOPs de transferência,
+    pois o imposto federal é centralizado na matriz.
     """
     grupo = await db.grupos_empresariais.find_one({"id": grupo_id, "is_active": True}, {"_id": 0})
     if not grupo:
@@ -33997,6 +34001,7 @@ async def get_grupo_consolidado(
         "iss": {"total": 0},
         "ipi": {"debito": 0, "credito": 0, "saldo": 0, "a_pagar": 0},
         "total_impostos": 0,
+        "transferencias_desconsideradas": 0,  # Valor de transferências excluídas
         "empresas": []
     }
     
@@ -34020,17 +34025,40 @@ async def get_grupo_consolidado(
         total_entradas = sum(float(d.get('valor_total', 0) or 0) for d in entradas)
         total_saidas = sum(float(d.get('valor_total', 0) or 0) for d in saidas)
         
-        # Calcular impostos (simplificado)
+        # Calcular ICMS simplificado (apenas soma do XML)
         icms_debito = sum(float(p.get('v_icms', 0) or 0) for d in saidas for p in d.get('produtos', []))
         icms_credito = sum(float(p.get('v_icms', 0) or 0) for d in entradas for p in d.get('produtos', []))
-        pis_debito = sum(float(p.get('v_pis', 0) or 0) for d in saidas for p in d.get('produtos', []))
-        cofins_debito = sum(float(p.get('v_cofins', 0) or 0) for d in saidas for p in d.get('produtos', []))
+        
+        # ============================================================
+        # PIS/COFINS: Usar função centralizada que considera regras
+        # da empresa E exclui CFOPs de transferência
+        # ============================================================
+        try:
+            pis_cofins_result = await calcular_pis_cofins_unificado(empresa_id, competencia, company)
+            pis_credito = pis_cofins_result['pis_creditos']
+            pis_debito = pis_cofins_result['pis_debitos']
+            cofins_credito = pis_cofins_result['cofins_creditos']
+            cofins_debito = pis_cofins_result['cofins_debitos']
+            pis_saldo = pis_cofins_result['pis_saldo']
+            cofins_saldo = pis_cofins_result['cofins_saldo']
+            transferencias_desc = float(pis_cofins_result.get('desconsiderados', {}).get('transferencias', 0) or 0)
+        except Exception as e:
+            logger.error(f"Erro ao calcular PIS/COFINS para empresa {empresa_id}: {e}")
+            # Fallback: usar valores do XML
+            pis_debito = sum(float(p.get('v_pis', 0) or 0) for d in saidas for p in d.get('produtos', []))
+            pis_credito = sum(float(p.get('v_pis', 0) or 0) for d in entradas for p in d.get('produtos', []))
+            cofins_debito = sum(float(p.get('v_cofins', 0) or 0) for d in saidas for p in d.get('produtos', []))
+            cofins_credito = sum(float(p.get('v_cofins', 0) or 0) for d in entradas for p in d.get('produtos', []))
+            pis_saldo = pis_debito - pis_credito
+            cofins_saldo = cofins_debito - cofins_credito
+            transferencias_desc = 0
         
         empresa_data = {
             "id": empresa_id,
             "razao_social": company.get("razao_social"),
             "cnpj": company.get("cnpj"),
             "uf": company.get("uf"),
+            "regime_tributario": company.get("regime_tributario", "lucro_presumido"),
             "is_matriz": empresa_id == grupo.get("matriz_id"),
             "entradas": round(total_entradas, 2),
             "saidas": round(total_saidas, 2),
@@ -34038,8 +34066,12 @@ async def get_grupo_consolidado(
             "icms_debito": round(icms_debito, 2),
             "icms_credito": round(icms_credito, 2),
             "icms_saldo": round(icms_debito - icms_credito, 2),
+            "pis_credito": round(pis_credito, 2),
             "pis_debito": round(pis_debito, 2),
-            "cofins_debito": round(cofins_debito, 2)
+            "pis_saldo": round(pis_saldo, 2),
+            "cofins_credito": round(cofins_credito, 2),
+            "cofins_debito": round(cofins_debito, 2),
+            "cofins_saldo": round(cofins_saldo, 2)
         }
         consolidado["empresas"].append(empresa_data)
         
@@ -34049,16 +34081,21 @@ async def get_grupo_consolidado(
         consolidado["resumo"]["qtd_documentos"] += len(documents)
         consolidado["icms"]["debito"] += icms_debito
         consolidado["icms"]["credito"] += icms_credito
+        consolidado["pis"]["credito"] += pis_credito
         consolidado["pis"]["debito"] += pis_debito
+        consolidado["cofins"]["credito"] += cofins_credito
         consolidado["cofins"]["debito"] += cofins_debito
+        consolidado["transferencias_desconsideradas"] += transferencias_desc
     
     # Calcular saldos consolidados
     consolidado["icms"]["saldo"] = round(consolidado["icms"]["debito"] - consolidado["icms"]["credito"], 2)
     consolidado["icms"]["a_pagar"] = round(max(consolidado["icms"]["saldo"], 0), 2)
-    consolidado["pis"]["saldo"] = round(consolidado["pis"]["debito"], 2)
-    consolidado["pis"]["a_pagar"] = round(consolidado["pis"]["debito"], 2)
-    consolidado["cofins"]["saldo"] = round(consolidado["cofins"]["debito"], 2)
-    consolidado["cofins"]["a_pagar"] = round(consolidado["cofins"]["debito"], 2)
+    
+    # PIS/COFINS: Saldo = Débito - Crédito
+    consolidado["pis"]["saldo"] = round(consolidado["pis"]["debito"] - consolidado["pis"]["credito"], 2)
+    consolidado["pis"]["a_pagar"] = round(max(consolidado["pis"]["saldo"], 0), 2)
+    consolidado["cofins"]["saldo"] = round(consolidado["cofins"]["debito"] - consolidado["cofins"]["credito"], 2)
+    consolidado["cofins"]["a_pagar"] = round(max(consolidado["cofins"]["saldo"], 0), 2)
     
     consolidado["total_impostos"] = round(
         consolidado["icms"]["a_pagar"] + 
@@ -34072,8 +34109,11 @@ async def get_grupo_consolidado(
     consolidado["resumo"]["total_saidas"] = round(consolidado["resumo"]["total_saidas"], 2)
     consolidado["icms"]["debito"] = round(consolidado["icms"]["debito"], 2)
     consolidado["icms"]["credito"] = round(consolidado["icms"]["credito"], 2)
+    consolidado["pis"]["credito"] = round(consolidado["pis"]["credito"], 2)
     consolidado["pis"]["debito"] = round(consolidado["pis"]["debito"], 2)
+    consolidado["cofins"]["credito"] = round(consolidado["cofins"]["credito"], 2)
     consolidado["cofins"]["debito"] = round(consolidado["cofins"]["debito"], 2)
+    consolidado["transferencias_desconsideradas"] = round(consolidado["transferencias_desconsideradas"], 2)
     
     return consolidado
 
