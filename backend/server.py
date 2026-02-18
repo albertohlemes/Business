@@ -38500,6 +38500,8 @@ class RegraPisCofins(BaseModel):
     tipo: str = "ncm"  # ncm, cfop ou produto
     chave: str  # NCM, CFOP ou código do produto
     descricao: str
+    # Tipo de regra (tributado, aliquota_zero, monofasico, etc.)
+    tipo_regra: Optional[str] = "tributado"
     # Alíquotas
     aliquota_pis: float = 1.65  # Alíquota de PIS esperada
     aliquota_cofins: float = 7.6  # Alíquota de COFINS esperada
@@ -38522,6 +38524,7 @@ class RegraPisCofinsCreate(BaseModel):
     tipo: str = "ncm"
     chave: str
     descricao: str
+    tipo_regra: Optional[str] = "tributado"
     aliquota_pis: float = 1.65
     aliquota_cofins: float = 7.6
     gera_credito: bool = True
@@ -38535,6 +38538,7 @@ class RegraPisCofinsCreate(BaseModel):
 
 class RegraPisCofinsUpdate(BaseModel):
     descricao: Optional[str] = None
+    tipo_regra: Optional[str] = None
     aliquota_pis: Optional[float] = None
     aliquota_cofins: Optional[float] = None
     gera_credito: Optional[bool] = None
