@@ -218,10 +218,10 @@ const ValidadorICMS = ({ user, onLogout }) => {
     }
   };
 
-  // Filtrar dados
-  const filtrarDados = (dados) => {
+  // Filtrar e ordenar dados
+  const filtrarDados = (dados, sortConfig) => {
     if (!dados) return [];
-    return dados.filter(item => {
+    let filtrados = dados.filter(item => {
       const matchSearch = searchTerm === '' || 
         (item.descricao?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (item.ncm?.includes(searchTerm)) ||
@@ -231,6 +231,30 @@ const ValidadorICMS = ({ user, onLogout }) => {
       
       return matchSearch && matchStatus;
     });
+
+    // Ordenar se houver configuração
+    if (sortConfig.key) {
+      filtrados = [...filtrados].sort((a, b) => {
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+        
+        // Tratar valores numéricos
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+        }
+        
+        // Tratar strings
+        aVal = String(aVal || '').toLowerCase();
+        bVal = String(bVal || '').toLowerCase();
+        
+        if (sortConfig.direction === 'asc') {
+          return aVal.localeCompare(bVal);
+        }
+        return bVal.localeCompare(aVal);
+      });
+    }
+    
+    return filtrados;
   };
 
   // Cards de estatísticas - agora são botões de filtro clicáveis
