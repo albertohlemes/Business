@@ -38939,23 +38939,36 @@ async def criar_regra_icms(
     regra: RegraICMSCreate,
     current_user: User = Depends(get_current_user)
 ):
-    """Cria uma nova regra de ICMS"""
+    """Cria uma nova regra de ICMS com suporte a exceções e operações interestaduais"""
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     uf = company.get('uf', 'SP')
     
+    # Converter exceções para o formato correto
+    excecoes_formatadas = []
+    for exc in (regra.excecoes or []):
+        excecoes_formatadas.append({
+            'chave': exc.chave,
+            'descricao': exc.descricao,
+            'aliquota': exc.aliquota,
+            'condicao': exc.condicao
+        })
+    
     nova_regra = RegraICMS(
         company_id=company_id,
         tipo=regra.tipo,
         chave=regra.chave.strip(),
         descricao=regra.descricao,
-        aliquota_esperada=regra.aliquota_esperada,
-        aliquota_reduzida=regra.aliquota_reduzida,
-        condicao_reducao=regra.condicao_reducao,
+        aliquota_interna=regra.aliquota_interna,
+        aliquota_interestadual_sul_sudeste=regra.aliquota_interestadual_sul_sudeste,
+        aliquota_interestadual_outros=regra.aliquota_interestadual_outros,
+        aliquota_st=regra.aliquota_st,
+        excecoes=excecoes_formatadas,
         uf=uf,
         base_legal=regra.base_legal,
+        aplica_st=regra.aplica_st,
         ativo=True,
         created_by=current_user.id
     )
