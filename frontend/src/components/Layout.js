@@ -121,6 +121,8 @@ const Layout = ({ user, onLogout, children }) => {
     // ═══════════════════════════════════════════════════════════
     nav.push({ type: 'separator', label: 'Ações' });
     nav.push({ name: 'Classificação Inteligente', href: '/classificacao-inteligente', icon: Brain, testId: 'nav-classificacao-inteligente' });
+    nav.push({ name: 'Validador PIS/COFINS', href: '/validador-pis-cofins', icon: AlertTriangle, testId: 'nav-validador-pis-cofins' });
+    nav.push({ name: 'Validador ICMS', href: '/validador-icms', icon: AlertTriangle, testId: 'nav-validador-icms' });
     
     if (regimeTributario === 'simples_nacional') {
       nav.push({ name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' });
@@ -148,7 +150,6 @@ const Layout = ({ user, onLogout, children }) => {
       // Lucro Presumido / Lucro Real
       // Federais
       nav.push({ name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' });
-      nav.push({ name: 'Validador PIS/COFINS', href: '/validador-pis-cofins', icon: AlertTriangle, testId: 'nav-validador-pis-cofins' });
       
       if (ehIndustria) {
         nav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
@@ -157,7 +158,6 @@ const Layout = ({ user, onLogout, children }) => {
       // Estaduais
       if (['comercio', 'industria', 'mista'].includes(tipoAtividade) || apuraIcms) {
         nav.push({ name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' });
-        nav.push({ name: 'Validador ICMS', href: '/validador-icms', icon: AlertTriangle, testId: 'nav-validador-icms' });
       }
       
       // ICMS ST apenas para contribuintes de ST (indústria ou com flag apuraIcmsSt)
