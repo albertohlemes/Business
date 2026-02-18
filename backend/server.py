@@ -36624,32 +36624,135 @@ async def complete_wizard_step(
             logger.info(f"[WIZARD-CLASSIFICACAO] Concluído: {stats}")
     
     elif step_id == 5:  # PIS/COFINS Entradas
-        # Recalcular CST de entradas
+        # Aplicar regras de PIS/COFINS nas entradas
+        # Prioridade: CFOP exceção → Regra empresa → Regra padrão
         recalcular = step_data.get("recalcular_cst", False)
         if recalcular:
             regime = company.get("regime_tributario", "simples_nacional")
+            is_presumido = regime == 'lucro_presumido'
+            
+            # Buscar regras da empresa
+            regras_empresa = await db.regras_pis_cofins.find({
+                "company_id": company_id,
+                "ativo": True
+            }).to_list(length=1000)
+            
+            # Indexar regras por NCM
+            regras_por_ncm = {}
+            for r in regras_empresa:
+                if r['tipo'] == 'ncm':
+                    chave = r['chave'].replace('.', '').strip()
+                    regras_por_ncm[chave] = r
+            
             docs = await db.xml_documents.find({
                 "company_id": company_id,
                 "competencia": competencia,
-                "tipo": "entrada"
-            }).to_list(length=500)
+                "tipo": "entrada",
+                **get_filtro_notas_ativas()
+            }).to_list(length=5000)
             
             total_corrigidos = 0
+            novas_regras = []
+            ncms_processados = set()
+            
             for doc in docs:
                 updated = False
                 for p in doc.get("produtos", []):
-                    cst_info = calcular_cst_pis_cofins(
-                        ncm=p.get("ncm", ""),
-                        cfop=p.get("cfop", ""),
-                        tipo_operacao="entrada",
-                        cst_xml=p.get("cst_pis_xml", ""),
-                        regime=regime
-                    )
+                    cfop = str(p.get("cfop", ""))
+                    ncm = str(p.get("ncm", "")).replace('.', '').strip()
                     
-                    if p.get("cst_pis") != cst_info['cst_calculado']:
-                        p['cst_pis'] = cst_info['cst_calculado']
-                        p['cst_cofins'] = cst_info['cst_calculado']
+                    if not ncm or len(ncm) < 4:
+                        continue
+                    
+                    cst_novo = None
+                    origem = None
+                    
+                    # 1. CFOP de exceção
+                    cfop_exc = CFOPS_EXCECAO_SEM_CREDITO_DEBITO.get(cfop)
+                    if cfop_exc and cfop_exc.get('tipo') == 'entrada':
+                        cst_novo = cfop_exc.get('cst_esperado', '98')
+                        origem = 'cfop_excecao'
+                    else:
+                        # 2. Regra da empresa (NCM completo ou prefixo)
+                        regra = None
+                        for i in range(len(ncm), 3, -1):
+                            prefixo = ncm[:i]
+                            if prefixo in regras_por_ncm:
+                                regra = regras_por_ncm[prefixo]
+                                break
+                        
+                        if regra:
+                            cst_novo = regra.get('cst_esperado_entrada', '50')
+                            origem = 'regra_empresa'
+                            
+                            # Verificar exceções
+                            excecoes = regra.get('excecoes', [])
+                            descricao_prod = p.get('descricao', '').upper()
+                            for exc in excecoes:
+                                palavra_chave = exc.get('chave', '').upper()
+                                if palavra_chave and palavra_chave in descricao_prod:
+                                    cst_novo = exc.get('cst_entrada', cst_novo)
+                                    origem = 'regra_excecao'
+                                    break
+                        else:
+                            # 3. Regra padrão do sistema
+                            ncm_4 = ncm[:4]
+                            regra_padrao = REGRAS_PIS_COFINS_COMPLETAS.get(ncm_4)
+                            if regra_padrao:
+                                tipo_regra = regra_padrao.get('tipo_regra', 'tributado')
+                                config = TIPOS_REGRA_PIS_COFINS.get(tipo_regra, TIPOS_REGRA_PIS_COFINS['tributado'])
+                                
+                                if is_presumido and tipo_regra == 'tributado':
+                                    config = TIPOS_REGRA_PIS_COFINS['tributado_presumido']
+                                    tipo_regra = 'tributado_presumido'
+                                
+                                cst_novo = config.get('cst_entrada', '50')
+                                origem = 'regra_padrao'
+                                
+                                # Criar regra para auditoria
+                                if ncm_4 not in ncms_processados and ncm_4 not in regras_por_ncm:
+                                    ncms_processados.add(ncm_4)
+                                    nova_regra = {
+                                        "id": str(uuid.uuid4()),
+                                        "company_id": company_id,
+                                        "tipo": "ncm",
+                                        "chave": ncm_4,
+                                        "descricao": regra_padrao.get('descricao', f'NCM {ncm_4}'),
+                                        "tipo_regra": tipo_regra,
+                                        "cst_esperado_entrada": config.get('cst_entrada', '50'),
+                                        "cst_esperado_saida": config.get('cst_saida', '01'),
+                                        "aliquota_pis": config.get('aliquota_pis') or 0,
+                                        "aliquota_cofins": config.get('aliquota_cofins') or 0,
+                                        "gera_credito": config.get('gera_credito', True),
+                                        "gera_debito": config.get('gera_debito', True),
+                                        "base_legal": regra_padrao.get('base_legal', ''),
+                                        "excecoes": [],
+                                        "ativo": True,
+                                        "nova": True,
+                                        "criado_automaticamente": True,
+                                        "created_at": datetime.now(timezone.utc),
+                                        "created_by": current_user.id
+                                    }
+                                    await db.regras_pis_cofins.insert_one(nova_regra)
+                                    regras_por_ncm[ncm_4] = nova_regra
+                                    novas_regras.append(ncm_4)
+                            else:
+                                # Sem regra padrão - usar cálculo legado
+                                cst_info = calcular_cst_pis_cofins(
+                                    ncm=ncm,
+                                    cfop=cfop,
+                                    tipo_operacao="entrada",
+                                    cst_xml=p.get("cst_pis_xml", ""),
+                                    regime=regime
+                                )
+                                cst_novo = cst_info['cst_calculado']
+                                origem = 'calculo_legado'
+                    
+                    if cst_novo and p.get("cst_pis") != cst_novo:
+                        p['cst_pis'] = cst_novo
+                        p['cst_cofins'] = cst_novo
                         p['cst_corrigido_wizard'] = True
+                        p['cst_origem'] = origem
                         updated = True
                         total_corrigidos += 1
                 
@@ -36659,35 +36762,141 @@ async def complete_wizard_step(
                         {"$set": {"produtos": doc["produtos"]}}
                     )
             
-            actions_taken.append(f"{total_corrigidos} CSTs corrigidos nas entradas")
+            msg = f"{total_corrigidos} CSTs corrigidos nas entradas"
+            if novas_regras:
+                msg += f" ({len(novas_regras)} novas regras criadas para auditoria)"
+            actions_taken.append(msg)
     
     elif step_id == 6:  # PIS/COFINS Saídas
-        # Similar ao passo 4, mas para saídas
+        # Aplicar regras de PIS/COFINS nas saídas
+        # Prioridade: CFOP exceção → Regra empresa → Regra padrão
         recalcular = step_data.get("recalcular_cst", False)
         if recalcular:
             regime = company.get("regime_tributario", "simples_nacional")
+            is_presumido = regime == 'lucro_presumido'
+            
+            # Buscar regras da empresa
+            regras_empresa = await db.regras_pis_cofins.find({
+                "company_id": company_id,
+                "ativo": True
+            }).to_list(length=1000)
+            
+            # Indexar regras por NCM
+            regras_por_ncm = {}
+            for r in regras_empresa:
+                if r['tipo'] == 'ncm':
+                    chave = r['chave'].replace('.', '').strip()
+                    regras_por_ncm[chave] = r
+            
             docs = await db.xml_documents.find({
                 "company_id": company_id,
                 "competencia": competencia,
-                "tipo": "saida"
-            }).to_list(length=500)
+                "tipo": "saida",
+                **get_filtro_notas_ativas()
+            }).to_list(length=10000)
             
             total_corrigidos = 0
+            novas_regras = []
+            ncms_processados = set()
+            
             for doc in docs:
                 updated = False
                 for p in doc.get("produtos", []):
-                    cst_info = calcular_cst_pis_cofins(
-                        ncm=p.get("ncm", ""),
-                        cfop=p.get("cfop", ""),
-                        tipo_operacao="saida",
-                        cst_xml=p.get("cst_pis_xml", ""),
-                        regime=regime
-                    )
+                    cfop = str(p.get("cfop", ""))
+                    ncm = str(p.get("ncm", "")).replace('.', '').strip()
                     
-                    if p.get("cst_pis") != cst_info['cst_calculado']:
-                        p['cst_pis'] = cst_info['cst_calculado']
-                        p['cst_cofins'] = cst_info['cst_calculado']
+                    if not ncm or len(ncm) < 4:
+                        continue
+                    
+                    cst_novo = None
+                    origem = None
+                    
+                    # 1. CFOP de exceção
+                    cfop_exc = CFOPS_EXCECAO_SEM_CREDITO_DEBITO.get(cfop)
+                    if cfop_exc and cfop_exc.get('tipo') == 'saida':
+                        cst_novo = cfop_exc.get('cst_esperado', '49')
+                        origem = 'cfop_excecao'
+                    else:
+                        # 2. Regra da empresa (NCM completo ou prefixo)
+                        regra = None
+                        for i in range(len(ncm), 3, -1):
+                            prefixo = ncm[:i]
+                            if prefixo in regras_por_ncm:
+                                regra = regras_por_ncm[prefixo]
+                                break
+                        
+                        if regra:
+                            cst_novo = regra.get('cst_esperado_saida', '01')
+                            origem = 'regra_empresa'
+                            
+                            # Verificar exceções
+                            excecoes = regra.get('excecoes', [])
+                            descricao_prod = p.get('descricao', '').upper()
+                            for exc in excecoes:
+                                palavra_chave = exc.get('chave', '').upper()
+                                if palavra_chave and palavra_chave in descricao_prod:
+                                    cst_novo = exc.get('cst_saida', cst_novo)
+                                    origem = 'regra_excecao'
+                                    break
+                        else:
+                            # 3. Regra padrão do sistema
+                            ncm_4 = ncm[:4]
+                            regra_padrao = REGRAS_PIS_COFINS_COMPLETAS.get(ncm_4)
+                            if regra_padrao:
+                                tipo_regra = regra_padrao.get('tipo_regra', 'tributado')
+                                config = TIPOS_REGRA_PIS_COFINS.get(tipo_regra, TIPOS_REGRA_PIS_COFINS['tributado'])
+                                
+                                if is_presumido and tipo_regra == 'tributado':
+                                    config = TIPOS_REGRA_PIS_COFINS['tributado_presumido']
+                                    tipo_regra = 'tributado_presumido'
+                                
+                                cst_novo = config.get('cst_saida', '01')
+                                origem = 'regra_padrao'
+                                
+                                # Criar regra para auditoria (se ainda não existe)
+                                if ncm_4 not in ncms_processados and ncm_4 not in regras_por_ncm:
+                                    ncms_processados.add(ncm_4)
+                                    nova_regra = {
+                                        "id": str(uuid.uuid4()),
+                                        "company_id": company_id,
+                                        "tipo": "ncm",
+                                        "chave": ncm_4,
+                                        "descricao": regra_padrao.get('descricao', f'NCM {ncm_4}'),
+                                        "tipo_regra": tipo_regra,
+                                        "cst_esperado_entrada": config.get('cst_entrada', '50'),
+                                        "cst_esperado_saida": config.get('cst_saida', '01'),
+                                        "aliquota_pis": config.get('aliquota_pis') or 0,
+                                        "aliquota_cofins": config.get('aliquota_cofins') or 0,
+                                        "gera_credito": config.get('gera_credito', True),
+                                        "gera_debito": config.get('gera_debito', True),
+                                        "base_legal": regra_padrao.get('base_legal', ''),
+                                        "excecoes": [],
+                                        "ativo": True,
+                                        "nova": True,
+                                        "criado_automaticamente": True,
+                                        "created_at": datetime.now(timezone.utc),
+                                        "created_by": current_user.id
+                                    }
+                                    await db.regras_pis_cofins.insert_one(nova_regra)
+                                    regras_por_ncm[ncm_4] = nova_regra
+                                    novas_regras.append(ncm_4)
+                            else:
+                                # Sem regra padrão - usar cálculo legado
+                                cst_info = calcular_cst_pis_cofins(
+                                    ncm=ncm,
+                                    cfop=cfop,
+                                    tipo_operacao="saida",
+                                    cst_xml=p.get("cst_pis_xml", ""),
+                                    regime=regime
+                                )
+                                cst_novo = cst_info['cst_calculado']
+                                origem = 'calculo_legado'
+                    
+                    if cst_novo and p.get("cst_pis") != cst_novo:
+                        p['cst_pis'] = cst_novo
+                        p['cst_cofins'] = cst_novo
                         p['cst_corrigido_wizard'] = True
+                        p['cst_origem'] = origem
                         updated = True
                         total_corrigidos += 1
                 
@@ -36697,7 +36906,10 @@ async def complete_wizard_step(
                         {"$set": {"produtos": doc["produtos"]}}
                     )
             
-            actions_taken.append(f"{total_corrigidos} CSTs corrigidos nas saídas")
+            msg = f"{total_corrigidos} CSTs corrigidos nas saídas"
+            if novas_regras:
+                msg += f" ({len(novas_regras)} novas regras criadas para auditoria)"
+            actions_taken.append(msg)
     
     elif step_id == 7:  # Reforma Tributária
         # Apenas salvar que o cálculo foi revisado
