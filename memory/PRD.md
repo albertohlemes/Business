@@ -14,43 +14,52 @@ Sistema de gestão fiscal para empresas brasileiras com validadores de PIS/COFIN
 
 ## ✅ Funcionalidades Implementadas (19/02/2026)
 
-### Sistema Matriz-Filial (P0) - IMPLEMENTADO
+### Sistema Matriz-Filial (P0) - COMPLETO
 1. **CFOPs de Transferência** - NÃO geram PIS/COFINS
-   - Constante `CFOPS_TRANSFERENCIA` em `fiscal_constants.py`
-   - Função `is_cfop_transferencia()` para verificação
-   - Implementado em: `calcular_pis_cofins_unificado`, `calcular_pis_cofins_por_cst`, detalhamento e apuração
-   - CFOPs: 1151-1154, 1408-1409, 2151-2154, 2408-2409, 5151-5156, 5408-5409, 6151-6156, 6408-6409
+   - 26 CFOPs de transferência cadastrados
+   - Implementado em todas as funções de cálculo
 
-2. **Página de Grupos Empresariais** (`/grupos-empresariais`)
-   - Cadastro de grupos com Matriz + Filiais
-   - Dashboard consolidado com:
-     - Cards de resumo (empresas, entradas, saídas, impostos federais, total)
-     - Alerta de transferências desconsideradas
-     - Resumo PIS/COFINS consolidado (débitos, créditos, a pagar)
-     - Tabela detalhada por empresa
+2. **Dashboard Consolidado com IRPJ/CSLL**
+   - Cards resumo: Empresas, Entradas, Saídas, PIS+COFINS, IRPJ+CSLL, Total Federal
+   - Cards detalhados: PIS, COFINS, IRPJ (15% + adicional 10%), CSLL (9%)
+   - Tabela por empresa com todos os impostos
+   - Alerta de transferências desconsideradas
 
-3. **Endpoint de Consolidação Atualizado**
-   - `GET /api/grupos-empresariais/{grupo_id}/consolidado`
-   - Usa `calcular_pis_cofins_unificado` para cada empresa
-   - Retorna: PIS/COFINS débitos, créditos, saldo por empresa e consolidado
+3. **Cálculo IRPJ/CSLL por Empresa**
+   - Base presumida (8% comércio / 32% serviços)
+   - IRPJ 15% + adicional 10% sobre excedente R$ 20.000
+   - CSLL 9%
+   - Tipo de atividade configurável por empresa
 
 ### Bug Fix: Comparativo de Regimes (P0) - CORRIGIDO
-- **Problema**: PIS/COFINS do Lucro Presumido hipotético usava faturamento total
-- **Correção**: Agora usa apenas base tributada (exclui alíquota zero, monofásicos, transferências)
-- **Endpoint**: `/api/inteligencia-tributaria/{company_id}`
+- PIS/COFINS Presumido hipotético agora usa base tributada
 
 ---
 
-## CFOPs de Transferência (Não geram PIS/COFINS)
-```python
-CFOPS_TRANSFERENCIA = [
-    # Entradas
-    '1151', '1152', '1153', '1154', '1408', '1409',  # Internas
-    '2151', '2152', '2153', '2154', '2408', '2409',  # Interestaduais
-    # Saídas  
-    '5151', '5152', '5153', '5155', '5156', '5408', '5409',  # Internas
-    '6151', '6152', '6153', '6155', '6156', '6408', '6409',  # Interestaduais
-]
+## Endpoints de Consolidação
+
+```
+GET /api/grupos-empresariais/{grupo_id}/consolidado?competencia=MM/YYYY
+
+Response:
+{
+  "grupo_nome": "Grupo Comercial RS",
+  "total_empresas": 2,
+  "resumo": { "total_entradas", "total_saidas" },
+  "pis": { "debito", "credito", "saldo", "a_pagar" },
+  "cofins": { "debito", "credito", "saldo", "a_pagar" },
+  "irpj": { "base_presumida", "devido", "adicional", "total" },
+  "csll": { "base_presumida", "devido" },
+  "total_impostos_federais": ...,
+  "empresas": [
+    {
+      "razao_social", "cnpj", "is_matriz",
+      "pis_saldo", "cofins_saldo",
+      "irpj_base", "irpj_total",
+      "csll_base", "csll_devido"
+    }
+  ]
+}
 ```
 
 ---
@@ -58,29 +67,18 @@ CFOPS_TRANSFERENCIA = [
 ## Tarefas Pendentes
 
 ### P0 - CRÍTICO
-- [ ] Relatório consolidado de IRPJ/CSLL para matriz
-- [ ] Carga tributária consolidada do grupo
+- [x] ~~CFOPs de transferência~~
+- [x] ~~Bug comparativo de regimes~~
+- [x] ~~Relatório IRPJ/CSLL consolidado~~
+- [ ] Carga tributária consolidada (total geral com ICMS)
 
 ### P1 - IMPORTANTE
-- [ ] Totalizador por CST nos detalhamentos de CRÉDITOS/DÉBITOS
-- [ ] Fase 2 da refatoração: extrair endpoints para routers separados
+- [ ] Totalizador por CST nos detalhamentos
+- [ ] Refatoração do server.py (extrair routers)
 
 ### P2 - BACKLOG
-- [ ] Pacote Docker para instalação On-Premise
+- [ ] Pacote Docker On-Premise
 - [ ] Popular página "Insights IA"
-- [ ] Suíte de testes pytest mais abrangente
-
----
-
-## Endpoints Principais
-| Endpoint | Descrição |
-|----------|-----------|
-| `GET /api/pis-cofins/apuracao/{company_id}` | Apuração PIS/COFINS |
-| `GET /api/pis-cofins/detalhamento/{company_id}` | Detalhamento com transferências |
-| `GET /api/inteligencia-tributaria/{company_id}` | Comparativo de regimes |
-| `GET /api/grupos-empresariais` | Lista grupos empresariais |
-| `POST /api/grupos-empresariais` | Criar grupo |
-| `GET /api/grupos-empresariais/{id}/consolidado` | Dashboard consolidado |
 
 ---
 
@@ -88,10 +86,10 @@ CFOPS_TRANSFERENCIA = [
 - **Email**: alberto.lemes@businessconta.com.br
 - **Senha**: @Ahl142536
 - **Empresa**: COMERCIAL RS LTDA (d7f30ea1-9df3-4124-a561-12984ffff64b)
-- **Competência**: 01/2026
+- **Competência com dados**: 01/2026
 
 ---
 
 ## Última Atualização
 - **Data**: 19/02/2026
-- **Status**: Sistema Matriz-Filial implementado + Bug do comparativo corrigido
+- **Status**: Relatório IRPJ/CSLL consolidado implementado
