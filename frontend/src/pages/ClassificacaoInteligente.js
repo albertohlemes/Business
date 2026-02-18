@@ -2,39 +2,43 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { 
   Brain, CheckCircle, Search, Edit2, Edit3, Save, Sparkles, Check, CheckCheck, X, 
   Filter, Layers, FileText, Package, Info, ArrowUpDown, ArrowUp, ArrowDown,
   RefreshCw, ChevronDown, ChevronRight, ChevronUp, Send, BookOpen, Trash2, AlertTriangle,
-  Loader2, Wand2, CheckCircle2, BarChart3, ArrowRight
+  Loader2, Wand2, CheckCircle2, BarChart3, ArrowRight, ExternalLink
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL + '/api';
 
-// Componente para renderizar lista de NFs com links
-const NFsList = ({ ocorrencias, maxVisible = 999 }) => {
+// Componente para renderizar lista de NFs com links clicáveis
+const NFsList = ({ ocorrencias, maxVisible = 2 }) => {
   const [expanded, setExpanded] = useState(false);
   const hasMore = ocorrencias.length > maxVisible && !expanded;
   const visibleNFs = expanded ? ocorrencias : ocorrencias.slice(0, maxVisible);
   
+  const handleNFClick = (e, docId) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // Navegar para a página de documentos com o documento selecionado
+    window.location.href = `/documentos?doc=${docId}&highlight=true`;
+  };
+  
   return (
-    <span className="text-xs">
+    <span className="text-xs flex flex-wrap gap-1 items-center">
       {visibleNFs.map((o, idx) => (
-        <span key={idx}>
-          <Link
-            to={`/documents?doc=${o.doc_id}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              window.location.href = `/documents?highlight=${o.doc_id}`;
-            }}
-            className="text-[#C8A951] hover:text-[#D4B962] hover:underline font-medium"
+        <span key={idx} className="inline-flex items-center">
+          <button
+            onClick={(e) => handleNFClick(e, o.doc_id)}
+            className="text-[#C8A951] hover:text-[#FFD700] hover:underline font-mono text-[10px] bg-[#1a1a1a] px-1.5 py-0.5 rounded border border-[#333] hover:border-[#C8A951] transition-colors cursor-pointer"
+            title={`Abrir NF-e ${o.nf || o.numero_nfe} no menu Documentos`}
           >
             {o.nf || o.numero_nfe || '?'}
-          </Link>
-          {idx < visibleNFs.length - 1 && <span className="text-[#666]">, </span>}
+          </button>
+          {idx < visibleNFs.length - 1 && <span className="text-[#444] mx-0.5">,</span>}
         </span>
       ))}
       {hasMore && (
@@ -43,9 +47,20 @@ const NFsList = ({ ocorrencias, maxVisible = 999 }) => {
             e.stopPropagation();
             setExpanded(true);
           }}
-          className="ml-1 text-[#C8A951] hover:text-[#D4B962] font-medium"
+          className="text-[#888] hover:text-[#C8A951] text-[10px] ml-1"
         >
-          +{ocorrencias.length - maxVisible} mais
+          +{ocorrencias.length - maxVisible}
+        </button>
+      )}
+      {expanded && ocorrencias.length > maxVisible && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded(false);
+          }}
+          className="text-[#888] hover:text-[#C8A951] text-[10px] ml-1"
+        >
+          (menos)
         </button>
       )}
     </span>
