@@ -64,6 +64,17 @@ from utils.fiscal_constants import (
     REGRAS_PIS_COFINS_PADRAO as REGRAS_PIS_COFINS_PADRAO_SHARED
 )
 
+# Modelos e constantes do Validador ICMS (extraídos para módulo separado)
+from models.icms_models import (
+    RegraICMS as RegraICMS_Model,
+    RegraICMSCreate as RegraICMSCreate_Model,
+    RegraICMSUpdate as RegraICMSUpdate_Model,
+    ExcecaoRegra as ExcecaoRegra_Model,
+    ExcecaoRegraCreate as ExcecaoRegraCreate_Model,
+    ALIQUOTAS_ICMS_PADRAO as ALIQUOTAS_ICMS_PADRAO_EXT,
+    REGRAS_ICMS_PADRAO_NCM as REGRAS_ICMS_PADRAO_NCM_EXT
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
