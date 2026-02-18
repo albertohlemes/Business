@@ -1087,6 +1087,69 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
     );
   };
 
+  // Exportar relatório de divergências
+  const handleExportarDivergencias = () => {
+    const ncmsLista = dados?.ncms?.lista || [];
+    const divergentes = ncmsLista.filter(item => item.status === 'divergente' || item.status === 'alerta');
+    
+    if (divergentes.length === 0) {
+      alert('Nenhuma divergência encontrada para exportar.');
+      return;
+    }
+    
+    // Cabeçalho do relatório
+    let csvContent = '\uFEFF'; // BOM para UTF-8
+    csvContent += 'RELATÓRIO DE DIVERGÊNCIAS PIS/COFINS\n';
+    csvContent += `Empresa: ${selectedCompany?.nome || ''}\n`;
+    csvContent += `CNPJ: ${selectedCompany?.cnpj || ''}\n`;
+    csvContent += `Competência: ${selectedCompetencia}\n`;
+    csvContent += `Data: ${new Date().toLocaleDateString('pt-BR')}\n\n`;
+    
+    csvContent += 'NCM;Descrição;CST Entrada Atual;CST Entrada Esperado;CST Saída Atual;CST Saída Esperado;PIS Atual;PIS Esperado;COFINS Atual;COFINS Esperado;Status;Ação Necessária\n';
+    
+    divergentes.forEach(item => {
+      const cstEntradaAtual = item.cst_praticado_entrada || '-';
+      const cstEntradaEsperado = item.cst_esperado_entrada || '-';
+      const cstSaidaAtual = item.cst_praticado || '-';
+      const cstSaidaEsperado = item.cst_esperado || '-';
+      
+      const pisAtual = `${item.aliquota_pis_praticada}%`;
+      const pisEsperado = item.aliquota_pis_esperada !== null ? `${item.aliquota_pis_esperada}%` : '-';
+      const cofinsAtual = `${item.aliquota_cofins_praticada}%`;
+      const cofinsEsperado = item.aliquota_cofins_esperada !== null ? `${item.aliquota_cofins_esperada}%` : '-';
+      
+      // Determinar ação necessária
+      let acao = '';
+      if (cstEntradaAtual !== cstEntradaEsperado && cstEntradaEsperado !== '-') {
+        acao += `Entrada: alterar CST de ${cstEntradaAtual} para ${cstEntradaEsperado}. `;
+      }
+      if (cstSaidaAtual !== cstSaidaEsperado && cstSaidaEsperado !== '-') {
+        acao += `Saída: alterar CST de ${cstSaidaAtual} para ${cstSaidaEsperado}. `;
+      }
+      if (!acao) {
+        acao = 'Verificar alíquotas no cadastro do produto';
+      }
+      
+      const descricao = (item.descricao || item.produtos_exemplo?.[0] || '').replace(/;/g, ',');
+      const status = item.status === 'divergente' ? 'DIVERGENTE' : 'ALERTA';
+      
+      csvContent += `${item.ncm};${descricao};${cstEntradaAtual};${cstEntradaEsperado};${cstSaidaAtual};${cstSaidaEsperado};${pisAtual};${pisEsperado};${cofinsAtual};${cofinsEsperado};${status};${acao}\n`;
+    });
+    
+    // Resumo
+    csvContent += '\n\nRESUMO\n';
+    csvContent += `Total de itens divergentes: ${divergentes.length}\n`;
+    csvContent += `Divergentes críticos: ${divergentes.filter(d => d.status === 'divergente').length}\n`;
+    csvContent += `Alertas: ${divergentes.filter(d => d.status === 'alerta').length}\n`;
+    
+    // Download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `divergencias_pis_cofins_${selectedCompany?.cnpj?.replace(/\D/g, '') || 'empresa'}_${selectedCompetencia.replace('/', '-')}.csv`;
+    link.click();
+  };
+
   return (
     <Layout user={user} onLogout={onLogout}>
       <div className="space-y-4">
@@ -1097,6 +1160,14 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
             <p className="text-[#A1A1AA] text-xs">Audite alíquotas e CSTs - CFOPs exceção tratados automaticamente</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <button 
+              onClick={handleExportarDivergencias}
+              disabled={loading}
+              className="flex items-center gap-2 bg-red-600/20 border border-red-600/40 text-red-400 px-3 py-2 rounded-lg hover:bg-red-600/30 text-sm disabled:opacity-50"
+              title="Exportar relatório de divergências para enviar ao cliente"
+            >
+              <Download className="w-4 h-4" /> Exportar Divergências
+            </button>
             <button 
               onClick={() => handleAplicarRegras('entrada')} 
               disabled={aplicandoRegras || loading}
