@@ -8,7 +8,7 @@ Sistema de gestão fiscal para empresas brasileiras com validadores de PIS/COFIN
 - **Frontend**: React (porta 3000)
 - **Backend**: FastAPI (porta 8001)
 - **Database**: MongoDB
-- **Preview URL**: https://icms-rules-hub.preview.emergentagent.com
+- **Preview URL**: https://validator-system.preview.emergentagent.com
 
 ### Funcionalidades Implementadas
 
