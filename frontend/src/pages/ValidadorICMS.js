@@ -455,24 +455,41 @@ const ValidadorICMS = ({ user, onLogout }) => {
         {/* Botão Nova Regra */}
         <div className="flex justify-between items-center">
           <h3 className="text-white font-semibold">Regras Configuradas ({regras.length})</h3>
-          <button
-            onClick={() => {
-              setNovaRegra({
-                tipo: 'ncm',
-                chave: '',
-                descricao: '',
-                aliquota_esperada: 18,
-                aliquota_reduzida: null,
-                condicao_reducao: '',
-                base_legal: ''
-              });
-              setModalRegra({});
-            }}
-            className="flex items-center gap-2 bg-[#C8A951] text-black px-4 py-2 rounded-lg hover:bg-[#B89841] font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            Nova Regra
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleInicializarRegras}
+              disabled={inicializando || loading}
+              className="flex items-center gap-2 bg-[#141414] border border-[#2A2A2A] text-white px-4 py-2 rounded-lg hover:bg-[#1A1A1A] disabled:opacity-50"
+            >
+              {inicializando ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              Pré-carregar do Regulamento
+            </button>
+            <button
+              onClick={() => {
+                setNovaRegra({
+                  tipo: 'ncm',
+                  chave: '',
+                  descricao: '',
+                  aliquota_interna: 18,
+                  aliquota_interestadual_sul_sudeste: 12,
+                  aliquota_interestadual_outros: 7,
+                  aliquota_st: 0,
+                  excecoes: [],
+                  base_legal: '',
+                  aplica_st: false
+                });
+                setModalRegra({});
+              }}
+              className="flex items-center gap-2 bg-[#C8A951] text-black px-4 py-2 rounded-lg hover:bg-[#B89841] font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Nova Regra
+            </button>
+          </div>
         </div>
 
         {/* Lista de Regras */}
