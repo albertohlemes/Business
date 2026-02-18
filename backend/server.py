@@ -34070,6 +34070,7 @@ async def get_impostos_grupo(
             "cnpj": empresa.get("cnpj"),
             "uf": empresa.get("uf"),
             "tipo_atividade": tipo_atividade,
+            "regime_tributario": regime_tributario,
             "faturamento": round(faturamento, 2),
             "indicadores": {
                 "entradas": round(total_entradas, 2),
