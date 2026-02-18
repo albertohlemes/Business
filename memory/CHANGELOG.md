@@ -1,5 +1,21 @@
 # Changelog - Aurion Fiscal
 
+## [18/02/2026] - Correção Bug Crítico PIS/COFINS
+
+### Corrigido
+- **BUG CRÍTICO**: Página de apuração PIS/COFINS exibindo tela em branco/valores zerados
+- **Causa raiz**: Erro de indentação na função `calcular_pis_cofins_unificado()` em `server.py` (linhas 1497-1628)
+  - O `continue` estava fora do bloco `if is_cfop_transferencia(cfop)`, fazendo com que TODOS os produtos fossem ignorados
+  - Todo o bloco de processamento de produtos (linhas 1503-1625) estava com indentação incorreta
+- **Solução**: Corrigida a indentação de 120+ linhas de código no processamento de documentos
+
+### Verificado
+- Endpoint `/api/pis-cofins/apuracao/{company_id}` agora retorna valores corretamente
+- Teste com COMERCIAL RS LTDA (01/2026): Créditos PIS R$141.885,52, COFINS R$653.533,17
+- Interface carregando corretamente com todos os dados de apuração
+
+---
+
 ## [14/02/2026] - Otimização de Performance Global
 
 ### Adicionado
