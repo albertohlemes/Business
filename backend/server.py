@@ -28286,11 +28286,84 @@ async def inteligencia_tributaria(
     # ICMS: IGUAL ao Lucro Real (mesmo cálculo débito-crédito)
     presumido_icms = icms_real
     
-    # PIS: 0.65% sobre faturamento (CUMULATIVO - sem crédito)
-    presumido_pis = faturamento * 0.0065
-    
-    # COFINS: 3% sobre faturamento (CUMULATIVO - sem crédito)
-    presumido_cofins = faturamento * 0.03
+    # ============================================================================
+    # PIS/COFINS PRESUMIDO: Calcular sobre BASE TRIBUTADA APENAS
+    # Excluir: Alíquota Zero, Monofásicos, CFOPs de transferência, etc.
+    # IMPORTANTE: Usar mesma lógica de exclusão do endpoint de apuração
+    # ============================================================================
+    try:
+        # Buscar documentos de saída para calcular base tributada do Presumido
+        docs_saida_presumido = await db.xml_documents.find({
+            "company_id": company_id,
+            "tipo": "saida",
+            **query_competencia,
+            **get_filtro_notas_ativas()
+        }, {"_id": 0, "produtos": 1}).to_list(15000)
+        
+        base_tributada_presumido = 0.0
+        base_excluida_presumido = 0.0
+        base_transferencia_presumido = 0.0
+        
+        for doc in docs_saida_presumido:
+            for prod in doc.get('produtos', []):
+                ncm = str(prod.get('ncm', '') or '').replace('.', '').strip()
+                cfop = str(prod.get('cfop', '') or '').strip()
+                valor_total = float(prod.get('valor_total', 0) or 0)
+                v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+                valor_base = max(0, valor_total - v_icms)  # Base = Valor - ICMS (Lei 14.592/2023)
+                
+                # 1. Verificar CFOPs de transferência (não geram PIS/COFINS)
+                if is_cfop_transferencia(cfop):
+                    base_transferencia_presumido += valor_base
+                    continue
+                
+                # 2. Verificar CFOP de exceção (devolução, remessa, etc.)
+                if cfop in CFOPS_EXCECAO_SAIDA:
+                    base_excluida_presumido += valor_base
+                    continue
+                
+                # 3. Verificar se NCM tem regra que não gera débito
+                regra_ncm = None
+                # Buscar regra customizada da empresa primeiro
+                for regra in await db.regras_pis_cofins.find({"company_id": company_id}).to_list(1000):
+                    if regra.get('ncm') == ncm or (len(ncm) >= 4 and regra.get('ncm', '').startswith(ncm[:4])):
+                        regra_ncm = regra
+                        break
+                
+                # Se não tem regra customizada, usar regras padrão
+                if not regra_ncm:
+                    if is_ncm_monofasico(ncm):
+                        regra_ncm = {'tipo_regra': 'monofasico', 'gera_debito': False}
+                    elif is_ncm_aliquota_zero(ncm):
+                        regra_ncm = {'tipo_regra': 'aliquota_zero', 'gera_debito': False}
+                
+                # Aplicar regra se existir
+                if regra_ncm:
+                    tipo_regra = regra_ncm.get('tipo_regra', 'tributado')
+                    gera_debito = regra_ncm.get('gera_debito', True)
+                    
+                    if not gera_debito or tipo_regra in ['aliquota_zero', 'monofasico', 'st']:
+                        base_excluida_presumido += valor_base
+                        continue
+                
+                # Se chegou aqui, é tributado
+                base_tributada_presumido += valor_base
+        
+        # PIS: 0.65% sobre BASE TRIBUTADA APENAS (não sobre faturamento total)
+        presumido_pis = base_tributada_presumido * 0.0065
+        
+        # COFINS: 3% sobre BASE TRIBUTADA APENAS (não sobre faturamento total)
+        presumido_cofins = base_tributada_presumido * 0.03
+        
+        logger.info(f"RET PRESUMIDO PIS/COFINS: base_tributada={base_tributada_presumido:.2f}, base_excluida={base_excluida_presumido:.2f}, transferencias={base_transferencia_presumido:.2f}, PIS={presumido_pis:.2f}, COFINS={presumido_cofins:.2f}")
+        
+    except Exception as e:
+        logger.error(f"Erro ao calcular PIS/COFINS Presumido: {e}")
+        import traceback
+        traceback.print_exc()
+        # Fallback: usar faturamento total (menos preciso)
+        presumido_pis = faturamento * 0.0065
+        presumido_cofins = faturamento * 0.03
     
     # IRPJ/CSLL: Presunção baseada na atividade da empresa
     # Comércio: 8% IRPJ, 12% CSLL
