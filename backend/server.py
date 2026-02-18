@@ -26630,9 +26630,11 @@ async def detalhamento_pis_cofins(
     # Estrutura para agrupar
     entradas = {}  # chave: NCM_CFOP_CST
     saidas = {}
+    transferencias = {}  # Novo: CFOPs de transferência (não tributados)
     
     subtotais_entrada = {'valor_base': 0, 'valor_pis': 0, 'valor_cofins': 0, 'quantidade': 0}
     subtotais_saida = {'valor_base': 0, 'valor_pis': 0, 'valor_cofins': 0, 'quantidade': 0}
+    subtotais_transferencia = {'valor_base': 0, 'quantidade': 0}  # Transferências não tributadas
     
     for doc in documents:
         tipo_op = doc.get('tipo', 'entrada')
@@ -26644,6 +26646,36 @@ async def detalhamento_pis_cofins(
             v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
             # Base de cálculo = Valor Total - ICMS (Lei 14.592/2023)
             valor_base = max(0, valor_total - v_icms)
+            
+            # ==========================================================================
+            # 0º VERIFICAR CFOPs DE TRANSFERÊNCIA (MATRIZ-FILIAL)
+            # CFOPs de transferência NÃO geram crédito NEM débito de PIS/COFINS
+            # O imposto federal é centralizado na matriz
+            # ==========================================================================
+            if is_cfop_transferencia(cfop):
+                chave_transf = f"{ncm}_{cfop}"
+                if chave_transf not in transferencias:
+                    transferencias[chave_transf] = {
+                        'ncm': ncm,
+                        'cfop': cfop,
+                        'cst': '98',  # Sem incidência
+                        'tipo_operacao': tipo_op,
+                        'classificacao': 'TRANSFERENCIA_MATRIZ_FILIAL',
+                        'quantidade': 0,
+                        'valor_base': 0,
+                        'aliquota_pis': 0,
+                        'aliquota_cofins': 0,
+                        'valor_pis': 0,
+                        'valor_cofins': 0,
+                        'gera_credito': False,
+                        'gera_debito': False,
+                        'motivo': 'Transferência entre matriz e filial - imposto centralizado na matriz'
+                    }
+                transferencias[chave_transf]['quantidade'] += 1
+                transferencias[chave_transf]['valor_base'] += valor_base
+                subtotais_transferencia['quantidade'] += 1
+                subtotais_transferencia['valor_base'] += valor_base
+                continue  # Não entra nas bases de crédito/débito
             
             # ==========================================================================
             # 1º VERIFICAR CFOPs DE EXCEÇÃO (devoluções, bonificações, uso/consumo, etc.)
