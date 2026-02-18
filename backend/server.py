@@ -39556,7 +39556,8 @@ async def validador_piscofins_dados(
                         'valor_total': 0,
                         'aliquotas_pis': [],
                         'aliquotas_cofins': [],
-                        'csts_pis': [],
+                        'csts_pis_entrada': [],
+                        'csts_pis_saida': [],
                         'produtos_exemplo': [],
                         'entradas': 0,
                         'saidas': 0
@@ -39569,7 +39570,10 @@ async def validador_piscofins_dados(
                 if aliq_cofins > 0:
                     ncms_agregados[ncm_4]['aliquotas_cofins'].append(aliq_cofins)
                 if cst_pis:
-                    ncms_agregados[ncm_4]['csts_pis'].append(cst_pis)
+                    if is_saida:
+                        ncms_agregados[ncm_4]['csts_pis_saida'].append(cst_pis)
+                    else:
+                        ncms_agregados[ncm_4]['csts_pis_entrada'].append(cst_pis)
                 if is_saida:
                     ncms_agregados[ncm_4]['saidas'] += 1
                 else:
