@@ -39,6 +39,39 @@ const ValidadorICMS = ({ user, onLogout }) => {
   });
   const [novaExcecao, setNovaExcecao] = useState({ chave: '', descricao: '', aliquota: 0, condicao: '' });
 
+  // Estado de ordenação para as tabelas
+  const [sortConfigProduto, setSortConfigProduto] = useState({ key: null, direction: 'asc' });
+  const [sortConfigNcm, setSortConfigNcm] = useState({ key: null, direction: 'asc' });
+  const [sortConfigRegras, setSortConfigRegras] = useState({ key: null, direction: 'asc' });
+
+  const handleSortProduto = (key) => {
+    setSortConfigProduto(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const handleSortNcm = (key) => {
+    setSortConfigNcm(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const handleSortRegras = (key) => {
+    setSortConfigRegras(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const getSortIcon = (sortConfig, key) => {
+    if (sortConfig.key !== key) return <ArrowUpDown className="w-3 h-3 opacity-30" />;
+    return sortConfig.direction === 'asc' 
+      ? <ChevronUp className="w-3 h-3 text-[#C8A951]" /> 
+      : <ChevronDown className="w-3 h-3 text-[#C8A951]" />;
+  };
+
   const fetchData = useCallback(async () => {
     if (!selectedCompany?.id || !selectedCompetencia) return;
     setLoading(true);
