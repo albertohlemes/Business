@@ -848,32 +848,6 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
       </div>
     );
   };
-                          }}
-                          className="text-blue-400 hover:text-blue-300"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleExcluirRegra(item.id)} className="text-red-400 hover:text-red-300">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {regras.length === 0 && (
-                <tr>
-                  <td colSpan="7" className="py-6 text-center text-[#666]">
-                    Nenhuma regra configurada. Clique em "Pré-carregar" para criar regras automaticamente.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
 
   // Modal de Regra
   const ModalRegra = () => {
