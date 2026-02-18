@@ -38397,6 +38397,40 @@ async def clear_cache(current_user: User = Depends(get_current_user)):
 # Verifica alíquotas de saída comparando com regras do estado
 # ============================================================
 
+# Tabela de alíquotas interestaduais de ICMS
+ALIQUOTAS_INTERESTADUAIS = {
+    # Origem Sul/Sudeste (exceto ES) para Norte/Nordeste/Centro-Oeste/ES = 7%
+    # Origem Sul/Sudeste (exceto ES) para Sul/Sudeste (exceto ES) = 12%
+    # Origem Norte/Nordeste/Centro-Oeste/ES para qualquer estado = 12%
+    'sul_sudeste': ['SP', 'RJ', 'MG', 'PR', 'SC', 'RS'],
+    'norte_nordeste_co_es': ['AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'RN', 'RO', 'RR', 'SE', 'TO']
+}
+
+def get_aliquota_interestadual(uf_origem: str, uf_destino: str) -> float:
+    """Retorna a alíquota interestadual de ICMS"""
+    if uf_origem == uf_destino:
+        return None  # Operação interna
+    
+    origem_sul_sudeste = uf_origem in ALIQUOTAS_INTERESTADUAIS['sul_sudeste']
+    destino_sul_sudeste = uf_destino in ALIQUOTAS_INTERESTADUAIS['sul_sudeste']
+    
+    if origem_sul_sudeste:
+        if destino_sul_sudeste:
+            return 12.0  # Sul/Sudeste para Sul/Sudeste
+        else:
+            return 7.0   # Sul/Sudeste para N/NE/CO/ES
+    else:
+        return 12.0  # N/NE/CO/ES para qualquer lugar
+
+
+class ExcecaoRegra(BaseModel):
+    """Exceção dentro de uma regra de ICMS"""
+    chave: str  # NCM ou descrição específica para exceção
+    descricao: str
+    aliquota: float
+    condicao: Optional[str] = None  # Ex: "Cachaça", "Aguardente"
+
+
 class RegraICMS(BaseModel):
     """Modelo para regra de ICMS configurável pelo usuário"""
     model_config = ConfigDict(extra="ignore")
@@ -38405,32 +38439,111 @@ class RegraICMS(BaseModel):
     tipo: str = "ncm"  # ncm ou produto
     chave: str  # NCM ou código/descrição do produto
     descricao: str
-    aliquota_esperada: float
-    aliquota_reduzida: Optional[float] = None  # Alíquota com redução
-    condicao_reducao: Optional[str] = None  # Ex: "Venda para não contribuinte"
+    # Alíquotas por tipo de operação
+    aliquota_interna: float  # Operação dentro do estado
+    aliquota_interestadual_sul_sudeste: Optional[float] = 12.0  # Para Sul/Sudeste
+    aliquota_interestadual_outros: Optional[float] = 7.0  # Para N/NE/CO/ES
+    aliquota_st: Optional[float] = 0.0  # Se for ST, espera 0% na saída
+    # Exceções (ex: bebidas destiladas 25%, mas cachaça 18%)
+    excecoes: Optional[List[ExcecaoRegra]] = []
+    # Metadados
     uf: str  # Estado da regra
     base_legal: Optional[str] = None  # Lei/artigo/RICMS
+    aplica_st: bool = False  # Se a regra é para produtos ST
     ativo: bool = True
     created_by: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ExcecaoRegraCreate(BaseModel):
+    chave: str
+    descricao: str
+    aliquota: float
+    condicao: Optional[str] = None
 
 
 class RegraICMSCreate(BaseModel):
     tipo: str = "ncm"
     chave: str
     descricao: str
-    aliquota_esperada: float
-    aliquota_reduzida: Optional[float] = None
-    condicao_reducao: Optional[str] = None
+    aliquota_interna: float
+    aliquota_interestadual_sul_sudeste: Optional[float] = 12.0
+    aliquota_interestadual_outros: Optional[float] = 7.0
+    aliquota_st: Optional[float] = 0.0
+    excecoes: Optional[List[ExcecaoRegraCreate]] = []
     base_legal: Optional[str] = None
+    aplica_st: bool = False
 
 
 class RegraICMSUpdate(BaseModel):
     descricao: Optional[str] = None
-    aliquota_esperada: Optional[float] = None
-    aliquota_reduzida: Optional[float] = None
-    condicao_reducao: Optional[str] = None
+    aliquota_interna: Optional[float] = None
+    aliquota_interestadual_sul_sudeste: Optional[float] = None
+    aliquota_interestadual_outros: Optional[float] = None
+    aliquota_st: Optional[float] = None
+    excecoes: Optional[List[ExcecaoRegraCreate]] = None
     base_legal: Optional[str] = None
+    aplica_st: Optional[bool] = None
+    ativo: Optional[bool] = None
+
+
+# ============================================================
+# VALIDADOR DE PIS/COFINS
+# Verifica alíquotas e regras de crédito/débito
+# ============================================================
+
+class RegraPisCofins(BaseModel):
+    """Modelo para regra de PIS/COFINS configurável pelo usuário"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    company_id: str
+    tipo: str = "ncm"  # ncm, cfop ou produto
+    chave: str  # NCM, CFOP ou código do produto
+    descricao: str
+    # Alíquotas
+    aliquota_pis: float = 1.65  # Alíquota de PIS esperada
+    aliquota_cofins: float = 7.6  # Alíquota de COFINS esperada
+    # Comportamento
+    gera_credito: bool = True  # Se gera crédito (entradas)
+    gera_debito: bool = True  # Se gera débito (saídas)
+    cst_esperado_entrada: Optional[str] = None  # CST esperado em entradas (ex: 50, 60)
+    cst_esperado_saida: Optional[str] = None  # CST esperado em saídas (ex: 01, 02)
+    # Exceções
+    excecoes: Optional[List[dict]] = []  # Exceções específicas
+    # Metadados
+    base_legal: Optional[str] = None
+    observacao: Optional[str] = None
+    ativo: bool = True
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class RegraPisCofinsCreate(BaseModel):
+    tipo: str = "ncm"
+    chave: str
+    descricao: str
+    aliquota_pis: float = 1.65
+    aliquota_cofins: float = 7.6
+    gera_credito: bool = True
+    gera_debito: bool = True
+    cst_esperado_entrada: Optional[str] = None
+    cst_esperado_saida: Optional[str] = None
+    excecoes: Optional[List[dict]] = []
+    base_legal: Optional[str] = None
+    observacao: Optional[str] = None
+
+
+class RegraPisCofinsUpdate(BaseModel):
+    descricao: Optional[str] = None
+    aliquota_pis: Optional[float] = None
+    aliquota_cofins: Optional[float] = None
+    gera_credito: Optional[bool] = None
+    gera_debito: Optional[bool] = None
+    cst_esperado_entrada: Optional[str] = None
+    cst_esperado_saida: Optional[str] = None
+    excecoes: Optional[List[dict]] = None
+    base_legal: Optional[str] = None
+    observacao: Optional[str] = None
     ativo: Optional[bool] = None
 
 
