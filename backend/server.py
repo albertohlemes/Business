@@ -75,6 +75,16 @@ from models.icms_models import (
     REGRAS_ICMS_PADRAO_NCM as REGRAS_ICMS_PADRAO_NCM_EXT
 )
 
+# Modelos e constantes do Validador PIS/COFINS (extraídos para módulo separado)
+from models.pis_cofins_models import (
+    RegraPisCofins as RegraPisCofins_Model,
+    RegraPisCofinsCreate as RegraPisCofinsCreate_Model,
+    RegraPisCofinsUpdate as RegraPisCofinsUpdate_Model,
+    CFOPS_CREDITO_PADRAO as CFOPS_CREDITO_PADRAO_EXT,
+    CFOPS_SEM_CREDITO as CFOPS_SEM_CREDITO_EXT,
+    CFOPS_SEM_DEBITO as CFOPS_SEM_DEBITO_EXT
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
