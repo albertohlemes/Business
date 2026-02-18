@@ -39650,7 +39650,8 @@ async def validador_piscofins_dados(
         elif regra_padrao:
             aliq_pis_esperada = regra_padrao.get('aliquota_pis', 0.0165) * 100 if regra_padrao.get('aliquota_pis', 0) < 1 else regra_padrao.get('aliquota_pis', 1.65)
             aliq_cofins_esperada = regra_padrao.get('aliquota_cofins', 0.076) * 100 if regra_padrao.get('aliquota_cofins', 0) < 1 else regra_padrao.get('aliquota_cofins', 7.6)
-            cst_esperado = regra_padrao.get('cst_saida')
+            cst_esperado_entrada = regra_padrao.get('cst_entrada')
+            cst_esperado_saida = regra_padrao.get('cst_saida')
             fonte_regra = 'padrao'
         
         # Calcular status
