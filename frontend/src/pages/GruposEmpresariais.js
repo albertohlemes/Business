@@ -267,13 +267,16 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                     >
                       <Edit className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(grupo.id); }}
-                      className="p-2 bg-red-900/30 hover:bg-red-900/50 rounded-lg text-red-400"
-                      title="Excluir"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {/* Botão Excluir - apenas para admin/super_admin/master */}
+                    {['admin', 'super_admin', 'master'].includes(user?.role) && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(grupo.id); }}
+                        className="p-2 bg-red-900/30 hover:bg-red-900/50 rounded-lg text-red-400"
+                        title="Excluir"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                     {expandedGrupo === grupo.id ? (
                       <ChevronUp className="w-5 h-5 text-[#A1A1AA]" />
                     ) : (
