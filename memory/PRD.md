@@ -109,7 +109,7 @@ Sistema de inteligência fiscal automatizada para empresas brasileiras. Processa
 ---
 
 ## Credenciais de Teste
-- **URL:** `https://pis-cofins-auto.preview.emergentagent.com`
+- **URL:** `https://pis-cofins-rules.preview.emergentagent.com`
 - **Usuário:** `alberto.lemes@businessconta.com.br` / `@Ahl142536`
 - **Empresa:** COMERCIAL RS LTDA (ID: d7f30ea1-9df3-4124-a561-12984ffff64b)
 - **Competência:** 01/2026
