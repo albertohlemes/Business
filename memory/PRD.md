@@ -30,26 +30,33 @@ Sistema de análise fiscal para empresas brasileiras com funcionalidades de:
 - PIS, COFINS e ICMS mostrados em linhas separadas com valores corretos
 - Mostra "Recuperar" para saldos credores
 
-#### 2. RET - Cálculo de Economia
+#### 2. Reforma Tributária - ICMS Zerado Corrigido
+- **CORRIGIDO**: ICMS agora é calculado na função agregada
+- Pipeline MongoDB para buscar ICMS de entradas e saídas
+- Considera CFOPs que não geram crédito (despesas, ST)
+
+#### 3. PIS/COFINS - Consistência de Valores
+- **CORRIGIDO**: Endpoint de detalhamento agora usa a função centralizada `calcular_pis_cofins_unificado`
+- Os totais do saldo agora são consistentes com a aba Apuração
+- A quebra por NCM/CFOP/CST continua no detalhamento
+
+#### 4. RET - Cálculo de Economia
 - **IMPLEMENTADO**: Economia agora é calculada comparando com segundo melhor regime
 - Antes: comparava com o pior regime (inflava economia)
 - Agora: economia = segundoMelhorRegime - melhorRegime
 
-#### 3. PIS/COFINS - Exportação
+#### 5. PIS/COFINS - Exportação
 - **IMPLEMENTADO**: Função de exportação para CSV
 - Botão "Exportar" agora funciona
 - Exporta: resumo + entradas (créditos) + saídas (débitos)
-
-#### 4. Backend - Credito Bruto
-- **IMPLEMENTADO**: Adicionado `credito_bruto` ao endpoint de reforma tributária
-- Permite frontend calcular corretamente economia/aumento
 
 ---
 
 ## Backlog Priorizado
 
 ### P0 - Crítico
-- [PENDENTE VALIDAÇÃO] Testar correções da Reforma Tributária e RET com usuário
+- [PENDENTE VALIDAÇÃO] Testar correções de consistência de PIS/COFINS entre as 3 telas
+- [PENDENTE VALIDAÇÃO] Testar ICMS na Reforma Tributária
 
 ### P1 - Alta Prioridade
 - Ocultar menu "ICMS ST" para empresas não contribuintes
@@ -68,6 +75,10 @@ Sistema de análise fiscal para empresas brasileiras com funcionalidades de:
 /app/
 ├── backend/
 │   └── server.py          # Monólito FastAPI
+│       ├── calcular_pis_cofins_unificado()  # Função centralizada
+│       ├── /api/pis-cofins/apuracao         # Usa função centralizada
+│       ├── /api/pis-cofins/detalhamento     # Agora usa função centralizada para totais
+│       └── /api/reforma-tributaria/apuracao # Usa função centralizada + ICMS
 └── frontend/
     └── src/
         ├── pages/
