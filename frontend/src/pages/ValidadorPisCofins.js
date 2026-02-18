@@ -519,6 +519,24 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
           <ContadorFiltro valor={stats.sem_regra || 0} label="S/ Regra" status="sem_regra" cor="text-gray-400" corBg="bg-gray-600/10" corBorder="border border-gray-600/30" />
         </div>
 
+        {/* Filtros por tipo de tributação */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <span className="text-xs text-[#666]">Tipo:</span>
+          <button
+            onClick={() => setFiltroTipoNcm('todos')}
+            className={`text-xs px-2 py-1 rounded transition-all ${
+              filtroTipoNcm === 'todos' ? 'bg-white text-black' : 'bg-[#1A1A1A] text-[#A1A1AA] hover:bg-[#2A2A2A]'
+            }`}
+          >
+            Todos
+          </button>
+          <TipoFiltroNcm tipo="aliquota_zero" label="Alíq. Zero" cor="bg-green-600/30 text-green-400" />
+          <TipoFiltroNcm tipo="monofasico" label="Monofásico" cor="bg-blue-600/30 text-blue-400" />
+          <TipoFiltroNcm tipo="aliquota_diferenciada" label="Alíq. Difer." cor="bg-yellow-600/30 text-yellow-400" />
+          <TipoFiltroNcm tipo="tributado" label="Tributado" cor="bg-purple-600/30 text-purple-400" />
+          <TipoFiltroNcm tipo="sem_regra" label="Sem Regra" cor="bg-gray-600/30 text-gray-400" />
+        </div>
+
         {/* Tabela de NCMs */}
         <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
