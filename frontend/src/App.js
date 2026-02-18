@@ -147,6 +147,10 @@ function App() {
               element={user ? <ValidadorICMS user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
+              path="/validador-pis-cofins"
+              element={user ? <ValidadorPisCofins user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
               path="/apuracao-iss"
               element={user ? <ApuracaoISS user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
