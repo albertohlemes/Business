@@ -26819,15 +26819,17 @@ async def detalhamento_pis_cofins(
     # Converter para listas e ordenar
     lista_entradas = list(entradas.values())
     lista_saidas = list(saidas.values())
+    lista_transferencias = list(transferencias.values())
     
     lista_entradas.sort(key=lambda x: x['valor_base'], reverse=True)
     lista_saidas.sort(key=lambda x: x['valor_base'], reverse=True)
+    lista_transferencias.sort(key=lambda x: x['valor_base'], reverse=True)
     
     # Arredondar valores
-    for item in lista_entradas + lista_saidas:
+    for item in lista_entradas + lista_saidas + lista_transferencias:
         item['valor_base'] = round(item['valor_base'], 2)
-        item['valor_pis'] = round(item['valor_pis'], 2)
-        item['valor_cofins'] = round(item['valor_cofins'], 2)
+        item['valor_pis'] = round(item.get('valor_pis', 0), 2)
+        item['valor_cofins'] = round(item.get('valor_cofins', 0), 2)
     
     for k in subtotais_entrada:
         subtotais_entrada[k] = round(subtotais_entrada[k], 2) if isinstance(subtotais_entrada[k], float) else subtotais_entrada[k]
