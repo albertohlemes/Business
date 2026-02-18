@@ -32,6 +32,16 @@ Sistema de gestão fiscal para empresas brasileiras com validadores de PIS/COFIN
 - [x] Integração na importação de documentos
 - [x] Hierarquia: CFOP > Cache/Rules > NCMs Vendidos > IA
 
+#### Sistema Matriz-Filial (Em Desenvolvimento 🔄)
+- [x] CFOPs de transferência (1152, 2152, 5152, 6152, etc.) excluídos de PIS/COFINS
+- [x] Constante `CFOPS_TRANSFERENCIA` centralizada em `fiscal_constants.py`
+- [x] Função `is_cfop_transferencia()` para verificação
+- [x] Detalhamento PIS/COFINS com categoria "Transferências" separada
+- [x] Endpoint de consolidação do grupo atualizado para usar `calcular_pis_cofins_unificado`
+- [ ] Interface frontend para cadastro de grupos empresariais
+- [ ] Relatórios consolidados de IRPJ/CSLL para a matriz
+- [ ] Carga tributária consolidada
+
 #### Refatoração do Backend (Fase 1 Completa ✅)
 - [x] Constantes fiscais em `/app/backend/utils/fiscal_constants.py`
 - [x] Funções utilitárias de DB em `/app/backend/utils/db_utils.py`
@@ -40,27 +50,30 @@ Sistema de gestão fiscal para empresas brasileiras com validadores de PIS/COFIN
 - [x] Modelos PIS/COFINS em `/app/backend/models/pis_cofins_models.py`
 - [ ] Extração completa dos endpoints para routers separados (Fase 2)
 
-### Estrutura de Arquivos Criados na Refatoração
-```
-/app/backend/
-├── models/
-│   ├── __init__.py            # Re-exports centralizados
-│   ├── schemas.py             # Modelos existentes (User, Company, etc.)
-│   ├── icms_models.py         # RegraICMS, ALIQUOTAS_ICMS_PADRAO, etc.
-│   └── pis_cofins_models.py   # RegraPisCofins, CFOPS_CREDITO_PADRAO, etc.
-├── utils/
-│   ├── constants.py           # Constantes fiscais e re-exports
-│   ├── fiscal_constants.py    # CFOPS_EXCECAO, TIPOS_REGRA, etc.
-│   └── db_utils.py            # get_filtro_notas_ativas, etc.
-└── server.py                  # Monolito principal (41.080 linhas)
+### CFOPs de Transferência (Não geram PIS/COFINS)
+```python
+CFOPS_TRANSFERENCIA = [
+    # Entradas
+    '1151', '1152', '1153', '1154', '1408', '1409',  # Internas
+    '2151', '2152', '2153', '2154', '2408', '2409',  # Interestaduais
+    # Saídas
+    '5151', '5152', '5153', '5155', '5156', '5408', '5409',  # Internas
+    '6151', '6152', '6153', '6155', '6156', '6408', '6409',  # Interestaduais
+]
 ```
 
 ### Endpoints Principais
-- `GET /api/validador-pis-cofins/{company_id}/dados` - Dados do validador (150 NCMs)
+- `GET /api/validador-pis-cofins/{company_id}/dados` - Dados do validador
 - `GET /api/pis-cofins/apuracao/{company_id}` - Apuração completa
-- `POST /api/validador-pis-cofins/{company_id}/aplicar-regras` - Aplicar regras
-- `GET /api/validador-icms/{company_id}/regras` - Regras ICMS (64 regras)
-- `POST /api/classification/ia-command/{company_id}` - Classificação IA (906 sugestões)
+- `GET /api/pis-cofins/detalhamento/{company_id}` - Detalhamento com transferências
+- `GET /api/grupos-empresariais` - Lista grupos empresariais
+- `POST /api/grupos-empresariais` - Criar grupo empresarial
+- `GET /api/grupos-empresariais/{grupo_id}/consolidado` - Dashboard consolidado
+
+### Tarefas Pendentes (P0)
+- [ ] Interface frontend para gestão de grupos empresariais (matriz-filial)
+- [ ] Relatório consolidado de IRPJ/CSLL para a matriz
+- [ ] Carga tributária consolidada do grupo
 
 ### Tarefas Pendentes (P1)
 - [ ] Totalizador por CST nos detalhamentos de CRÉDITOS/DÉBITOS
@@ -78,5 +91,5 @@ Sistema de gestão fiscal para empresas brasileiras com validadores de PIS/COFIN
 - Competência: 01/2026
 
 ### Última Atualização
-- Data: 18/02/2026
-- Status: Refatoração Fase 1 completa - Modelos e constantes extraídos, todos endpoints funcionando
+- Data: 19/02/2026
+- Status: CFOPs de transferência implementados - não geram mais PIS/COFINS
