@@ -206,8 +206,8 @@ const Indicadores = ({ user, onLogout }) => {
       detalhes: {
         icms: { pagar: icms_pagar, recuperar: icms_recuperar },
         iss: { pagar: iss_pagar, recuperar: 0 },
-        pis: { pagar: pis_pagar, recuperar: pis_recuperar },
-        cofins: { pagar: cofins_pagar, recuperar: cofins_recuperar },
+        pis: { pagar: pis_pagar, recuperar: pis_recuperar, saldo_credor: pis_recuperar },
+        cofins: { pagar: cofins_pagar, recuperar: cofins_recuperar, saldo_credor: cofins_recuperar },
         icms_st: { pagar: icms_st_pagar, recuperar: 0 },
         ipi: { pagar: ipi_pagar, recuperar: ipi_recuperar }
       }
