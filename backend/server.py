@@ -34061,12 +34061,12 @@ async def get_impostos_grupo(
             else:
                 # ========== LUCRO REAL: Regime Não-Cumulativo ==========
                 # Tem crédito (1.65% PIS + 7.6% COFINS) e débito
-                resultado = await calcular_pis_cofins_unificado(empresa_id, competencia, empresa)
+                resultado_pis_cofins = await calcular_pis_cofins_unificado(empresa_id, competencia, empresa)
                 
-                pis_creditos = float(resultado.get("pis_creditos", 0) or 0)
-                pis_debitos = float(resultado.get("pis_debitos", 0) or 0)
-                cofins_creditos = float(resultado.get("cofins_creditos", 0) or 0)
-                cofins_debitos = float(resultado.get("cofins_debitos", 0) or 0)
+                pis_creditos = float(resultado_pis_cofins.get("pis_creditos", 0) or 0)
+                pis_debitos = float(resultado_pis_cofins.get("pis_debitos", 0) or 0)
+                cofins_creditos = float(resultado_pis_cofins.get("cofins_creditos", 0) or 0)
+                cofins_debitos = float(resultado_pis_cofins.get("cofins_debitos", 0) or 0)
                 
                 pis_cofins = {
                     "pis_creditos": pis_creditos,
