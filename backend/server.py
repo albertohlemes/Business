@@ -39894,6 +39894,13 @@ async def validador_piscofins_dados(
         
         # Calcular status
         status = 'sem_regra'
+        tipo_regra = None
+        
+        if regra:
+            tipo_regra = regra.get('tipo_regra', 'tributado')
+        elif regra_padrao:
+            tipo_regra = regra_padrao.get('tipo_regra', 'tributado')
+        
         if aliq_pis_esperada is not None:
             # Normalizar para comparação
             pis_esp = aliq_pis_esperada if aliq_pis_esperada > 1 else aliq_pis_esperada * 100
@@ -39924,6 +39931,7 @@ async def validador_piscofins_dados(
             'cst_esperado_entrada': cst_esperado_entrada,
             'cst_esperado': cst_esperado_saida,
             'status': status,
+            'tipo_regra': tipo_regra,
             'fonte_regra': fonte_regra,
             'regra_id': regra.get('id') if regra else None
         })
