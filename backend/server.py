@@ -6712,45 +6712,133 @@ async def upload_xml_batch(
     
     # CFOPs de operações distintas que precisam de alerta
     CFOPS_OPERACOES_DISTINTAS_UPLOAD = {
+        # ===== VENDAS ESPECIAIS =====
         '5106': 'Venda de mercadoria que não transita pelo estabelecimento',
-        '5906': 'Retorno de mercadoria depositada em depósito fechado/armazém',
-        '5907': 'Retorno simbólico de mercadoria depositada',
-        '5910': 'Remessa em bonificação',
+        '5122': 'Venda com entrega futura',
+        '5123': 'Venda de mercadoria em consignação mercantil',
+        '6106': 'Venda de mercadoria que não transita pelo estabelecimento (interestadual)',
+        '6122': 'Venda com entrega futura (interestadual)',
+        '6123': 'Venda de mercadoria em consignação mercantil (interestadual)',
+        
+        # ===== BONIFICAÇÕES E BRINDES =====
+        '5910': 'Remessa em bonificação/doação/brinde',
+        '6910': 'Remessa em bonificação/doação/brinde (interestadual)',
+        
+        # ===== AMOSTRAS GRÁTIS =====
         '5911': 'Remessa de amostra grátis',
+        '6911': 'Remessa de amostra grátis (interestadual)',
+        
+        # ===== DEMONSTRAÇÃO =====
         '5912': 'Remessa de mercadoria para demonstração',
         '5913': 'Retorno de mercadoria para demonstração',
+        '6912': 'Remessa para demonstração (interestadual)',
+        '6913': 'Retorno de mercadoria para demonstração (interestadual)',
+        
+        # ===== EXPOSIÇÃO/FEIRA =====
         '5914': 'Remessa de mercadoria para exposição/feira',
+        '6914': 'Remessa de mercadoria para exposição/feira (interestadual)',
+        
+        # ===== CONSIGNAÇÃO =====
         '5915': 'Remessa de mercadoria para consignação',
         '5916': 'Retorno de mercadoria de consignação',
         '5917': 'Remessa de mercadoria em consignação simbólica',
         '5918': 'Devolução de mercadoria de consignação simbólica',
         '5919': 'Devolução simbólica por venda em consignação',
+        '6915': 'Remessa de mercadoria para consignação (interestadual)',
+        '6916': 'Retorno de mercadoria de consignação (interestadual)',
+        '6917': 'Remessa de mercadoria em consignação simbólica (interestadual)',
+        '6918': 'Devolução de mercadoria de consignação simbólica (interestadual)',
+        '6919': 'Devolução simbólica por venda em consignação (interestadual)',
+        
+        # ===== VASILHAMES E EMBALAGENS =====
         '5920': 'Remessa de vasilhame/sacaria',
         '5921': 'Devolução de vasilhame/sacaria',
+        '6920': 'Remessa de vasilhame/sacaria (interestadual)',
+        '6921': 'Devolução de vasilhame/sacaria (interestadual)',
+        
+        # ===== SIMPLES FATURAMENTO =====
         '5922': 'Lançamento para simples faturamento',
+        '6922': 'Lançamento para simples faturamento (interestadual)',
+        
+        # ===== CONTA E ORDEM =====
         '5923': 'Remessa de mercadoria por conta e ordem',
         '5924': 'Remessa para industrialização por conta e ordem',
+        '6923': 'Remessa de mercadoria por conta e ordem (interestadual)',
+        '6924': 'Remessa para industrialização por conta e ordem (interestadual)',
+        
+        # ===== DEPÓSITO/ARMAZÉM =====
+        '5905': 'Remessa para depósito fechado/armazém',
+        '5906': 'Retorno de mercadoria depositada em depósito fechado/armazém',
+        '5907': 'Retorno simbólico de mercadoria depositada',
         '5925': 'Retorno de mercadoria de depósito',
-        '5929': 'Lançamento relativo a operação registrada em ECF',
-        '5949': 'Outra saída não especificada',
-        '5201': 'Devolução de compra - indústria',
-        '5202': 'Devolução de compra - comercialização',
-        '5208': 'Devolução de mercadoria em transferência',
-        '5209': 'Devolução de mercadoria para uso/consumo',
-        '5210': 'Devolução de compra para industrialização',
-        '5122': 'Venda com entrega futura',
-        '5123': 'Venda de mercadoria em consignação mercantil',
-        '6106': 'Venda de mercadoria que não transita pelo estabelecimento (interestadual)',
+        '6905': 'Remessa para depósito fechado/armazém (interestadual)',
         '6906': 'Retorno de mercadoria depositada em depósito (interestadual)',
         '6907': 'Retorno simbólico de mercadoria depositada (interestadual)',
-        '6910': 'Remessa em bonificação (interestadual)',
-        '6911': 'Remessa de amostra grátis (interestadual)',
-        '6912': 'Remessa para demonstração (interestadual)',
+        '6925': 'Retorno de mercadoria de depósito (interestadual)',
+        
+        # ===== ECF E OUTRAS SAÍDAS =====
+        '5929': 'Lançamento relativo a operação registrada em ECF',
+        '5949': 'Outra saída não especificada',
         '6929': 'Lançamento relativo a operação registrada em ECF (interestadual)',
         '6949': 'Outra saída não especificada (interestadual)',
-        '6201': 'Devolução de compra - indústria (interestadual)',
-        '6202': 'Devolução de compra - comercialização (interestadual)',
-        '6122': 'Venda com entrega futura (interestadual)',
+        
+        # ===== DEVOLUÇÕES DE COMPRA =====
+        '5201': 'Devolução de compra para industrialização',
+        '5202': 'Devolução de compra para comercialização',
+        '5203': 'Devolução de compra de ativo imobilizado',
+        '5204': 'Devolução de compra de material de uso/consumo',
+        '5205': 'Devolução de mercadoria em transferência',
+        '5206': 'Devolução de mercadoria de armazém/depósito',
+        '5207': 'Devolução de mercadoria recebida em transferência para industrialização',
+        '5208': 'Devolução de mercadoria recebida em transferência para comercialização',
+        '5209': 'Devolução de mercadoria para uso/consumo em transferência',
+        '5210': 'Devolução de compra para utilização na prestação de serviço',
+        '6201': 'Devolução de compra para industrialização (interestadual)',
+        '6202': 'Devolução de compra para comercialização (interestadual)',
+        '6203': 'Devolução de compra de ativo imobilizado (interestadual)',
+        '6204': 'Devolução de compra de material de uso/consumo (interestadual)',
+        '6205': 'Devolução de mercadoria em transferência (interestadual)',
+        '6206': 'Devolução de mercadoria de armazém/depósito (interestadual)',
+        '6207': 'Devolução de mercadoria recebida em transferência para industrialização (interestadual)',
+        '6208': 'Devolução de mercadoria recebida em transferência para comercialização (interestadual)',
+        '6209': 'Devolução de mercadoria para uso/consumo em transferência (interestadual)',
+        '6210': 'Devolução de compra para utilização na prestação de serviço (interestadual)',
+        
+        # ===== DEVOLUÇÕES DE VENDA (ST) =====
+        '5410': 'Devolução de venda de mercadoria com ST',
+        '5411': 'Devolução de venda de mercadoria com ST (consumidor final)',
+        '6410': 'Devolução de venda de mercadoria com ST (interestadual)',
+        '6411': 'Devolução de venda de mercadoria com ST consumidor final (interestadual)',
+        
+        # ===== REMESSAS PARA INDUSTRIALIZAÇÃO =====
+        '5901': 'Remessa para industrialização por encomenda',
+        '5902': 'Retorno de mercadoria utilizada na industrialização',
+        '5903': 'Retorno de mercadoria não utilizada na industrialização',
+        '5904': 'Remessa para venda fora do estabelecimento',
+        '6901': 'Remessa para industrialização por encomenda (interestadual)',
+        '6902': 'Retorno de mercadoria utilizada na industrialização (interestadual)',
+        '6903': 'Retorno de mercadoria não utilizada na industrialização (interestadual)',
+        '6904': 'Remessa para venda fora do estabelecimento (interestadual)',
+        
+        # ===== CONSERTO/REPARO =====
+        '5915': 'Remessa de bem por conta de contrato de comodato',
+        '5916': 'Retorno de bem por conta de contrato de comodato',
+        '5933': 'Prestação de serviço tributado pelo ISSQN',
+        '5934': 'Remessa simbólica de mercadoria depositada em armazém',
+        '6933': 'Prestação de serviço tributado pelo ISSQN (interestadual)',
+        '6934': 'Remessa simbólica de mercadoria depositada em armazém (interestadual)',
+        
+        # ===== TRANSFERÊNCIAS =====
+        '5151': 'Transferência de produção do estabelecimento',
+        '5152': 'Transferência de mercadoria adquirida',
+        '5153': 'Transferência de energia elétrica',
+        '5155': 'Transferência de produção com ST',
+        '5156': 'Transferência de mercadoria com ST',
+        '6151': 'Transferência de produção do estabelecimento (interestadual)',
+        '6152': 'Transferência de mercadoria adquirida (interestadual)',
+        '6153': 'Transferência de energia elétrica (interestadual)',
+        '6155': 'Transferência de produção com ST (interestadual)',
+        '6156': 'Transferência de mercadoria com ST (interestadual)',
     }
     
     # ===== PRÉ-CARREGAR CACHE DE VENDAS (uma vez só, antes do loop) =====
