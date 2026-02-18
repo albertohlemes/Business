@@ -39827,12 +39827,36 @@ CFOPS_CREDITO_PADRAO = {
 
 # CFOPs EXCEÇÃO - NÃO GERAM CRÉDITO (entradas)
 CFOPS_EXCECAO_ENTRADA = {
-    # Combustíveis - CST 50 (exceção mas gera crédito com alíquota normal)
+    # ============================================================
+    # TRANSFERÊNCIAS ENTRE MATRIZ E FILIAIS - CST 98
+    # Imposto federal centralizado na matriz (IN RFB 1.252/2012)
+    # ============================================================
+    '1151': {'descricao': 'Transferência para industrialização', 'cst_esperado': '98'},
+    '1152': {'descricao': 'Transferência para comercialização', 'cst_esperado': '98'},
+    '1153': {'descricao': 'Transferência de energia elétrica', 'cst_esperado': '98'},
+    '1154': {'descricao': 'Transferência para industrialização por conta de terceiro', 'cst_esperado': '98'},
+    '1155': {'descricao': 'Transferência para comercialização por conta de terceiro', 'cst_esperado': '98'},
+    '1156': {'descricao': 'Transferência para utilização na prestação de serviço', 'cst_esperado': '98'},
+    '1157': {'descricao': 'Transferência para utilização na prestação de serviço', 'cst_esperado': '98'},
+    '1409': {'descricao': 'Transferência de mercadoria com ST', 'cst_esperado': '98'},
+    '2151': {'descricao': 'Transferência para industrialização (interestadual)', 'cst_esperado': '98'},
+    '2152': {'descricao': 'Transferência para comercialização (interestadual)', 'cst_esperado': '98'},
+    '2153': {'descricao': 'Transferência de energia elétrica (interestadual)', 'cst_esperado': '98'},
+    '2154': {'descricao': 'Transferência para industrialização por conta de terceiro (interestadual)', 'cst_esperado': '98'},
+    '2155': {'descricao': 'Transferência para comercialização por conta de terceiro (interestadual)', 'cst_esperado': '98'},
+    '2156': {'descricao': 'Transferência para utilização na prestação de serviço (interestadual)', 'cst_esperado': '98'},
+    '2157': {'descricao': 'Transferência para utilização na prestação de serviço (interestadual)', 'cst_esperado': '98'},
+    '2409': {'descricao': 'Transferência de mercadoria com ST (interestadual)', 'cst_esperado': '98'},
+    # ============================================================
+    # COMBUSTÍVEIS - CST 50 (exceção mas gera crédito com alíquota normal)
+    # ============================================================
     '1652': {'descricao': 'Compra de combustível para consumo', 'cst_esperado': '50', 'gera_credito': True},
     '1653': {'descricao': 'Compra de lubrificante para consumo', 'cst_esperado': '50', 'gera_credito': True},
     '2652': {'descricao': 'Compra de combustível para consumo (interestadual)', 'cst_esperado': '50', 'gera_credito': True},
     '2653': {'descricao': 'Compra de lubrificante para consumo (interestadual)', 'cst_esperado': '50', 'gera_credito': True},
-    # Compras para uso/consumo e despesas operacionais - CST 98
+    # ============================================================
+    # COMPRAS PARA USO/CONSUMO E DESPESAS - CST 98
+    # ============================================================
     '1406': {'descricao': 'Compra de energia elétrica para uso ou consumo', 'cst_esperado': '98'},
     '1407': {'descricao': 'Compra de energia elétrica para uso ou consumo com ST', 'cst_esperado': '98'},
     '1408': {'descricao': 'Transferência de energia elétrica para uso ou consumo', 'cst_esperado': '98'},
@@ -39843,7 +39867,9 @@ CFOPS_EXCECAO_ENTRADA = {
     '2408': {'descricao': 'Transferência de energia elétrica para uso ou consumo (interestadual)', 'cst_esperado': '98'},
     '2556': {'descricao': 'Compra de material para uso ou consumo (interestadual)', 'cst_esperado': '98'},
     '2557': {'descricao': 'Transferência de material para uso ou consumo (interestadual)', 'cst_esperado': '98'},
-    # Ativo imobilizado - CST 98
+    # ============================================================
+    # ATIVO IMOBILIZADO - CST 98
+    # ============================================================
     '1551': {'descricao': 'Compra de ativo imobilizado', 'cst_esperado': '98'},
     '1552': {'descricao': 'Transferência de ativo imobilizado', 'cst_esperado': '98'},
     '1553': {'descricao': 'Devolução de venda de ativo imobilizado', 'cst_esperado': '98'},
