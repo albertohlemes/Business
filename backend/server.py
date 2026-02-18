@@ -34129,6 +34129,36 @@ async def get_grupo_consolidado(
             cofins_saldo = cofins_debito - cofins_credito
             transferencias_desc = 0
         
+        # ============================================================
+        # IRPJ/CSLL: Calcular por empresa (Lucro Presumido)
+        # Para grupos, o IRPJ/CSLL pode ser apurado de forma consolidada
+        # ============================================================
+        regime_tributario = company.get("regime_tributario", "lucro_presumido")
+        tipo_atividade = company.get("tipo_atividade", "comercio")
+        
+        # Percentuais de presunção
+        perc_presuncao_irpj = float(company.get('percentual_presuncao_irpj', 8.0))
+        perc_presuncao_csll = float(company.get('percentual_presuncao_csll', 12.0))
+        
+        # Ajustar presunção para serviços
+        if tipo_atividade == 'servicos':
+            perc_presuncao_irpj = float(company.get('percentual_presuncao_servicos_irpj', 32.0))
+            perc_presuncao_csll = float(company.get('percentual_presuncao_servicos_csll', 32.0))
+        
+        # Base presumida
+        base_irpj = total_saidas * (perc_presuncao_irpj / 100)
+        base_csll = total_saidas * (perc_presuncao_csll / 100)
+        
+        # IRPJ: 15% + adicional de 10% sobre excedente de R$ 20.000/mês
+        irpj_devido = base_irpj * 0.15
+        irpj_adicional = 0
+        if base_irpj > 20000:
+            irpj_adicional = (base_irpj - 20000) * 0.10
+        irpj_total = irpj_devido + irpj_adicional
+        
+        # CSLL: 9%
+        csll_devido = base_csll * 0.09
+        
         empresa_data = {
             "id": empresa_id,
             "razao_social": company.get("razao_social"),
