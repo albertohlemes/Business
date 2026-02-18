@@ -1,82 +1,114 @@
-# AURION - Sistema Fiscal Brasileiro
-## Product Requirements Document
+# AURION - Sistema de Inteligência Tributária Operacional
 
-### Arquitetura
-- **Frontend**: React (porta 3000)
-- **Backend**: FastAPI (porta 8001)
+## Visão Geral
+Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
+
+## Stack Tecnológica
+- **Frontend**: React 18 + TailwindCSS + Lucide Icons
+- **Backend**: FastAPI (Python)
 - **Database**: MongoDB
-- **Preview URL**: https://tax-consolidation.preview.emergentagent.com
+- **Auth**: JWT
 
----
+## Funcionalidades Implementadas
 
-## ✅ Implementações Concluídas (19/02/2026)
+### Core
+- [x] Autenticação JWT com controle de permissões
+- [x] Cadastro e gestão de empresas
+- [x] Upload de XMLs (NF-e, CT-e, NFS-e) individual e em lote
+- [x] Central de Fechamento (resumo mensal)
+- [x] Dashboard com indicadores
 
-### Sistema Matriz-Filial - COMPLETO
+### Impostos
+- [x] **PIS/COFINS**: Apuração não-cumulativa com créditos/débitos por CST
+- [x] **ICMS**: Apuração com créditos/débitos, ST e DIFAL
+- [x] **IPI**: Apuração para indústrias
+- [x] **ISS**: Apuração para serviços
+- [x] **Impostos Retidos**: IRRF, CSRF, INSS, ISS
+- [x] **Simples Nacional**: Cálculo DAS
 
-#### 1. CFOPs de Transferência
-- 26 CFOPs que NÃO geram PIS/COFINS (transferência entre matriz/filiais)
+### Análises
+- [x] Vilões e Oportunidades (análise de créditos perdidos)
+- [x] Comparativo de Regimes Tributários (Real vs Presumido)
+- [x] Análise Horizontal (evolução temporal)
+- [x] Reforma Tributária (simulação IBS/CBS)
 
-#### 2. Cadastro de Grupos Empresariais
-- Página `/grupos-empresariais` para criar/editar grupos
-- Vincular matriz + filiais
+### Matriz-Filial (NOVO - v01/2026)
+- [x] **Grupos Empresariais**: Cadastro de grupos (matriz + filiais)
+- [x] **Grupo Consolidado**: Nova página com 6 abas:
+  1. **Indicadores**: Entradas, Compras, Saídas, Vendas consolidados
+  2. **ICMS**: Débito/Crédito/A Pagar por empresa e consolidado
+  3. **PIS/COFINS**: Apuração centralizada com visão matriz/filiais/consolidado
+  4. **IRPJ/CSLL**: Base presumida e impostos devidos por empresa
+  5. **RET**: Comparativo Lucro Real vs Presumido consolidado
+  6. **Reforma Tributária**: Simulação IBS/CBS para o grupo
 
-#### 3. Painel Dinâmico em PIS/COFINS, RET e Reforma Tributária
-**Componente:** `GrupoEmpresarialPanel.js`
+### Validadores
+- [x] Validador PIS/COFINS (CST, alíquotas, NCM)
+- [x] Validador ICMS (CST, CFOP, alíquotas)
+- [x] Classificação Inteligente (NCM, CFOP)
 
-Quando a empresa selecionada é matriz de um grupo, exibe automaticamente:
-- **Card da Matriz**: dados da empresa matriz
-- **Cards das Filiais**: cada filial com seus impostos
-- **Card Consolidado**: soma de matriz + filiais
+## Endpoints Principais
 
-**Tabs disponíveis:**
-- Consolidado (visão geral)
-- Matriz (detalhes)
-- Filiais (lista completa)
+### Autenticação
+- `POST /api/auth/login` - Login
+- `POST /api/auth/register` - Registro
 
-**Páginas integradas:**
-- `/pis-cofins` - PIS/COFINS
-- `/ret` - Comparativo de Regimes (RET)
-- `/reforma-tributaria` - Reforma Tributária
+### Empresas
+- `GET /api/empresas` - Listar empresas
+- `GET /api/empresa/{company_id}/grupo-info` - Info de grupo (is_matriz, filiais)
+- `GET /api/empresa/{company_id}/impostos-grupo` - Impostos consolidados do grupo
 
-#### 4. Carga Tributária Consolidada
-- ICMS + PIS + COFINS + IRPJ + CSLL
-- Percentuais sobre faturamento
-- Detalhamento por empresa
+### Impostos
+- `GET /api/pis-cofins/{company_id}` - Apuração PIS/COFINS
+- `GET /api/icms/{company_id}` - Apuração ICMS
+- `GET /api/inteligencia-tributaria/{company_id}` - Comparativo de regimes
 
-### Endpoints Novos
-```
-GET /api/empresa/{company_id}/grupo-info
-- Verifica se empresa é matriz/filial
-- Retorna informações do grupo
-
-GET /api/empresa/{company_id}/impostos-grupo?competencia=MM/YYYY
-- Retorna impostos de todas empresas do grupo
-- Matriz, Filiais, Consolidado
-```
-
-### Bug Fix: Comparativo de Regimes
-- PIS/COFINS Presumido hipotético usa base tributada
-
----
-
-## Tarefas Pendentes
-
-### P1 - IMPORTANTE
-- [ ] Totalizador por CST nos detalhamentos
-- [ ] Refatoração do server.py (extrair routers)
-
-### P2 - BACKLOG
-- [ ] Pacote Docker On-Premise
-- [ ] Popular página "Insights IA"
-
----
+### Documentos
+- `GET /api/documentos/{company_id}` - Listar documentos
+- `POST /api/upload/{company_id}` - Upload de XMLs
 
 ## Credenciais de Teste
 - **Email**: alberto.lemes@businessconta.com.br
 - **Senha**: @Ahl142536
-- **Empresa Matriz**: COMERCIAL RS LTDA
-- **Competência com dados**: 01/2026
+- **Empresa Matriz**: COMERCIAL RS LTDA (ID: d7f30ea1-9df3-4124-a561-12984ffff64b)
+- **Grupo**: Grupo Comercial RS (com 1 filial: TEKNOLINK SJC)
 
-## Última Atualização
-- **Data**: 19/02/2026
-- **Status**: Painel dinâmico Matriz-Filial implementado em PIS/COFINS, RET e Reforma Tributária
+## Backlog
+
+### P0 (Crítico)
+- [x] ~~Página Grupo Consolidado com 6 abas~~
+
+### P1 (Alta Prioridade)
+- [ ] Totalizador por CST nos detalhamentos de créditos/débitos PIS/COFINS
+- [ ] Refatoração do server.py (extrair rotas para APIRouter separados)
+- [ ] Corrigir modal de seleção de empresa em páginas globais
+
+### P2 (Média Prioridade)
+- [ ] Pacote de instalação On-Premise com Docker
+- [ ] Popular página Insights IA
+- [ ] Suíte de testes pytest mais abrangente
+
+## Arquitetura de Arquivos
+```
+/app/
+├── backend/
+│   ├── server.py          # FastAPI (monolito - precisa refatorar)
+│   ├── models/            # Modelos Pydantic
+│   └── utils/             # Utilitários
+└── frontend/
+    └── src/
+        ├── components/
+        │   └── Layout.js  # Menu lateral com condição isMatriz
+        ├── pages/
+        │   ├── GrupoConsolidado.js  # NOVO - 6 abas consolidadas
+        │   ├── PisCofins.js
+        │   ├── ApuracaoICMS.js
+        │   └── ...
+        └── context/
+            └── AppContext.js  # Contexto global (empresa, competência)
+```
+
+## Changelog
+- **18/02/2026**: Implementada página "Grupo Consolidado" com 6 abas (Indicadores, ICMS, PIS/COFINS, IRPJ/CSLL, RET, Reforma Tributária). Menu aparece apenas para empresas matriz.
+- **17/02/2026**: Corrigido bug no cálculo do Lucro Presumido hipotético (usava receita total em vez de tributável).
+- **16/02/2026**: Backend Matriz-Filial: exclusão de CFOPs de transferência dos cálculos de impostos.
