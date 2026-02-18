@@ -231,11 +231,13 @@ const Indicadores = ({ user, onLogout }) => {
       },
       pis: {
         valor: totais.detalhes.pis?.pagar || 0,
+        saldo_credor: totais.detalhes.pis?.saldo_credor || 0,
         sobre_saidas: calcPercent(totais.detalhes.pis?.pagar || 0, saidas),
         sobre_vendas: calcPercent(totais.detalhes.pis?.pagar || 0, vendas)
       },
       cofins: {
         valor: totais.detalhes.cofins?.pagar || 0,
+        saldo_credor: totais.detalhes.cofins?.saldo_credor || 0,
         sobre_saidas: calcPercent(totais.detalhes.cofins?.pagar || 0, saidas),
         sobre_vendas: calcPercent(totais.detalhes.cofins?.pagar || 0, vendas)
       },
