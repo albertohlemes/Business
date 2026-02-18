@@ -40175,16 +40175,6 @@ TIPOS_REGRA_PIS_COFINS = {
         'cst_entrada': '51', 'cst_saida': '02',
         'aliquota_pis': None, 'aliquota_cofins': None,
         'gera_credito': True, 'gera_debito': True
-    },
-    'isento': {
-        'cst_entrada': '73', 'cst_saida': '08',
-        'aliquota_pis': 0, 'aliquota_cofins': 0,
-        'gera_credito': False, 'gera_debito': False
-    },
-    'suspensao': {
-        'cst_entrada': '70', 'cst_saida': '09',
-        'aliquota_pis': 0, 'aliquota_cofins': 0,
-        'gera_credito': False, 'gera_debito': False
     }
 }
 
