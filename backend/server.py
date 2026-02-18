@@ -26349,13 +26349,79 @@ async def apurar_pis_cofins(
         }
     }
     
-    # Lucro Presumido (sem créditos)
-    aliq_pis_presumido = 0.0065
-    aliq_cofins_presumido = 0.03
-    base_debito = resultado_unificado['base_debito']
+    # ============================================================================
+    # LUCRO PRESUMIDO: Usar mesmas regras customizadas da empresa
+    # Se NCM é alíquota zero/monofásico, não tributa em nenhum regime
+    # ============================================================================
+    aliq_pis_presumido = 0.0065  # 0.65%
+    aliq_cofins_presumido = 0.03  # 3.0%
     
-    pis_presumido = round(base_debito * aliq_pis_presumido, 2)
-    cofins_presumido = round(base_debito * aliq_cofins_presumido, 2)
+    # Calcular débitos do presumido considerando as regras da empresa
+    # Buscar regras da empresa para o cálculo do presumido
+    regras_empresa_presumido = await db.regras_pis_cofins.find({
+        "company_id": company_id,
+        "ativo": True
+    }).to_list(length=1000)
+    
+    # Indexar regras por NCM
+    regras_por_ncm_presumido = {}
+    for r in regras_empresa_presumido:
+        if r.get('tipo') == 'ncm':
+            chave = str(r.get('chave', '')).replace('.', '').strip()
+            regras_por_ncm_presumido[chave] = r
+    
+    def buscar_regra_ncm_presumido(ncm: str):
+        if not ncm or len(ncm) < 4:
+            return None
+        for i in range(len(ncm), 3, -1):
+            prefixo = ncm[:i]
+            if prefixo in regras_por_ncm_presumido:
+                return regras_por_ncm_presumido[prefixo]
+        return None
+    
+    # Buscar documentos de saída para cálculo do presumido
+    query_saidas = {
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "saida"
+    }
+    query_saidas.update(get_filtro_notas_ativas())
+    
+    docs_saidas = await db.xml_documents.find(query_saidas, {"_id": 0, "xml_content": 0}).to_list(15000)
+    
+    base_debito_presumido = 0.0
+    base_excluida_presumido = 0.0  # Bases que não tributam por regra (alíquota zero, monofásico)
+    
+    for doc in docs_saidas:
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', '') or '').replace('.', '').strip()
+            cfop = str(prod.get('cfop', '') or '').strip()
+            valor_total = float(prod.get('valor_total', 0) or 0)
+            v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+            valor_base = max(0, valor_total - v_icms)
+            
+            # Verificar se CFOP é exceção (não gera débito)
+            cfop_excecao = CFOPS_EXCECAO_SAIDA.get(cfop)
+            if cfop_excecao:
+                base_excluida_presumido += valor_base
+                continue
+            
+            # Verificar se NCM tem regra customizada
+            regra = buscar_regra_ncm_presumido(ncm)
+            if regra:
+                tipo_regra = regra.get('tipo_regra', 'tributado')
+                gera_debito = regra.get('gera_debito', True)
+                
+                # Se a regra diz que não gera débito (alíquota zero, monofásico, etc.)
+                if not gera_debito or tipo_regra in ['aliquota_zero', 'monofasico', 'st']:
+                    base_excluida_presumido += valor_base
+                    continue
+            
+            # Se chegou aqui, é tributado normalmente
+            base_debito_presumido += valor_base
+    
+    pis_presumido = round(base_debito_presumido * aliq_pis_presumido, 2)
+    cofins_presumido = round(base_debito_presumido * aliq_cofins_presumido, 2)
     total_presumido = round(pis_presumido + cofins_presumido, 2)
     
     lucro_presumido = {
@@ -26380,7 +26446,10 @@ async def apurar_pis_cofins(
             "pis": pis_presumido,
             "cofins": cofins_presumido,
             "total": total_presumido
-        }
+        },
+        "base_tributada": round(base_debito_presumido, 2),
+        "base_excluida": round(base_excluida_presumido, 2),
+        "nota": "Considera regras customizadas da empresa (alíquota zero, monofásico, etc.)"
     }
     
     # Determinar melhor regime
