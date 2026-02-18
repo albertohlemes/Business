@@ -1052,7 +1052,23 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
             <h1 className="text-xl font-bold text-white">Validador de PIS/COFINS</h1>
             <p className="text-[#A1A1AA] text-xs">Audite alíquotas e CSTs - CFOPs exceção tratados automaticamente</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button 
+              onClick={() => handleAplicarRegras('entrada')} 
+              disabled={aplicandoRegras || loading}
+              className="flex items-center gap-2 bg-blue-600/20 border border-blue-600/40 text-blue-400 px-3 py-2 rounded-lg hover:bg-blue-600/30 text-sm disabled:opacity-50"
+              title="Aplicar regras nos CSTs de entrada dos documentos"
+            >
+              <ArrowDown className="w-4 h-4" /> Rever CST Entrada
+            </button>
+            <button 
+              onClick={() => handleAplicarRegras('saida')} 
+              disabled={aplicandoRegras || loading}
+              className="flex items-center gap-2 bg-green-600/20 border border-green-600/40 text-green-400 px-3 py-2 rounded-lg hover:bg-green-600/30 text-sm disabled:opacity-50"
+              title="Aplicar regras nos CSTs de saída dos documentos"
+            >
+              <ArrowUp className="w-4 h-4" /> Rever CST Saída
+            </button>
             <button onClick={fetchData} disabled={loading}
               className="flex items-center gap-2 bg-[#141414] border border-[#2A2A2A] text-white px-3 py-2 rounded-lg hover:bg-[#1A1A1A] text-sm">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar
