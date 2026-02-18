@@ -524,7 +524,6 @@ const ValidadorICMS = ({ user, onLogout }) => {
                     <td className="py-3 px-4 text-center text-green-400">
                       {regra.aliquota_interestadual_sul_sudeste ? `${regra.aliquota_interestadual_sul_sudeste}%` : '-'}
                     </td>
-                    </td>
                     <td className="py-3 px-4 text-[#A1A1AA] text-xs max-w-[150px] truncate" title={regra.base_legal}>
                       {regra.base_legal || '-'}
                     </td>
