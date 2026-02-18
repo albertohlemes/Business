@@ -173,6 +173,32 @@ const ValidadorICMS = ({ user, onLogout }) => {
     setActiveTab('regras');
   };
 
+  // Editar regra de um NCM existente
+  const handleEditarRegraNCM = (item) => {
+    const ncm = item.ncm?.substring(0, 4) || item.ncm || '';
+    // Buscar regra existente pelo NCM
+    const regraExistente = regras.find(r => r.chave === ncm || item.ncm?.startsWith(r.chave));
+    
+    if (regraExistente) {
+      setNovaRegra({
+        tipo: regraExistente.tipo,
+        chave: regraExistente.chave,
+        descricao: regraExistente.descricao,
+        aliquota_interna: regraExistente.aliquota_interna,
+        aliquota_interestadual_sul_sudeste: regraExistente.aliquota_interestadual_sul_sudeste || 12,
+        aliquota_interestadual_outros: regraExistente.aliquota_interestadual_outros || 7,
+        aliquota_st: regraExistente.aliquota_st || 0,
+        excecoes: regraExistente.excecoes || [],
+        base_legal: regraExistente.base_legal || '',
+        aplica_st: regraExistente.aplica_st || false
+      });
+      setModalRegra(regraExistente);
+    } else {
+      // Criar nova regra
+      handleCriarRegraRapida(item, 'ncm');
+    }
+  };
+
   const handleAdicionarExcecao = () => {
     if (!novaExcecao.chave || !novaExcecao.aliquota) return;
     setNovaRegra({
