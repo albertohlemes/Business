@@ -34027,24 +34027,37 @@ async def get_impostos_grupo(
         icms_a_pagar = max(0, icms_saldo)
         icms_a_recuperar = max(0, -icms_saldo)
         
-        # IRPJ/CSLL - Usa os mesmos parâmetros configurados na empresa
-        # Isso garante consistência com as páginas individuais
+        # IRPJ/CSLL - Considera o regime tributário da empresa
+        # LUCRO REAL: Não calcula (requer LALUR, prejuízos, etc.) - mostra zero
+        # LUCRO PRESUMIDO: Calcula com base na presunção
+        # SIMPLES NACIONAL: Não tem IRPJ/CSLL separado - mostra zero
+        regime_tributario = empresa.get("regime_tributario", "lucro_presumido")
         tipo_atividade = empresa.get("tipo_atividade", "comercio")
         
-        # Buscar percentuais de presunção configurados na empresa
-        if tipo_atividade == "servicos":
-            perc_irpj = float(empresa.get("percentual_presuncao_servicos_irpj", 32.0))
-            perc_csll = float(empresa.get("percentual_presuncao_servicos_csll", 32.0))
+        if regime_tributario == "lucro_presumido":
+            # Buscar percentuais de presunção configurados na empresa
+            if tipo_atividade == "servicos":
+                perc_irpj = float(empresa.get("percentual_presuncao_servicos_irpj", 32.0))
+                perc_csll = float(empresa.get("percentual_presuncao_servicos_csll", 32.0))
+            else:
+                perc_irpj = float(empresa.get("percentual_presuncao_irpj", 8.0))
+                perc_csll = float(empresa.get("percentual_presuncao_csll", 12.0))
+            
+            base_irpj = faturamento * (perc_irpj / 100)
+            base_csll = faturamento * (perc_csll / 100)
+            irpj_devido = base_irpj * 0.15
+            irpj_adicional = max(0, (base_irpj - 20000) * 0.10)
+            irpj_total = irpj_devido + irpj_adicional
+            csll_devido = base_csll * 0.09
         else:
-            perc_irpj = float(empresa.get("percentual_presuncao_irpj", 8.0))
-            perc_csll = float(empresa.get("percentual_presuncao_csll", 12.0))
-        
-        base_irpj = faturamento * (perc_irpj / 100)
-        base_csll = faturamento * (perc_csll / 100)
-        irpj_devido = base_irpj * 0.15
-        irpj_adicional = max(0, (base_irpj - 20000) * 0.10)
-        irpj_total = irpj_devido + irpj_adicional
-        csll_devido = base_csll * 0.09
+            # Lucro Real, Simples Nacional ou outros: não calcula IRPJ/CSLL aqui
+            # Valores zerados (ou futuramente buscar de fonte externa)
+            base_irpj = 0
+            base_csll = 0
+            irpj_devido = 0
+            irpj_adicional = 0
+            irpj_total = 0
+            csll_devido = 0
         
         pis_saldo = float(pis_cofins.get("pis_saldo", 0) or 0)
         cofins_saldo = float(pis_cofins.get("cofins_saldo", 0) or 0)
