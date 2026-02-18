@@ -33870,11 +33870,17 @@ async def get_empresa_grupo_info(
     for filial_id in grupo.get("filiais_ids", []):
         filial = await db.companies.find_one(
             {"id": filial_id}, 
-            {"_id": 0, "id": 0, "razao_social": 1, "cnpj": 1, "uf": 1, "tipo_atividade": 1, "regime_tributario": 1}
+            {"_id": 0}
         )
         if filial:
-            filial["id"] = filial_id
-            filiais.append(filial)
+            filiais.append({
+                "id": filial_id,
+                "razao_social": filial.get("razao_social"),
+                "cnpj": filial.get("cnpj"),
+                "uf": filial.get("uf"),
+                "tipo_atividade": filial.get("tipo_atividade"),
+                "regime_tributario": filial.get("regime_tributario")
+            })
     
     return {
         "is_matriz": True,
