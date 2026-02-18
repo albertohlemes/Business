@@ -26405,7 +26405,10 @@ async def detalhamento_pis_cofins(
         for prod in doc.get('produtos', []):
             ncm = str(prod.get('ncm', '') or '').replace('.', '').strip()
             cfop = str(prod.get('cfop', '') or '').strip()
-            valor_base = float(prod.get('valor_total', 0) or 0)
+            valor_total = float(prod.get('valor_total', 0) or 0)
+            v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+            # Base de cálculo = Valor Total - ICMS (Lei 14.592/2023)
+            valor_base = max(0, valor_total - v_icms)
             
             # Calcular valores corretos
             calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, tipo_op, perfil_empresa, regime_para_calculo)
