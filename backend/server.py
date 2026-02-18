@@ -26303,6 +26303,26 @@ async def apurar_pis_cofins(
     # Calcular confronto CFOP x CST
     confronto_cfop_cst = await calcular_confronto_cfop_cst(company_id, competencia, company)
     
+    # ============== SALVAR SALDO CREDOR PARA PRÓXIMA COMPETÊNCIA ==============
+    # Se há saldo a transportar, salvar no banco para ser usado na próxima competência
+    if regime.upper() == 'LUCRO_REAL' and (pis_a_transportar > 0 or cofins_a_transportar > 0):
+        await db.saldos_credores.update_one(
+            {"company_id": company_id, "competencia": competencia},
+            {
+                "$set": {
+                    "company_id": company_id,
+                    "competencia": competencia,
+                    "saldo_a_transportar": {
+                        "pis": round(pis_a_transportar, 2),
+                        "cofins": round(cofins_a_transportar, 2),
+                        "icms": 0  # ICMS é calculado separadamente
+                    },
+                    "data_calculo": datetime.now(timezone.utc).isoformat()
+                }
+            },
+            upsert=True
+        )
+    
     return {
         "empresa": {
             "id": company_id,
