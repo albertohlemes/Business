@@ -9,7 +9,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://quirky-zhukovsky-1.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://imposto-aggregator.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 TEST_EMAIL = "alberto.lemes@businessconta.com.br"

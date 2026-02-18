@@ -14,7 +14,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://quirky-zhukovsky-1.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://imposto-aggregator.preview.emergentagent.com')
 
 # Test credentials
 TEST_EMAIL = "admin@test.com"
