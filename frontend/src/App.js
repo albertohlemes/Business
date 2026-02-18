@@ -142,6 +142,10 @@ function App() {
               element={user ? <ApuracaoICMS user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
+              path="/validador-icms"
+              element={user ? <ValidadorICMS user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
               path="/apuracao-iss"
               element={user ? <ApuracaoISS user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
