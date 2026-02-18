@@ -186,6 +186,7 @@ const Layout = ({ user, onLogout, children }) => {
     nav.push({ name: 'Evolução Fiscal', href: '/analise-horizontal', icon: TrendingUp, testId: 'nav-analise-horizontal' });
     nav.push({ name: 'Vilões e Oportunidades', href: '/viloes-oportunidades', icon: AlertTriangle, testId: 'nav-viloes-oportunidades' });
     nav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
+    nav.push({ name: 'Grupos Empresariais', href: '/grupos-empresariais', icon: Building2, testId: 'nav-grupos-empresariais' });
     
     // ═══════════════════════════════════════════════════════════
     // 📤 EXPORTAÇÕES E FECHAMENTO
@@ -202,7 +203,6 @@ const Layout = ({ user, onLogout, children }) => {
       nav.push({ type: 'separator', label: 'Administração' });
       nav.push({ name: 'Usuários', href: '/users', icon: Users, testId: 'nav-users' });
       nav.push({ name: 'Permissões', href: '/permissoes', icon: Shield, testId: 'nav-permissoes', indent: true });
-      nav.push({ name: 'Grupos Empresariais', href: '/grupos-empresariais', icon: Building2, testId: 'nav-grupos-empresariais' });
       nav.push({ name: 'Histórico de Alterações', href: '/audit-log', icon: History, testId: 'nav-audit-log' });
     }
     
