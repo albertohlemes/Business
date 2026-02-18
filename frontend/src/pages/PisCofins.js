@@ -867,8 +867,9 @@ const PisCofins = ({ user, onLogout }) => {
             {(() => {
               const entradas = apuracao.confronto_cfop_cst.entradas_cfop_cst || [];
               const saidas = apuracao.confronto_cfop_cst.saidas_cfop_cst || [];
+              const totaisCentralizados = apuracao.confronto_cfop_cst.totais_centralizados;
               
-              // Calcular subtotais de entradas
+              // Calcular subtotais de entradas (para exibição na tabela)
               const subtotalEntradas = entradas.reduce((acc, item) => ({
                 qtd: acc.qtd + (item.qtd_itens || 0),
                 valor_base: acc.valor_base + (item.valor_base || 0),
@@ -876,9 +877,14 @@ const PisCofins = ({ user, onLogout }) => {
                 valor_cofins: acc.valor_cofins + (item.valor_cofins || 0)
               }), { qtd: 0, valor_base: 0, valor_pis: 0, valor_cofins: 0 });
               
-              // Subtotal considerados (créditos)
-              const consideradosEntradas = entradas.filter(e => e.considerado);
-              const subtotalConsideradosEntradas = consideradosEntradas.reduce((acc, item) => ({
+              // USAR TOTAIS CENTRALIZADOS para garantir consistência com Apuração
+              // Se não disponível, usar cálculo local como fallback
+              const subtotalConsideradosEntradas = totaisCentralizados ? {
+                qtd: entradas.filter(e => e.considerado).reduce((acc, item) => acc + (item.qtd_itens || 0), 0),
+                valor_base: totaisCentralizados.base_credito || subtotalEntradas.valor_base,
+                valor_pis: totaisCentralizados.credito_pis,
+                valor_cofins: totaisCentralizados.credito_cofins
+              } : entradas.filter(e => e.considerado).reduce((acc, item) => ({
                 qtd: acc.qtd + (item.qtd_itens || 0),
                 valor_base: acc.valor_base + (item.valor_base || 0),
                 valor_pis: acc.valor_pis + (item.valor_pis || 0),
