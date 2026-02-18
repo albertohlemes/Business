@@ -547,33 +547,39 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                         <thead>
                           <tr className="text-[#A1A1AA] bg-[#0C0C0C]">
                             <th className="text-left px-4 py-2">Empresa</th>
-                            <th className="text-right px-4 py-2">Entradas</th>
                             <th className="text-right px-4 py-2">Saídas</th>
-                            <th className="text-right px-4 py-2">ICMS Débito</th>
-                            <th className="text-right px-4 py-2">ICMS Crédito</th>
-                            <th className="text-right px-4 py-2">Saldo</th>
+                            <th className="text-right px-4 py-2">ICMS Saldo</th>
+                            <th className="text-right px-4 py-2">PIS Saldo</th>
+                            <th className="text-right px-4 py-2">COFINS Saldo</th>
+                            <th className="text-right px-4 py-2">Total Federal</th>
                           </tr>
                         </thead>
                         <tbody>
                           {consolidadoData.empresas?.map((emp, idx) => (
-                            <tr key={idx} className="border-b border-[#2A2A2A]">
+                            <tr key={idx} className="border-b border-[#2A2A2A] hover:bg-[#1A1A1A]">
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
                                   {emp.is_matriz && (
-                                    <span className="px-1.5 py-0.5 bg-[#C8A951]/20 text-[#C8A951] text-xs rounded">
+                                    <span className="px-1.5 py-0.5 bg-[#C8A951]/20 text-[#C8A951] text-xs rounded font-medium">
                                       MATRIZ
                                     </span>
                                   )}
                                   <span className="text-white">{emp.razao_social}</span>
                                 </div>
-                                <p className="text-xs text-[#A1A1AA]">{emp.cnpj}</p>
+                                <p className="text-xs text-[#A1A1AA]">{emp.cnpj} • {emp.regime_tributario?.replace('_', ' ').toUpperCase()}</p>
                               </td>
-                              <td className="px-4 py-3 text-right text-green-400">{formatCurrency(emp.entradas)}</td>
-                              <td className="px-4 py-3 text-right text-red-400">{formatCurrency(emp.saidas)}</td>
-                              <td className="px-4 py-3 text-right text-white">{formatCurrency(emp.icms_debito)}</td>
-                              <td className="px-4 py-3 text-right text-white">{formatCurrency(emp.icms_credito)}</td>
+                              <td className="px-4 py-3 text-right text-white">{formatCurrency(emp.saidas)}</td>
                               <td className={`px-4 py-3 text-right font-medium ${emp.icms_saldo >= 0 ? 'text-red-400' : 'text-green-400'}`}>
                                 {formatCurrency(emp.icms_saldo)}
+                              </td>
+                              <td className={`px-4 py-3 text-right font-medium ${emp.pis_saldo >= 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                {formatCurrency(emp.pis_saldo)}
+                              </td>
+                              <td className={`px-4 py-3 text-right font-medium ${emp.cofins_saldo >= 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                {formatCurrency(emp.cofins_saldo)}
+                              </td>
+                              <td className="px-4 py-3 text-right font-bold text-[#C8A951]">
+                                {formatCurrency((emp.pis_saldo > 0 ? emp.pis_saldo : 0) + (emp.cofins_saldo > 0 ? emp.cofins_saldo : 0))}
                               </td>
                             </tr>
                           ))}
@@ -581,12 +587,18 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                         <tfoot>
                           <tr className="bg-[#0C0C0C] font-semibold">
                             <td className="px-4 py-3 text-white">TOTAL CONSOLIDADO</td>
-                            <td className="px-4 py-3 text-right text-green-400">{formatCurrency(consolidadoData.resumo?.total_entradas)}</td>
-                            <td className="px-4 py-3 text-right text-red-400">{formatCurrency(consolidadoData.resumo?.total_saidas)}</td>
-                            <td className="px-4 py-3 text-right text-white">{formatCurrency(consolidadoData.icms?.debito)}</td>
-                            <td className="px-4 py-3 text-right text-white">{formatCurrency(consolidadoData.icms?.credito)}</td>
+                            <td className="px-4 py-3 text-right text-white">{formatCurrency(consolidadoData.resumo?.total_saidas)}</td>
                             <td className={`px-4 py-3 text-right ${consolidadoData.icms?.saldo >= 0 ? 'text-red-400' : 'text-green-400'}`}>
                               {formatCurrency(consolidadoData.icms?.saldo)}
+                            </td>
+                            <td className={`px-4 py-3 text-right ${consolidadoData.pis?.saldo >= 0 ? 'text-red-400' : 'text-green-400'}`}>
+                              {formatCurrency(consolidadoData.pis?.saldo)}
+                            </td>
+                            <td className={`px-4 py-3 text-right ${consolidadoData.cofins?.saldo >= 0 ? 'text-red-400' : 'text-green-400'}`}>
+                              {formatCurrency(consolidadoData.cofins?.saldo)}
+                            </td>
+                            <td className="px-4 py-3 text-right text-[#C8A951] font-bold">
+                              {formatCurrency((consolidadoData.pis?.a_pagar || 0) + (consolidadoData.cofins?.a_pagar || 0))}
                             </td>
                           </tr>
                         </tfoot>
