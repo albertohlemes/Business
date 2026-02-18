@@ -375,36 +375,49 @@ const GrupoConsolidado = ({ user, onLogout }) => {
                 </div>
               </div>
               
-              {/* Totalizador */}
+              {/* Totalizador por Imposto */}
               <div className="mt-4 p-4 bg-[#C8A951]/10 rounded-lg border border-[#C8A951]/30">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
                   <div>
-                    <p className="text-sm text-[#A1A1AA]">Total Federal</p>
-                    <p className="text-xl font-bold text-[#C8A951]">{formatCurrency(consolidado?.total_federal)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-[#A1A1AA]">PIS + COFINS</p>
-                    <p className={`text-xl font-bold ${
-                      (consolidado?.pis?.saldo || 0) + (consolidado?.cofins?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {formatCurrency(Math.abs((consolidado?.pis?.saldo || 0) + (consolidado?.cofins?.saldo || 0)))}
+                    <p className="text-sm text-[#A1A1AA]">PIS</p>
+                    <p className={`text-xl font-bold ${(consolidado?.pis?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {formatCurrency(Math.abs(consolidado?.pis?.saldo || 0))}
                     </p>
                     <p className="text-xs text-[#A1A1AA]">
-                      {(consolidado?.pis?.saldo || 0) + (consolidado?.cofins?.saldo || 0) < 0 ? 'Saldo Credor' : 'A Pagar'}
+                      {(consolidado?.pis?.saldo || 0) < 0 ? 'A Recuperar' : 'A Pagar'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-[#A1A1AA]">IRPJ + CSLL</p>
-                    <p className="text-xl font-bold text-red-400">{formatCurrency((consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0))}</p>
+                    <p className="text-sm text-[#A1A1AA]">COFINS</p>
+                    <p className={`text-xl font-bold ${(consolidado?.cofins?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {formatCurrency(Math.abs(consolidado?.cofins?.saldo || 0))}
+                    </p>
+                    <p className="text-xs text-[#A1A1AA]">
+                      {(consolidado?.cofins?.saldo || 0) < 0 ? 'A Recuperar' : 'A Pagar'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-[#A1A1AA]">ICMS</p>
-                    <p className={`text-xl font-bold ${consolidado?.icms?.saldo < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    <p className={`text-xl font-bold ${(consolidado?.icms?.saldo || 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
                       {formatCurrency(Math.abs(consolidado?.icms?.saldo || 0))}
                     </p>
                     <p className="text-xs text-[#A1A1AA]">
-                      {consolidado?.icms?.saldo < 0 ? 'Saldo Credor' : 'A Pagar'}
+                      {(consolidado?.icms?.saldo || 0) < 0 ? 'A Recuperar' : 'A Pagar'}
                     </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#A1A1AA]">IRPJ</p>
+                    <p className="text-xl font-bold text-red-400">
+                      {formatCurrency(consolidado?.irpj?.total || 0)}
+                    </p>
+                    <p className="text-xs text-[#A1A1AA]">A Pagar</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#A1A1AA]">CSLL</p>
+                    <p className="text-xl font-bold text-red-400">
+                      {formatCurrency(consolidado?.csll?.devido || 0)}
+                    </p>
+                    <p className="text-xs text-[#A1A1AA]">A Pagar</p>
                   </div>
                 </div>
               </div>
