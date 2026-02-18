@@ -37659,68 +37659,6 @@ async def _get_reforma_tributaria_aggregated(company: dict, company_id: str, com
         logger.error(f"REFORMA TRIBUTÁRIA AGREGADO: Erro ao calcular ICMS: {e}")
         import traceback
         traceback.print_exc()
-        
-        # Pipeline para ICMS de entradas (créditos) - apenas se Lucro Real
-        regime_empresa = company.get('regime_tributario', 'lucro_real')
-        if regime_empresa == 'lucro_real':
-            # CFOPs que NÃO geram crédito de ICMS (despesas e ST)
-            cfops_sem_credito_icms = [
-                '1407', '2407', '1556', '2556', '1557', '2557', '1128', '2128',
-                '1551', '2551', '1406', '2406', '1653', '2653', '1126', '2126',
-                '1352', '2352', '1353', '2353', '1354', '2354',
-                '1403', '2403', '1409', '2409', '1410', '2410', '1411', '2411',
-                '1414', '2414', '1415', '2415', '1651', '2651', '1652', '2652'
-            ]
-            
-            pipeline_icms_credito = [
-                {
-                    "$match": {
-                        "company_id": company_id,
-                        "competencia": competencia,
-                        "desconsiderada_devolucao": {"$ne": True},
-                        "$or": [
-                            {"tipo": {"$in": ["entrada", "entry", "input"]}},
-                            {"tipo_operacao": {"$in": ["entrada", "entry", "input"]}}
-                        ]
-                    }
-                },
-                {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": False}},
-                {
-                    "$match": {
-                        "$expr": {
-                            "$not": {"$in": [{"$toString": {"$ifNull": ["$produtos.cfop", ""]}}, cfops_sem_credito_icms]}
-                        }
-                    }
-                },
-                {
-                    "$group": {
-                        "_id": None,
-                        "total_icms": {
-                            "$sum": {
-                                "$toDouble": {
-                                    "$ifNull": [
-                                        {"$ifNull": ["$produtos.v_icms", "$produtos.valor_icms"]}, 
-                                        0
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                }
-            ]
-            
-            cursor_icms_credito = db.xml_documents.aggregate(pipeline_icms_credito, allowDiskUse=True)
-            resultado_icms_credito = await cursor_icms_credito.to_list(length=1)
-            if resultado_icms_credito:
-                icms_credito_real = float(resultado_icms_credito[0].get('total_icms', 0) or 0)
-        
-        logger.info(f"REFORMA TRIBUTÁRIA AGREGADO: ICMS débito={icms_debito_real:.2f}, crédito={icms_credito_real:.2f}")
-    except Exception as e:
-        logger.error(f"REFORMA TRIBUTÁRIA AGREGADO: Erro ao calcular ICMS: {e}")
-        import traceback
-        traceback.print_exc()
-    
-    icms_saldo_real = max(0, icms_debito_real - icms_credito_real)
     
     return {
         "empresa": {
