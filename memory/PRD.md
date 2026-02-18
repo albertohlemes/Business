@@ -1,111 +1,136 @@
-# PRD - Sistema de Análise Fiscal (AURION)
+# AURION - Núcleo de Inteligência Operacional
+## Product Requirements Document (PRD)
 
-## Problema Original
-Sistema de análise fiscal para empresas brasileiras com funcionalidades de:
-- Apuração de PIS/COFINS, ICMS, IPI, ISS
-- Comparativo de regimes tributários (RET)
-- Simulação de Reforma Tributária (IVA Dual)
-- Classificação de produtos
-- Validação de alíquotas
+### Visão Geral
+Sistema de inteligência fiscal automatizada para empresas brasileiras. Processa documentos fiscais (NF-e, CT-e, NFS-e) e calcula apurações de impostos (PIS/COFINS, ICMS, IPI, ISS, etc.).
 
-## User Persona
+### Usuários-Alvo
 - Contadores e analistas fiscais
-- Empresas de contabilidade
-- Gestores financeiros de empresas
-
-## Core Requirements
-1. **Consistência de Classificação**: Classificação do usuário como fonte única da verdade
-2. **Precisão de Cálculos**: Apuração correta de PIS/COFINS com todos os CSTs relevantes
-3. **Visualização Consistente**: Mesma estrutura de dados entre diferentes telas
-4. **Exportação de Dados**: Permitir exportação de relatórios para análise externa
-5. **Saldo Credor**: Gerenciamento de saldo credor anterior entre competências
+- Empresas de comércio, indústria e serviços
+- Escritórios de contabilidade
 
 ---
 
-## O que foi implementado
+## Funcionalidades Implementadas
 
-### Sessão 18/02/2026 - ✅ TESTADO E VALIDADO
+### Sessão Atual (Fevereiro 2026)
 
-#### 1. CFOPs Excluídos dos Cálculos de PIS/COFINS
-- **IMPLEMENTADO**: CFOPs 1920, 2920, 1921, 5927, 6908 agora estão nas listas de exclusão
-- Não geram mais crédito/débito de PIS/COFINS indevidamente
-- Arquivo: `/app/backend/services/pis_cofins_calculator.py`
+#### 1. Validador PIS/COFINS Redesenhado (P0) ✅
+**Implementado em:** 18/02/2026
 
-#### 2. Saldo Credor Anterior nas Apurações
-- **IMPLEMENTADO**: O saldo credor anterior (PIS, COFINS, ICMS) cadastrado na empresa é exibido nas apurações
-- Considera o saldo no cálculo do imposto do mês
-- Se resultar em crédito, transporta automaticamente para a próxima competência
-- Frontend exibe seções "Saldo Credor Anterior" e "Saldo a Transportar"
-- Arquivo: `/app/backend/server.py` (endpoint /api/pis-cofins/apuracao)
+- **Nova Estrutura de Tela:**
+  - CFOPs de Exceção no topo (Entradas/Saídas separados)
+  - Lista de NCMs com regras abaixo
+  - Estatísticas: Total NCMs, OK, Alerta, Divergente, Sem Regra
 
-#### 3. Validador de Alíquota de ICMS (NOVA FUNCIONALIDADE)
-- **IMPLEMENTADO**: Nova página com 3 abas: Por Produto, Por NCM, Regras
-- Compara alíquotas praticadas nas saídas vs. alíquotas esperadas (configuráveis)
-- Status: OK, Alerta, Divergente, Sem Regra
-- CRUD completo de regras por NCM ou por produto
-- Sugestões automáticas baseadas nos NCMs mais frequentes
-- Alíquotas padrão por estado (SP, RJ, MG, etc.)
-- Menu: "Validador ICMS" abaixo de "ICMS"
-- Arquivos: 
-  - Backend: `/app/backend/server.py` (endpoints /api/validador-icms/*)
-  - Frontend: `/app/frontend/src/pages/ValidadorICMS.js`
+- **Lógica Automática:**
+  - NCMs em CFOPs de exceção → CST 49/98 automaticamente
+  - NCMs em CFOPs normais → Usa regra cadastrada
 
-### Sessão Anterior (Dezembro 2025)
+- **Endpoints:**
+  - `GET /api/validador-pis-cofins/{company_id}/dados`
+  - `GET/POST/PUT/DELETE /api/validador-pis-cofins/{company_id}/regras`
 
-#### 4. Reforma Tributária - Dois Cenários Distintos
-- **Cenário 2027 (Azul)**: PIS/COFINS → CBS (sem ICMS)
-- **Reforma Completa (Amber)**: PIS/COFINS + ICMS → CBS + IBS
+#### 2. Automação do Validador ICMS (P0) ✅
+**Implementado em:** 18/02/2026
 
-#### 5. ICMS Consistente na Reforma Tributária
-- Usa a mesma função `_get_icms_aggregated` do menu ICMS
+- **Pré-carregamento Automático de Regras:**
+  - Baseado no Regulamento ICMS do estado da empresa
+  - Analisa NCMs dos documentos de SAÍDA
+  - Cria regras com alíquotas e base legal do RICMS
 
-#### 6. PIS/COFINS - Consistência de Valores
-- Endpoint de detalhamento usa função centralizada `calcular_pis_cofins_unificado`
+- **Regras Padrão RICMS SP:**
+  - Alimentos cesta básica: 7%
+  - Bebidas alcoólicas: 25% (exceto cachaça 18%)
+  - Eletrônicos: 12%
+  - Combustíveis: 25% (ST)
+
+- **Endpoints:**
+  - `POST /api/validador-icms/{company_id}/inicializar-regras`
+  - `GET /api/validador-icms/{company_id}/sugestoes`
+
+#### 3. Menu ICMS ST Condicional (P2) ✅
+**Implementado em:** Já estava implementado, confirmado funcionando
+
+- Menu "ICMS ST" só aparece para empresas com `apura_icms_st: true`
+- Empresa COMERCIAL RS LTDA tem `apura_icms_st: false` → menu oculto
+
+---
+
+### Sessões Anteriores
+
+#### Saldo Credor Anterior (PIS/COFINS/ICMS) ✅
+- Campos no cadastro da empresa
+- Aplicado automaticamente nas apurações mensais
+- Transportado para o mês seguinte
+
+#### Validador ICMS v1 ✅
+- Análise por Produto e por NCM
+- CRUD de regras com exceções (ex: cachaça vs. outras bebidas)
+- Alíquotas diferenciadas: interna vs. interestadual
+
+#### Reorganização do Menu ✅
+- Validador ICMS dentro do submenu ICMS
 
 ---
 
 ## Backlog Priorizado
 
-### P0 - Crítico
-- ✅ [CONCLUÍDO] CFOPs sem crédito/débito excluídos
-- ✅ [CONCLUÍDO] Saldo Credor Anterior nas apurações
-- ✅ [CONCLUÍDO] Validador de Alíquota de ICMS
-
 ### P1 - Alta Prioridade
-- [PENDENTE] Ocultar menu "ICMS ST" para empresas não contribuintes
-- [PENDENTE] Totalizador por CST nos detalhamentos de PIS/COFINS
+- [ ] Integrar regras dos validadores ao assistente de importação
+- [ ] Totalizador por CST nas telas de CRÉDITOS/DÉBITOS de PIS/COFINS
 
 ### P2 - Média Prioridade
-- [PENDENTE] Pacote de instalação On-Premise com Docker
-- [PENDENTE] Popular página `Insights IA`
-- [PENDENTE] Suíte de testes automatizados com pytest
+- [ ] Pacote Docker On-Premise
+- [ ] Popular página "Insights IA"
+- [ ] Expandir suíte de testes pytest
+
+### P3 - Baixa Prioridade
+- [ ] Refatorar `server.py` em módulos separados
+- [ ] Melhorar tratamento de React key warnings
 
 ---
 
-## Arquitetura
+## Arquitetura Técnica
 
+### Stack
+- **Frontend:** React + Tailwind CSS + Shadcn/UI
+- **Backend:** FastAPI (Python) + MongoDB
+- **Ambiente:** Kubernetes
+
+### Estrutura de Arquivos Principais
 ```
 /app/
 ├── backend/
-│   ├── server.py
-│   │   ├── calcular_pis_cofins_unificado()     # Função centralizada PIS/COFINS
-│   │   ├── _get_icms_aggregated()              # Função centralizada ICMS
-│   │   ├── /api/pis-cofins/apuracao            # Usa função centralizada + saldo credor
-│   │   ├── /api/validador-icms/*               # NOVO: Validador de alíquotas ICMS
-│   │   └── /api/reforma-tributaria/apuracao    # Usa AMBAS funções centralizadas
+│   ├── server.py          # Monólito FastAPI (requer refatoração futura)
 │   └── services/
-│       └── pis_cofins_calculator.py            # Listas de CFOPs centralizadas
+│       └── pis_cofins_calculator.py
 └── frontend/
-    └── src/pages/
-        ├── PisCofins.js           # Com Saldo Credor Anterior
-        ├── ValidadorICMS.js       # NOVO: Validador de alíquotas
-        ├── ReformaTributaria.js
-        └── RET.js
+    └── src/
+        ├── components/
+        │   └── Layout.js   # Menu dinâmico
+        └── pages/
+            ├── ValidadorPisCofins.js  # Reescrito
+            └── ValidadorICMS.js       # Atualizado
 ```
 
+### Coleções MongoDB
+- `companies` - Empresas e configurações
+- `xml_documents` - Documentos fiscais
+- `icms_rules` - Regras de ICMS por empresa
+- `pis_cofins_rules` - Regras de PIS/COFINS por empresa
+
+---
+
 ## Credenciais de Teste
-- Email: alberto.lemes@businessconta.com.br
-- Senha: @Ahl142536
-- Empresa: COMERCIAL RS LTDA (ID: d7f30ea1-9df3-4124-a561-12984ffff64b, código: 6026)
-- Competência: 01/2026
-- Saldo Credor Configurado: PIS R$ 3.000, COFINS R$ 12.000, ICMS R$ 5.000
+- **Ambiente:** `https://pis-cofins-auto.preview.emergentagent.com`
+- **Usuário:** `alberto.lemes@businessconta.com.br` / `@Ahl142536`
+- **Empresa:** COMERCIAL RS LTDA (ID: d7f30ea1-9df3-4124-a561-12984ffff64b, UI: 6026)
+- **Competência:** 01/2026
+
+---
+
+## Última Atualização
+**Data:** 18/02/2026
+**Responsável:** Agente E1
+**Status:** Todas as tarefas P0 concluídas e testadas
