@@ -40109,6 +40109,212 @@ async def excluir_regra_piscofins(
     return {"message": "Regra excluída com sucesso"}
 
 
+# Tipos de regra PIS/COFINS com configurações automáticas
+TIPOS_REGRA_PIS_COFINS = {
+    'tributado': {
+        'cst_entrada': '50', 'cst_saida': '01',
+        'aliquota_pis': 1.65, 'aliquota_cofins': 7.6,
+        'gera_credito': True, 'gera_debito': True
+    },
+    'tributado_presumido': {
+        'cst_entrada': '70', 'cst_saida': '01',
+        'aliquota_pis': 0.65, 'aliquota_cofins': 3.0,
+        'gera_credito': False, 'gera_debito': True
+    },
+    'aliquota_zero': {
+        'cst_entrada': '73', 'cst_saida': '06',
+        'aliquota_pis': 0, 'aliquota_cofins': 0,
+        'gera_credito': False, 'gera_debito': False
+    },
+    'monofasico': {
+        'cst_entrada': '70', 'cst_saida': '04',
+        'aliquota_pis': 0, 'aliquota_cofins': 0,
+        'gera_credito': False, 'gera_debito': False
+    },
+    'aliquota_diferenciada': {
+        'cst_entrada': '51', 'cst_saida': '02',
+        'aliquota_pis': None, 'aliquota_cofins': None,
+        'gera_credito': True, 'gera_debito': True
+    },
+    'isento': {
+        'cst_entrada': '73', 'cst_saida': '08',
+        'aliquota_pis': 0, 'aliquota_cofins': 0,
+        'gera_credito': False, 'gera_debito': False
+    },
+    'suspensao': {
+        'cst_entrada': '70', 'cst_saida': '09',
+        'aliquota_pis': 0, 'aliquota_cofins': 0,
+        'gera_credito': False, 'gera_debito': False
+    }
+}
+
+# Regras PIS/COFINS padrão com tipo de regra para pré-carregamento
+REGRAS_PIS_COFINS_COMPLETAS = {
+    # Alimentos - Alíquota Zero (Lei 10.925/2004)
+    '0201': {'descricao': 'Carnes de bovino frescas', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '0202': {'descricao': 'Carnes de bovino congeladas', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '0203': {'descricao': 'Carnes de suíno', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '0207': {'descricao': 'Carnes de aves', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '0302': {'descricao': 'Peixes frescos', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '0401': {'descricao': 'Leite e creme de leite', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '0402': {'descricao': 'Leite concentrado', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '0403': {'descricao': 'Iogurte, leite fermentado', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '0405': {'descricao': 'Manteiga', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '0406': {'descricao': 'Queijos', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '0407': {'descricao': 'Ovos', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '0901': {'descricao': 'Café', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '1001': {'descricao': 'Trigo', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '1005': {'descricao': 'Milho', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '1006': {'descricao': 'Arroz', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '1101': {'descricao': 'Farinhas de trigo', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '1507': {'descricao': 'Óleo de soja', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '1517': {'descricao': 'Margarina', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '1701': {'descricao': 'Açúcar', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '1901': {'descricao': 'Extratos de malte, preparações alimentícias', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '1902': {'descricao': 'Massas alimentícias', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '1905': {'descricao': 'Pães, bolachas, biscoitos', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    '2103': {'descricao': 'Molhos, condimentos', 'tipo_regra': 'tributado', 'base_legal': 'Tributação normal'},
+    '2106': {'descricao': 'Preparações alimentícias', 'tipo_regra': 'tributado', 'base_legal': 'Tributação normal'},
+    '2501': {'descricao': 'Sal', 'tipo_regra': 'aliquota_zero', 'base_legal': 'Lei 10.925/2004 Art. 1'},
+    # Bebidas - Monofásico ou Tributado
+    '2201': {'descricao': 'Águas minerais', 'tipo_regra': 'monofasico', 'base_legal': 'Lei 10.833/2003 Art. 58-A'},
+    '2202': {'descricao': 'Refrigerantes, sucos', 'tipo_regra': 'monofasico', 'base_legal': 'Lei 10.833/2003 Art. 58-A'},
+    '2203': {'descricao': 'Cervejas de malte', 'tipo_regra': 'monofasico', 'base_legal': 'Lei 10.833/2003 Art. 58-A'},
+    '2204': {'descricao': 'Vinhos', 'tipo_regra': 'tributado', 'base_legal': 'Tributação normal'},
+    '2205': {'descricao': 'Vermutes', 'tipo_regra': 'tributado', 'base_legal': 'Tributação normal'},
+    '2206': {'descricao': 'Outras bebidas fermentadas', 'tipo_regra': 'tributado', 'base_legal': 'Tributação normal'},
+    '2207': {'descricao': 'Álcool etílico', 'tipo_regra': 'tributado', 'base_legal': 'Tributação normal'},
+    '2208': {'descricao': 'Bebidas destiladas', 'tipo_regra': 'tributado', 'base_legal': 'Tributação normal',
+             'excecoes': [{'chave': 'CACHACA', 'descricao': 'Cachaça/Aguardente', 'cst_entrada': '50', 'cst_saida': '01', 'aliquota_pis': 1.65, 'aliquota_cofins': 7.6}]},
+    # Produtos de limpeza e higiene - Tributado
+    '3303': {'descricao': 'Perfumes e águas-de-colônia', 'tipo_regra': 'monofasico', 'base_legal': 'Lei 10.147/2000'},
+    '3304': {'descricao': 'Cosméticos e maquiagem', 'tipo_regra': 'monofasico', 'base_legal': 'Lei 10.147/2000'},
+    '3305': {'descricao': 'Produtos para cabelo', 'tipo_regra': 'monofasico', 'base_legal': 'Lei 10.147/2000'},
+    '3306': {'descricao': 'Produtos de higiene bucal', 'tipo_regra': 'monofasico', 'base_legal': 'Lei 10.147/2000'},
+    '3401': {'descricao': 'Sabões', 'tipo_regra': 'tributado', 'base_legal': 'Tributação normal'},
+    '3402': {'descricao': 'Detergentes', 'tipo_regra': 'tributado', 'base_legal': 'Tributação normal'},
+    # Papel
+    '4818': {'descricao': 'Papel higiênico, fraldas, absorventes', 'tipo_regra': 'tributado', 'base_legal': 'Tributação normal'},
+    # Combustíveis - Monofásico
+    '2710': {'descricao': 'Gasolina, diesel, óleo combustível', 'tipo_regra': 'monofasico', 'base_legal': 'Lei 10.336/2001'},
+    '2711': {'descricao': 'GLP, gás natural', 'tipo_regra': 'monofasico', 'base_legal': 'Lei 10.336/2001'},
+    # Medicamentos - Monofásico
+    '3003': {'descricao': 'Medicamentos não acondicionados', 'tipo_regra': 'monofasico', 'base_legal': 'Lei 10.147/2000'},
+    '3004': {'descricao': 'Medicamentos acondicionados', 'tipo_regra': 'monofasico', 'base_legal': 'Lei 10.147/2000'},
+    # Eletrônicos - Tributado
+    '8471': {'descricao': 'Computadores e máquinas de processamento', 'tipo_regra': 'tributado', 'base_legal': 'Tributação normal'},
+    '8517': {'descricao': 'Aparelhos telefônicos', 'tipo_regra': 'tributado', 'base_legal': 'Tributação normal'},
+    '8528': {'descricao': 'Monitores e TVs', 'tipo_regra': 'tributado', 'base_legal': 'Tributação normal'},
+}
+
+
+@api_router.post("/validador-pis-cofins/{company_id}/inicializar-regras")
+async def inicializar_regras_piscofins(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Pré-carrega regras de PIS/COFINS baseadas nos NCMs encontrados nos documentos da empresa.
+    Usa as regras padrão da legislação (alíquota zero, monofásico, tributado, etc).
+    O usuário pode depois auditar/editar as regras criadas.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    regime_tributario = company.get('regime_tributario', 'lucro_real')
+    is_presumido = regime_tributario == 'lucro_presumido'
+    
+    # Buscar regras já existentes
+    regras_existentes = await db.regras_pis_cofins.find({
+        "company_id": company_id,
+        "tipo": "ncm"
+    }).to_list(length=1000)
+    ncms_com_regra = set(r['chave'].replace('.', '').strip()[:4] for r in regras_existentes)
+    
+    # Buscar NCMs dos documentos da empresa
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    
+    ncms_encontrados = {}
+    async for doc in db.xml_documents.find(query, {"produtos": 1}):
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', '')).replace('.', '').strip()
+            if not ncm or len(ncm) < 4:
+                continue
+            
+            ncm_4 = ncm[:4]
+            if ncm_4 not in ncms_encontrados:
+                ncms_encontrados[ncm_4] = {
+                    'ncm': ncm_4,
+                    'quantidade': 0,
+                    'descricao_exemplo': prod.get('descricao', prod.get('xProd', ''))[:60]
+                }
+            ncms_encontrados[ncm_4]['quantidade'] += 1
+    
+    # Criar regras para NCMs sem regra
+    regras_criadas = []
+    for ncm_4, dados in ncms_encontrados.items():
+        if ncm_4 in ncms_com_regra:
+            continue  # Já tem regra
+        
+        # Buscar regra padrão do NCM
+        regra_padrao = REGRAS_PIS_COFINS_COMPLETAS.get(ncm_4, {})
+        tipo_regra = regra_padrao.get('tipo_regra', 'tributado')
+        
+        # Se for Lucro Presumido e a regra é tributado, usar tributado_presumido
+        if is_presumido and tipo_regra == 'tributado':
+            tipo_regra = 'tributado_presumido'
+        
+        config = TIPOS_REGRA_PIS_COFINS.get(tipo_regra, TIPOS_REGRA_PIS_COFINS['tributado'])
+        
+        descricao = regra_padrao.get('descricao', dados['descricao_exemplo'])
+        base_legal = regra_padrao.get('base_legal', 'Tributação normal')
+        excecoes = regra_padrao.get('excecoes', [])
+        
+        nova_regra = RegraPisCofins(
+            company_id=company_id,
+            tipo='ncm',
+            chave=ncm_4,
+            descricao=descricao,
+            tipo_regra=tipo_regra,
+            aliquota_pis=config['aliquota_pis'] if config['aliquota_pis'] is not None else 1.65,
+            aliquota_cofins=config['aliquota_cofins'] if config['aliquota_cofins'] is not None else 7.6,
+            gera_credito=config['gera_credito'],
+            gera_debito=config['gera_debito'],
+            cst_esperado_entrada=config['cst_entrada'],
+            cst_esperado_saida=config['cst_saida'],
+            excecoes=excecoes,
+            base_legal=base_legal,
+            observacao=f"Regra pré-carregada automaticamente - {tipo_regra}",
+            ativo=True,
+            created_by=current_user.id
+        )
+        
+        await db.regras_pis_cofins.insert_one(nova_regra.model_dump())
+        regras_criadas.append({
+            'ncm': ncm_4,
+            'descricao': descricao,
+            'tipo_regra': tipo_regra,
+            'aliquota_pis': nova_regra.aliquota_pis,
+            'aliquota_cofins': nova_regra.aliquota_cofins,
+            'base_legal': base_legal
+        })
+    
+    return {
+        "message": f"Regras de PIS/COFINS inicializadas com sucesso",
+        "company_id": company_id,
+        "regime_tributario": regime_tributario,
+        "regras_criadas": len(regras_criadas),
+        "regras_existentes": len(ncms_com_regra),
+        "detalhes": regras_criadas[:20]  # Retornar as 20 primeiras
+    }
+
+
 @api_router.get("/validador-pis-cofins/{company_id}/sugestoes")
 async def sugerir_regras_piscofins(
     company_id: str,
