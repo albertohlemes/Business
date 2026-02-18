@@ -353,30 +353,150 @@ const ReformaTributaria = ({ user, onLogout }) => {
                 </div>
               </div>
 
-              {/* =============== CENÁRIO GLOBAL: PIS/COFINS ATUAL =============== */}
+              {/* =============== COMPARATIVO 1: PIS/COFINS vs CBS (Cenário 2027) =============== */}
+              <div className="bg-gradient-to-br from-[#141414] via-[#1a1a1a] to-[#141414] border border-blue-500/30 rounded-xl p-6 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold flex items-center gap-3">
+                    <div className="p-2 bg-blue-500/20 rounded-lg">
+                      <Calculator className="w-6 h-6 text-blue-400" />
+                    </div>
+                    <div>
+                      <span className="text-white">Cenário 2027: PIS/COFINS → CBS</span>
+                      <p className="text-xs text-[#A1A1AA] font-normal mt-1">
+                        CBS substitui PIS e COFINS (sem considerar ICMS)
+                      </p>
+                    </div>
+                  </h3>
+                  <div className="px-4 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+                    <span className="text-blue-400 font-bold">CENÁRIO 2027</span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-6">
+                  {/* PIS/COFINS Atual */}
+                  <div className="bg-[#0C0C0C] rounded-xl border border-[#333] p-4">
+                    <h4 className="text-amber-400 font-bold mb-3 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                      PIS/COFINS ATUAL
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[#A1A1AA]">PIS Crédito:</span>
+                        <span className="text-emerald-400">{formatCurrency(apuracao.comparativo_regime_atual?.credito_bruto?.pis || 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[#A1A1AA]">PIS Débito:</span>
+                        <span className="text-red-400">{formatCurrency(apuracao.comparativo_regime_atual?.debito_bruto?.pis || 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[#A1A1AA]">COFINS Crédito:</span>
+                        <span className="text-emerald-400">{formatCurrency(apuracao.comparativo_regime_atual?.credito_bruto?.cofins || 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[#A1A1AA]">COFINS Débito:</span>
+                        <span className="text-red-400">{formatCurrency(apuracao.comparativo_regime_atual?.debito_bruto?.cofins || 0)}</span>
+                      </div>
+                      <div className="border-t border-[#333] pt-2 mt-2">
+                        <div className="flex justify-between font-bold">
+                          <span className="text-amber-400">Saldo PIS/COFINS:</span>
+                          {(() => {
+                            const saldo = (apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo || 0) + 
+                                         (apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0);
+                            return saldo > 0 
+                              ? <span className="text-red-400">Pagar {formatCurrency(saldo)}</span>
+                              : <span className="text-[#C8A951]">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* CBS (substitui PIS/COFINS) */}
+                  <div className="bg-[#0C0C0C] rounded-xl border border-[#333] p-4">
+                    <h4 className="text-emerald-400 font-bold mb-3 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                      CBS ({config.aliquota_cbs}%)
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[#A1A1AA]">CBS Crédito:</span>
+                        <span className="text-emerald-400">{formatCurrency(apuracao.apuracao?.creditos?.cbs || 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[#A1A1AA]">CBS Débito:</span>
+                        <span className="text-red-400">{formatCurrency(apuracao.apuracao?.debitos?.cbs || 0)}</span>
+                      </div>
+                      <div className="border-t border-[#333] pt-2 mt-2">
+                        <div className="flex justify-between font-bold">
+                          <span className="text-emerald-400">Saldo CBS:</span>
+                          {(() => {
+                            const saldo = apuracao.apuracao?.saldo?.cbs || 0;
+                            return saldo > 0 
+                              ? <span className="text-red-400">Pagar {formatCurrency(saldo)}</span>
+                              : <span className="text-[#C8A951]">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Economia/Aumento Cenário 2027 */}
+                {(() => {
+                  const saldoPisCofins = (apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo || 0) + 
+                                        (apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0);
+                  const saldoCbs = apuracao.apuracao?.saldo?.cbs || 0;
+                  const diferenca = saldoPisCofins - saldoCbs;
+                  const temEconomia = diferenca > 0;
+                  
+                  return (
+                    <div className={`mt-4 p-4 rounded-xl flex items-center justify-between ${
+                      temEconomia ? 'bg-emerald-500/10 border border-emerald-500/30' : 
+                      diferenca < 0 ? 'bg-red-500/10 border border-red-500/30' : 'bg-[#333] border border-[#444]'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        {temEconomia ? <TrendingDown className="w-6 h-6 text-emerald-400" /> : 
+                         diferenca < 0 ? <TrendingUp className="w-6 h-6 text-red-400" /> : 
+                         <ArrowRight className="w-6 h-6 text-[#666]" />}
+                        <div>
+                          <p className={`font-bold ${temEconomia ? 'text-emerald-400' : diferenca < 0 ? 'text-red-400' : 'text-[#A1A1AA]'}`}>
+                            {temEconomia ? 'Economia com CBS' : diferenca < 0 ? 'Aumento com CBS' : 'Valores Equivalentes'}
+                          </p>
+                          <p className="text-xs text-[#666]">CBS vs PIS/COFINS (sem ICMS)</p>
+                        </div>
+                      </div>
+                      <p className={`text-xl font-bold ${temEconomia ? 'text-emerald-400' : diferenca < 0 ? 'text-red-400' : 'text-[#A1A1AA]'}`}>
+                        {temEconomia ? '-' : diferenca < 0 ? '+' : ''} {formatCurrency(Math.abs(diferenca))}
+                      </p>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* =============== COMPARATIVO 2: PIS/COFINS + ICMS vs CBS + IBS (Reforma Completa) =============== */}
               <div className="bg-gradient-to-br from-[#141414] via-[#1a1a1a] to-[#141414] border border-amber-500/30 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-bold flex items-center gap-3">
                     <div className="p-2 bg-amber-500/20 rounded-lg">
                       <Calculator className="w-6 h-6 text-amber-400" />
                     </div>
                     <div>
-                      <span className="text-white">Regime Atual Completo</span>
+                      <span className="text-white">Reforma Completa: PIS/COFINS + ICMS → CBS + IBS</span>
                       <p className="text-xs text-[#A1A1AA] font-normal mt-1">
-                        PIS/COFINS + ICMS - Saldos detalhados
+                        IVA Dual (CBS + IBS) substitui PIS, COFINS e ICMS
                       </p>
                     </div>
                   </h3>
                   <div className="px-4 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg">
-                    <span className="text-amber-400 font-bold">REGIME ATUAL</span>
+                    <span className="text-amber-400 font-bold">REFORMA COMPLETA</span>
                   </div>
                 </div>
                 
-                {/* Tabela PIS/COFINS - MESMO FORMATO DO CENÁRIO 2027 */}
+                {/* Tabela Regime Atual (PIS/COFINS + ICMS) */}
                 <div className="bg-[#0C0C0C] rounded-xl overflow-hidden border border-[#333]">
                   {/* Cabeçalho */}
                   <div className="grid grid-cols-4 gap-0 bg-[#1a1a1a] text-sm font-semibold">
-                    <div className="p-3 text-[#A1A1AA]">IMPOSTO</div>
+                    <div className="p-3 text-[#A1A1AA]">REGIME ATUAL</div>
                     <div className="p-3 text-emerald-400 text-center">CRÉDITO</div>
                     <div className="p-3 text-red-400 text-center">DÉBITO</div>
                     <div className="p-3 text-[#C8A951] text-center">SALDO</div>
@@ -387,13 +507,12 @@ const ReformaTributaria = ({ user, onLogout }) => {
                     <div className="p-3 flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-amber-500"></div>
                       <span className="text-amber-400 font-medium">PIS</span>
-                      <span className="text-xs text-[#666]">(1,65%)</span>
                     </div>
                     <div className="p-3 text-center text-emerald-400">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_bruto?.pis || apuracao.comparativo_regime_atual?.detalhamento?.pis_credito || 0)}
+                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_bruto?.pis || 0)}
                     </div>
                     <div className="p-3 text-center text-red-400">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_bruto?.pis || apuracao.comparativo_regime_atual?.detalhamento?.pis_debito || 0)}
+                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_bruto?.pis || 0)}
                     </div>
                     <div className="p-3 text-center">
                       {(() => {
@@ -410,14 +529,201 @@ const ReformaTributaria = ({ user, onLogout }) => {
                     <div className="p-3 flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-amber-500"></div>
                       <span className="text-amber-400 font-medium">COFINS</span>
-                      <span className="text-xs text-[#666]">(7,60%)</span>
                     </div>
                     <div className="p-3 text-center text-emerald-400">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_bruto?.cofins || apuracao.comparativo_regime_atual?.detalhamento?.cofins_credito || 0)}
+                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_bruto?.cofins || 0)}
                     </div>
                     <div className="p-3 text-center text-red-400">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_bruto?.cofins || apuracao.comparativo_regime_atual?.detalhamento?.cofins_debito || 0)}
+                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_bruto?.cofins || 0)}
                     </div>
+                    <div className="p-3 text-center">
+                      {(() => {
+                        const saldo = apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0;
+                        return saldo > 0 
+                          ? <span className="text-red-400 font-medium">Pagar {formatCurrency(saldo)}</span>
+                          : <span className="text-[#C8A951] font-medium">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                      })()}
+                    </div>
+                  </div>
+                  
+                  {/* ICMS */}
+                  <div className="grid grid-cols-4 gap-0 border-t border-[#333] hover:bg-[#1a1a1a] transition-colors">
+                    <div className="p-3 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                      <span className="text-amber-400 font-medium">ICMS</span>
+                    </div>
+                    <div className="p-3 text-center text-emerald-400">
+                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_bruto?.icms || apuracao.comparativo_regime_atual?.detalhamento?.icms_credito || 0)}
+                    </div>
+                    <div className="p-3 text-center text-red-400">
+                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_bruto?.icms || apuracao.comparativo_regime_atual?.detalhamento?.icms_debito || 0)}
+                    </div>
+                    <div className="p-3 text-center">
+                      {(() => {
+                        const saldo = apuracao.comparativo_regime_atual?.detalhamento?.icms_saldo || 0;
+                        return saldo > 0 
+                          ? <span className="text-red-400 font-medium">Pagar {formatCurrency(saldo)}</span>
+                          : <span className="text-[#C8A951] font-medium">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                      })()}
+                    </div>
+                  </div>
+                  
+                  {/* Total Regime Atual */}
+                  <div className="grid grid-cols-4 gap-0 border-t-2 border-amber-500/30 bg-amber-500/5">
+                    <div className="p-3 font-bold text-amber-400">TOTAL ATUAL</div>
+                    <div className="p-3 text-center text-emerald-400 font-bold">
+                      {formatCurrency(
+                        (apuracao.comparativo_regime_atual?.credito_bruto?.pis || 0) +
+                        (apuracao.comparativo_regime_atual?.credito_bruto?.cofins || 0) +
+                        (apuracao.comparativo_regime_atual?.credito_bruto?.icms || apuracao.comparativo_regime_atual?.detalhamento?.icms_credito || 0)
+                      )}
+                    </div>
+                    <div className="p-3 text-center text-red-400 font-bold">
+                      {formatCurrency(
+                        (apuracao.comparativo_regime_atual?.debito_bruto?.pis || 0) +
+                        (apuracao.comparativo_regime_atual?.debito_bruto?.cofins || 0) +
+                        (apuracao.comparativo_regime_atual?.debito_bruto?.icms || apuracao.comparativo_regime_atual?.detalhamento?.icms_debito || 0)
+                      )}
+                    </div>
+                    <div className="p-3 text-center">
+                      {(() => {
+                        const saldoPis = apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo || 0;
+                        const saldoCofins = apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0;
+                        const saldoIcms = apuracao.comparativo_regime_atual?.detalhamento?.icms_saldo || 0;
+                        const saldoTotal = saldoPis + saldoCofins + saldoIcms;
+                        return saldoTotal > 0 
+                          ? <span className="text-red-400 font-bold">Pagar {formatCurrency(saldoTotal)}</span>
+                          : <span className="text-[#C8A951] font-bold">Recuperar {formatCurrency(Math.abs(saldoTotal))}</span>;
+                      })()}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Seta de Comparação */}
+                <div className="flex justify-center my-4">
+                  <div className="flex items-center gap-2 text-[#666]">
+                    <ArrowRight className="w-8 h-8" />
+                    <span className="text-sm">substitui por</span>
+                    <ArrowRight className="w-8 h-8" />
+                  </div>
+                </div>
+                
+                {/* Tabela IVA Dual (CBS + IBS) */}
+                <div className="bg-[#0C0C0C] rounded-xl overflow-hidden border border-emerald-500/30">
+                  {/* Cabeçalho */}
+                  <div className="grid grid-cols-4 gap-0 bg-emerald-500/10 text-sm font-semibold">
+                    <div className="p-3 text-emerald-400">IVA DUAL</div>
+                    <div className="p-3 text-emerald-400 text-center">CRÉDITO</div>
+                    <div className="p-3 text-red-400 text-center">DÉBITO</div>
+                    <div className="p-3 text-[#C8A951] text-center">SALDO</div>
+                  </div>
+                  
+                  {/* CBS */}
+                  <div className="grid grid-cols-4 gap-0 border-t border-[#333] hover:bg-[#1a1a1a] transition-colors">
+                    <div className="p-3 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                      <span className="text-emerald-400 font-medium">CBS</span>
+                      <span className="text-xs text-[#666]">({config.aliquota_cbs}%)</span>
+                    </div>
+                    <div className="p-3 text-center text-emerald-400">
+                      {formatCurrency(apuracao.apuracao?.creditos?.cbs || 0)}
+                    </div>
+                    <div className="p-3 text-center text-red-400">
+                      {formatCurrency(apuracao.apuracao?.debitos?.cbs || 0)}
+                    </div>
+                    <div className="p-3 text-center">
+                      {(() => {
+                        const saldo = apuracao.apuracao?.saldo?.cbs || 0;
+                        return saldo > 0 
+                          ? <span className="text-red-400 font-medium">Pagar {formatCurrency(saldo)}</span>
+                          : <span className="text-[#C8A951] font-medium">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                      })()}
+                    </div>
+                  </div>
+                  
+                  {/* IBS */}
+                  <div className="grid grid-cols-4 gap-0 border-t border-[#333] hover:bg-[#1a1a1a] transition-colors">
+                    <div className="p-3 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                      <span className="text-emerald-400 font-medium">IBS</span>
+                      <span className="text-xs text-[#666]">({config.aliquota_ibs}%)</span>
+                    </div>
+                    <div className="p-3 text-center text-emerald-400">
+                      {formatCurrency(apuracao.apuracao?.creditos?.ibs || 0)}
+                    </div>
+                    <div className="p-3 text-center text-red-400">
+                      {formatCurrency(apuracao.apuracao?.debitos?.ibs || 0)}
+                    </div>
+                    <div className="p-3 text-center">
+                      {(() => {
+                        const saldo = apuracao.apuracao?.saldo?.ibs || 0;
+                        return saldo > 0 
+                          ? <span className="text-red-400 font-medium">Pagar {formatCurrency(saldo)}</span>
+                          : <span className="text-[#C8A951] font-medium">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                      })()}
+                    </div>
+                  </div>
+                  
+                  {/* Total IVA Dual */}
+                  <div className="grid grid-cols-4 gap-0 border-t-2 border-emerald-500/30 bg-emerald-500/5">
+                    <div className="p-3 font-bold text-emerald-400">TOTAL IVA</div>
+                    <div className="p-3 text-center text-emerald-400 font-bold">
+                      {formatCurrency(apuracao.apuracao?.creditos?.total || 0)}
+                    </div>
+                    <div className="p-3 text-center text-red-400 font-bold">
+                      {formatCurrency(apuracao.apuracao?.debitos?.total || 0)}
+                    </div>
+                    <div className="p-3 text-center">
+                      {(() => {
+                        const saldo = apuracao.apuracao?.saldo?.total || 0;
+                        return saldo > 0 
+                          ? <span className="text-red-400 font-bold">Pagar {formatCurrency(saldo)}</span>
+                          : <span className="text-[#C8A951] font-bold">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                      })()}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Economia/Aumento Reforma Completa */}
+                {(() => {
+                  const saldoPis = apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo || 0;
+                  const saldoCofins = apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0;
+                  const saldoIcms = apuracao.comparativo_regime_atual?.detalhamento?.icms_saldo || 0;
+                  const totalAtual = saldoPis + saldoCofins + saldoIcms;
+                  const totalIva = apuracao.apuracao?.saldo?.total || 0;
+                  const diferenca = totalAtual - totalIva;
+                  const temEconomia = diferenca > 0;
+                  
+                  return (
+                    <div className={`mt-4 p-5 rounded-xl flex items-center justify-between ${
+                      temEconomia ? 'bg-emerald-500/10 border border-emerald-500/30' : 
+                      diferenca < 0 ? 'bg-red-500/10 border border-red-500/30' : 'bg-[#333] border border-[#444]'
+                    }`}>
+                      <div className="flex items-center gap-4">
+                        {temEconomia ? <CheckCircle className="w-8 h-8 text-emerald-400" /> : 
+                         diferenca < 0 ? <TrendingUp className="w-8 h-8 text-red-400" /> : 
+                         <ArrowRight className="w-8 h-8 text-[#666]" />}
+                        <div>
+                          <p className={`font-bold text-lg ${temEconomia ? 'text-emerald-400' : diferenca < 0 ? 'text-red-400' : 'text-[#A1A1AA]'}`}>
+                            {temEconomia ? 'Economia com Reforma Completa' : diferenca < 0 ? 'Aumento com Reforma Completa' : 'Valores Equivalentes'}
+                          </p>
+                          <p className="text-xs text-[#666]">IVA Dual (CBS + IBS) vs Regime Atual (PIS/COFINS + ICMS)</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-2xl font-bold ${temEconomia ? 'text-emerald-400' : diferenca < 0 ? 'text-red-400' : 'text-[#A1A1AA]'}`}>
+                          {temEconomia ? '- ' : diferenca < 0 ? '+ ' : ''}{formatCurrency(Math.abs(diferenca))}
+                        </p>
+                        {Math.abs(totalAtual) > 0 && (
+                          <p className={`text-xs ${temEconomia ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {((Math.abs(diferenca) / Math.abs(totalAtual)) * 100).toFixed(1)}%
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
                     <div className="p-3 text-center">
                       {(() => {
                         const saldo = apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0;
