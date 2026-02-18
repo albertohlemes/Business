@@ -40428,6 +40428,315 @@ async def sugerir_regras_piscofins(
     }
 
 
+# CFOPs de exceção que NÃO geram crédito/débito de PIS/COFINS
+CFOPS_EXCECAO_SEM_CREDITO_DEBITO = {
+    # Entradas sem crédito
+    '1910': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Entrada de bonificação'},
+    '1556': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Compra para uso/consumo'},
+    '1949': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Outra entrada'},
+    '1921': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Entrada de embalagem'},
+    '1920': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Entrada de vasilhame'},
+    '2910': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Entrada de bonificação interestadual'},
+    '2556': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Compra uso/consumo interestadual'},
+    '2949': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Outra entrada interestadual'},
+    # Saídas sem débito
+    '5910': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Saída de bonificação'},
+    '5949': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Outra saída'},
+    '5921': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Saída de embalagem'},
+    '5920': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Saída de vasilhame'},
+    '5918': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Devolução de vasilhame'},
+    '5911': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Remessa em demonstração'},
+    '5927': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Baixa de estoque'},
+    '6910': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Saída bonificação interestadual'},
+    '6949': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Outra saída interestadual'},
+    '6911': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Remessa demonstração interestadual'},
+    '6918': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Devolução vasilhame interestadual'},
+    '6920': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Saída vasilhame interestadual'},
+}
+
+
+@api_router.post("/validador-pis-cofins/{company_id}/aplicar-regras")
+async def aplicar_regras_piscofins(
+    company_id: str,
+    competencia: str,
+    tipo_operacao: str = "ambos",  # "entrada", "saida" ou "ambos"
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Aplica as regras de PIS/COFINS cadastradas nos documentos da competência (Rever CST).
+    
+    Prioridade de aplicação:
+    1. CFOP de exceção (1910, 5949, etc) - sempre CST 98/49, sem crédito/débito
+    2. Regra específica cadastrada pela empresa (por NCM completo)
+    3. Regra padrão do sistema (REGRAS_PIS_COFINS_COMPLETAS)
+    
+    Se não houver regra cadastrada, cria automaticamente usando a regra padrão
+    e marca como "nova" para o usuário auditar.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    regime_tributario = company.get('regime_tributario', 'lucro_real')
+    is_presumido = regime_tributario == 'lucro_presumido'
+    
+    # Buscar regras da empresa
+    regras_empresa = await db.regras_pis_cofins.find({
+        "company_id": company_id,
+        "ativo": True
+    }).to_list(length=1000)
+    
+    # Indexar regras por NCM (completo e prefixos)
+    regras_por_ncm = {}
+    for r in regras_empresa:
+        if r['tipo'] == 'ncm':
+            chave = r['chave'].replace('.', '').strip()
+            regras_por_ncm[chave] = r
+    
+    # Query documentos
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    
+    documents = await db.xml_documents.find(query).to_list(length=15000)
+    
+    total_processados = 0
+    total_alterados = 0
+    novas_regras_criadas = []
+    ncms_processados = set()
+    
+    for doc in documents:
+        produtos = doc.get('produtos', [])
+        doc_alterado = False
+        is_entrada = doc.get('tipo') == 'entrada'
+        is_saida = doc.get('tipo') == 'saida'
+        
+        # Verificar filtro de tipo de operação
+        if tipo_operacao == "entrada" and not is_entrada:
+            continue
+        if tipo_operacao == "saida" and not is_saida:
+            continue
+        
+        for idx, prod in enumerate(produtos):
+            cfop = str(prod.get('cfop', ''))
+            ncm = str(prod.get('ncm', '')).replace('.', '').strip()
+            
+            if not ncm or len(ncm) < 4:
+                continue
+            
+            total_processados += 1
+            
+            # PRIORIDADE 1: CFOP de exceção
+            cfop_excecao = CFOPS_EXCECAO_SEM_CREDITO_DEBITO.get(cfop)
+            if cfop_excecao:
+                cst_esperado = cfop_excecao['cst_esperado']
+                # Atualizar CST se diferente
+                cst_atual = str(prod.get('cst_pis', '')).zfill(2)
+                if cst_atual != cst_esperado:
+                    produtos[idx]['cst_pis'] = cst_esperado
+                    produtos[idx]['cst_cofins'] = cst_esperado
+                    produtos[idx]['cst_pis_anterior'] = cst_atual
+                    produtos[idx]['cst_origem'] = 'cfop_excecao'
+                    produtos[idx]['cst_atualizado_em'] = datetime.now(timezone.utc).isoformat()
+                    doc_alterado = True
+                    total_alterados += 1
+                continue  # Não aplica regra de NCM
+            
+            # PRIORIDADE 2: Regra específica da empresa
+            regra = None
+            
+            # Tentar NCM completo (8 dígitos), depois prefixos menores
+            for i in range(len(ncm), 3, -1):
+                prefixo = ncm[:i]
+                if prefixo in regras_por_ncm:
+                    regra = regras_por_ncm[prefixo]
+                    break
+            
+            # PRIORIDADE 3: Regra padrão do sistema
+            if not regra:
+                ncm_4 = ncm[:4]
+                regra_padrao = REGRAS_PIS_COFINS_COMPLETAS.get(ncm_4)
+                
+                if regra_padrao:
+                    # Criar nova regra automaticamente para o usuário auditar
+                    if ncm_4 not in ncms_processados:
+                        ncms_processados.add(ncm_4)
+                        
+                        # Verificar se já existe regra para este NCM
+                        regra_existente = regras_por_ncm.get(ncm_4)
+                        
+                        if not regra_existente:
+                            tipo_regra = regra_padrao.get('tipo_regra', 'tributado')
+                            config = TIPOS_REGRA_PIS_COFINS.get(tipo_regra, TIPOS_REGRA_PIS_COFINS['tributado'])
+                            
+                            # Ajustar para lucro presumido se aplicável
+                            if is_presumido and tipo_regra == 'tributado':
+                                config = TIPOS_REGRA_PIS_COFINS['tributado_presumido']
+                                tipo_regra = 'tributado_presumido'
+                            
+                            nova_regra = {
+                                "id": str(uuid.uuid4()),
+                                "company_id": company_id,
+                                "tipo": "ncm",
+                                "chave": ncm_4,
+                                "descricao": regra_padrao.get('descricao', f'NCM {ncm_4}'),
+                                "tipo_regra": tipo_regra,
+                                "cst_esperado_entrada": config['cst_entrada'],
+                                "cst_esperado_saida": config['cst_saida'],
+                                "aliquota_pis": config['aliquota_pis'] or 0,
+                                "aliquota_cofins": config['aliquota_cofins'] or 0,
+                                "gera_credito": config['gera_credito'],
+                                "gera_debito": config['gera_debito'],
+                                "base_legal": regra_padrao.get('base_legal', ''),
+                                "excecoes": regra_padrao.get('excecoes', []),
+                                "ativo": True,
+                                "nova": True,  # Marcador para auditoria
+                                "criado_automaticamente": True,
+                                "created_at": datetime.now(timezone.utc),
+                                "created_by": current_user.id
+                            }
+                            
+                            await db.regras_pis_cofins.insert_one(nova_regra)
+                            novas_regras_criadas.append({
+                                "ncm": ncm_4,
+                                "descricao": regra_padrao.get('descricao'),
+                                "tipo_regra": tipo_regra
+                            })
+                            
+                            # Adicionar ao índice para uso imediato
+                            regras_por_ncm[ncm_4] = nova_regra
+                            regra = nova_regra
+                        else:
+                            regra = regra_existente
+            
+            if regra:
+                # Determinar CST baseado no tipo de operação
+                if is_entrada:
+                    cst_esperado = regra.get('cst_esperado_entrada', '50')
+                else:
+                    cst_esperado = regra.get('cst_esperado_saida', '01')
+                
+                # Verificar exceções na regra
+                excecoes = regra.get('excecoes', [])
+                descricao_prod = prod.get('descricao', '').upper()
+                
+                for exc in excecoes:
+                    palavra_chave = exc.get('chave', '').upper()
+                    if palavra_chave and palavra_chave in descricao_prod:
+                        if is_entrada:
+                            cst_esperado = exc.get('cst_entrada', cst_esperado)
+                        else:
+                            cst_esperado = exc.get('cst_saida', cst_esperado)
+                        break
+                
+                # Atualizar CST se diferente
+                cst_atual = str(prod.get('cst_pis', '')).zfill(2)
+                if cst_atual != cst_esperado:
+                    produtos[idx]['cst_pis'] = cst_esperado
+                    produtos[idx]['cst_cofins'] = cst_esperado
+                    produtos[idx]['cst_pis_anterior'] = cst_atual
+                    produtos[idx]['cst_origem'] = 'regra_empresa'
+                    produtos[idx]['regra_id'] = regra.get('id')
+                    produtos[idx]['cst_atualizado_em'] = datetime.now(timezone.utc).isoformat()
+                    
+                    # Atualizar alíquotas também se aplicável
+                    aliq_pis = regra.get('aliquota_pis')
+                    aliq_cofins = regra.get('aliquota_cofins')
+                    if aliq_pis is not None:
+                        produtos[idx]['aliq_pis'] = aliq_pis
+                        produtos[idx]['p_pis'] = aliq_pis
+                    if aliq_cofins is not None:
+                        produtos[idx]['aliq_cofins'] = aliq_cofins
+                        produtos[idx]['p_cofins'] = aliq_cofins
+                    
+                    doc_alterado = True
+                    total_alterados += 1
+        
+        if doc_alterado:
+            await db.xml_documents.update_one(
+                {"id": doc['id']},
+                {"$set": {"produtos": produtos}}
+            )
+    
+    return {
+        "success": True,
+        "message": f"Regras aplicadas com sucesso",
+        "total_processados": total_processados,
+        "total_alterados": total_alterados,
+        "novas_regras_criadas": len(novas_regras_criadas),
+        "regras_criadas": novas_regras_criadas
+    }
+
+
+@api_router.post("/validador-pis-cofins/{company_id}/criar-regra-ncm")
+async def criar_regra_ncm_piscofins(
+    company_id: str,
+    ncm: str,
+    tipo_regra: str,
+    descricao: str = None,
+    base_legal: str = None,
+    aliquota_pis: float = None,
+    aliquota_cofins: float = None,
+    excecoes: list = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Cria ou atualiza uma regra de PIS/COFINS para um NCM específico.
+    Usada quando o usuário edita um NCM na listagem do validador.
+    """
+    ncm_clean = ncm.replace('.', '').strip()
+    
+    # Buscar configuração do tipo de regra
+    config = TIPOS_REGRA_PIS_COFINS.get(tipo_regra)
+    if not config:
+        raise HTTPException(status_code=400, detail=f"Tipo de regra inválido: {tipo_regra}")
+    
+    # Verificar se já existe regra para este NCM
+    regra_existente = await db.regras_pis_cofins.find_one({
+        "company_id": company_id,
+        "tipo": "ncm",
+        "chave": ncm_clean
+    })
+    
+    dados_regra = {
+        "tipo": "ncm",
+        "chave": ncm_clean,
+        "descricao": descricao or f"NCM {ncm_clean}",
+        "tipo_regra": tipo_regra,
+        "cst_esperado_entrada": config['cst_entrada'],
+        "cst_esperado_saida": config['cst_saida'],
+        "aliquota_pis": aliquota_pis if aliquota_pis is not None else (config['aliquota_pis'] or 0),
+        "aliquota_cofins": aliquota_cofins if aliquota_cofins is not None else (config['aliquota_cofins'] or 0),
+        "gera_credito": config['gera_credito'],
+        "gera_debito": config['gera_debito'],
+        "base_legal": base_legal or "",
+        "excecoes": excecoes or [],
+        "ativo": True,
+        "nova": False,
+        "updated_at": datetime.now(timezone.utc),
+        "updated_by": current_user.id
+    }
+    
+    if regra_existente:
+        # Atualizar regra existente
+        await db.regras_pis_cofins.update_one(
+            {"id": regra_existente['id']},
+            {"$set": dados_regra}
+        )
+        return {"success": True, "message": "Regra atualizada com sucesso", "id": regra_existente['id']}
+    else:
+        # Criar nova regra
+        dados_regra["id"] = str(uuid.uuid4())
+        dados_regra["company_id"] = company_id
+        dados_regra["created_at"] = datetime.now(timezone.utc)
+        dados_regra["created_by"] = current_user.id
+        
+        await db.regras_pis_cofins.insert_one(dados_regra)
+        return {"success": True, "message": "Regra criada com sucesso", "id": dados_regra['id']}
+
+
 app.include_router(api_router)
 
 app.add_middleware(
