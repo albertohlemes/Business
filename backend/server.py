@@ -34201,6 +34201,12 @@ async def get_grupo_consolidado(
         consolidado["pis"]["debito"] += pis_debito
         consolidado["cofins"]["credito"] += cofins_credito
         consolidado["cofins"]["debito"] += cofins_debito
+        consolidado["irpj"]["base_presumida"] += base_irpj
+        consolidado["irpj"]["devido"] += irpj_devido
+        consolidado["irpj"]["adicional"] += irpj_adicional
+        consolidado["irpj"]["total"] += irpj_total
+        consolidado["csll"]["base_presumida"] += base_csll
+        consolidado["csll"]["devido"] += csll_devido
         consolidado["transferencias_desconsideradas"] += transferencias_desc
     
     # Calcular saldos consolidados
