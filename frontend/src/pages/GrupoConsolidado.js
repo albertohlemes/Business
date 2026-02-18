@@ -5,8 +5,7 @@ import { useAppContext } from '../context/AppContext';
 import { 
   TrendingUp, TrendingDown, DollarSign, Building2, Users,
   BarChart3, Calculator, Scale, RefreshCw, AlertTriangle,
-  ChevronDown, ChevronUp, Package, ShoppingCart, FileText,
-  Percent, PiggyBank, Zap, Info
+  Package, ShoppingCart, Zap, Info
 } from 'lucide-react';
 
 /**
@@ -86,12 +85,14 @@ const GrupoConsolidado = () => {
   useEffect(() => {
     if (grupoInfo?.is_matriz) {
       fetchDadosGrupo();
+    } else if (grupoInfo) {
+      setLoading(false);
     }
   }, [grupoInfo, fetchDadosGrupo]);
 
   const tabs = [
     { id: 'indicadores', label: 'Indicadores', icon: BarChart3 },
-    { id: 'icms', label: 'ICMS', icon: Building2 },
+    { id: 'icms', label: 'ICMS', icon: Calculator },
     { id: 'pis_cofins', label: 'PIS/COFINS', icon: DollarSign },
     { id: 'irpj_csll', label: 'IRPJ/CSLL', icon: Calculator },
     { id: 'ret', label: 'RET', icon: Scale },
@@ -118,16 +119,16 @@ const GrupoConsolidado = () => {
           ) : (
             <Building2 className={`w-5 h-5 ${tipo === 'matriz' ? 'text-blue-400' : 'text-[#A1A1AA]'}`} />
           )}
-          <div>
-            <h3 className={`font-semibold ${
+          <div className="flex-1 min-w-0">
+            <h3 className={`font-semibold truncate ${
               tipo === 'consolidado' ? 'text-[#C8A951]' : 'text-white'
             }`}>{titulo}</h3>
-            {empresa && (
-              <p className="text-xs text-[#A1A1AA]">{empresa.cnpj}</p>
+            {empresa?.cnpj && (
+              <p className="text-xs text-[#A1A1AA]">{empresa.cnpj} {empresa.uf && `- ${empresa.uf}`}</p>
             )}
           </div>
           {tipo !== 'consolidado' && (
-            <span className={`ml-auto text-xs px-2 py-0.5 rounded ${
+            <span className={`ml-auto text-xs px-2 py-0.5 rounded flex-shrink-0 ${
               tipo === 'matriz' ? 'bg-blue-500/20 text-blue-400' : 'bg-[#2A2A2A] text-[#A1A1AA]'
             }`}>
               {tipo === 'matriz' ? 'MATRIZ' : 'FILIAL'}
@@ -186,7 +187,7 @@ const GrupoConsolidado = () => {
                   </div>
                   <div>
                     <p className="text-[#A1A1AA] text-sm">Total Entradas</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(consolidado?.faturamento * 0.3)}</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(consolidado?.indicadores?.entradas)}</p>
                   </div>
                 </div>
               </div>
@@ -198,7 +199,7 @@ const GrupoConsolidado = () => {
                   </div>
                   <div>
                     <p className="text-[#A1A1AA] text-sm">Total Compras</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(consolidado?.faturamento * 0.25)}</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(consolidado?.indicadores?.compras)}</p>
                   </div>
                 </div>
               </div>
@@ -210,7 +211,7 @@ const GrupoConsolidado = () => {
                   </div>
                   <div>
                     <p className="text-[#A1A1AA] text-sm">Total Saídas</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(consolidado?.faturamento)}</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(consolidado?.indicadores?.saidas)}</p>
                   </div>
                 </div>
               </div>
@@ -222,7 +223,7 @@ const GrupoConsolidado = () => {
                   </div>
                   <div>
                     <p className="text-[#A1A1AA] text-sm">Total Vendas</p>
-                    <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(consolidado?.faturamento)}</p>
+                    <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(consolidado?.indicadores?.vendas)}</p>
                   </div>
                 </div>
               </div>
@@ -231,22 +232,35 @@ const GrupoConsolidado = () => {
             {/* Resumo por Empresa */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <EmpresaCard titulo={matriz?.razao_social} empresa={matriz} tipo="matriz">
-                <ValorLinha label="Faturamento" valor={matriz?.faturamento} color="text-white" />
-                <ValorLinha label="Total Federal" valor={matriz?.total_federal} color="text-[#C8A951]" bold />
+                <ValorLinha label="Entradas" valor={matriz?.indicadores?.entradas} />
+                <ValorLinha label="Compras" valor={matriz?.indicadores?.compras} />
+                <ValorLinha label="Saídas" valor={matriz?.indicadores?.saidas} />
+                <ValorLinha label="Vendas" valor={matriz?.indicadores?.vendas} />
+                <div className="border-t border-[#2A2A2A] mt-2 pt-2">
+                  <ValorLinha label="Total Federal" valor={matriz?.total_federal} color="text-[#C8A951]" bold />
+                </div>
               </EmpresaCard>
 
               <div className="space-y-4">
-                {filiais?.map((filial, idx) => (
+                {filiais?.map((filial) => (
                   <EmpresaCard key={filial.id} titulo={filial.razao_social} empresa={filial} tipo="filial">
-                    <ValorLinha label="Faturamento" valor={filial?.faturamento} color="text-white" />
-                    <ValorLinha label="Total Federal" valor={filial?.total_federal} color="text-[#C8A951]" bold />
+                    <ValorLinha label="Entradas" valor={filial?.indicadores?.entradas} />
+                    <ValorLinha label="Compras" valor={filial?.indicadores?.compras} />
+                    <ValorLinha label="Saídas" valor={filial?.indicadores?.saidas} />
+                    <ValorLinha label="Vendas" valor={filial?.indicadores?.vendas} />
+                    <div className="border-t border-[#2A2A2A] mt-2 pt-2">
+                      <ValorLinha label="Total Federal" valor={filial?.total_federal} color="text-[#C8A951]" bold />
+                    </div>
                   </EmpresaCard>
                 ))}
               </div>
 
-              <EmpresaCard titulo="CONSOLIDADO" tipo="consolidado">
-                <ValorLinha label="Faturamento Total" valor={consolidado?.faturamento} color="text-white" />
-                <div className="border-t border-[#2A2A2A] mt-2 pt-2">
+              <EmpresaCard titulo="CONSOLIDADO DO GRUPO" tipo="consolidado">
+                <ValorLinha label="Entradas" valor={consolidado?.indicadores?.entradas} />
+                <ValorLinha label="Compras" valor={consolidado?.indicadores?.compras} />
+                <ValorLinha label="Saídas" valor={consolidado?.indicadores?.saidas} />
+                <ValorLinha label="Vendas" valor={consolidado?.indicadores?.vendas} />
+                <div className="border-t border-[#C8A951]/30 mt-2 pt-2">
                   <ValorLinha label="Total Federal" valor={consolidado?.total_federal} color="text-[#C8A951]" bold />
                   <p className="text-center text-sm text-[#A1A1AA] mt-2">
                     {formatPercent(consolidado?.percentual)} do faturamento
@@ -273,33 +287,45 @@ const GrupoConsolidado = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <EmpresaCard titulo={matriz?.razao_social} empresa={matriz} tipo="matriz">
-                <ValorLinha label="ICMS Débito" valor={0} color="text-red-400" />
-                <ValorLinha label="ICMS Crédito" valor={0} color="text-green-400" />
+                <ValorLinha label="ICMS Débito" valor={matriz?.icms?.debito} color="text-red-400" />
+                <ValorLinha label="ICMS Crédito" valor={matriz?.icms?.credito} color="text-green-400" />
                 <div className="border-t border-[#2A2A2A] mt-2 pt-2">
-                  <ValorLinha label="Saldo" valor={0} color="text-white" bold />
+                  {matriz?.icms?.a_pagar > 0 ? (
+                    <ValorLinha label="A Pagar" valor={matriz?.icms?.a_pagar} color="text-red-400" bold />
+                  ) : (
+                    <ValorLinha label="A Recuperar" valor={matriz?.icms?.a_recuperar} color="text-green-400" bold />
+                  )}
                 </div>
               </EmpresaCard>
 
               <div className="space-y-4">
                 {filiais?.map((filial) => (
                   <EmpresaCard key={filial.id} titulo={filial.razao_social} empresa={filial} tipo="filial">
-                    <ValorLinha label="ICMS Débito" valor={0} color="text-red-400" />
-                    <ValorLinha label="ICMS Crédito" valor={0} color="text-green-400" />
+                    <ValorLinha label="ICMS Débito" valor={filial?.icms?.debito} color="text-red-400" />
+                    <ValorLinha label="ICMS Crédito" valor={filial?.icms?.credito} color="text-green-400" />
                     <div className="border-t border-[#2A2A2A] mt-2 pt-2">
-                      <ValorLinha label="Saldo" valor={0} color="text-white" bold />
+                      {filial?.icms?.a_pagar > 0 ? (
+                        <ValorLinha label="A Pagar" valor={filial?.icms?.a_pagar} color="text-red-400" bold />
+                      ) : (
+                        <ValorLinha label="A Recuperar" valor={filial?.icms?.a_recuperar} color="text-green-400" bold />
+                      )}
                     </div>
                   </EmpresaCard>
                 ))}
               </div>
 
               <EmpresaCard titulo="CONSOLIDADO" tipo="consolidado">
-                <ValorLinha label="ICMS Débito Total" valor={0} color="text-red-400" />
-                <ValorLinha label="ICMS Crédito Total" valor={0} color="text-green-400" />
-                <div className="border-t border-[#2A2A2A] mt-2 pt-2">
-                  <ValorLinha label="Saldo Consolidado" valor={0} color="text-white" bold />
+                <ValorLinha label="ICMS Débito Total" valor={consolidado?.icms?.debito} color="text-red-400" />
+                <ValorLinha label="ICMS Crédito Total" valor={consolidado?.icms?.credito} color="text-green-400" />
+                <div className="border-t border-[#C8A951]/30 mt-2 pt-2">
+                  {consolidado?.icms?.a_pagar > 0 ? (
+                    <ValorLinha label="A Pagar" valor={consolidado?.icms?.a_pagar} color="text-red-400" bold />
+                  ) : (
+                    <ValorLinha label="A Recuperar" valor={consolidado?.icms?.a_recuperar} color="text-green-400" bold />
+                  )}
                 </div>
                 <p className="text-center text-xs text-[#A1A1AA] mt-2 italic">
-                  * Apenas para análise gerencial
+                  * Apenas para análise gerencial - recolhimento é por empresa
                 </p>
               </EmpresaCard>
             </div>
@@ -331,6 +357,10 @@ const GrupoConsolidado = () => {
                 <ValorLinha label="Débito" valor={matriz?.cofins?.debito} color="text-red-400" />
                 <ValorLinha label="Crédito" valor={matriz?.cofins?.credito} color="text-green-400" />
                 <ValorLinha label="A Pagar" valor={matriz?.cofins?.a_pagar} color="text-blue-400" bold />
+                
+                <div className="border-t border-[#2A2A2A] mt-4 pt-2">
+                  <ValorLinha label="Total PIS + COFINS" valor={(matriz?.pis?.a_pagar || 0) + (matriz?.cofins?.a_pagar || 0)} color="text-[#C8A951]" bold />
+                </div>
               </EmpresaCard>
 
               <div className="space-y-4">
@@ -345,6 +375,10 @@ const GrupoConsolidado = () => {
                     <ValorLinha label="Débito" valor={filial?.cofins?.debito} color="text-red-400" />
                     <ValorLinha label="Crédito" valor={filial?.cofins?.credito} color="text-green-400" />
                     <ValorLinha label="A Pagar" valor={filial?.cofins?.a_pagar} color="text-blue-400" bold />
+                    
+                    <div className="border-t border-[#2A2A2A] mt-4 pt-2">
+                      <ValorLinha label="Total" valor={(filial?.pis?.a_pagar || 0) + (filial?.cofins?.a_pagar || 0)} color="text-[#C8A951]" bold />
+                    </div>
                   </EmpresaCard>
                 ))}
               </div>
@@ -382,6 +416,10 @@ const GrupoConsolidado = () => {
                 <h4 className="text-sm text-purple-400 font-medium mb-2 mt-4">CSLL</h4>
                 <ValorLinha label="Base Presumida" valor={matriz?.csll?.base} color="text-white" />
                 <ValorLinha label="CSLL 9%" valor={matriz?.csll?.devido} color="text-purple-400" bold />
+                
+                <div className="border-t border-[#2A2A2A] mt-4 pt-2">
+                  <ValorLinha label="Total IRPJ + CSLL" valor={(matriz?.irpj?.total || 0) + (matriz?.csll?.devido || 0)} color="text-[#C8A951]" bold />
+                </div>
               </EmpresaCard>
 
               <div className="space-y-4">
@@ -394,6 +432,10 @@ const GrupoConsolidado = () => {
                     <h4 className="text-sm text-purple-400 font-medium mb-2 mt-4">CSLL</h4>
                     <ValorLinha label="Base Presumida" valor={filial?.csll?.base} color="text-white" />
                     <ValorLinha label="CSLL 9%" valor={filial?.csll?.devido} color="text-purple-400" bold />
+                    
+                    <div className="border-t border-[#2A2A2A] mt-4 pt-2">
+                      <ValorLinha label="Total" valor={(filial?.irpj?.total || 0) + (filial?.csll?.devido || 0)} color="text-[#C8A951]" bold />
+                    </div>
                   </EmpresaCard>
                 ))}
               </div>
@@ -427,38 +469,67 @@ const GrupoConsolidado = () => {
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
-                  <h4 className="text-sm text-[#A1A1AA] mb-3">LUCRO REAL</h4>
-                  <ValorLinha label="PIS + COFINS" valor={(consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0)} color="text-blue-400" />
+                <div className="bg-[#141414] rounded-lg p-4 border border-blue-500/30">
+                  <h4 className="text-sm text-blue-400 mb-3 font-medium">LUCRO REAL</h4>
+                  <ValorLinha label="PIS + COFINS (não-cumulativo)" valor={(consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0)} color="text-blue-400" />
                   <ValorLinha label="IRPJ + CSLL" valor={(consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0)} color="text-purple-400" />
                   <div className="border-t border-[#2A2A2A] mt-2 pt-2">
-                    <ValorLinha label="Total" valor={consolidado?.total_federal} color="text-white" bold />
+                    <ValorLinha label="Total Federal" valor={consolidado?.total_federal} color="text-white" bold />
+                    <p className="text-xs text-[#A1A1AA] mt-1">
+                      {formatPercent((consolidado?.total_federal || 0) / (consolidado?.faturamento || 1) * 100)} do faturamento
+                    </p>
                   </div>
                 </div>
                 
-                <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
-                  <h4 className="text-sm text-[#A1A1AA] mb-3">LUCRO PRESUMIDO</h4>
-                  <ValorLinha label="PIS + COFINS (cumulativo)" valor={consolidado?.faturamento * 0.0365} color="text-blue-400" />
+                <div className="bg-[#141414] rounded-lg p-4 border border-purple-500/30">
+                  <h4 className="text-sm text-purple-400 mb-3 font-medium">LUCRO PRESUMIDO</h4>
+                  <ValorLinha label="PIS + COFINS (cumulativo)" valor={(consolidado?.faturamento || 0) * 0.0365} color="text-blue-400" />
                   <ValorLinha label="IRPJ + CSLL" valor={(consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0)} color="text-purple-400" />
                   <div className="border-t border-[#2A2A2A] mt-2 pt-2">
-                    <ValorLinha label="Total" valor={(consolidado?.faturamento * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0)} color="text-white" bold />
+                    <ValorLinha label="Total Federal" valor={((consolidado?.faturamento || 0) * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0)} color="text-white" bold />
+                    <p className="text-xs text-[#A1A1AA] mt-1">
+                      {formatPercent((((consolidado?.faturamento || 0) * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0)) / (consolidado?.faturamento || 1) * 100)} do faturamento
+                    </p>
                   </div>
                 </div>
+              </div>
+              
+              {/* Veredito */}
+              <div className="mt-4 p-4 bg-[#C8A951]/10 rounded-lg border border-[#C8A951]/30 text-center">
+                {consolidado?.total_federal < ((consolidado?.faturamento || 0) * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0) ? (
+                  <p className="text-[#C8A951] font-semibold">
+                    Lucro Real mais vantajoso - Economia de {formatCurrency(((consolidado?.faturamento || 0) * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0) - consolidado?.total_federal)}
+                  </p>
+                ) : (
+                  <p className="text-[#C8A951] font-semibold">
+                    Lucro Presumido mais vantajoso - Economia de {formatCurrency(consolidado?.total_federal - (((consolidado?.faturamento || 0) * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0)))}
+                  </p>
+                )}
               </div>
             </div>
 
             {/* Por Empresa */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <EmpresaCard titulo={matriz?.razao_social} empresa={matriz} tipo="matriz">
-                <ValorLinha label="Total Federal (Real)" valor={matriz?.total_federal} color="text-blue-400" bold />
-                <ValorLinha label="Total Federal (Presumido)" valor={(matriz?.faturamento * 0.0365) + (matriz?.irpj?.total || 0) + (matriz?.csll?.devido || 0)} color="text-purple-400" bold />
+                <ValorLinha label="Lucro Real" valor={matriz?.total_federal} color="text-blue-400" bold />
+                <ValorLinha label="Lucro Presumido" valor={(matriz?.faturamento * 0.0365) + (matriz?.irpj?.total || 0) + (matriz?.csll?.devido || 0)} color="text-purple-400" bold />
+                <div className="border-t border-[#2A2A2A] mt-2 pt-2 text-center">
+                  <p className={`text-sm font-medium ${matriz?.total_federal < ((matriz?.faturamento * 0.0365) + (matriz?.irpj?.total || 0) + (matriz?.csll?.devido || 0)) ? 'text-blue-400' : 'text-purple-400'}`}>
+                    {matriz?.total_federal < ((matriz?.faturamento * 0.0365) + (matriz?.irpj?.total || 0) + (matriz?.csll?.devido || 0)) ? 'Real' : 'Presumido'} mais vantajoso
+                  </p>
+                </div>
               </EmpresaCard>
 
               <div className="space-y-4">
                 {filiais?.map((filial) => (
                   <EmpresaCard key={filial.id} titulo={filial.razao_social} empresa={filial} tipo="filial">
-                    <ValorLinha label="Total Federal (Real)" valor={filial?.total_federal} color="text-blue-400" bold />
-                    <ValorLinha label="Total Federal (Presumido)" valor={(filial?.faturamento * 0.0365) + (filial?.irpj?.total || 0) + (filial?.csll?.devido || 0)} color="text-purple-400" bold />
+                    <ValorLinha label="Lucro Real" valor={filial?.total_federal} color="text-blue-400" bold />
+                    <ValorLinha label="Lucro Presumido" valor={(filial?.faturamento * 0.0365) + (filial?.irpj?.total || 0) + (filial?.csll?.devido || 0)} color="text-purple-400" bold />
+                    <div className="border-t border-[#2A2A2A] mt-2 pt-2 text-center">
+                      <p className={`text-sm font-medium ${filial?.total_federal < ((filial?.faturamento * 0.0365) + (filial?.irpj?.total || 0) + (filial?.csll?.devido || 0)) ? 'text-blue-400' : 'text-purple-400'}`}>
+                        {filial?.total_federal < ((filial?.faturamento * 0.0365) + (filial?.irpj?.total || 0) + (filial?.csll?.devido || 0)) ? 'Real' : 'Presumido'} mais vantajoso
+                      </p>
+                    </div>
                   </EmpresaCard>
                 ))}
               </div>
@@ -466,14 +537,6 @@ const GrupoConsolidado = () => {
               <EmpresaCard titulo="CONSOLIDADO" tipo="consolidado">
                 <ValorLinha label="Lucro Real" valor={consolidado?.total_federal} color="text-blue-400" bold />
                 <ValorLinha label="Lucro Presumido" valor={(consolidado?.faturamento * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0)} color="text-purple-400" bold />
-                <div className="border-t border-[#C8A951]/30 mt-2 pt-2">
-                  <p className="text-center text-sm text-[#C8A951]">
-                    {consolidado?.total_federal < ((consolidado?.faturamento * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0))
-                      ? '✓ Lucro Real mais vantajoso'
-                      : '✓ Lucro Presumido mais vantajoso'
-                    }
-                  </p>
-                </div>
               </EmpresaCard>
             </div>
           </div>
@@ -487,7 +550,7 @@ const GrupoConsolidado = () => {
               <div>
                 <p className="text-orange-400 font-medium">Reforma Tributária</p>
                 <p className="text-sm text-[#A1A1AA]">
-                  Comparativo entre o cenário atual (PIS/COFINS) e o novo IBS/CBS que entrará em vigor.
+                  Comparativo entre o cenário atual (PIS/COFINS + ICMS) e o novo IBS/CBS que entrará em vigor progressivamente a partir de 2026.
                 </p>
               </div>
             </div>
@@ -497,10 +560,11 @@ const GrupoConsolidado = () => {
                 <h4 className="text-lg font-semibold text-blue-400 mb-4">Cenário Atual</h4>
                 <ValorLinha label="PIS (1,65%)" valor={consolidado?.pis?.a_pagar} color="text-white" />
                 <ValorLinha label="COFINS (7,6%)" valor={consolidado?.cofins?.a_pagar} color="text-white" />
+                <ValorLinha label="ICMS" valor={consolidado?.icms?.a_pagar} color="text-white" />
                 <div className="border-t border-[#2A2A2A] mt-2 pt-2">
-                  <ValorLinha label="Total PIS + COFINS" valor={(consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0)} color="text-blue-400" bold />
+                  <ValorLinha label="Total Atual" valor={(consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0)} color="text-blue-400" bold />
                   <p className="text-sm text-[#A1A1AA] mt-1">
-                    Alíquota efetiva: {formatPercent(((consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0)) / (consolidado?.faturamento || 1) * 100)}
+                    Alíquota efetiva: {formatPercent(((consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0)) / (consolidado?.faturamento || 1) * 100)}
                   </p>
                 </div>
               </div>
@@ -508,11 +572,36 @@ const GrupoConsolidado = () => {
               <div className="bg-[#0C0C0C] rounded-xl p-6 border border-orange-500/30">
                 <h4 className="text-lg font-semibold text-orange-400 mb-4">IBS + CBS (Reforma)</h4>
                 <ValorLinha label="CBS Federal (~8,8%)" valor={consolidado?.faturamento * 0.088} color="text-white" />
-                <ValorLinha label="IBS Estadual (~variável)" valor={consolidado?.faturamento * 0.15} color="text-white" />
+                <ValorLinha label="IBS Estadual (~17%)" valor={consolidado?.faturamento * 0.17} color="text-white" />
                 <div className="border-t border-[#2A2A2A] mt-2 pt-2">
-                  <ValorLinha label="Total IBS + CBS" valor={consolidado?.faturamento * 0.238} color="text-orange-400" bold />
+                  <ValorLinha label="Total IBS + CBS" valor={consolidado?.faturamento * 0.258} color="text-orange-400" bold />
                   <p className="text-sm text-[#A1A1AA] mt-1">
-                    Alíquota aproximada: 23,8%
+                    Alíquota aproximada: 25,8%
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Impacto */}
+            <div className="bg-[#0C0C0C] rounded-xl p-6 border border-[#2A2A2A]">
+              <h4 className="text-lg font-semibold text-white mb-4">Impacto da Reforma</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center p-4 bg-[#141414] rounded-lg">
+                  <p className="text-sm text-[#A1A1AA]">Atual</p>
+                  <p className="text-2xl font-bold text-blue-400">{formatCurrency((consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0))}</p>
+                </div>
+                <div className="text-center p-4 bg-[#141414] rounded-lg">
+                  <p className="text-sm text-[#A1A1AA]">Reforma (IBS+CBS)</p>
+                  <p className="text-2xl font-bold text-orange-400">{formatCurrency(consolidado?.faturamento * 0.258)}</p>
+                </div>
+                <div className="text-center p-4 bg-[#141414] rounded-lg">
+                  <p className="text-sm text-[#A1A1AA]">Diferença</p>
+                  <p className={`text-2xl font-bold ${
+                    (consolidado?.faturamento * 0.258) > ((consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0))
+                      ? 'text-red-400' : 'text-green-400'
+                  }`}>
+                    {(consolidado?.faturamento * 0.258) > ((consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0)) ? '+' : '-'}
+                    {formatCurrency(Math.abs((consolidado?.faturamento * 0.258) - ((consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0))))}
                   </p>
                 </div>
               </div>
@@ -521,30 +610,22 @@ const GrupoConsolidado = () => {
             {/* Por Empresa */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <EmpresaCard titulo={matriz?.razao_social} empresa={matriz} tipo="matriz">
-                <ValorLinha label="Atual (PIS+COFINS)" valor={(matriz?.pis?.a_pagar || 0) + (matriz?.cofins?.a_pagar || 0)} color="text-blue-400" />
-                <ValorLinha label="Reforma (IBS+CBS)" valor={matriz?.faturamento * 0.238} color="text-orange-400" />
+                <ValorLinha label="Atual (PIS+COFINS+ICMS)" valor={(matriz?.pis?.a_pagar || 0) + (matriz?.cofins?.a_pagar || 0) + (matriz?.icms?.a_pagar || 0)} color="text-blue-400" />
+                <ValorLinha label="Reforma (IBS+CBS)" valor={matriz?.faturamento * 0.258} color="text-orange-400" />
               </EmpresaCard>
 
               <div className="space-y-4">
                 {filiais?.map((filial) => (
                   <EmpresaCard key={filial.id} titulo={filial.razao_social} empresa={filial} tipo="filial">
-                    <ValorLinha label="Atual (PIS+COFINS)" valor={(filial?.pis?.a_pagar || 0) + (filial?.cofins?.a_pagar || 0)} color="text-blue-400" />
-                    <ValorLinha label="Reforma (IBS+CBS)" valor={filial?.faturamento * 0.238} color="text-orange-400" />
+                    <ValorLinha label="Atual (PIS+COFINS+ICMS)" valor={(filial?.pis?.a_pagar || 0) + (filial?.cofins?.a_pagar || 0) + (filial?.icms?.a_pagar || 0)} color="text-blue-400" />
+                    <ValorLinha label="Reforma (IBS+CBS)" valor={filial?.faturamento * 0.258} color="text-orange-400" />
                   </EmpresaCard>
                 ))}
               </div>
 
               <EmpresaCard titulo="CONSOLIDADO" tipo="consolidado">
-                <ValorLinha label="Atual (PIS+COFINS)" valor={(consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0)} color="text-blue-400" bold />
-                <ValorLinha label="Reforma (IBS+CBS)" valor={consolidado?.faturamento * 0.238} color="text-orange-400" bold />
-                <div className="border-t border-[#C8A951]/30 mt-2 pt-2">
-                  <ValorLinha 
-                    label="Diferença" 
-                    valor={(consolidado?.faturamento * 0.238) - ((consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0))} 
-                    color={(consolidado?.faturamento * 0.238) > ((consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0)) ? 'text-red-400' : 'text-green-400'} 
-                    bold 
-                  />
-                </div>
+                <ValorLinha label="Atual (PIS+COFINS+ICMS)" valor={(consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0)} color="text-blue-400" bold />
+                <ValorLinha label="Reforma (IBS+CBS)" valor={consolidado?.faturamento * 0.258} color="text-orange-400" bold />
               </EmpresaCard>
             </div>
           </div>
@@ -579,21 +660,22 @@ const GrupoConsolidado = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
               <Users className="w-7 h-7 text-[#C8A951]" />
               Grupo Consolidado
             </h1>
             <p className="text-[#A1A1AA] mt-1">
-              {dadosGrupo?.grupo_nome} • {1 + (dadosGrupo?.filiais?.length || 0)} empresas • {selectedCompetencia}
+              {dadosGrupo?.grupo_nome || 'Carregando...'} - {1 + (dadosGrupo?.filiais?.length || 0)} empresas - {selectedCompetencia}
             </p>
           </div>
           <button
             onClick={fetchDadosGrupo}
-            className="flex items-center gap-2 px-4 py-2 bg-[#C8A951] text-black rounded-lg hover:bg-[#B8993F] transition-colors font-medium"
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-[#C8A951] text-black rounded-lg hover:bg-[#B8993F] transition-colors font-medium disabled:opacity-50"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
           </button>
         </div>
