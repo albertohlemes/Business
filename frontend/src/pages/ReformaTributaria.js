@@ -361,122 +361,151 @@ const ReformaTributaria = ({ user, onLogout }) => {
                       <Calculator className="w-6 h-6 text-amber-400" />
                     </div>
                     <div>
-                      <span className="text-white">Cenário Global Atual</span>
+                      <span className="text-white">Reforma Tributária Completa</span>
                       <p className="text-xs text-[#A1A1AA] font-normal mt-1">
-                        PIS e COFINS - Regime Atual
+                        IVA Dual (CBS + IBS) substitui PIS/COFINS + ICMS
                       </p>
                     </div>
                   </h3>
                   <div className="px-4 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg">
-                    <span className="text-amber-400 font-bold">REGIME ATUAL</span>
+                    <span className="text-amber-400 font-bold">CENÁRIO FINAL</span>
                   </div>
                 </div>
                 
-                {/* Tabela PIS/COFINS - MESMO FORMATO DO CENÁRIO 2027 */}
-                <div className="bg-[#0C0C0C] rounded-xl overflow-hidden border border-[#333]">
-                  {/* Cabeçalho */}
-                  <div className="grid grid-cols-4 gap-0 bg-[#1a1a1a] text-sm font-semibold">
-                    <div className="p-3 text-[#A1A1AA]">IMPOSTO</div>
-                    <div className="p-3 text-emerald-400 text-center">CRÉDITO</div>
-                    <div className="p-3 text-red-400 text-center">DÉBITO</div>
-                    <div className="p-3 text-[#C8A951] text-center">SALDO</div>
-                  </div>
-                  
-                  {/* PIS */}
-                  <div className="grid grid-cols-4 gap-0 border-t border-[#333] hover:bg-[#1a1a1a] transition-colors">
-                    <div className="p-3 flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                      <span className="text-amber-400 font-medium">PIS</span>
-                      <span className="text-xs text-[#666]">(1,65%)</span>
+                {/* Grid com 2 Cards lado a lado */}
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Card Regime Atual */}
+                  <div className="bg-[#0C0C0C] rounded-xl border border-amber-500/30 p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                      <h4 className="text-amber-400 font-bold">REGIME ATUAL</h4>
                     </div>
-                    <div className="p-3 text-center text-emerald-400">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_bruto?.pis || 0)}
-                    </div>
-                    <div className="p-3 text-center text-red-400">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_bruto?.pis || 0)}
-                    </div>
-                    <div className="p-3 text-center">
+                    <p className="text-xs text-[#666] mb-4">PIS/COFINS + ICMS</p>
+                    
+                    {/* PIS/COFINS */}
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-[#A1A1AA] text-sm">PIS/COFINS</span>
                       {(() => {
-                        const saldo = apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo || 0;
-                        return saldo > 0 
-                          ? <span className="text-red-400 font-medium">Pagar {formatCurrency(saldo)}</span>
-                          : <span className="text-[#C8A951] font-medium">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                        const saldo = (apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo || 0) + 
+                                     (apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0);
+                        if (saldo <= 0) {
+                          return <span className="text-[#C8A951] font-semibold">{formatCurrency(0)} <span className="text-xs">(crédito acumulado)</span></span>;
+                        }
+                        return <span className="text-red-400 font-semibold">{formatCurrency(saldo)} <span className="text-xs">(débito)</span></span>;
+                      })()}
+                    </div>
+                    
+                    {/* ICMS */}
+                    <div className="flex justify-between items-center py-2 border-t border-[#333]">
+                      <span className="text-[#A1A1AA] text-sm">ICMS</span>
+                      <span className="text-white font-semibold">{formatCurrency(apuracao.comparativo_regime_atual?.icms || 0)}</span>
+                    </div>
+                    
+                    {/* Total Atual */}
+                    <div className="flex justify-between items-center py-3 mt-2 bg-amber-500/10 rounded-lg px-3">
+                      <span className="text-amber-400 font-bold">TOTAL ATUAL</span>
+                      {(() => {
+                        const saldoPisCofins = Math.max(0, (apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo || 0) + 
+                                              (apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0));
+                        const icms = apuracao.comparativo_regime_atual?.icms || 0;
+                        return <span className="text-red-400 font-bold text-lg">{formatCurrency(saldoPisCofins + icms)} <span className="text-xs">(débito bruto)</span></span>;
                       })()}
                     </div>
                   </div>
                   
-                  {/* COFINS */}
-                  <div className="grid grid-cols-4 gap-0 border-t border-[#333] hover:bg-[#1a1a1a] transition-colors">
-                    <div className="p-3 flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                      <span className="text-amber-400 font-medium">COFINS</span>
-                      <span className="text-xs text-[#666]">(7,60%)</span>
+                  {/* Card IVA Dual */}
+                  <div className="bg-[#0C0C0C] rounded-xl border border-emerald-500/30 p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                      <h4 className="text-emerald-400 font-bold">IVA DUAL</h4>
                     </div>
-                    <div className="p-3 text-center text-emerald-400">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_bruto?.cofins || 0)}
-                    </div>
-                    <div className="p-3 text-center text-red-400">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_bruto?.cofins || 0)}
-                    </div>
-                    <div className="p-3 text-center">
+                    <p className="text-xs text-[#666] mb-4">CBS ({config.aliquota_cbs}%) + IBS ({config.aliquota_ibs}%)</p>
+                    
+                    {/* CBS */}
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-[#A1A1AA] text-sm">CBS (substitui PIS/COFINS)</span>
                       {(() => {
-                        const saldo = apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0;
-                        return saldo > 0 
-                          ? <span className="text-red-400 font-medium">Pagar {formatCurrency(saldo)}</span>
-                          : <span className="text-[#C8A951] font-medium">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                        const saldo = apuracao.apuracao?.saldo?.cbs || 0;
+                        if (saldo <= 0) {
+                          return <span className="text-[#C8A951] font-semibold">{formatCurrency(0)} <span className="text-xs">(crédito acumulado)</span></span>;
+                        }
+                        return <span className="text-white font-semibold">{formatCurrency(saldo)}</span>;
                       })()}
                     </div>
-                  </div>
-                  
-                  {/* Total PIS/COFINS */}
-                  <div className="grid grid-cols-4 gap-0 border-t-2 border-amber-500/30 bg-amber-500/5">
-                    <div className="p-3 font-bold text-amber-400">TOTAL PIS/COFINS</div>
-                    <div className="p-3 text-center text-emerald-400 font-bold">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_bruto?.total || 0)}
-                    </div>
-                    <div className="p-3 text-center text-red-400 font-bold">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_bruto?.total || 0)}
-                    </div>
-                    <div className="p-3 text-center">
+                    
+                    {/* IBS */}
+                    <div className="flex justify-between items-center py-2 border-t border-[#333]">
+                      <span className="text-[#A1A1AA] text-sm">IBS (substitui ICMS/ISS)</span>
                       {(() => {
-                        const saldoPis = apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo || 0;
-                        const saldoCofins = apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0;
-                        const saldoTotal = saldoPis + saldoCofins;
-                        return saldoTotal > 0 
-                          ? <span className="text-red-400 font-bold">Pagar {formatCurrency(saldoTotal)}</span>
-                          : <span className="text-[#C8A951] font-bold">Recuperar {formatCurrency(Math.abs(saldoTotal))}</span>;
+                        const saldo = apuracao.apuracao?.saldo?.ibs || 0;
+                        if (saldo <= 0) {
+                          return <span className="text-[#C8A951] font-semibold">{formatCurrency(0)} <span className="text-xs">(crédito acumulado)</span></span>;
+                        }
+                        return <span className="text-white font-semibold">{formatCurrency(saldo)}</span>;
+                      })()}
+                    </div>
+                    
+                    {/* Total IVA */}
+                    <div className="flex justify-between items-center py-3 mt-2 bg-emerald-500/10 rounded-lg px-3">
+                      <span className="text-emerald-400 font-bold">TOTAL IVA</span>
+                      {(() => {
+                        const saldo = apuracao.apuracao?.saldo?.total || 0;
+                        if (saldo <= 0) {
+                          return <span className="text-[#C8A951] font-bold text-lg">{formatCurrency(0)} <span className="text-xs">(crédito)</span></span>;
+                        }
+                        return <span className="text-red-400 font-bold text-lg">{formatCurrency(saldo)}</span>;
                       })()}
                     </div>
                   </div>
                 </div>
                 
-                {/* Resumo do Cenário Atual */}
+                {/* Economia Total - Corrigido */}
                 {(() => {
-                  const saldoPis = apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo || 0;
-                  const saldoCofins = apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0;
-                  const saldoTotal = saldoPis + saldoCofins;
-                  const isCredor = saldoTotal < 0;
+                  // Calcular total atual A PAGAR (não créditos)
+                  const saldoPisCofinsAtual = Math.max(0, (apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo || 0) + 
+                                              (apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0));
+                  const icmsAtual = apuracao.comparativo_regime_atual?.icms || 0;
+                  const totalAtual = saldoPisCofinsAtual + icmsAtual;
+                  
+                  // Total IVA A PAGAR
+                  const saldoIva = Math.max(0, apuracao.apuracao?.saldo?.total || 0);
+                  
+                  // Economia = Atual - IVA
+                  const economia = totalAtual - saldoIva;
+                  const temEconomia = economia > 0;
                   
                   return (
-                    <div className={`mt-4 p-4 rounded-xl ${
-                      isCredor 
-                        ? 'bg-[#C8A951]/10 border border-[#C8A951]/30' 
-                        : 'bg-red-500/10 border border-red-500/30'
+                    <div className={`mt-4 p-5 rounded-xl flex items-center justify-between ${
+                      temEconomia 
+                        ? 'bg-emerald-500/10 border border-emerald-500/30' 
+                        : economia < 0 
+                          ? 'bg-red-500/10 border border-red-500/30'
+                          : 'bg-[#333] border border-[#444]'
                     }`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {isCredor ? (
-                            <TrendingDown className="w-5 h-5 text-[#C8A951]" />
-                          ) : (
-                            <TrendingUp className="w-5 h-5 text-red-400" />
-                          )}
-                          <p className={`font-medium ${isCredor ? 'text-[#C8A951]' : 'text-red-400'}`}>
-                            {isCredor ? 'Saldo Credor (A Recuperar)' : 'Saldo Devedor (A Pagar)'}
+                      <div className="flex items-center gap-4">
+                        {temEconomia ? (
+                          <CheckCircle className="w-8 h-8 text-emerald-400" />
+                        ) : economia < 0 ? (
+                          <TrendingUp className="w-8 h-8 text-red-400" />
+                        ) : (
+                          <ArrowRight className="w-8 h-8 text-[#666]" />
+                        )}
+                        <div>
+                          <p className={`font-bold text-lg ${temEconomia ? 'text-emerald-400' : economia < 0 ? 'text-red-400' : 'text-[#A1A1AA]'}`}>
+                            {temEconomia ? 'Economia Total' : economia < 0 ? 'Aumento Total' : 'Valores Equivalentes'}
                           </p>
+                          <p className="text-xs text-[#666]">IVA Dual vs Regime Atual Completo</p>
                         </div>
-                        <p className={`text-xl font-bold ${isCredor ? 'text-[#C8A951]' : 'text-red-400'}`}>
-                          {formatCurrency(Math.abs(saldoTotal))}
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-2xl font-bold ${temEconomia ? 'text-emerald-400' : economia < 0 ? 'text-red-400' : 'text-[#A1A1AA]'}`}>
+                          {temEconomia ? '- ' : economia < 0 ? '+ ' : ''}{formatCurrency(Math.abs(economia))}
                         </p>
+                        {totalAtual > 0 && (
+                          <p className={`text-xs ${temEconomia ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {((Math.abs(economia) / totalAtual) * 100).toFixed(1)}%
+                          </p>
+                        )}
                       </div>
                     </div>
                   );
