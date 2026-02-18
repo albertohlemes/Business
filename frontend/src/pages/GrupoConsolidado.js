@@ -522,6 +522,55 @@ const GrupoConsolidado = ({ user, onLogout }) => {
         );
 
       case 'pis_cofins':
+        // Função auxiliar para exibir saldo de PIS/COFINS
+        const PisCofinsCard = ({ titulo, empresa, tipo }) => {
+          const pisSaldo = getSaldoImposto(empresa?.pis);
+          const cofinsSaldo = getSaldoImposto(empresa?.cofins);
+          const totalSaldo = (empresa?.pis?.saldo || 0) + (empresa?.cofins?.saldo || 0);
+          
+          return (
+            <EmpresaCard titulo={titulo} empresa={empresa} tipo={tipo}>
+              <h4 className="text-sm text-blue-400 font-medium mb-2">PIS</h4>
+              <ValorLinha label="Débito" valor={empresa?.pis?.debito} color="text-red-400" />
+              <ValorLinha label="Crédito" valor={empresa?.pis?.credito} color="text-green-400" />
+              <div className="flex justify-between items-center py-1">
+                <span className="text-white text-sm font-semibold">
+                  {pisSaldo.tipo === 'recuperar' ? 'A Recuperar' : 'A Pagar'}
+                </span>
+                <span className={`${pisSaldo.color} font-bold`}>
+                  {formatCurrency(pisSaldo.valor)}
+                </span>
+              </div>
+              
+              <h4 className="text-sm text-blue-400 font-medium mb-2 mt-4">COFINS</h4>
+              <ValorLinha label="Débito" valor={empresa?.cofins?.debito} color="text-red-400" />
+              <ValorLinha label="Crédito" valor={empresa?.cofins?.credito} color="text-green-400" />
+              <div className="flex justify-between items-center py-1">
+                <span className="text-white text-sm font-semibold">
+                  {cofinsSaldo.tipo === 'recuperar' ? 'A Recuperar' : 'A Pagar'}
+                </span>
+                <span className={`${cofinsSaldo.color} font-bold`}>
+                  {formatCurrency(cofinsSaldo.valor)}
+                </span>
+              </div>
+              
+              <div className="border-t border-[#2A2A2A] mt-4 pt-2">
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-white text-sm font-semibold">Total PIS + COFINS</span>
+                  <span className={`font-bold text-lg ${totalSaldo < 0 ? 'text-green-400' : totalSaldo > 0 ? 'text-red-400' : 'text-[#C8A951]'}`}>
+                    {formatCurrency(Math.abs(totalSaldo))}
+                  </span>
+                </div>
+                {totalSaldo !== 0 && (
+                  <p className={`text-center text-xs mt-1 ${totalSaldo < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {totalSaldo < 0 ? 'Saldo Credor (A Recuperar)' : 'A Pagar'}
+                  </p>
+                )}
+              </div>
+            </EmpresaCard>
+          );
+        };
+        
         return (
           <div className="space-y-6">
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-start gap-3">
@@ -536,57 +585,15 @@ const GrupoConsolidado = ({ user, onLogout }) => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <EmpresaCard titulo={matriz?.razao_social} empresa={matriz} tipo="matriz">
-                <h4 className="text-sm text-blue-400 font-medium mb-2">PIS</h4>
-                <ValorLinha label="Débito" valor={matriz?.pis?.debito} color="text-red-400" />
-                <ValorLinha label="Crédito" valor={matriz?.pis?.credito} color="text-green-400" />
-                <ValorLinha label="A Pagar" valor={matriz?.pis?.a_pagar} color="text-blue-400" bold />
-                
-                <h4 className="text-sm text-blue-400 font-medium mb-2 mt-4">COFINS</h4>
-                <ValorLinha label="Débito" valor={matriz?.cofins?.debito} color="text-red-400" />
-                <ValorLinha label="Crédito" valor={matriz?.cofins?.credito} color="text-green-400" />
-                <ValorLinha label="A Pagar" valor={matriz?.cofins?.a_pagar} color="text-blue-400" bold />
-                
-                <div className="border-t border-[#2A2A2A] mt-4 pt-2">
-                  <ValorLinha label="Total PIS + COFINS" valor={(matriz?.pis?.a_pagar || 0) + (matriz?.cofins?.a_pagar || 0)} color="text-[#C8A951]" bold />
-                </div>
-              </EmpresaCard>
+              <PisCofinsCard titulo={matriz?.razao_social} empresa={matriz} tipo="matriz" />
 
               <div className="space-y-4">
                 {filiais?.map((filial) => (
-                  <EmpresaCard key={filial.id} titulo={filial.razao_social} empresa={filial} tipo="filial">
-                    <h4 className="text-sm text-blue-400 font-medium mb-2">PIS</h4>
-                    <ValorLinha label="Débito" valor={filial?.pis?.debito} color="text-red-400" />
-                    <ValorLinha label="Crédito" valor={filial?.pis?.credito} color="text-green-400" />
-                    <ValorLinha label="A Pagar" valor={filial?.pis?.a_pagar} color="text-blue-400" bold />
-                    
-                    <h4 className="text-sm text-blue-400 font-medium mb-2 mt-4">COFINS</h4>
-                    <ValorLinha label="Débito" valor={filial?.cofins?.debito} color="text-red-400" />
-                    <ValorLinha label="Crédito" valor={filial?.cofins?.credito} color="text-green-400" />
-                    <ValorLinha label="A Pagar" valor={filial?.cofins?.a_pagar} color="text-blue-400" bold />
-                    
-                    <div className="border-t border-[#2A2A2A] mt-4 pt-2">
-                      <ValorLinha label="Total" valor={(filial?.pis?.a_pagar || 0) + (filial?.cofins?.a_pagar || 0)} color="text-[#C8A951]" bold />
-                    </div>
-                  </EmpresaCard>
+                  <PisCofinsCard key={filial.id} titulo={filial.razao_social} empresa={filial} tipo="filial" />
                 ))}
               </div>
 
-              <EmpresaCard titulo="CONSOLIDADO" tipo="consolidado">
-                <h4 className="text-sm text-[#C8A951] font-medium mb-2">PIS Consolidado</h4>
-                <ValorLinha label="Débito Total" valor={consolidado?.pis?.debito} color="text-red-400" />
-                <ValorLinha label="Crédito Total" valor={consolidado?.pis?.credito} color="text-green-400" />
-                <ValorLinha label="A Pagar" valor={consolidado?.pis?.a_pagar} color="text-[#C8A951]" bold />
-                
-                <h4 className="text-sm text-[#C8A951] font-medium mb-2 mt-4">COFINS Consolidado</h4>
-                <ValorLinha label="Débito Total" valor={consolidado?.cofins?.debito} color="text-red-400" />
-                <ValorLinha label="Crédito Total" valor={consolidado?.cofins?.credito} color="text-green-400" />
-                <ValorLinha label="A Pagar" valor={consolidado?.cofins?.a_pagar} color="text-[#C8A951]" bold />
-                
-                <div className="border-t border-[#C8A951]/30 mt-4 pt-4">
-                  <ValorLinha label="Total PIS + COFINS" valor={(consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0)} color="text-[#C8A951]" bold />
-                </div>
-              </EmpresaCard>
+              <PisCofinsCard titulo="CONSOLIDADO" empresa={consolidado} tipo="consolidado" />
             </div>
           </div>
         );
