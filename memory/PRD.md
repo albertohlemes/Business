@@ -10,86 +10,88 @@ Sistema de gestão fiscal para empresas brasileiras com validadores de PIS/COFIN
 - **Database**: MongoDB
 - **Preview URL**: https://validator-system.preview.emergentagent.com
 
-### Funcionalidades Implementadas
+---
 
-#### Validador PIS/COFINS (Completo ✅)
-- [x] Regras baseadas em NCM completo (8 dígitos)
-- [x] Filtros por tipo de tributação (Monofásico, Alíquota Zero, etc.)
-- [x] Botões "Rever CST Entrada" e "Rever CST Saída"
-- [x] Botão "Exportar Divergências" - gera CSV com NCMs divergentes
-- [x] CFOPs de exceção tratados automaticamente
-- [x] Integração de regras customizadas na apuração principal
+## ✅ Funcionalidades Implementadas (19/02/2026)
 
-#### Validador ICMS (Completo ✅)
-- [x] Contadores de status como filtros clicáveis
-- [x] Colunas ordenáveis
-- [x] Lógica corrigida para produtos ST
-- [x] Edição de regras direto na lista
+### Sistema Matriz-Filial (P0) - IMPLEMENTADO
+1. **CFOPs de Transferência** - NÃO geram PIS/COFINS
+   - Constante `CFOPS_TRANSFERENCIA` em `fiscal_constants.py`
+   - Função `is_cfop_transferencia()` para verificação
+   - Implementado em: `calcular_pis_cofins_unificado`, `calcular_pis_cofins_por_cst`, detalhamento e apuração
+   - CFOPs: 1151-1154, 1408-1409, 2151-2154, 2408-2409, 5151-5156, 5408-5409, 6151-6156, 6408-6409
 
-#### Classificação Inteligente com IA (Completo ✅)
-- [x] Comando de IA em linguagem natural
-- [x] learned_rules persistidas no banco
-- [x] Integração na importação de documentos
-- [x] Hierarquia: CFOP > Cache/Rules > NCMs Vendidos > IA
+2. **Página de Grupos Empresariais** (`/grupos-empresariais`)
+   - Cadastro de grupos com Matriz + Filiais
+   - Dashboard consolidado com:
+     - Cards de resumo (empresas, entradas, saídas, impostos federais, total)
+     - Alerta de transferências desconsideradas
+     - Resumo PIS/COFINS consolidado (débitos, créditos, a pagar)
+     - Tabela detalhada por empresa
 
-#### Sistema Matriz-Filial (Em Desenvolvimento 🔄)
-- [x] CFOPs de transferência (1152, 2152, 5152, 6152, etc.) excluídos de PIS/COFINS
-- [x] Constante `CFOPS_TRANSFERENCIA` centralizada em `fiscal_constants.py`
-- [x] Função `is_cfop_transferencia()` para verificação
-- [x] Detalhamento PIS/COFINS com categoria "Transferências" separada
-- [x] Endpoint de consolidação do grupo atualizado para usar `calcular_pis_cofins_unificado`
-- [ ] Interface frontend para cadastro de grupos empresariais
-- [ ] Relatórios consolidados de IRPJ/CSLL para a matriz
-- [ ] Carga tributária consolidada
+3. **Endpoint de Consolidação Atualizado**
+   - `GET /api/grupos-empresariais/{grupo_id}/consolidado`
+   - Usa `calcular_pis_cofins_unificado` para cada empresa
+   - Retorna: PIS/COFINS débitos, créditos, saldo por empresa e consolidado
 
-#### Refatoração do Backend (Fase 1 Completa ✅)
-- [x] Constantes fiscais em `/app/backend/utils/fiscal_constants.py`
-- [x] Funções utilitárias de DB em `/app/backend/utils/db_utils.py`
-- [x] Imports centralizados em `/app/backend/utils/constants.py`
-- [x] Modelos ICMS em `/app/backend/models/icms_models.py`
-- [x] Modelos PIS/COFINS em `/app/backend/models/pis_cofins_models.py`
-- [ ] Extração completa dos endpoints para routers separados (Fase 2)
+### Bug Fix: Comparativo de Regimes (P0) - CORRIGIDO
+- **Problema**: PIS/COFINS do Lucro Presumido hipotético usava faturamento total
+- **Correção**: Agora usa apenas base tributada (exclui alíquota zero, monofásicos, transferências)
+- **Endpoint**: `/api/inteligencia-tributaria/{company_id}`
 
-### CFOPs de Transferência (Não geram PIS/COFINS)
+---
+
+## CFOPs de Transferência (Não geram PIS/COFINS)
 ```python
 CFOPS_TRANSFERENCIA = [
     # Entradas
     '1151', '1152', '1153', '1154', '1408', '1409',  # Internas
     '2151', '2152', '2153', '2154', '2408', '2409',  # Interestaduais
-    # Saídas
+    # Saídas  
     '5151', '5152', '5153', '5155', '5156', '5408', '5409',  # Internas
     '6151', '6152', '6153', '6155', '6156', '6408', '6409',  # Interestaduais
 ]
 ```
 
-### Endpoints Principais
-- `GET /api/validador-pis-cofins/{company_id}/dados` - Dados do validador
-- `GET /api/pis-cofins/apuracao/{company_id}` - Apuração completa
-- `GET /api/pis-cofins/detalhamento/{company_id}` - Detalhamento com transferências
-- `GET /api/grupos-empresariais` - Lista grupos empresariais
-- `POST /api/grupos-empresariais` - Criar grupo empresarial
-- `GET /api/grupos-empresariais/{grupo_id}/consolidado` - Dashboard consolidado
+---
 
-### Tarefas Pendentes (P0)
-- [ ] Interface frontend para gestão de grupos empresariais (matriz-filial)
-- [ ] Relatório consolidado de IRPJ/CSLL para a matriz
+## Tarefas Pendentes
+
+### P0 - CRÍTICO
+- [ ] Relatório consolidado de IRPJ/CSLL para matriz
 - [ ] Carga tributária consolidada do grupo
 
-### Tarefas Pendentes (P1)
+### P1 - IMPORTANTE
 - [ ] Totalizador por CST nos detalhamentos de CRÉDITOS/DÉBITOS
-- [ ] Fase 2 da refatoração: extrair endpoints dos validadores para routers separados
+- [ ] Fase 2 da refatoração: extrair endpoints para routers separados
 
-### Backlog (P2)
+### P2 - BACKLOG
 - [ ] Pacote Docker para instalação On-Premise
 - [ ] Popular página "Insights IA"
 - [ ] Suíte de testes pytest mais abrangente
 
-### Credenciais de Teste
-- Email: alberto.lemes@businessconta.com.br
-- Senha: @Ahl142536
-- Empresa: COMERCIAL RS LTDA (d7f30ea1-9df3-4124-a561-12984ffff64b)
-- Competência: 01/2026
+---
 
-### Última Atualização
-- Data: 19/02/2026
-- Status: CFOPs de transferência implementados - não geram mais PIS/COFINS
+## Endpoints Principais
+| Endpoint | Descrição |
+|----------|-----------|
+| `GET /api/pis-cofins/apuracao/{company_id}` | Apuração PIS/COFINS |
+| `GET /api/pis-cofins/detalhamento/{company_id}` | Detalhamento com transferências |
+| `GET /api/inteligencia-tributaria/{company_id}` | Comparativo de regimes |
+| `GET /api/grupos-empresariais` | Lista grupos empresariais |
+| `POST /api/grupos-empresariais` | Criar grupo |
+| `GET /api/grupos-empresariais/{id}/consolidado` | Dashboard consolidado |
+
+---
+
+## Credenciais de Teste
+- **Email**: alberto.lemes@businessconta.com.br
+- **Senha**: @Ahl142536
+- **Empresa**: COMERCIAL RS LTDA (d7f30ea1-9df3-4124-a561-12984ffff64b)
+- **Competência**: 01/2026
+
+---
+
+## Última Atualização
+- **Data**: 19/02/2026
+- **Status**: Sistema Matriz-Filial implementado + Bug do comparativo corrigido
