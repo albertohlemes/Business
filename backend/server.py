@@ -39114,6 +39114,7 @@ async def sugerir_regras_icms(
 # ============================================================
 
 # CFOPs padrão que geram crédito (entradas)
+# CFOPs padrão que geram crédito (entradas)
 CFOPS_CREDITO_PADRAO = {
     '1101': {'descricao': 'Compra para industrialização', 'gera_credito': True},
     '1102': {'descricao': 'Compra para comercialização', 'gera_credito': True},
@@ -39128,25 +39129,30 @@ CFOPS_CREDITO_PADRAO = {
     '1126': {'descricao': 'Compra para utilização na prestação de serviço', 'gera_credito': True},
     '1401': {'descricao': 'Compra para industrialização em operação com mercadoria sujeita a ST', 'gera_credito': True},
     '1403': {'descricao': 'Compra para comercialização em operação com mercadoria sujeita a ST', 'gera_credito': True},
-    '1556': {'descricao': 'Compra de material para uso ou consumo', 'gera_credito': False},
     '1407': {'descricao': 'Compra de ativo imobilizado sujeito a ST', 'gera_credito': True},
     '1551': {'descricao': 'Compra de ativo imobilizado', 'gera_credito': True},
     '1652': {'descricao': 'Compra de combustível para consumo', 'gera_credito': True},
     '1653': {'descricao': 'Compra de lubrificante para consumo', 'gera_credito': True},
-    '1910': {'descricao': 'Entrada de bonificação', 'gera_credito': False},
-    '1920': {'descricao': 'Entrada de vasilhame ou embalagem', 'gera_credito': False},
-    '1921': {'descricao': 'Retorno de vasilhame ou embalagem', 'gera_credito': False},
-    '1949': {'descricao': 'Outra entrada de mercadoria ou serviço não especificada', 'gera_credito': False},
     '2101': {'descricao': 'Compra para industrialização (interestadual)', 'gera_credito': True},
     '2102': {'descricao': 'Compra para comercialização (interestadual)', 'gera_credito': True},
     '2401': {'descricao': 'Compra para industrialização em operação com ST (interestadual)', 'gera_credito': True},
     '2403': {'descricao': 'Compra para comercialização em operação com ST (interestadual)', 'gera_credito': True},
     '2551': {'descricao': 'Compra de ativo imobilizado (interestadual)', 'gera_credito': True},
-    '2556': {'descricao': 'Compra de material para uso ou consumo (interestadual)', 'gera_credito': False},
     '2652': {'descricao': 'Compra de combustível para consumo (interestadual)', 'gera_credito': True},
-    '2910': {'descricao': 'Entrada de bonificação (interestadual)', 'gera_credito': False},
-    '2920': {'descricao': 'Entrada de vasilhame ou embalagem (interestadual)', 'gera_credito': False},
-    '2949': {'descricao': 'Outra entrada não especificada (interestadual)', 'gera_credito': False},
+}
+
+# CFOPs EXCEÇÃO - NÃO GERAM CRÉDITO (entradas)
+CFOPS_EXCECAO_ENTRADA = {
+    '1556': {'descricao': 'Compra de material para uso ou consumo', 'cst_esperado': '70'},
+    '1910': {'descricao': 'Entrada de bonificação, doação ou brinde', 'cst_esperado': '70'},
+    '1920': {'descricao': 'Entrada de vasilhame ou embalagem', 'cst_esperado': '70'},
+    '1921': {'descricao': 'Retorno de vasilhame ou embalagem', 'cst_esperado': '70'},
+    '1949': {'descricao': 'Outra entrada de mercadoria não especificada', 'cst_esperado': '98'},
+    '2556': {'descricao': 'Compra de material para uso ou consumo (interestadual)', 'cst_esperado': '70'},
+    '2910': {'descricao': 'Entrada de bonificação (interestadual)', 'cst_esperado': '70'},
+    '2920': {'descricao': 'Entrada de vasilhame ou embalagem (interestadual)', 'cst_esperado': '70'},
+    '2921': {'descricao': 'Retorno de vasilhame (interestadual)', 'cst_esperado': '70'},
+    '2949': {'descricao': 'Outra entrada não especificada (interestadual)', 'cst_esperado': '98'},
 }
 
 # CFOPs padrão que geram débito (saídas)
@@ -39165,39 +39171,383 @@ CFOPS_DEBITO_PADRAO = {
     '5115': {'descricao': 'Venda de mercadoria para não contribuinte originada de encomenda', 'gera_debito': True},
     '5116': {'descricao': 'Venda de produção originada de encomenda', 'gera_debito': True},
     '5117': {'descricao': 'Venda de mercadoria adquirida originada de encomenda', 'gera_debito': True},
-    '5118': {'descricao': 'Venda de produção entregue ao destinatário pelo vendedor', 'gera_debito': True},
-    '5119': {'descricao': 'Venda de mercadoria entregue pelo vendedor', 'gera_debito': True},
-    '5120': {'descricao': 'Venda de mercadoria adquirida entregue pelo vendedor', 'gera_debito': True},
     '5401': {'descricao': 'Venda de produção com ST', 'gera_debito': True},
     '5403': {'descricao': 'Venda de mercadoria adquirida com ST', 'gera_debito': True},
     '5405': {'descricao': 'Venda de mercadoria adquirida com ST para consumidor final', 'gera_debito': True},
     '5656': {'descricao': 'Venda de combustível ou lubrificante para consumidor final', 'gera_debito': True},
-    '5910': {'descricao': 'Remessa em bonificação', 'gera_debito': False},
-    '5911': {'descricao': 'Remessa de amostra grátis', 'gera_debito': False},
-    '5920': {'descricao': 'Remessa de vasilhame ou embalagem', 'gera_debito': False},
-    '5927': {'descricao': 'Baixa de estoque decorrente de perda', 'gera_debito': False},
-    '5949': {'descricao': 'Outra saída de mercadoria não especificada', 'gera_debito': False},
     '6101': {'descricao': 'Venda de produção (interestadual)', 'gera_debito': True},
     '6102': {'descricao': 'Venda de mercadoria adquirida (interestadual)', 'gera_debito': True},
     '6107': {'descricao': 'Venda de produção para não contribuinte (interestadual)', 'gera_debito': True},
     '6108': {'descricao': 'Venda de mercadoria para não contribuinte (interestadual)', 'gera_debito': True},
-    '6109': {'descricao': 'Venda de produção para ZFM (interestadual)', 'gera_debito': True},
-    '6110': {'descricao': 'Venda de mercadoria para ZFM (interestadual)', 'gera_debito': True},
     '6401': {'descricao': 'Venda de produção com ST (interestadual)', 'gera_debito': True},
     '6403': {'descricao': 'Venda de mercadoria com ST (interestadual)', 'gera_debito': True},
-    '6908': {'descricao': 'Remessa de bem por conta de contrato de comodato', 'gera_debito': False},
-    '6910': {'descricao': 'Remessa em bonificação (interestadual)', 'gera_debito': False},
-    '6920': {'descricao': 'Remessa de vasilhame ou embalagem (interestadual)', 'gera_debito': False},
-    '6949': {'descricao': 'Outra saída não especificada (interestadual)', 'gera_debito': False},
+}
+
+# CFOPs EXCEÇÃO - NÃO GERAM DÉBITO (saídas)
+CFOPS_EXCECAO_SAIDA = {
+    '5910': {'descricao': 'Remessa em bonificação, doação ou brinde', 'cst_esperado': '49'},
+    '5911': {'descricao': 'Remessa de amostra grátis', 'cst_esperado': '49'},
+    '5912': {'descricao': 'Remessa de mercadoria ou bem para demonstração', 'cst_esperado': '49'},
+    '5913': {'descricao': 'Retorno de mercadoria ou bem recebido para demonstração', 'cst_esperado': '49'},
+    '5914': {'descricao': 'Remessa de mercadoria ou bem para exposição ou feira', 'cst_esperado': '49'},
+    '5915': {'descricao': 'Remessa de mercadoria ou bem para conserto ou reparo', 'cst_esperado': '49'},
+    '5916': {'descricao': 'Retorno de mercadoria ou bem recebido para conserto', 'cst_esperado': '49'},
+    '5917': {'descricao': 'Remessa de mercadoria em consignação mercantil', 'cst_esperado': '49'},
+    '5918': {'descricao': 'Devolução de mercadoria recebida em consignação', 'cst_esperado': '49'},
+    '5919': {'descricao': 'Devolução simbólica de mercadoria vendida em consignação', 'cst_esperado': '49'},
+    '5920': {'descricao': 'Remessa de vasilhame ou embalagem', 'cst_esperado': '49'},
+    '5921': {'descricao': 'Devolução de vasilhame ou embalagem', 'cst_esperado': '49'},
+    '5922': {'descricao': 'Lançamento de ajuste de estoque', 'cst_esperado': '49'},
+    '5923': {'descricao': 'Remessa de mercadoria por conta e ordem de terceiros', 'cst_esperado': '49'},
+    '5924': {'descricao': 'Remessa para industrialização por conta e ordem', 'cst_esperado': '49'},
+    '5925': {'descricao': 'Retorno de mercadoria recebida para industrialização', 'cst_esperado': '49'},
+    '5926': {'descricao': 'Lançamento de ajuste de estoque', 'cst_esperado': '49'},
+    '5927': {'descricao': 'Baixa de estoque decorrente de perda, roubo ou deterioração', 'cst_esperado': '49'},
+    '5928': {'descricao': 'Lançamento de ajuste de estoque', 'cst_esperado': '49'},
+    '5929': {'descricao': 'Lançamento de ajuste de estoque', 'cst_esperado': '49'},
+    '5949': {'descricao': 'Outra saída de mercadoria não especificada', 'cst_esperado': '99'},
+    '6908': {'descricao': 'Remessa de bem por conta de contrato de comodato', 'cst_esperado': '49'},
+    '6909': {'descricao': 'Retorno de bem recebido por conta de contrato de comodato', 'cst_esperado': '49'},
+    '6910': {'descricao': 'Remessa em bonificação (interestadual)', 'cst_esperado': '49'},
+    '6911': {'descricao': 'Remessa de amostra grátis (interestadual)', 'cst_esperado': '49'},
+    '6912': {'descricao': 'Remessa para demonstração (interestadual)', 'cst_esperado': '49'},
+    '6913': {'descricao': 'Retorno de demonstração (interestadual)', 'cst_esperado': '49'},
+    '6914': {'descricao': 'Remessa para exposição/feira (interestadual)', 'cst_esperado': '49'},
+    '6915': {'descricao': 'Remessa para conserto (interestadual)', 'cst_esperado': '49'},
+    '6916': {'descricao': 'Retorno de conserto (interestadual)', 'cst_esperado': '49'},
+    '6917': {'descricao': 'Remessa em consignação (interestadual)', 'cst_esperado': '49'},
+    '6918': {'descricao': 'Devolução de consignação (interestadual)', 'cst_esperado': '49'},
+    '6920': {'descricao': 'Remessa de vasilhame ou embalagem (interestadual)', 'cst_esperado': '49'},
+    '6921': {'descricao': 'Devolução de vasilhame (interestadual)', 'cst_esperado': '49'},
+    '6949': {'descricao': 'Outra saída não especificada (interestadual)', 'cst_esperado': '99'},
+}
+
+# Regras padrão de PIS/COFINS por NCM (base para sugestões)
+REGRAS_PIS_COFINS_PADRAO = {
+    # Alimentos - alíquota zero ou reduzida
+    '0201': {'descricao': 'Carnes de bovino', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '0202': {'descricao': 'Carnes de bovino congeladas', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '0203': {'descricao': 'Carnes de suíno', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '0207': {'descricao': 'Carnes de aves', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '0302': {'descricao': 'Peixes frescos', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '0401': {'descricao': 'Leite e creme de leite', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '0402': {'descricao': 'Leite concentrado', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '0407': {'descricao': 'Ovos', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '1001': {'descricao': 'Trigo', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '1005': {'descricao': 'Milho', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '1006': {'descricao': 'Arroz', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '1101': {'descricao': 'Farinhas de trigo', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '1507': {'descricao': 'Óleo de soja', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '1701': {'descricao': 'Açúcar', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '1901': {'descricao': 'Extratos de malte, preparações alimentícias de farinhas', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '1902': {'descricao': 'Massas alimentícias', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    '1905': {'descricao': 'Pães, bolachas, biscoitos', 'aliquota_pis': 0, 'aliquota_cofins': 0, 'cst_saida': '06'},
+    # Bebidas
+    '2201': {'descricao': 'Águas minerais', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    '2202': {'descricao': 'Águas, refrigerantes', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    '2203': {'descricao': 'Cervejas de malte', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    '2204': {'descricao': 'Vinhos', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    '2205': {'descricao': 'Vermutes', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    '2206': {'descricao': 'Outras bebidas fermentadas', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    '2207': {'descricao': 'Álcool etílico', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    '2208': {'descricao': 'Bebidas destiladas', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    # Produtos de limpeza e higiene - tributação normal
+    '3401': {'descricao': 'Sabões', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    '3402': {'descricao': 'Detergentes', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    '3303': {'descricao': 'Perfumes e águas-de-colônia', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    '3304': {'descricao': 'Produtos de beleza', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    '3305': {'descricao': 'Preparações capilares', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    '3306': {'descricao': 'Produtos de higiene bucal', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
+    # Papel higiênico
+    '4818': {'descricao': 'Papel higiênico, fraldas, absorventes', 'aliquota_pis': 0.0165, 'aliquota_cofins': 0.076, 'cst_saida': '01'},
 }
 
 
-@api_router.get("/validador-pis-cofins/{company_id}/por-cfop")
-async def validador_piscofins_por_cfop(
+@api_router.get("/validador-pis-cofins/{company_id}/dados")
+async def validador_piscofins_dados(
     company_id: str,
     competencia: str,
     current_user: User = Depends(get_current_user)
 ):
+    """
+    Validador de PIS/COFINS - Retorna dados consolidados:
+    1. CFOPs exceção (que não geram crédito/débito)
+    2. Regras por NCM com validação
+    
+    Lógica: Se item está em CFOP exceção → CST esperado 49/98
+            Se item está em CFOP normal → usa alíquota da regra do NCM
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar regras personalizadas da empresa
+    regras_empresa = await db.regras_pis_cofins.find({
+        "company_id": company_id,
+        "ativo": True
+    }).to_list(length=1000)
+    regras_por_ncm = {r['chave'].replace('.', '').strip(): r for r in regras_empresa if r['tipo'] == 'ncm'}
+    
+    # Query documentos
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    
+    # Agregar CFOPs exceção encontrados e NCMs
+    cfops_excecao_entradas = {}
+    cfops_excecao_saidas = {}
+    ncms_agregados = {}
+    
+    async for doc in db.xml_documents.find(query, {"produtos": 1, "tipo": 1}):
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            ncm = str(prod.get('ncm', '')).replace('.', '').strip()
+            if not cfop:
+                continue
+            
+            is_entrada = cfop[0] in ['1', '2', '3']
+            is_saida = cfop[0] in ['5', '6', '7']
+            
+            valor_total = float(prod.get('valor_total', 0) or 0)
+            valor_pis = float(prod.get('valor_pis', 0) or 0)
+            valor_cofins = float(prod.get('valor_cofins', 0) or 0)
+            cst_pis = str(prod.get('cst_pis', '')).zfill(2)
+            descricao = prod.get('descricao', prod.get('xProd', ''))
+            
+            # Verificar se é CFOP exceção
+            if is_entrada and cfop in CFOPS_EXCECAO_ENTRADA:
+                if cfop not in cfops_excecao_entradas:
+                    cfops_excecao_entradas[cfop] = {
+                        'cfop': cfop,
+                        'descricao': CFOPS_EXCECAO_ENTRADA[cfop]['descricao'],
+                        'cst_esperado': CFOPS_EXCECAO_ENTRADA[cfop]['cst_esperado'],
+                        'quantidade': 0,
+                        'valor_total': 0,
+                        'valor_pis': 0,
+                        'valor_cofins': 0,
+                        'csts_encontrados': [],
+                        'itens_ok': 0,
+                        'itens_divergentes': 0
+                    }
+                cfops_excecao_entradas[cfop]['quantidade'] += 1
+                cfops_excecao_entradas[cfop]['valor_total'] += valor_total
+                cfops_excecao_entradas[cfop]['valor_pis'] += valor_pis
+                cfops_excecao_entradas[cfop]['valor_cofins'] += valor_cofins
+                if cst_pis:
+                    cfops_excecao_entradas[cfop]['csts_encontrados'].append(cst_pis)
+                # Verificar se CST está correto (deve ser 70, 98, etc - sem crédito)
+                cst_esperado = CFOPS_EXCECAO_ENTRADA[cfop]['cst_esperado']
+                if cst_pis in ['70', '98', '99'] or valor_pis == 0:
+                    cfops_excecao_entradas[cfop]['itens_ok'] += 1
+                else:
+                    cfops_excecao_entradas[cfop]['itens_divergentes'] += 1
+                continue  # Não agregar no NCM
+                
+            elif is_saida and cfop in CFOPS_EXCECAO_SAIDA:
+                if cfop not in cfops_excecao_saidas:
+                    cfops_excecao_saidas[cfop] = {
+                        'cfop': cfop,
+                        'descricao': CFOPS_EXCECAO_SAIDA[cfop]['descricao'],
+                        'cst_esperado': CFOPS_EXCECAO_SAIDA[cfop]['cst_esperado'],
+                        'quantidade': 0,
+                        'valor_total': 0,
+                        'valor_pis': 0,
+                        'valor_cofins': 0,
+                        'csts_encontrados': [],
+                        'itens_ok': 0,
+                        'itens_divergentes': 0
+                    }
+                cfops_excecao_saidas[cfop]['quantidade'] += 1
+                cfops_excecao_saidas[cfop]['valor_total'] += valor_total
+                cfops_excecao_saidas[cfop]['valor_pis'] += valor_pis
+                cfops_excecao_saidas[cfop]['valor_cofins'] += valor_cofins
+                if cst_pis:
+                    cfops_excecao_saidas[cfop]['csts_encontrados'].append(cst_pis)
+                # Verificar se CST está correto (deve ser 49, 99 - sem débito)
+                if cst_pis in ['49', '99'] or valor_pis == 0:
+                    cfops_excecao_saidas[cfop]['itens_ok'] += 1
+                else:
+                    cfops_excecao_saidas[cfop]['itens_divergentes'] += 1
+                continue  # Não agregar no NCM
+            
+            # Agregar por NCM (apenas CFOPs normais)
+            if ncm and len(ncm) >= 4:
+                ncm_4 = ncm[:4]
+                aliq_pis = float(prod.get('aliq_pis', 0) or prod.get('p_pis', 0) or 0)
+                aliq_cofins = float(prod.get('aliq_cofins', 0) or prod.get('p_cofins', 0) or 0)
+                
+                if ncm_4 not in ncms_agregados:
+                    ncms_agregados[ncm_4] = {
+                        'ncm': ncm_4,
+                        'descricao': '',
+                        'quantidade': 0,
+                        'valor_total': 0,
+                        'aliquotas_pis': [],
+                        'aliquotas_cofins': [],
+                        'csts_pis': [],
+                        'produtos_exemplo': [],
+                        'entradas': 0,
+                        'saidas': 0
+                    }
+                
+                ncms_agregados[ncm_4]['quantidade'] += 1
+                ncms_agregados[ncm_4]['valor_total'] += valor_total
+                if aliq_pis > 0:
+                    ncms_agregados[ncm_4]['aliquotas_pis'].append(aliq_pis)
+                if aliq_cofins > 0:
+                    ncms_agregados[ncm_4]['aliquotas_cofins'].append(aliq_cofins)
+                if cst_pis:
+                    ncms_agregados[ncm_4]['csts_pis'].append(cst_pis)
+                if is_saida:
+                    ncms_agregados[ncm_4]['saidas'] += 1
+                else:
+                    ncms_agregados[ncm_4]['entradas'] += 1
+                if len(ncms_agregados[ncm_4]['produtos_exemplo']) < 2:
+                    if descricao and descricao not in ncms_agregados[ncm_4]['produtos_exemplo']:
+                        ncms_agregados[ncm_4]['produtos_exemplo'].append(descricao[:40])
+    
+    # Processar CFOPs exceção
+    cfops_exc_entradas_list = []
+    for cfop, dados in cfops_excecao_entradas.items():
+        csts = dados['csts_encontrados']
+        cst_mais_comum = max(set(csts), key=csts.count) if csts else None
+        status = 'ok' if dados['itens_divergentes'] == 0 else 'divergente'
+        cfops_exc_entradas_list.append({
+            **dados,
+            'cst_mais_comum': cst_mais_comum,
+            'status': status,
+            'valor_total': round(dados['valor_total'], 2),
+            'valor_pis': round(dados['valor_pis'], 2),
+            'valor_cofins': round(dados['valor_cofins'], 2)
+        })
+    
+    cfops_exc_saidas_list = []
+    for cfop, dados in cfops_excecao_saidas.items():
+        csts = dados['csts_encontrados']
+        cst_mais_comum = max(set(csts), key=csts.count) if csts else None
+        status = 'ok' if dados['itens_divergentes'] == 0 else 'divergente'
+        cfops_exc_saidas_list.append({
+            **dados,
+            'cst_mais_comum': cst_mais_comum,
+            'status': status,
+            'valor_total': round(dados['valor_total'], 2),
+            'valor_pis': round(dados['valor_pis'], 2),
+            'valor_cofins': round(dados['valor_cofins'], 2)
+        })
+    
+    # Ordenar CFOPs por divergentes primeiro
+    cfops_exc_entradas_list.sort(key=lambda x: (0 if x['status'] == 'divergente' else 1, -x['valor_total']))
+    cfops_exc_saidas_list.sort(key=lambda x: (0 if x['status'] == 'divergente' else 1, -x['valor_total']))
+    
+    # Processar NCMs com regras
+    ncms_resultado = []
+    for ncm_4, dados in ncms_agregados.items():
+        # Buscar regra (empresa > padrão)
+        regra = regras_por_ncm.get(ncm_4)
+        if not regra:
+            # Tentar prefixo menor
+            for i in range(4, 2, -1):
+                prefixo = ncm_4[:i]
+                if prefixo in regras_por_ncm:
+                    regra = regras_por_ncm[prefixo]
+                    break
+        
+        regra_padrao = REGRAS_PIS_COFINS_PADRAO.get(ncm_4)
+        
+        aliq_pis_praticada = max(set(dados['aliquotas_pis']), key=dados['aliquotas_pis'].count) if dados['aliquotas_pis'] else 0
+        aliq_cofins_praticada = max(set(dados['aliquotas_cofins']), key=dados['aliquotas_cofins'].count) if dados['aliquotas_cofins'] else 0
+        cst_mais_comum = max(set(dados['csts_pis']), key=dados['csts_pis'].count) if dados['csts_pis'] else None
+        
+        aliq_pis_esperada = None
+        aliq_cofins_esperada = None
+        cst_esperado = None
+        fonte_regra = None
+        
+        if regra:
+            aliq_pis_esperada = regra.get('aliquota_pis', 1.65)
+            aliq_cofins_esperada = regra.get('aliquota_cofins', 7.6)
+            cst_esperado = regra.get('cst_esperado_saida')
+            fonte_regra = 'empresa'
+        elif regra_padrao:
+            aliq_pis_esperada = regra_padrao.get('aliquota_pis', 0.0165) * 100 if regra_padrao.get('aliquota_pis', 0) < 1 else regra_padrao.get('aliquota_pis', 1.65)
+            aliq_cofins_esperada = regra_padrao.get('aliquota_cofins', 0.076) * 100 if regra_padrao.get('aliquota_cofins', 0) < 1 else regra_padrao.get('aliquota_cofins', 7.6)
+            cst_esperado = regra_padrao.get('cst_saida')
+            fonte_regra = 'padrao'
+        
+        # Calcular status
+        status = 'sem_regra'
+        if aliq_pis_esperada is not None:
+            # Normalizar para comparação
+            pis_esp = aliq_pis_esperada if aliq_pis_esperada > 1 else aliq_pis_esperada * 100
+            pis_prat = aliq_pis_praticada if aliq_pis_praticada > 1 else aliq_pis_praticada * 100
+            
+            divergencia = abs(pis_prat - pis_esp)
+            if divergencia <= 0.1:
+                status = 'ok'
+            elif divergencia <= 0.5:
+                status = 'alerta'
+            else:
+                status = 'divergente'
+        
+        ncms_resultado.append({
+            'ncm': ncm_4,
+            'descricao': (regra_padrao or {}).get('descricao', '') or (regra or {}).get('descricao', ''),
+            'produtos_exemplo': dados['produtos_exemplo'],
+            'quantidade': dados['quantidade'],
+            'entradas': dados['entradas'],
+            'saidas': dados['saidas'],
+            'valor_total': round(dados['valor_total'], 2),
+            'aliquota_pis_praticada': round(aliq_pis_praticada, 2),
+            'aliquota_cofins_praticada': round(aliq_cofins_praticada, 2),
+            'aliquota_pis_esperada': round(aliq_pis_esperada, 2) if aliq_pis_esperada else None,
+            'aliquota_cofins_esperada': round(aliq_cofins_esperada, 2) if aliq_cofins_esperada else None,
+            'cst_praticado': cst_mais_comum,
+            'cst_esperado': cst_esperado,
+            'status': status,
+            'fonte_regra': fonte_regra,
+            'regra_id': regra.get('id') if regra else None
+        })
+    
+    # Ordenar NCMs por divergentes primeiro
+    ncms_resultado.sort(key=lambda x: (0 if x['status'] == 'divergente' else (1 if x['status'] == 'alerta' else 2), -x['valor_total']))
+    
+    # Estatísticas
+    total_cfops_exc = len(cfops_exc_entradas_list) + len(cfops_exc_saidas_list)
+    cfops_exc_ok = len([c for c in cfops_exc_entradas_list + cfops_exc_saidas_list if c['status'] == 'ok'])
+    cfops_exc_div = len([c for c in cfops_exc_entradas_list + cfops_exc_saidas_list if c['status'] == 'divergente'])
+    
+    total_ncms = len(ncms_resultado)
+    ncms_ok = len([n for n in ncms_resultado if n['status'] == 'ok'])
+    ncms_alerta = len([n for n in ncms_resultado if n['status'] == 'alerta'])
+    ncms_div = len([n for n in ncms_resultado if n['status'] == 'divergente'])
+    ncms_sem_regra = len([n for n in ncms_resultado if n['status'] == 'sem_regra'])
+    
+    return {
+        "company_id": company_id,
+        "competencia": competencia,
+        "cfops_excecao": {
+            "entradas": cfops_exc_entradas_list,
+            "saidas": cfops_exc_saidas_list,
+            "estatisticas": {
+                "total": total_cfops_exc,
+                "ok": cfops_exc_ok,
+                "divergentes": cfops_exc_div
+            }
+        },
+        "ncms": {
+            "lista": ncms_resultado[:150],
+            "estatisticas": {
+                "total": total_ncms,
+                "ok": ncms_ok,
+                "alerta": ncms_alerta,
+                "divergentes": ncms_div,
+                "sem_regra": ncms_sem_regra
+            }
+        },
+        "regras_empresa": len(regras_empresa)
+    }
     """
     Validador de PIS/COFINS por CFOP.
     Verifica se CFOPs estão gerando crédito/débito conforme esperado.
