@@ -1999,14 +1999,26 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
                     valor_pis = Decimal('0')
                     valor_cofins = Decimal('0')
                 else:
-                    # Chamar função que retorna cst_calculado
-                    calc = calcular_cst_pis_cofins(ncm, cfop, 'saida', '', regime_calc)
-                    cst = calc.get('cst_calculado', '01')
+                    # Usar MESMA função que as outras telas para garantir consistência
+                    calc = calcular_pis_cofins_produto(float(valor_base), ncm, cfop, 'saida', perfil, regime_calc)
                     
-                    # Se é tributado (CST 01), calcular débito
-                    if cst == '01':
-                        valor_pis = valor_base * Decimal('0.0165')
-                        valor_cofins = valor_base * Decimal('0.076')
+                    # Determinar CST baseado no resultado
+                    if calc.get('valor_pis', 0) > 0:
+                        cst = '01'  # Tributado
+                        valor_pis = Decimal(str(calc.get('valor_pis', 0)))
+                        valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                    else:
+                        # Verificar tipo de não-débito
+                        classificacao = calc.get('classificacao', {})
+                        cst_saida = classificacao.get('cst_saida', '49')
+                        if cst_saida == '06':
+                            cst = '06'  # Alíquota zero
+                        elif cst_saida == '04':
+                            cst = '04'  # Monofásico
+                        else:
+                            cst = '49'  # Outras saídas
+                        valor_pis = Decimal('0')
+                        valor_cofins = Decimal('0')
                     else:
                         valor_pis = Decimal('0')
                         valor_cofins = Decimal('0')
