@@ -1,66 +1,72 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou uma revisão completa do sistema de validação fiscal para melhorar a automação e a intuição.
+O usuário iniciou com uma solicitação de revisão completa do sistema de validação fiscal (PIS/COFINS, ICMS) para automação e intuição. Ao longo da sessão, os requisitos evoluíram para incluir:
 
 PRODUCT REQUIREMENTS:
-1.  **Redesenho do Validador PIS/COFINS (P0 - CRÍTICO)**:
-    *   A interface deve ser redesenhada:
-        *   A seção de CFOPs de exceção deve ser compacta, mostrando um CFOP por linha. Para CFOPs de entrada, o CST esperado é 98; para saída, é 49.
-        *   Produtos que pertencem a esses CFOPs de exceção não devem ser listados na tabela principal de NCMs.
-        *   A gestão de regras deve ser movida para uma aba separada (Regras).
-        *   A tabela principal de NCMs e a tabela de regras devem ter colunas ordenáveis.
-        *   A coluna de CST deve exibir tanto o CST de entrada quanto o de saída (ex: 50/01).
-        *   Os contadores no topo (Total, OK, Divergente) devem funcionar como botões de filtro.
-    *   As regras devem ser pré-carregadas para o usuário apenas auditar/editar.
-    *   O modal de criação de regras deve ser automatizado:
-        *   O usuário seleciona um Tipo de Tributação (Alíquota Zero, Monofásico, Tributado, etc.).
-        *   O sistema preenche automaticamente os CSTs e alíquotas correspondentes.
-        *   Deve haver uma opção para adicionar exceções a uma regra (baseado em palavra-chave na descrição + NCM).
-    *   A aba de regras deve permitir filtrar por tipo de regra e mostrar as exceções aninhadas sob suas regras-pai.
+1.  **Revisão do Validador PIS/COFINS (P0 - CRÍTICO)**:
+    *   As regras devem ser baseadas no NCM completo (8 dígitos).
+    *   Remover os tipos de regra Isento e Suspensão das interfaces.
+    *   Adicionar filtros por tipo de tributação (Monofásico, Alíquota Zero, etc.) na aba principal de NCMs.
+    *   Garantir que produtos pertencentes a CFOPs de exceção não apareçam na listagem principal.
+    *   Adicionar botões Rever CST Entrada e Rever CST Saída que aplicam as regras da empresa aos documentos existentes.
+    *   Adicionar um botão para exportar um relatório de NCMs divergentes (com NCM, CST atual, e CST esperado).
 
-2.  **Automação do Validador de ICMS (P0)**:
-    *   O sistema deve pré-carregar as regras de ICMS com base no regulamento do estado da empresa (ex: ICMS SP). O usuário deve poder auditar e editar essas regras.
-    *   A funcionalidade deve ser acionada por um botão na interface do validador.
+2.  **Revisão do Validador ICMS (P0)**:
+    *   Tornar os contadores de status (Total, OK, Divergente) botões de filtro clicáveis.
+    *   Tornar todas as colunas das tabelas ordenáveis.
+    *   Corrigir a lógica de validação para não sinalizar incorretamente produtos com ST (Substituição Tributária).
+    *   Adicionar um botão de edição de regra diretamente na lista de produtos/NCMs.
+    *   Ao marcar uma regra como ST, o sistema deve zerar automaticamente a alíquota interna e revalidar os itens para remover a divergência.
 
-3.  **Melhoras de UI/UX (P1)**:
-    *   O item de menu Validador ICMS deve ficar aninhado dentro do menu ICMS. (Concluído em sessão anterior).
-    *   Ocultar o menu ICMS ST para empresas que não são contribuintes de ICMS ST. (Concluído).
+3.  **Consistência e Integração do Sistema (P0)**:
+    *   Garantir que todas as apurações de PIS/COFINS (na tela principal, no wizard de fechamento e na importação de documentos por IA) utilizem as regras customizadas cadastradas pela empresa.
+    *   A lógica de aplicação de regras deve seguir uma prioridade: 1º Regra de exceção de CFOP, 2º Regra customizada da empresa, 3º Regra padrão do sistema.
+
+4.  **Melhoras de UI/UX (P1)**:
+    *   Mover os itens de menu Validador ICMS e Validador PIS/COFINS para um novo grupo AÇÕES.
+    *   Remover a aba Divergências da página principal de apuração de PIS/COFINS.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-Uma aplicação full-stack (React/FastAPI/MongoDB) onde os validadores fiscais (PIS/COFINS e ICMS) foram extensivamente reformulados. O Validador PIS/COFINS possui uma nova interface com abas (NCMs e Regras), filtros, ordenação e um sistema avançado e automatizado para criação de regras com exceções. O Validador de ICMS agora possui uma funcionalidade para pré-carregar regras automaticamente com base na legislação estadual e nos produtos da empresa. Todas as principais solicitações do usuário da sessão foram implementadas e testadas.
+Uma aplicação full-stack (React/FastAPI/MongoDB) com validadores fiscais extensivamente modificados. Quase todas as solicitações do usuário foram implementadas: o Validador ICMS tem filtros, ordenação e lógica de ST aprimorada; o Validador PIS/COFINS usa NCM completo, possui novos filtros, botões para reaplicar regras e uma função para exportar divergências. A lógica do backend foi centralizada para que as regras customizadas da empresa sejam usadas tanto nos validadores quanto no wizard. A UI do menu principal foi reorganizada conforme solicitado. A implementação final (exportação e integração da apuração principal) foi concluída, mas aguarda testes.
 
 **Last working item**:
--   **Last item agent was working**: Implementação da última rodada de feedback do usuário para a aba Regras no Validador de PIS/COFINS: adicionar filtros por tipo de regra (Alíquota Zero, Monofásico, etc.) e tornar as colunas da tabela de regras ordenáveis.
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: Y (através de screenshot, confirmando visualmente a nova UI e funcionalidades).
--   **Which testing method agent to use?**: testing_agent_v3_fork. Recomenda-se uma execução final do agente de testes para garantir que as múltiplas refatorações no componente  não introduziram regressões.
+-   **Last item agent was working**: Implementação das duas últimas solicitações do usuário:
+    1.  Adicionar um botão Exportar Divergências no Validador PIS/COFINS.
+    2.  Garantir que a apuração principal de PIS/COFINS () utilize as regras customizadas da empresa.
+-   **Status**: IN PROGRESS (A implementação foi concluída, mas não foi testada de forma alguma).
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: testing_agent_v3_fork. É crucial um teste de regressão completo, pois a lógica central de cálculo de impostos foi alterada. O teste deve validar se a criação de uma regra no validador impacta corretamente os valores retornados pelo endpoint de apuração.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**:  Verificação do usuário para as últimas implementações (P0)
+-   **Issue 1**: Testar e validar a implementação do botão Exportar Divergências e a integração das regras customizadas na apuração principal de PIS/COFINS (P0 - HIGHEST).
 
 **Issues Detail**:
--   **Issue 1: Verificação do usuário para as últimas implementações (P0)**
-    -   **Attempted fixes**: N/A. O agente acaba de concluir a implementação final solicitada pelo usuário.
-    -   **Next debug checklist**: Aguardar o feedback do usuário sobre a versão mais recente do Validador PIS/COFINS, que inclui:
-        1.  Filtros por tipo na aba Regras.
-        2.  Colunas ordenáveis na tabela de regras.
-        3.  Todas as outras melhorias de UI/UX e automação implementadas ao longo da sessão.
-    -   **Why fix this issue and what will be achieved with the fix?**: Para confirmar que o redesenho completo atende a todas as expectativas do usuário antes de mover para as próximas tarefas.
-    -   **Status**: USER VERIFICATION PENDING
+-   **Issue 1: Testar e validar a implementação final (P0)**
+    -   **Attempted fixes**: O agente implementou o código no frontend () para o botão de exportação e modificou o endpoint de apuração em  para usar as regras do banco de dados, mas não realizou nenhum teste.
+    -   **Next debug checklist**:
+        1.  Executar a aplicação e verificar visualmente se o botão Exportar Divergências aparece no Validador PIS/COFINS.
+        2.  Clicar no botão e confirmar que uma tentativa de download é iniciada.
+        3.  Usar  ou  para executar um teste de integração:
+            a. Criar/modificar uma regra de PIS/COFINS para um NCM específico.
+            b. Chamar o endpoint de apuração () e verificar se os totais de PIS/COFINS refletem a mudança da regra.
+            c. **Nota**: O banco de dados parece não ter documentos, o que pode dificultar o teste. O teste pode precisar ser lógico (confirmar que o código busca e aplica as regras) ou o agente pode precisar solicitar ao usuário que importe dados.
+    -   **Why fix this issue and what will be achieved with the fix?**: Para concluir a principal solicitação do usuário e garantir que o sistema de regras customizadas é consistente em toda a aplicação, prevenindo cálculos de impostos incorretos.
+    -   **Status**: TESTING PENDING
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: both (usar  para uma validação final).
+    -   **Should Test frontend/backend/both after fix?**: both
     -   **Blocked on other issue**: Não.
 
 **In progress Task List**:
-Nenhuma. As tarefas em andamento foram concluídas.
+-   Nenhuma.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    -   (P1) Integrar as regras fiscais personalizadas (criadas nos validadores) ao assistente de importação de documentos, para que sejam aplicadas durante o reprocessamento de notas fiscais.
     -   (P1) Implementar um totalizador por CST nos detalhamentos de CRÉDITOS e DÉBITOS na tela principal de apuração de PIS/COFINS.
+    -   (P1) Integrar a lógica de classificação por IA na importação de novos documentos para usar as regras customizadas (o endpoint existe, mas a integração com o fluxo de importação não foi feita).
 -   **Future Tasks**:
+    -   (P2) **Refatoração do Backend**: Extrair a lógica de negócios do monolito  para módulos de serviço e roteadores separados. **(PRIORIDADE TÉCNICA ALTA)**.
     -   (P2) Criar um pacote de instalação On-Premise com Docker.
     -   (P2) Investigar e popular a página .
     -   (P2) Criar uma suíte de testes ============================= test session starts ==============================
@@ -86,8 +92,8 @@ HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test
   /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
     from crypt import crypt as _crypt
 
-backend/server.py:40436
-  /app/backend/server.py:40436: DeprecationWarning: 
+backend/server.py:41048
+  /app/backend/server.py:41048: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -108,21 +114,21 @@ backend/server.py:40436
 =========================== short test summary info ============================
 ERROR test_ai_classification.py
 !!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-========================= 4 warnings, 1 error in 6.32s ========================= mais abrangente para o backend.
+========================= 4 warnings, 1 error in 4.72s ========================= mais abrangente para o backend.
 
 **Completed work in this session**
--   **Redesenho Completo do Validador PIS/COFINS**:
-    -   Refatorado o frontend () para usar abas (NCMs, Regras), contadores de status clicáveis (filtros), e colunas de tabela ordenáveis.
-    -   A seção de CFOPs de exceção foi tornada mais compacta e a lógica de CST (98/49) foi fixada. NCMs sob esses CFOPs são agora ocultados da lista principal.
-    -   Criado um modal de regras automatizado que preenche CSTs e alíquotas com base no Tipo de Tributação selecionado e permite adicionar exceções.
--   **Automação de Regras (PIS/COFINS e ICMS)**:
-    -   Criado o endpoint  para pré-carregar regras de PIS/COFINS.
-    -   Criado o endpoint  para pré-carregar regras de ICMS com base na legislação e produtos da empresa.
-    -   Adicionados botões nas respectivas interfaces para acionar esses pré-carregamentos.
--   **Correção de Bug Recorrente**:
-    -   Investigado e confirmado que a lógica para ocultar o menu ICMS ST para empresas não contribuintes já está funcionando corretamente.
--   **Validação por Testes**:
-    -   O  foi utilizado com sucesso em múltiplas etapas para validar as implementações no frontend e backend.
+-   **Validador ICMS**:
+    -   Implementados contadores clicáveis como filtros e colunas de tabela ordenáveis.
+    -   Corrigida a lógica de validação para produtos ST e adicionada edição de regra na própria lista.
+-   **Validador PIS/COFINS**:
+    -   Lógica de regras migrada para usar NCM completo (8 dígitos).
+    -   Adicionados filtros por tipo de tributação na aba de NCMs.
+    -   Adicionados botões Rever CST com endpoint  no backend.
+-   **UI/UX e Lógica Geral**:
+    -   Removida a aba Divergências da página .
+    -   Reorganizado o menu principal, movendo os validadores para o grupo AÇÕES.
+    -   Removidos os tipos de regra Isento e Suspensão da interface.
+    -   Backend modificado para que o wizard de fechamento utilize as regras customizadas da empresa.
 
 **Earlier issues found/mentioned but not fixed**
 -   Nenhum.
@@ -130,65 +136,66 @@ ERROR test_ai_classification.py
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Dívida técnica no monolito .
 -   **Recurrence count**: 5+
--   **Status**: NOT STARTED. O agente continuou adicionando lógica de negócios complexa (inicialização de regras, processamento de dados para os validadores) diretamente ao arquivo , aumentando sua sobrecarga e o risco arquitetural.
+-   **Status**: NOT STARTED. O problema foi agravado nesta sessão com a adição de mais lógica de negócios complexa ao arquivo. A refatoração é urgente.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   Desenvolvimento full-stack (React/FastAPI).
--   Gerenciamento de estado complexo no frontend com React Hooks para controle de filtros, ordenação e dados de abas.
--   Criação de endpoints de backend para popular e inicializar dados de configuração (regras fiscais).
--   Refatoração iterativa da UI com base no feedback contínuo do usuário.
+-   Gerenciamento de estado complexo em React para múltiplos filtros, ordenação e dados de abas.
+-   Criação e modificação de endpoints FastAPI para lógica de negócios fiscal complexa.
+-   Implementação de uma hierarquia de regras (Exceção > Customizada > Padrão) na lógica de backend.
+-   Manipulação de dados em massa (revisão de CSTs em todos os documentos).
 
 **key DB schema**
--   **companies**: , , .
--   **icms_rules**: .
--   **pis_cofins_rules**: .
+-   Nenhuma mudança no esquema. As coleções , ,  e  foram utilizadas.
 
 **changes in tech stack**
 -   Nenhuma.
 
 **All files of reference**
 -    (Principal arquivo de backend, extensivamente modificado)
--    (Principal arquivo de frontend, completamente reescrito em múltiplas iterações)
--    (Modificado para adicionar a funcionalidade de inicialização de regras)
--    (Atualizado ao final da sessão)
+-    (Principal componente de frontend, pesadamente modificado)
+-    (Pesadamente modificado)
+-   
+-   
+-   
 
 **Areas that need refactoring**:
--   ****: O arquivo está criticamente sobrecarregado. A adição dos endpoints de inicialização e da lógica complexa de dados para os validadores aumentou a dívida técnica. É fortemente recomendado extrair a lógica dos validadores de PIS/COFINS e ICMS para módulos de serviço separados (ex: , ).
--   ****: O componente passou por muitas mudanças rápidas. Uma passagem para limpar o código, otimizar hooks e garantir a clareza seria benéfica.
+-   ** (CRÍTICO)**: O arquivo tornou-se um monolito perigoso. A lógica dos validadores, apurações e wizards deve ser extraída para módulos de serviço e roteadores dedicados (ex: , ) para restaurar a manutenibilidade.
+-   ** e **: Ambos são componentes muito grandes e complexos. Devem ser decompostos em subcomponentes menores e mais gerenciáveis (ex: Tabela, Barra de Filtros, Modal de Regra).
 
 **key api endpoints**
 -    (NOVO)
--    (NOVO)
--    (Endpoint principal para o validador PIS/COFINS, modificado para retornar mais dados)
--   , , , 
--   , , , 
+-    (MODIFICADO CRÍTICO)
+-    (MODIFICADO)
+-    (MODIFICADO)
 
 **Critical Info for New Agent**
--   **Aguardar Validação**: A tarefa mais crítica é aguardar a confirmação do usuário de que as últimas melhorias no Validador PIS/COFINS estão conforme o esperado.
--   **Próximos Passos**: Se o usuário aprovar, o trabalho deve seguir para as Upcoming Tasks, começando pela integração das regras no processo de importação de documentos.
--   **Risco Arquitetural**: Esteja ciente de que  é um monolito gigante. Proponha ativamente um plano para refatorar e extrair a lógica dos validadores para arquivos de serviço separados. Esta é a melhor oportunidade para pagar essa dívida técnica antes de adicionar novas funcionalidades.
+-   **Prioridade Máxima**: Testar a última implementação. A consistência de todo o sistema depende de o endpoint de apuração principal usar corretamente as regras customizadas.
+-   **Risco Arquitetural**: O monolito  é o maior risco técnico do projeto. Proponha ativamente um plano para refatorá-lo. Adiar isso só aumentará a complexidade e a probabilidade de bugs.
+-   **Falta de Dados de Teste**: Esteja ciente de que o banco de dados pode estar vazio. Os testes podem precisar ser lógicos ou você pode precisar solicitar ao usuário que importe documentos para uma validação completa.
 
 **documents and test reports created in this job**
 -   
 -   
--   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  : (Pendente) - O usuário ainda não viu a última implementação.
-2.  : que as regras tenham colunas ordenaveis, e que sejam classificadas por tipo. aliquota zero, monofasico, aliquota diferenciada, tributado, etc fica mais facil de analisar -> **COMPLETO**
-3.  : cfops excecoes tem que ocupar o menor espaco possivel... a colunca cst so ta trazendo o esperado de saida, tem que ser entrada e saida. as regras nao tem que ficar aparecendo em todos os filtros, deve ter uma aba so para tratar elas. -> **COMPLETO**
-4.  : que os contadores sejam botoes de filtro. clica, aparece so aquela situacao... que todas as colunas sejam ordenaveis... faltano excecoes nas regras de pis e cofins... que o menu de regras seja mais automatizado... -> **COMPLETO**
-5.  : (Mensagens anteriores) Aprovação e pequenas solicitações que levaram às implementações atuais.
+1.  : Adicionar exportação de divergências e garantir que as apurações de PIS/COFINS usem as regras da empresa. **(Em andamento, aguardando teste)**
+2.  : Ao editar regra ICMS para ST, zerar alíquota e revalidar. **(Concluído)**
+3.  : Remover filtro Isento, adicionar filtros de tipo na aba NCMs, e ocultar CFOPs de exceção. **(Concluído)**
+4.  : Integrar mesma lógica de regras no wizard, adicionar edição de regras no validador ICMS, e mover validadores para o menu AÇÕES. **(Concluído)**
+5.  : Salvar regras automaticamente, usar regras no wizard e na importação IA, e remover Isento/Suspensão. **(Concluído)**
+6.  : Remover aba Divergência do menu PIS/COFINS. **(Concluído)**
+7.  : Usar NCM completo, adicionar filtros/ordenação no validador ICMS, e corrigir lógica de ST. **(Concluído)**
 
 **Project Health Check:**
 -   **Broken**: N/A
 -   **Mocked**: N/A
 -   **Complex/Fragile**:
-    -   : Continua sendo um monolito sobrecarregado, representando um risco para a manutenibilidade.
-    -   : Um componente muito grande e complexo que passou por várias refatorações. Funciona, mas pode ser frágil a novas mudanças.
+    -   : **CRÍTICO**. Extremamente sobrecarregado, frágil e difícil de manter.
+    -   : Muito complexo.
+    -   : Muito complexo.
 
 **3rd Party Integrations**
 -   Nenhuma.
@@ -197,12 +204,12 @@ ERROR test_ai_classification.py
 -   **Testing agent used after significant changes**: YES
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: Nenhuma.
+-   **Known regressions**: Nenhuma identificada, mas o risco é alto devido à última alteração não testada na lógica de cálculo.
 
 **Credentials to test flow:**
 -   **Environment**:  / 
--   **Empresa**: COMERCIAL RS LTDA (ID da API: , ID da UI: 6026)
--   **Competência**: 01/2026
+-   **Empresa**: COMERCIAL RS LTDA (ID: )
+-   **Competência**:  ou 
 
 **What agent forgot to execute**
--   O agente não esqueceu nenhuma tarefa solicitada pelo usuário nesta sessão. As tarefas pendentes são as que foram planejadas para o futuro () e foram corretamente despriorizadas em favor dos requisitos P0 do usuário.</analysis>
+-   O agente implementou uma mudança crítica na lógica de cálculo de PIS/COFINS e a funcionalidade de exportação, mas **esqueceu completamente de testar ou verificar** essas mudanças antes de finalizar, deixando a tarefa em um estado incompleto e arriscado.</analysis>
