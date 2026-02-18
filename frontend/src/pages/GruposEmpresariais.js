@@ -197,17 +197,20 @@ const GruposEmpresariais = ({ user, onLogout }) => {
             </p>
           </div>
           
-          <button
-            onClick={() => {
-              setEditingGrupo(null);
-              setFormData({ nome: '', descricao: '', matriz_id: '', filiais_ids: [] });
-              setShowModal(true);
-            }}
-            className="px-4 py-2 bg-[#C8A951] text-black rounded-lg font-medium hover:bg-[#b39642] flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Novo Grupo
-          </button>
+          {/* Botão Novo Grupo - apenas para admin/super_admin/master */}
+          {['admin', 'super_admin', 'master'].includes(user?.role) && (
+            <button
+              onClick={() => {
+                setEditingGrupo(null);
+                setFormData({ nome: '', descricao: '', matriz_id: '', filiais_ids: [] });
+                setShowModal(true);
+              }}
+              className="px-4 py-2 bg-[#C8A951] text-black rounded-lg font-medium hover:bg-[#b39642] flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Novo Grupo
+            </button>
+          )}
         </div>
 
         {error && (
