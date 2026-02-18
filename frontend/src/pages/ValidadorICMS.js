@@ -200,33 +200,43 @@ const ValidadorICMS = ({ user, onLogout }) => {
     });
   };
 
-  // Cards de estatísticas
+  // Cards de estatísticas - agora são botões de filtro clicáveis
   const EstatisticasCard = ({ dados }) => {
     if (!dados?.estatisticas) return null;
     const stats = dados.estatisticas;
     
+    const FiltroButton = ({ valor, label, status, corTexto, corBg, corBorder }) => {
+      const isAtivo = filtroStatus === status;
+      return (
+        <button
+          onClick={() => setFiltroStatus(isAtivo ? 'todos' : status)}
+          className={`${corBg} ${corBorder} rounded-xl p-4 text-center transition-all cursor-pointer hover:scale-105 ${
+            isAtivo ? 'ring-2 ring-offset-1 ring-offset-[#0C0C0C]' : ''
+          }`}
+          data-testid={`filter-icms-${status}`}
+        >
+          <p className={`text-2xl font-bold ${corTexto}`}>{valor}</p>
+          <p className={`text-sm ${corTexto.replace('400', '400/70')}`}>{label}</p>
+        </button>
+      );
+    };
+    
     return (
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4 text-center">
+        <button
+          onClick={() => setFiltroStatus('todos')}
+          className={`bg-[#141414] border border-[#2A2A2A] rounded-xl p-4 text-center transition-all cursor-pointer hover:scale-105 ${
+            filtroStatus === 'todos' ? 'ring-2 ring-offset-1 ring-offset-[#0C0C0C] ring-white' : ''
+          }`}
+          data-testid="filter-icms-todos"
+        >
           <p className="text-2xl font-bold text-white">{stats.total}</p>
           <p className="text-sm text-[#A1A1AA]">Total</p>
-        </div>
-        <div className="bg-green-600/10 border border-green-600/30 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-green-400">{stats.ok}</p>
-          <p className="text-sm text-green-400/70">OK</p>
-        </div>
-        <div className="bg-yellow-600/10 border border-yellow-600/30 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-yellow-400">{stats.alerta}</p>
-          <p className="text-sm text-yellow-400/70">Alerta</p>
-        </div>
-        <div className="bg-red-600/10 border border-red-600/30 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-red-400">{stats.divergentes}</p>
-          <p className="text-sm text-red-400/70">Divergente</p>
-        </div>
-        <div className="bg-gray-600/10 border border-gray-600/30 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-gray-400">{stats.sem_regra}</p>
-          <p className="text-sm text-gray-400/70">Sem Regra</p>
-        </div>
+        </button>
+        <FiltroButton valor={stats.ok} label="OK" status="ok" corTexto="text-green-400" corBg="bg-green-600/10" corBorder="border border-green-600/30" />
+        <FiltroButton valor={stats.alerta} label="Alerta" status="alerta" corTexto="text-yellow-400" corBg="bg-yellow-600/10" corBorder="border border-yellow-600/30" />
+        <FiltroButton valor={stats.divergentes} label="Divergente" status="divergente" corTexto="text-red-400" corBg="bg-red-600/10" corBorder="border border-red-600/30" />
+        <FiltroButton valor={stats.sem_regra} label="Sem Regra" status="sem_regra" corTexto="text-gray-400" corBg="bg-gray-600/10" corBorder="border border-gray-600/30" />
       </div>
     );
   };
