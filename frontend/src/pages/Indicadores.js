@@ -715,7 +715,9 @@ const Indicadores = ({ user, onLogout }) => {
                         valor={percentuais.pis.valor}
                         percentSaidas={percentuais.pis.sobre_saidas}
                         percentVendas={percentuais.pis.sobre_vendas}
+                        saldoCredor={percentuais.pis.saldo_credor || 0}
                         visible={true}
+                        showSempre={true}
                       />
                       <ImpostoCard
                         titulo="COFINS"
@@ -724,7 +726,9 @@ const Indicadores = ({ user, onLogout }) => {
                         valor={percentuais.cofins.valor}
                         percentSaidas={percentuais.cofins.sobre_saidas}
                         percentVendas={percentuais.cofins.sobre_vendas}
+                        saldoCredor={percentuais.cofins.saldo_credor || 0}
                         visible={true}
+                        showSempre={true}
                       />
                       <ImpostoCard
                         titulo="ISS"
