@@ -38372,6 +38372,550 @@ async def clear_cache(current_user: User = Depends(get_current_user)):
     return {"message": "Cache completamente limpo"}
 
 
+# ============================================================
+# VALIDADOR DE ALÍQUOTA DE ICMS
+# Verifica alíquotas de saída comparando com regras do estado
+# ============================================================
+
+class RegraICMS(BaseModel):
+    """Modelo para regra de ICMS configurável pelo usuário"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    company_id: str
+    tipo: str = "ncm"  # ncm ou produto
+    chave: str  # NCM ou código/descrição do produto
+    descricao: str
+    aliquota_esperada: float
+    aliquota_reduzida: Optional[float] = None  # Alíquota com redução
+    condicao_reducao: Optional[str] = None  # Ex: "Venda para não contribuinte"
+    uf: str  # Estado da regra
+    base_legal: Optional[str] = None  # Lei/artigo/RICMS
+    ativo: bool = True
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class RegraICMSCreate(BaseModel):
+    tipo: str = "ncm"
+    chave: str
+    descricao: str
+    aliquota_esperada: float
+    aliquota_reduzida: Optional[float] = None
+    condicao_reducao: Optional[str] = None
+    base_legal: Optional[str] = None
+
+
+class RegraICMSUpdate(BaseModel):
+    descricao: Optional[str] = None
+    aliquota_esperada: Optional[float] = None
+    aliquota_reduzida: Optional[float] = None
+    condicao_reducao: Optional[str] = None
+    base_legal: Optional[str] = None
+    ativo: Optional[bool] = None
+
+
+@api_router.get("/validador-icms/{company_id}/por-produto")
+async def validador_icms_por_produto(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Validador de alíquota de ICMS agrupado por produto.
+    Compara alíquota praticada vs. alíquota esperada (baseada nas regras).
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    uf_empresa = company.get('uf', 'SP')
+    
+    # Buscar regras de ICMS da empresa
+    regras = await db.regras_icms.find({
+        "company_id": company_id,
+        "uf": uf_empresa,
+        "ativo": True
+    }).to_list(length=1000)
+    
+    # Indexar regras por NCM e por produto
+    regras_por_ncm = {}
+    regras_por_produto = {}
+    for r in regras:
+        if r.get('tipo') == 'ncm':
+            regras_por_ncm[r['chave'].replace('.', '').strip()] = r
+        else:
+            regras_por_produto[r['chave'].lower().strip()] = r
+    
+    # Buscar documentos de SAÍDA da competência
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    
+    # Agregar por produto
+    produtos_agregados = {}
+    
+    async for doc in db.xml_documents.find(query, {"produtos": 1, "tipo": 1, "tipo_operacao": 1}):
+        tipo = doc.get('tipo') or doc.get('tipo_operacao')
+        if tipo != 'saida':
+            # Inferir pelo CFOP
+            produtos = doc.get('produtos', [])
+            if produtos:
+                cfop = str(produtos[0].get('cfop', ''))
+                if cfop and cfop[0] not in ['5', '6', '7']:
+                    continue  # Não é saída
+        
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            if cfop and cfop[0] not in ['5', '6', '7']:
+                continue  # Pular entradas
+            
+            codigo = prod.get('codigo', prod.get('cProd', ''))
+            descricao = prod.get('descricao', prod.get('xProd', ''))
+            ncm = str(prod.get('ncm', '')).replace('.', '').strip()
+            aliq_icms = float(prod.get('p_icms', 0) or prod.get('aliq_icms', 0) or 0)
+            valor_total = float(prod.get('valor_total', 0) or 0)
+            
+            chave_produto = f"{codigo}|{descricao}"
+            
+            if chave_produto not in produtos_agregados:
+                produtos_agregados[chave_produto] = {
+                    'codigo': codigo,
+                    'descricao': descricao,
+                    'ncm': ncm,
+                    'quantidade': 0,
+                    'valor_total': 0,
+                    'aliquotas_praticadas': [],
+                    'aliquota_esperada': None,
+                    'regra': None
+                }
+            
+            produtos_agregados[chave_produto]['quantidade'] += 1
+            produtos_agregados[chave_produto]['valor_total'] += valor_total
+            if aliq_icms > 0:
+                produtos_agregados[chave_produto]['aliquotas_praticadas'].append(aliq_icms)
+    
+    # Calcular alíquota média e verificar divergências
+    resultado = []
+    for chave, dados in produtos_agregados.items():
+        aliquotas = dados['aliquotas_praticadas']
+        aliq_media = sum(aliquotas) / len(aliquotas) if aliquotas else 0
+        aliq_mais_comum = max(set(aliquotas), key=aliquotas.count) if aliquotas else 0
+        
+        # Buscar regra aplicável
+        ncm = dados['ncm']
+        regra = None
+        aliq_esperada = None
+        
+        # Primeiro tenta por produto específico
+        desc_lower = dados['descricao'].lower().strip()
+        if desc_lower in regras_por_produto:
+            regra = regras_por_produto[desc_lower]
+        # Depois por NCM (prefixos)
+        elif ncm:
+            for i in range(8, 1, -1):
+                prefixo = ncm[:i]
+                if prefixo in regras_por_ncm:
+                    regra = regras_por_ncm[prefixo]
+                    break
+        
+        if regra:
+            aliq_esperada = regra.get('aliquota_esperada')
+            dados['aliquota_esperada'] = aliq_esperada
+            dados['regra'] = {
+                'id': regra.get('id'),
+                'descricao': regra.get('descricao'),
+                'aliquota_esperada': aliq_esperada,
+                'aliquota_reduzida': regra.get('aliquota_reduzida'),
+                'condicao_reducao': regra.get('condicao_reducao'),
+                'base_legal': regra.get('base_legal')
+            }
+        
+        # Determinar status
+        status = 'sem_regra'
+        divergencia = 0
+        if aliq_esperada is not None:
+            divergencia = abs(aliq_mais_comum - aliq_esperada)
+            if divergencia <= 0.1:
+                status = 'ok'
+            elif divergencia <= 1:
+                status = 'alerta'
+            else:
+                status = 'divergente'
+        
+        resultado.append({
+            'codigo': dados['codigo'],
+            'descricao': dados['descricao'],
+            'ncm': dados['ncm'],
+            'quantidade': dados['quantidade'],
+            'valor_total': round(dados['valor_total'], 2),
+            'aliquota_praticada': round(aliq_mais_comum, 2),
+            'aliquotas_encontradas': list(set([round(a, 2) for a in aliquotas])),
+            'aliquota_esperada': aliq_esperada,
+            'divergencia': round(divergencia, 2),
+            'status': status,
+            'regra': dados.get('regra')
+        })
+    
+    # Ordenar por divergência (maiores primeiro) e depois por valor
+    resultado.sort(key=lambda x: (-x['divergencia'] if x['status'] == 'divergente' else 0, -x['valor_total']))
+    
+    # Estatísticas
+    total_produtos = len(resultado)
+    produtos_ok = len([r for r in resultado if r['status'] == 'ok'])
+    produtos_alerta = len([r for r in resultado if r['status'] == 'alerta'])
+    produtos_divergentes = len([r for r in resultado if r['status'] == 'divergente'])
+    produtos_sem_regra = len([r for r in resultado if r['status'] == 'sem_regra'])
+    
+    return {
+        "company_id": company_id,
+        "competencia": competencia,
+        "uf": uf_empresa,
+        "estatisticas": {
+            "total": total_produtos,
+            "ok": produtos_ok,
+            "alerta": produtos_alerta,
+            "divergentes": produtos_divergentes,
+            "sem_regra": produtos_sem_regra
+        },
+        "produtos": resultado[:100],  # Limitar a 100 primeiros
+        "total_regras": len(regras)
+    }
+
+
+@api_router.get("/validador-icms/{company_id}/por-ncm")
+async def validador_icms_por_ncm(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Validador de alíquota de ICMS agrupado por NCM.
+    Compara alíquota praticada vs. alíquota esperada (baseada nas regras).
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    uf_empresa = company.get('uf', 'SP')
+    
+    # Buscar regras de ICMS da empresa por NCM
+    regras = await db.regras_icms.find({
+        "company_id": company_id,
+        "uf": uf_empresa,
+        "tipo": "ncm",
+        "ativo": True
+    }).to_list(length=1000)
+    
+    regras_por_ncm = {r['chave'].replace('.', '').strip(): r for r in regras}
+    
+    # Buscar documentos de SAÍDA
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    
+    # Agregar por NCM
+    ncms_agregados = {}
+    
+    async for doc in db.xml_documents.find(query, {"produtos": 1, "tipo": 1, "tipo_operacao": 1}):
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            if cfop and cfop[0] not in ['5', '6', '7']:
+                continue  # Pular entradas
+            
+            ncm = str(prod.get('ncm', '')).replace('.', '').strip()
+            if not ncm or len(ncm) < 4:
+                continue
+            
+            ncm_4 = ncm[:4]  # Agrupar por posição NCM (4 dígitos)
+            aliq_icms = float(prod.get('p_icms', 0) or prod.get('aliq_icms', 0) or 0)
+            valor_total = float(prod.get('valor_total', 0) or 0)
+            descricao = prod.get('descricao', prod.get('xProd', ''))
+            
+            if ncm_4 not in ncms_agregados:
+                ncms_agregados[ncm_4] = {
+                    'ncm': ncm_4,
+                    'quantidade': 0,
+                    'valor_total': 0,
+                    'aliquotas_praticadas': [],
+                    'produtos_exemplo': [],
+                    'ncms_completos': set()
+                }
+            
+            ncms_agregados[ncm_4]['quantidade'] += 1
+            ncms_agregados[ncm_4]['valor_total'] += valor_total
+            ncms_agregados[ncm_4]['ncms_completos'].add(ncm)
+            if aliq_icms > 0:
+                ncms_agregados[ncm_4]['aliquotas_praticadas'].append(aliq_icms)
+            if len(ncms_agregados[ncm_4]['produtos_exemplo']) < 3:
+                if descricao not in ncms_agregados[ncm_4]['produtos_exemplo']:
+                    ncms_agregados[ncm_4]['produtos_exemplo'].append(descricao[:50])
+    
+    # Calcular e verificar divergências
+    resultado = []
+    for ncm_4, dados in ncms_agregados.items():
+        aliquotas = dados['aliquotas_praticadas']
+        aliq_mais_comum = max(set(aliquotas), key=aliquotas.count) if aliquotas else 0
+        
+        # Buscar regra aplicável
+        regra = None
+        aliq_esperada = None
+        
+        # Tentar por NCM completo, depois por prefixos
+        for ncm_completo in dados['ncms_completos']:
+            for i in range(8, 3, -1):
+                prefixo = ncm_completo[:i]
+                if prefixo in regras_por_ncm:
+                    regra = regras_por_ncm[prefixo]
+                    aliq_esperada = regra.get('aliquota_esperada')
+                    break
+            if regra:
+                break
+        
+        # Determinar status
+        status = 'sem_regra'
+        divergencia = 0
+        if aliq_esperada is not None:
+            divergencia = abs(aliq_mais_comum - aliq_esperada)
+            if divergencia <= 0.1:
+                status = 'ok'
+            elif divergencia <= 1:
+                status = 'alerta'
+            else:
+                status = 'divergente'
+        
+        resultado.append({
+            'ncm': ncm_4,
+            'ncms_completos': list(dados['ncms_completos'])[:5],
+            'quantidade': dados['quantidade'],
+            'valor_total': round(dados['valor_total'], 2),
+            'produtos_exemplo': dados['produtos_exemplo'],
+            'aliquota_praticada': round(aliq_mais_comum, 2),
+            'aliquotas_encontradas': list(set([round(a, 2) for a in aliquotas])),
+            'aliquota_esperada': aliq_esperada,
+            'divergencia': round(divergencia, 2),
+            'status': status,
+            'regra': {
+                'id': regra.get('id'),
+                'descricao': regra.get('descricao'),
+                'base_legal': regra.get('base_legal')
+            } if regra else None
+        })
+    
+    # Ordenar por divergência (maiores primeiro)
+    resultado.sort(key=lambda x: (-x['divergencia'] if x['status'] == 'divergente' else 0, -x['valor_total']))
+    
+    # Estatísticas
+    total_ncms = len(resultado)
+    ncms_ok = len([r for r in resultado if r['status'] == 'ok'])
+    ncms_alerta = len([r for r in resultado if r['status'] == 'alerta'])
+    ncms_divergentes = len([r for r in resultado if r['status'] == 'divergente'])
+    ncms_sem_regra = len([r for r in resultado if r['status'] == 'sem_regra'])
+    
+    return {
+        "company_id": company_id,
+        "competencia": competencia,
+        "uf": uf_empresa,
+        "estatisticas": {
+            "total": total_ncms,
+            "ok": ncms_ok,
+            "alerta": ncms_alerta,
+            "divergentes": ncms_divergentes,
+            "sem_regra": ncms_sem_regra
+        },
+        "ncms": resultado[:100],
+        "total_regras": len(regras)
+    }
+
+
+@api_router.get("/validador-icms/{company_id}/regras")
+async def listar_regras_icms(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Lista todas as regras de ICMS da empresa"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    uf = company.get('uf', 'SP')
+    regras = await db.regras_icms.find({
+        "company_id": company_id
+    }, {"_id": 0}).sort("created_at", -1).to_list(length=500)
+    
+    return {
+        "company_id": company_id,
+        "uf": uf,
+        "regras": regras,
+        "total": len(regras)
+    }
+
+
+@api_router.post("/validador-icms/{company_id}/regras")
+async def criar_regra_icms(
+    company_id: str,
+    regra: RegraICMSCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Cria uma nova regra de ICMS"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    uf = company.get('uf', 'SP')
+    
+    nova_regra = RegraICMS(
+        company_id=company_id,
+        tipo=regra.tipo,
+        chave=regra.chave.strip(),
+        descricao=regra.descricao,
+        aliquota_esperada=regra.aliquota_esperada,
+        aliquota_reduzida=regra.aliquota_reduzida,
+        condicao_reducao=regra.condicao_reducao,
+        uf=uf,
+        base_legal=regra.base_legal,
+        ativo=True,
+        created_by=current_user.id
+    )
+    
+    await db.regras_icms.insert_one(nova_regra.model_dump())
+    
+    return {"message": "Regra criada com sucesso", "regra": nova_regra.model_dump()}
+
+
+@api_router.put("/validador-icms/{company_id}/regras/{regra_id}")
+async def atualizar_regra_icms(
+    company_id: str,
+    regra_id: str,
+    dados: RegraICMSUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Atualiza uma regra de ICMS existente"""
+    regra = await db.regras_icms.find_one({"id": regra_id, "company_id": company_id})
+    if not regra:
+        raise HTTPException(status_code=404, detail="Regra não encontrada")
+    
+    update_data = {k: v for k, v in dados.model_dump().items() if v is not None}
+    if update_data:
+        await db.regras_icms.update_one(
+            {"id": regra_id},
+            {"$set": update_data}
+        )
+    
+    return {"message": "Regra atualizada com sucesso"}
+
+
+@api_router.delete("/validador-icms/{company_id}/regras/{regra_id}")
+async def excluir_regra_icms(
+    company_id: str,
+    regra_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Exclui uma regra de ICMS"""
+    result = await db.regras_icms.delete_one({"id": regra_id, "company_id": company_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Regra não encontrada")
+    
+    return {"message": "Regra excluída com sucesso"}
+
+
+# Alíquotas padrão de ICMS por estado (para sugestões iniciais)
+ALIQUOTAS_ICMS_PADRAO = {
+    'SP': {
+        'interna': 18.0,
+        'interestadual_sul_sudeste': 12.0,
+        'interestadual_norte_nordeste': 7.0,
+        'reducao_cesta_basica': 7.0
+    },
+    'RJ': {'interna': 20.0, 'interestadual_sul_sudeste': 12.0},
+    'MG': {'interna': 18.0, 'interestadual_sul_sudeste': 12.0},
+    'RS': {'interna': 17.0, 'interestadual_sul_sudeste': 12.0},
+    'PR': {'interna': 19.0, 'interestadual_sul_sudeste': 12.0},
+    'SC': {'interna': 17.0, 'interestadual_sul_sudeste': 12.0},
+    'GO': {'interna': 17.0, 'interestadual_sul_sudeste': 12.0},
+    'BA': {'interna': 18.0, 'interestadual_sul_sudeste': 12.0},
+    'PE': {'interna': 18.0, 'interestadual_sul_sudeste': 12.0},
+    'CE': {'interna': 18.0, 'interestadual_sul_sudeste': 12.0},
+}
+
+
+@api_router.get("/validador-icms/{company_id}/sugestoes")
+async def sugerir_regras_icms(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Sugere regras de ICMS baseadas nos NCMs mais frequentes nas vendas.
+    Usa alíquotas padrão do estado como base.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    uf = company.get('uf', 'SP')
+    aliquotas_uf = ALIQUOTAS_ICMS_PADRAO.get(uf, ALIQUOTAS_ICMS_PADRAO['SP'])
+    
+    # Buscar NCMs mais frequentes nas saídas
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    
+    ncms_frequentes = {}
+    async for doc in db.xml_documents.find(query, {"produtos": 1}):
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            if cfop and cfop[0] not in ['5', '6', '7']:
+                continue
+            
+            ncm = str(prod.get('ncm', '')).replace('.', '').strip()
+            if not ncm or len(ncm) < 4:
+                continue
+            
+            ncm_4 = ncm[:4]
+            if ncm_4 not in ncms_frequentes:
+                ncms_frequentes[ncm_4] = {
+                    'ncm': ncm_4,
+                    'quantidade': 0,
+                    'descricao_exemplo': prod.get('descricao', '')[:50]
+                }
+            ncms_frequentes[ncm_4]['quantidade'] += 1
+    
+    # Ordenar por frequência
+    ncms_ordenados = sorted(ncms_frequentes.values(), key=lambda x: -x['quantidade'])[:20]
+    
+    # Verificar quais já têm regra
+    regras_existentes = await db.regras_icms.find({
+        "company_id": company_id,
+        "tipo": "ncm"
+    }).to_list(length=1000)
+    ncms_com_regra = set(r['chave'].replace('.', '').strip()[:4] for r in regras_existentes)
+    
+    # Gerar sugestões para NCMs sem regra
+    sugestoes = []
+    for ncm_data in ncms_ordenados:
+        if ncm_data['ncm'] not in ncms_com_regra:
+            sugestoes.append({
+                'ncm': ncm_data['ncm'],
+                'descricao_exemplo': ncm_data['descricao_exemplo'],
+                'quantidade_itens': ncm_data['quantidade'],
+                'aliquota_sugerida': aliquotas_uf.get('interna', 18.0),
+                'observacao': f"Alíquota interna padrão de {uf}"
+            })
+    
+    return {
+        "company_id": company_id,
+        "uf": uf,
+        "aliquotas_padrao_uf": aliquotas_uf,
+        "sugestoes": sugestoes[:10],
+        "total_ncms_sem_regra": len(sugestoes)
+    }
+
 
 app.include_router(api_router)
 
