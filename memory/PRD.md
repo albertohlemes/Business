@@ -1,11 +1,12 @@
-# PRD - Sistema de Análise Fiscal
+# PRD - Sistema de Análise Fiscal (AURION)
 
 ## Problema Original
 Sistema de análise fiscal para empresas brasileiras com funcionalidades de:
-- Apuração de PIS/COFINS
+- Apuração de PIS/COFINS, ICMS, IPI, ISS
 - Comparativo de regimes tributários (RET)
 - Simulação de Reforma Tributária (IVA Dual)
 - Classificação de produtos
+- Validação de alíquotas
 
 ## User Persona
 - Contadores e analistas fiscais
@@ -17,47 +18,67 @@ Sistema de análise fiscal para empresas brasileiras com funcionalidades de:
 2. **Precisão de Cálculos**: Apuração correta de PIS/COFINS com todos os CSTs relevantes
 3. **Visualização Consistente**: Mesma estrutura de dados entre diferentes telas
 4. **Exportação de Dados**: Permitir exportação de relatórios para análise externa
+5. **Saldo Credor**: Gerenciamento de saldo credor anterior entre competências
 
 ---
 
 ## O que foi implementado
 
-### Sessão Atual (Dezembro 2025)
+### Sessão 18/02/2026 - ✅ TESTADO E VALIDADO
 
-#### 1. Reforma Tributária - Dois Cenários Distintos
+#### 1. CFOPs Excluídos dos Cálculos de PIS/COFINS
+- **IMPLEMENTADO**: CFOPs 1920, 2920, 1921, 5927, 6908 agora estão nas listas de exclusão
+- Não geram mais crédito/débito de PIS/COFINS indevidamente
+- Arquivo: `/app/backend/services/pis_cofins_calculator.py`
+
+#### 2. Saldo Credor Anterior nas Apurações
+- **IMPLEMENTADO**: O saldo credor anterior (PIS, COFINS, ICMS) cadastrado na empresa é exibido nas apurações
+- Considera o saldo no cálculo do imposto do mês
+- Se resultar em crédito, transporta automaticamente para a próxima competência
+- Frontend exibe seções "Saldo Credor Anterior" e "Saldo a Transportar"
+- Arquivo: `/app/backend/server.py` (endpoint /api/pis-cofins/apuracao)
+
+#### 3. Validador de Alíquota de ICMS (NOVA FUNCIONALIDADE)
+- **IMPLEMENTADO**: Nova página com 3 abas: Por Produto, Por NCM, Regras
+- Compara alíquotas praticadas nas saídas vs. alíquotas esperadas (configuráveis)
+- Status: OK, Alerta, Divergente, Sem Regra
+- CRUD completo de regras por NCM ou por produto
+- Sugestões automáticas baseadas nos NCMs mais frequentes
+- Alíquotas padrão por estado (SP, RJ, MG, etc.)
+- Menu: "Validador ICMS" abaixo de "ICMS"
+- Arquivos: 
+  - Backend: `/app/backend/server.py` (endpoints /api/validador-icms/*)
+  - Frontend: `/app/frontend/src/pages/ValidadorICMS.js`
+
+### Sessão Anterior (Dezembro 2025)
+
+#### 4. Reforma Tributária - Dois Cenários Distintos
 - **Cenário 2027 (Azul)**: PIS/COFINS → CBS (sem ICMS)
 - **Reforma Completa (Amber)**: PIS/COFINS + ICMS → CBS + IBS
-- Interface visual clara separando os dois cenários
-- Cálculo de economia/aumento para cada cenário
 
-#### 2. ICMS Consistente na Reforma Tributária
-- **CORRIGIDO**: Agora usa a MESMA função `_get_icms_aggregated` do menu ICMS
-- Valores de crédito, débito e saldo ICMS agora são consistentes
-- Considera CFOPs de despesas e ST conforme configuração da empresa
+#### 5. ICMS Consistente na Reforma Tributária
+- Usa a mesma função `_get_icms_aggregated` do menu ICMS
 
-#### 3. PIS/COFINS - Consistência de Valores
-- **CORRIGIDO**: Endpoint de detalhamento usa função centralizada `calcular_pis_cofins_unificado`
-- Os totais do saldo são consistentes com a aba Apuração
-
-#### 4. Botão Exportar PIS/COFINS
-- **IMPLEMENTADO**: Função de exportação CSV funcionando
+#### 6. PIS/COFINS - Consistência de Valores
+- Endpoint de detalhamento usa função centralizada `calcular_pis_cofins_unificado`
 
 ---
 
 ## Backlog Priorizado
 
 ### P0 - Crítico
-- [PENDENTE VALIDAÇÃO] Testar valores de ICMS na Reforma Tributária
-- [PENDENTE VALIDAÇÃO] Testar consistência de PIS/COFINS entre as 3 telas
+- ✅ [CONCLUÍDO] CFOPs sem crédito/débito excluídos
+- ✅ [CONCLUÍDO] Saldo Credor Anterior nas apurações
+- ✅ [CONCLUÍDO] Validador de Alíquota de ICMS
 
 ### P1 - Alta Prioridade
-- Ocultar menu "ICMS ST" para empresas não contribuintes
-- Totalizador por CST nos detalhamentos de PIS/COFINS
+- [PENDENTE] Ocultar menu "ICMS ST" para empresas não contribuintes
+- [PENDENTE] Totalizador por CST nos detalhamentos de PIS/COFINS
 
 ### P2 - Média Prioridade
-- Pacote de instalação On-Premise com Docker
-- Popular página `Insights IA`
-- Suíte de testes automatizados com pytest
+- [PENDENTE] Pacote de instalação On-Premise com Docker
+- [PENDENTE] Popular página `Insights IA`
+- [PENDENTE] Suíte de testes automatizados com pytest
 
 ---
 
@@ -66,22 +87,25 @@ Sistema de análise fiscal para empresas brasileiras com funcionalidades de:
 ```
 /app/
 ├── backend/
-│   └── server.py
-│       ├── calcular_pis_cofins_unificado()     # Função centralizada PIS/COFINS
-│       ├── _get_icms_aggregated()              # Função centralizada ICMS
-│       ├── /api/pis-cofins/apuracao            # Usa função centralizada
-│       ├── /api/pis-cofins/detalhamento        # Usa função centralizada para totais
-│       ├── /api/apuracao-icms                  # Usa _get_icms_aggregated
-│       └── /api/reforma-tributaria/apuracao    # Usa AMBAS funções centralizadas
+│   ├── server.py
+│   │   ├── calcular_pis_cofins_unificado()     # Função centralizada PIS/COFINS
+│   │   ├── _get_icms_aggregated()              # Função centralizada ICMS
+│   │   ├── /api/pis-cofins/apuracao            # Usa função centralizada + saldo credor
+│   │   ├── /api/validador-icms/*               # NOVO: Validador de alíquotas ICMS
+│   │   └── /api/reforma-tributaria/apuracao    # Usa AMBAS funções centralizadas
+│   └── services/
+│       └── pis_cofins_calculator.py            # Listas de CFOPs centralizadas
 └── frontend/
     └── src/pages/
-        ├── ReformaTributaria.js  # 2 cenários: 2027 (CBS) e Completo (CBS+IBS)
-        ├── RET.js
-        └── PisCofins.js
+        ├── PisCofins.js           # Com Saldo Credor Anterior
+        ├── ValidadorICMS.js       # NOVO: Validador de alíquotas
+        ├── ReformaTributaria.js
+        └── RET.js
 ```
 
 ## Credenciais de Teste
 - Email: alberto.lemes@businessconta.com.br
 - Senha: @Ahl142536
-- Empresa: COMERCIAL RS LTDA (ID: 6026)
+- Empresa: COMERCIAL RS LTDA (ID: d7f30ea1-9df3-4124-a561-12984ffff64b, código: 6026)
 - Competência: 01/2026
+- Saldo Credor Configurado: PIS R$ 3.000, COFINS R$ 12.000, ICMS R$ 5.000
