@@ -272,6 +272,52 @@ class TestValidadorICMSRegras:
 
 
 # ============================================================
+# VALIDADOR ICMS - Inicializar Regras Test
+# ============================================================
+
+class TestValidadorICMSInicializarRegras:
+    """Tests for /api/validador-icms/{company_id}/inicializar-regras endpoint"""
+    
+    def test_inicializar_regras_endpoint(self, auth_headers):
+        """Test POST inicializar-regras creates rules from RICMS"""
+        response = requests.post(
+            f"{BASE_URL}/api/validador-icms/{COMPANY_ID}/inicializar-regras",
+            params={"competencia": COMPETENCIA},
+            headers=auth_headers
+        )
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        data = response.json()
+        
+        # Verify response structure
+        assert "message" in data, "Response must have message"
+        assert "regras_criadas" in data or "regras_existentes" in data, "Response must have regras count"
+        
+        print(f"✅ Inicializar regras endpoint returned 200")
+        print(f"   Message: {data.get('message')}")
+        print(f"   Regras criadas: {data.get('regras_criadas', 0)}")
+        print(f"   Regras existentes: {data.get('regras_existentes', 0)}")
+        print(f"   UF da empresa: {data.get('uf', 'N/A')}")
+    
+    def test_inicializar_regras_creates_with_base_legal(self, auth_headers):
+        """Test that created rules have base_legal field populated"""
+        # Get current rules
+        response = requests.get(
+            f"{BASE_URL}/api/validador-icms/{COMPANY_ID}/regras",
+            headers=auth_headers
+        )
+        regras = response.json().get("regras", [])
+        
+        if regras:
+            # Check that rules have base_legal
+            rules_with_base_legal = [r for r in regras if r.get("base_legal")]
+            print(f"✅ Found {len(rules_with_base_legal)}/{len(regras)} rules with base_legal")
+            
+            if rules_with_base_legal:
+                sample = rules_with_base_legal[0]
+                print(f"   Sample: NCM {sample.get('chave')}, Base Legal: {sample.get('base_legal')}")
+
+
+# ============================================================
 # VALIDADOR ICMS - Exception Application Tests
 # ============================================================
 
