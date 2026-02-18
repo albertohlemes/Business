@@ -147,6 +147,7 @@ const Layout = ({ user, onLogout, children }) => {
       // Lucro Presumido / Lucro Real
       // Federais
       nav.push({ name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' });
+      nav.push({ name: 'Validador PIS/COFINS', href: '/validador-pis-cofins', icon: AlertTriangle, testId: 'nav-validador-pis-cofins' });
       
       if (ehIndustria) {
         nav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
