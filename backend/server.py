@@ -26564,49 +26564,79 @@ async def detalhamento_pis_cofins(
             valor_base = max(0, valor_total - v_icms)
             
             # ==========================================================================
-            # PRIORIZAR REGRA CUSTOMIZADA DA EMPRESA, SENÃO USA CÁLCULO PADRÃO
+            # 1º VERIFICAR CFOPs DE EXCEÇÃO (devoluções, bonificações, uso/consumo, etc.)
+            # Estes NÃO geram crédito/débito independente do NCM
             # ==========================================================================
-            regra_empresa = buscar_regra_ncm(ncm)
+            cfop_excecao_entrada = CFOPS_EXCECAO_ENTRADA.get(cfop)
+            cfop_excecao_saida = CFOPS_EXCECAO_SAIDA.get(cfop)
             
-            if regra_empresa:
-                # USAR REGRA DA EMPRESA
-                aliq_pis = float(regra_empresa.get('aliquota_pis', 0) or 0)
-                aliq_cofins = float(regra_empresa.get('aliquota_cofins', 0) or 0)
-                gera_credito = regra_empresa.get('gera_credito', False)
-                gera_debito = regra_empresa.get('gera_debito', False)
-                cst_entrada = regra_empresa.get('cst_esperado_entrada', '70')
-                cst_saida = regra_empresa.get('cst_esperado_saida', '06')
-                tipo_regra = regra_empresa.get('tipo_regra', 'aliquota_zero')
-                
-                if tipo_op == 'entrada':
-                    cst = cst_entrada
-                    if gera_credito:
-                        valor_pis = valor_base * aliq_pis / 100
-                        valor_cofins = valor_base * aliq_cofins / 100
-                    else:
-                        valor_pis = 0
-                        valor_cofins = 0
-                else:
-                    cst = cst_saida
-                    if gera_debito:
-                        valor_pis = valor_base * aliq_pis / 100
-                        valor_cofins = valor_base * aliq_cofins / 100
-                    else:
-                        valor_pis = 0
-                        valor_cofins = 0
-                
-                classificacao = f"REGRA_{tipo_regra.upper()}"
+            if tipo_op == 'entrada' and cfop_excecao_entrada:
+                # CFOP de exceção em entrada - não gera crédito
+                cst = cfop_excecao_entrada.get('cst_esperado', '98')
+                aliq_pis = 0
+                aliq_cofins = 0
+                valor_pis = 0
+                valor_cofins = 0
+                gera_credito = False
+                gera_debito = False
+                classificacao = f"CFOP_EXCECAO_{cfop}"
+            elif tipo_op == 'saida' and cfop_excecao_saida:
+                # CFOP de exceção em saída - não gera débito
+                cst = cfop_excecao_saida.get('cst_esperado', '99')
+                aliq_pis = 0
+                aliq_cofins = 0
+                valor_pis = 0
+                valor_cofins = 0
+                gera_credito = False
+                gera_debito = False
+                classificacao = f"CFOP_EXCECAO_{cfop}"
             else:
-                # Calcular usando função padrão
-                calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, tipo_op, perfil_empresa, regime_para_calculo)
-                cst = calc.get('cst', '01' if tipo_op == 'saida' else '50')
-                aliq_pis = calc.get('aliquota_pis', 0)
-                aliq_cofins = calc.get('aliquota_cofins', 0)
-                valor_pis = calc.get('valor_pis', 0)
-                valor_cofins = calc.get('valor_cofins', 0)
-                gera_credito = calc.get('gera_credito', False)
-                gera_debito = calc.get('gera_debito', False)
-                classificacao = calc.get('classificacao', {}).get('grupo', 'REGRA_GERAL')
+                # ==========================================================================
+                # 2º VERIFICAR REGRA CUSTOMIZADA DA EMPRESA POR NCM
+                # ==========================================================================
+                regra_empresa = buscar_regra_ncm(ncm)
+                
+                if regra_empresa:
+                    # USAR REGRA DA EMPRESA
+                    aliq_pis = float(regra_empresa.get('aliquota_pis', 0) or 0)
+                    aliq_cofins = float(regra_empresa.get('aliquota_cofins', 0) or 0)
+                    gera_credito = regra_empresa.get('gera_credito', False)
+                    gera_debito = regra_empresa.get('gera_debito', False)
+                    cst_entrada = regra_empresa.get('cst_esperado_entrada', '70')
+                    cst_saida = regra_empresa.get('cst_esperado_saida', '06')
+                    tipo_regra = regra_empresa.get('tipo_regra', 'aliquota_zero')
+                    
+                    if tipo_op == 'entrada':
+                        cst = cst_entrada
+                        if gera_credito:
+                            valor_pis = valor_base * aliq_pis / 100
+                            valor_cofins = valor_base * aliq_cofins / 100
+                        else:
+                            valor_pis = 0
+                            valor_cofins = 0
+                    else:
+                        cst = cst_saida
+                        if gera_debito:
+                            valor_pis = valor_base * aliq_pis / 100
+                            valor_cofins = valor_base * aliq_cofins / 100
+                        else:
+                            valor_pis = 0
+                            valor_cofins = 0
+                    
+                    classificacao = f"REGRA_{tipo_regra.upper()}"
+                else:
+                    # ==========================================================================
+                    # 3º CÁLCULO PADRÃO (se não houver exceção nem regra customizada)
+                    # ==========================================================================
+                    calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, tipo_op, perfil_empresa, regime_para_calculo)
+                    cst = calc.get('cst', '01' if tipo_op == 'saida' else '50')
+                    aliq_pis = calc.get('aliquota_pis', 0)
+                    aliq_cofins = calc.get('aliquota_cofins', 0)
+                    valor_pis = calc.get('valor_pis', 0)
+                    valor_cofins = calc.get('valor_cofins', 0)
+                    gera_credito = calc.get('gera_credito', False)
+                    gera_debito = calc.get('gera_debito', False)
+                    classificacao = calc.get('classificacao', {}).get('grupo', 'REGRA_GERAL')
             
             chave = f"{ncm}_{cfop}_{cst}"
             
