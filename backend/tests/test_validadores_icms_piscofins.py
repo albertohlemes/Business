@@ -216,22 +216,25 @@ class TestValidadorICMSRegras:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         data = response.json()
         
+        # Response can be {"message": ..., "regra": {...}} or directly the rule
+        regra = data.get("regra", data)
+        
         # Verify rule was created with excecoes
-        assert "id" in data, "Response must have rule id"
-        assert "excecoes" in data, "Response must have excecoes"
-        assert len(data["excecoes"]) == 2, f"Expected 2 exceptions, got {len(data['excecoes'])}"
+        assert "id" in regra, f"Response must have rule id. Got: {list(data.keys())}"
+        assert "excecoes" in regra, "Response must have excecoes"
+        assert len(regra["excecoes"]) == 2, f"Expected 2 exceptions, got {len(regra['excecoes'])}"
         
         # Verify exception structure
-        exc = data["excecoes"][0]
+        exc = regra["excecoes"][0]
         assert "chave" in exc, "Exception must have chave"
         assert "aliquota" in exc, "Exception must have aliquota"
         
         print(f"✅ POST regra with excecoes succeeded")
-        print(f"   Rule ID: {data['id']}")
-        print(f"   Exceptions: {len(data['excecoes'])}")
+        print(f"   Rule ID: {regra['id']}")
+        print(f"   Exceptions: {len(regra['excecoes'])}")
         
         # Clean up - delete test rule
-        rule_id = data["id"]
+        rule_id = regra["id"]
         delete_response = requests.delete(
             f"{BASE_URL}/api/validador-icms/{COMPANY_ID}/regras/{rule_id}",
             headers=auth_headers
@@ -467,16 +470,19 @@ class TestValidadorPisCofinsRegras:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         data = response.json()
         
-        assert "id" in data, "Response must have rule id"
-        assert data.get("aliquota_pis") == 1.65
-        assert data.get("aliquota_cofins") == 7.6
-        assert data.get("gera_credito") == True
+        # Response can be {"message": ..., "regra": {...}} or directly the rule
+        regra = data.get("regra", data)
+        
+        assert "id" in regra, f"Response must have rule id. Got: {list(data.keys())}"
+        assert regra.get("aliquota_pis") == 1.65
+        assert regra.get("aliquota_cofins") == 7.6
+        assert regra.get("gera_credito") == True
         
         print(f"✅ POST regra succeeded")
-        print(f"   Rule ID: {data['id']}")
+        print(f"   Rule ID: {regra['id']}")
         
         # Clean up
-        rule_id = data["id"]
+        rule_id = regra["id"]
         delete_response = requests.delete(
             f"{BASE_URL}/api/validador-pis-cofins/{COMPANY_ID}/regras/{rule_id}",
             headers=auth_headers
@@ -504,7 +510,9 @@ class TestValidadorPisCofinsRegras:
             headers=auth_headers
         )
         assert create_response.status_code == 200
-        rule_id = create_response.json()["id"]
+        create_data = create_response.json()
+        regra = create_data.get("regra", create_data)
+        rule_id = regra["id"]
         
         # Update the rule
         update_data = {
@@ -551,7 +559,9 @@ class TestValidadorPisCofinsRegras:
             headers=auth_headers
         )
         assert create_response.status_code == 200
-        rule_id = create_response.json()["id"]
+        create_data = create_response.json()
+        regra = create_data.get("regra", create_data)
+        rule_id = regra["id"]
         
         # Delete the rule
         delete_response = requests.delete(
