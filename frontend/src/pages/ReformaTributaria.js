@@ -253,14 +253,6 @@ const ReformaTributaria = ({ user, onLogout }) => {
           {/* Tab: Dashboard */}
           {activeTab === 'dashboard' && !loading && apuracao && (
             <div className="space-y-6">
-              {/* Painel de Grupo Empresarial - Mostrar se for matriz */}
-              <GrupoEmpresarialPanel
-                companyId={selectedCompany?.id}
-                competencia={selectedCompetencia}
-                token={localStorage.getItem('token')}
-                tipoImposto="pis_cofins"
-              />
-              
               {/* Cards Principais */}
               <div className="grid grid-cols-4 gap-4">
                 {/* Créditos (Entradas) */}
