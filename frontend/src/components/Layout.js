@@ -154,6 +154,7 @@ const Layout = ({ user, onLogout, children }) => {
       // Estaduais
       if (['comercio', 'industria', 'mista'].includes(tipoAtividade) || apuraIcms) {
         nav.push({ name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' });
+        nav.push({ name: 'Validador ICMS', href: '/validador-icms', icon: AlertTriangle, testId: 'nav-validador-icms' });
       }
       
       // ICMS ST apenas para contribuintes de ST (indústria ou com flag apuraIcmsSt)
