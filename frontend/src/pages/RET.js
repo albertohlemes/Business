@@ -124,6 +124,8 @@ const RET = ({ user, onLogout }) => {
   }, [activeTab, dados, dadosAcumulado, dadosEstimativa]);
 
   // Identificar melhor regime
+  // Obs: Para Lucro Real, usamos o total já calculado (débito - crédito, min 0)
+  // A economia é sempre comparada com o segundo melhor regime disponível
   const melhorRegime = useMemo(() => {
     if (!dadosAtivos) return null;
     
@@ -146,6 +148,31 @@ const RET = ({ user, onLogout }) => {
     
     valores.sort((a, b) => a.total - b.total);
     return valores[0];
+  }, [dadosAtivos, activeTab, LIMITE_SIMPLES_MENSAL, LIMITE_SIMPLES_ANUAL]);
+  
+  // Calcular segundo pior regime para comparação de economia
+  const segundoMelhorRegime = useMemo(() => {
+    if (!dadosAtivos) return null;
+    
+    const faturamento = dadosAtivos.faturamento || 0;
+    const limiteSimples = activeTab === 'periodo' ? LIMITE_SIMPLES_MENSAL : LIMITE_SIMPLES_ANUAL;
+    const simplesDisponivel = faturamento <= limiteSimples;
+    
+    const valores = [];
+    if (simplesDisponivel && dadosAtivos.simples?.total !== undefined) {
+      valores.push({ regime: 'simples', total: dadosAtivos.simples.total, nome: 'Simples Nacional' });
+    }
+    if (dadosAtivos.presumido?.total !== undefined) {
+      valores.push({ regime: 'presumido', total: dadosAtivos.presumido.total, nome: 'Lucro Presumido' });
+    }
+    if (dadosAtivos.real?.total !== undefined) {
+      valores.push({ regime: 'real', total: dadosAtivos.real.total, nome: 'Lucro Real' });
+    }
+    
+    if (valores.length <= 1) return null;
+    
+    valores.sort((a, b) => a.total - b.total);
+    return valores[1]; // Segundo melhor (não o pior)
   }, [dadosAtivos, activeTab, LIMITE_SIMPLES_MENSAL, LIMITE_SIMPLES_ANUAL]);
 
   // Card de Imposto Individual
