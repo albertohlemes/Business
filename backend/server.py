@@ -33948,8 +33948,10 @@ async def get_impostos_grupo(
         "consolidado": {
             "pis": {"credito": 0, "debito": 0, "saldo": 0, "a_pagar": 0},
             "cofins": {"credito": 0, "debito": 0, "saldo": 0, "a_pagar": 0},
+            "icms": {"credito": 0, "debito": 0, "saldo": 0, "a_pagar": 0, "a_recuperar": 0},
             "irpj": {"base": 0, "devido": 0, "adicional": 0, "total": 0},
             "csll": {"base": 0, "devido": 0},
+            "indicadores": {"entradas": 0, "compras": 0, "saidas": 0, "vendas": 0},
             "total_federal": 0,
             "faturamento": 0
         }
@@ -33971,15 +33973,59 @@ async def get_impostos_grupo(
                 "cofins_creditos": 0, "cofins_debitos": 0, "cofins_saldo": 0
             }
         
-        # Buscar faturamento (saídas)
-        saidas = await db.xml_documents.find({
+        # Buscar TODAS as notas para indicadores
+        notas_entrada = await db.xml_documents.find({
+            "company_id": empresa_id,
+            "competencia": competencia,
+            "tipo": "entrada",
+            **get_filtro_notas_ativas()
+        }, {"valor_total": 1, "produtos": 1}).to_list(15000)
+        
+        notas_saida = await db.xml_documents.find({
             "company_id": empresa_id,
             "competencia": competencia,
             "tipo": "saida",
             **get_filtro_notas_ativas()
-        }, {"valor_total": 1}).to_list(15000)
+        }, {"valor_total": 1, "produtos": 1}).to_list(15000)
         
-        faturamento = sum(float(d.get("valor_total", 0) or 0) for d in saidas)
+        # Calcular indicadores
+        total_entradas = sum(float(d.get("valor_total", 0) or 0) for d in notas_entrada)
+        total_saidas = sum(float(d.get("valor_total", 0) or 0) for d in notas_saida)
+        
+        # Compras = entradas de revenda/insumos (CFOPs 1xxx, 2xxx para aquisição)
+        total_compras = 0
+        for doc in notas_entrada:
+            for prod in doc.get("produtos", []):
+                cfop = str(prod.get("cfop", ""))
+                if cfop[:2] in ["11", "12", "21", "22", "31"]:  # Compras
+                    total_compras += float(prod.get("valor_total", 0) or 0)
+        
+        # Vendas = saídas de venda (CFOPs 5xxx, 6xxx de venda)
+        total_vendas = 0
+        for doc in notas_saida:
+            for prod in doc.get("produtos", []):
+                cfop = str(prod.get("cfop", ""))
+                if cfop[:2] in ["51", "52", "61", "62", "71"]:  # Vendas
+                    total_vendas += float(prod.get("valor_total", 0) or 0)
+        
+        faturamento = total_saidas
+        
+        # Calcular ICMS de cada empresa
+        icms_credito = 0
+        icms_debito = 0
+        for doc in notas_entrada:
+            for prod in doc.get("produtos", []):
+                v_icms = float(prod.get("v_icms", 0) or prod.get("valor_icms", 0) or 0)
+                icms_credito += v_icms
+        
+        for doc in notas_saida:
+            for prod in doc.get("produtos", []):
+                v_icms = float(prod.get("v_icms", 0) or prod.get("valor_icms", 0) or 0)
+                icms_debito += v_icms
+        
+        icms_saldo = icms_debito - icms_credito
+        icms_a_pagar = max(0, icms_saldo)
+        icms_a_recuperar = max(0, -icms_saldo)
         
         # Calcular IRPJ/CSLL (Lucro Presumido)
         tipo_atividade = empresa.get("tipo_atividade", "comercio")
