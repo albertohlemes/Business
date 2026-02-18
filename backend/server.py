@@ -38029,16 +38029,20 @@ async def get_apuracao_reforma_tributaria(
             'nota': 'Valores negativos indicam saldo credor'
         }
         
-        # Se tem saldo credor, mostrar o débito (não zero)
-        # Isso é mais informativo para comparação com reforma tributária
-        if pis_debito > 0 or cofins_debito > 0 or total_icms_saida_calc > 0:
-            # Mostrar débito bruto para comparação
-            regime_atual['debito_bruto'] = {
-                'pis': round(pis_debito, 2),
-                'cofins': round(cofins_debito, 2),
-                'icms': round(total_icms_saida_calc, 2),
-                'total': round(pis_debito + cofins_debito + total_icms_saida_calc, 2)
-            }
+        # Mostrar débito bruto e crédito bruto para comparação
+        # Isso permite que o frontend calcule corretamente economia/aumento
+        regime_atual['debito_bruto'] = {
+            'pis': round(pis_debito, 2),
+            'cofins': round(cofins_debito, 2),
+            'icms': round(total_icms_saida_calc, 2),
+            'total': round(pis_debito + cofins_debito + total_icms_saida_calc, 2)
+        }
+        regime_atual['credito_bruto'] = {
+            'pis': round(pis_credito, 2),
+            'cofins': round(cofins_credito, 2),
+            'icms': round(total_icms_entrada_calc, 2),
+            'total': round(pis_credito + cofins_credito + total_icms_entrada_calc, 2)
+        }
     
     # Estatísticas por CST
     stats_cst_entrada = {}
