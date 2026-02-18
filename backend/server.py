@@ -1399,9 +1399,14 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
     # Indexar regras por NCM (completo e prefixos)
     regras_por_ncm = {}
     for r in regras_empresa:
-        if r['tipo'] == 'ncm':
-            chave = r['chave'].replace('.', '').strip()
-            regras_por_ncm[chave] = r
+        try:
+            if r.get('tipo') == 'ncm':
+                chave = str(r.get('chave', '')).replace('.', '').strip()
+                if chave:
+                    regras_por_ncm[chave] = r
+        except Exception as e:
+            logger.warning(f"Erro ao processar regra NCM: {e}")
+            continue
     
     def buscar_regra_ncm(ncm: str):
         """Busca regra para NCM: tenta completo, depois prefixos menores"""
@@ -1434,15 +1439,20 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
     }
     
     # Buscar TODOS os documentos (incluindo categoria_classificada)
-    docs = await db.xml_documents.find(
-        query, 
-        {"produtos": 1, "tipo": 1, "tipo_operacao": 1, "modelo": 1, "desconsiderada_devolucao": 1}
-    ).to_list(length=50000)
+    try:
+        docs = await db.xml_documents.find(
+            query, 
+            {"produtos": 1, "tipo": 1, "tipo_operacao": 1, "modelo": 1, "desconsiderada_devolucao": 1}
+        ).to_list(length=50000)
+    except Exception as e:
+        logger.error(f"Erro ao buscar documentos PIS/COFINS: {e}")
+        docs = []
     
     for doc in docs:
-        # Pular documentos já marcados como desconsiderados por devolução
-        if doc.get('desconsiderada_devolucao'):
-            continue
+        try:
+            # Pular documentos já marcados como desconsiderados por devolução
+            if doc.get('desconsiderada_devolucao'):
+                continue
             
         # Determinar tipo de operação
         tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
