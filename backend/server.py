@@ -1295,14 +1295,8 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
     
     Lei 14.592/2023: ICMS excluído da base de cálculo nas entradas E saídas.
     
-    IMPORTANTE: Considera a categoria_classificada do produto para determinar
-    se gera ou não crédito/débito. Categorias que NÃO geram crédito/débito:
-    - devolucao: Devoluções são desconsideradas
-    - bonificacao: Bonificações não geram crédito de PIS/COFINS
-    - brinde: Similar a bonificação
-    - transferencia: Transferências entre filiais
-    - remessa: Remessas (demonstração, conserto, etc.)
-    - ativo_imobilizado: Depende da natureza (pode gerar crédito em 48 meses)
+    IMPORTANTE: Usa as constantes CFOPS_SEM_CREDITO e CFOPS_SEM_DEBITO do serviço
+    pis_cofins_calculator para garantir consistência com todas as outras funções.
     
     Retorna:
     {
@@ -1317,6 +1311,8 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
     }
     """
     from decimal import Decimal, ROUND_HALF_UP
+    # IMPORTAR constantes do serviço para garantir UMA ÚNICA fonte de verdade
+    from services.pis_cofins_calculator import CFOPS_SEM_CREDITO as CFOPS_SEM_CREDITO_SERVICO, CFOPS_SEM_DEBITO as CFOPS_SEM_DEBITO_SERVICO
     
     # ============================================================
     # CATEGORIAS que NÃO geram crédito de PIS/COFINS (entradas)
@@ -1337,6 +1333,10 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
         'remessa', 'demonstracao', 'demonstração', 'conserto',
         'bonificacao', 'bonificação', 'brinde', 'amostra'
     ]
+    
+    # USAR as constantes do serviço centralizado
+    CFOPS_SEM_CREDITO_LOCAL = CFOPS_SEM_CREDITO_SERVICO
+    CFOPS_SEM_DEBITO_LOCAL = CFOPS_SEM_DEBITO_SERVICO
     
     # ============================================================
     # CFOPs que NÃO geram crédito de PIS/COFINS (entradas)
