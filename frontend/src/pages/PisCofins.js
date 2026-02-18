@@ -382,6 +382,88 @@ const PisCofins = ({ user, onLogout }) => {
     }
   };
 
+  // Função de exportação para CSV
+  const exportarDados = () => {
+    if (!detalhamento && !apuracao) {
+      alert('Nenhum dado disponível para exportar');
+      return;
+    }
+
+    // Gerar CSV com dados de entradas e saídas
+    const { entradas, saidas, saldo } = detalhamento || {};
+    
+    const linhas = [];
+    linhas.push('RELATÓRIO PIS/COFINS - ' + selectedCompany?.razao_social);
+    linhas.push('Competência: ' + selectedCompetencia);
+    linhas.push('');
+    
+    // Resumo
+    linhas.push('=== RESUMO ===');
+    linhas.push(`Crédito PIS;${(saldo?.credito_pis || 0).toFixed(2).replace('.', ',')}`);
+    linhas.push(`Crédito COFINS;${(saldo?.credito_cofins || 0).toFixed(2).replace('.', ',')}`);
+    linhas.push(`Débito PIS;${(saldo?.debito_pis || 0).toFixed(2).replace('.', ',')}`);
+    linhas.push(`Débito COFINS;${(saldo?.debito_cofins || 0).toFixed(2).replace('.', ',')}`);
+    linhas.push(`Saldo PIS;${(saldo?.saldo_pis || 0).toFixed(2).replace('.', ',')}`);
+    linhas.push(`Saldo COFINS;${(saldo?.saldo_cofins || 0).toFixed(2).replace('.', ',')}`);
+    linhas.push(`Saldo Total;${(saldo?.saldo_total || 0).toFixed(2).replace('.', ',')}`);
+    linhas.push('');
+    
+    // Entradas
+    if (entradas?.itens?.length > 0) {
+      linhas.push('=== ENTRADAS (CRÉDITOS) ===');
+      linhas.push('NCM;CFOP;CST;Classificação;Quantidade;Valor Base;Aliq PIS;Valor PIS;Aliq COFINS;Valor COFINS');
+      entradas.itens.forEach(item => {
+        linhas.push([
+          item.ncm || '-',
+          item.cfop || '-',
+          item.cst || '-',
+          item.classificacao || '-',
+          item.quantidade || 0,
+          (item.valor_base || 0).toFixed(2).replace('.', ','),
+          (item.aliquota_pis || 0).toFixed(2).replace('.', ','),
+          (item.valor_pis || 0).toFixed(2).replace('.', ','),
+          (item.aliquota_cofins || 0).toFixed(2).replace('.', ','),
+          (item.valor_cofins || 0).toFixed(2).replace('.', ',')
+        ].join(';'));
+      });
+      linhas.push(`SUBTOTAL ENTRADAS;;;;;;${(entradas?.subtotais?.valor_base || 0).toFixed(2).replace('.', ',')};;${(entradas?.subtotais?.valor_pis || 0).toFixed(2).replace('.', ',')};;${(entradas?.subtotais?.valor_cofins || 0).toFixed(2).replace('.', ',')}`);
+      linhas.push('');
+    }
+    
+    // Saídas
+    if (saidas?.itens?.length > 0) {
+      linhas.push('=== SAÍDAS (DÉBITOS) ===');
+      linhas.push('NCM;CFOP;CST;Classificação;Quantidade;Valor Base;Aliq PIS;Valor PIS;Aliq COFINS;Valor COFINS');
+      saidas.itens.forEach(item => {
+        linhas.push([
+          item.ncm || '-',
+          item.cfop || '-',
+          item.cst || '-',
+          item.classificacao || '-',
+          item.quantidade || 0,
+          (item.valor_base || 0).toFixed(2).replace('.', ','),
+          (item.aliquota_pis || 0).toFixed(2).replace('.', ','),
+          (item.valor_pis || 0).toFixed(2).replace('.', ','),
+          (item.aliquota_cofins || 0).toFixed(2).replace('.', ','),
+          (item.valor_cofins || 0).toFixed(2).replace('.', ',')
+        ].join(';'));
+      });
+      linhas.push(`SUBTOTAL SAÍDAS;;;;;;${(saidas?.subtotais?.valor_base || 0).toFixed(2).replace('.', ',')};;${(saidas?.subtotais?.valor_pis || 0).toFixed(2).replace('.', ',')};;${(saidas?.subtotais?.valor_cofins || 0).toFixed(2).replace('.', ',')}`);
+    }
+    
+    // Criar arquivo e download
+    const csvContent = linhas.join('\n');
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `PIS_COFINS_${selectedCompany?.razao_social?.replace(/[^a-zA-Z0-9]/g, '_') || 'empresa'}_${selectedCompetencia?.replace('/', '-')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(() => {
     if (selectedCompany && selectedCompetencia) {
       fetchData();
