@@ -780,6 +780,20 @@ const ValidadorICMS = ({ user, onLogout }) => {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {regras.length === 0 && (
+              <button
+                onClick={handleInicializarRegras}
+                disabled={inicializando || loading}
+                className="flex items-center gap-2 bg-[#C8A951] text-black px-4 py-2 rounded-lg hover:bg-[#B89841] font-medium disabled:opacity-50"
+              >
+                {inicializando ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                Carregar Regras do Regulamento
+              </button>
+            )}
             <button
               onClick={fetchData}
               disabled={loading}
