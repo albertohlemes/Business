@@ -34122,12 +34122,14 @@ async def get_impostos_grupo(
         resultado["consolidado"]["faturamento"] += faturamento
     
     # Arredondar consolidado
-    for key in ["pis", "cofins"]:
+    for key in ["pis", "cofins", "icms"]:
         for subkey in resultado["consolidado"][key]:
             resultado["consolidado"][key][subkey] = round(resultado["consolidado"][key][subkey], 2)
     for key in ["irpj", "csll"]:
         for subkey in resultado["consolidado"][key]:
             resultado["consolidado"][key][subkey] = round(resultado["consolidado"][key][subkey], 2)
+    for subkey in resultado["consolidado"]["indicadores"]:
+        resultado["consolidado"]["indicadores"][subkey] = round(resultado["consolidado"]["indicadores"][subkey], 2)
     resultado["consolidado"]["total_federal"] = round(resultado["consolidado"]["total_federal"], 2)
     resultado["consolidado"]["faturamento"] = round(resultado["consolidado"]["faturamento"], 2)
     
