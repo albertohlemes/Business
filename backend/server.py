@@ -10416,10 +10416,12 @@ async def reimport_batch(
             # Classificar produtos de ENTRADA com IA
             if produtos:
                 # Converter CFOPs de saída para entrada (o XML vem com CFOP do emitente)
+                # Usa função que mantém a natureza da operação (ST -> ST, tributado -> tributado)
+                from utils.constants import converter_cfop_saida_para_entrada
                 for product in produtos:
                     cfop = str(product.get('cfop', ''))
-                    if cfop.startswith('5') or cfop.startswith('6'):
-                        cfop_entrada = cfop.replace('5', '1', 1).replace('6', '2', 1)
+                    if cfop.startswith('5') or cfop.startswith('6') or cfop.startswith('7'):
+                        cfop_entrada = converter_cfop_saida_para_entrada(cfop)
                         product['cfop_original'] = cfop
                         product['cfop'] = cfop_entrada
                 
