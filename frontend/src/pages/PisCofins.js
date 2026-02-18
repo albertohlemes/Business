@@ -2203,7 +2203,10 @@ const PisCofins = ({ user, onLogout }) => {
               Atualizar
             </button>
             <button
-              className="flex items-center gap-2 bg-[#C8A951] hover:bg-[#B8993D] text-black px-4 py-2 rounded-lg transition-colors font-medium"
+              onClick={exportarDados}
+              disabled={!detalhamento && !apuracao}
+              className="flex items-center gap-2 bg-[#C8A951] hover:bg-[#B8993D] text-black px-4 py-2 rounded-lg transition-colors font-medium disabled:opacity-50"
+              data-testid="btn-exportar-pis-cofins"
             >
               <Download className="w-4 h-4" />
               Exportar
