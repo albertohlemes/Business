@@ -38719,13 +38719,14 @@ async def validador_icms_por_produto(
                 status = 'alerta'
             else:
                 status = 'divergente'
-            else:
-                status = 'divergente'
         
         resultado.append({
             'codigo': dados['codigo'],
             'descricao': dados['descricao'],
             'ncm': dados['ncm'],
+            'tipo_operacao': dados.get('tipo_operacao', 'interna'),
+            'uf_destino': dados.get('uf_destino'),
+            'is_st': dados.get('is_st', False),
             'quantidade': dados['quantidade'],
             'valor_total': round(dados['valor_total'], 2),
             'aliquota_praticada': round(aliq_mais_comum, 2),
