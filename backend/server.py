@@ -34144,6 +34144,382 @@ async def get_impostos_grupo(
     return resultado
 
 
+
+@api_router.get("/empresa/{company_id}/grupo-ret")
+async def get_grupo_ret(
+    company_id: str,
+    competencia: str,
+    tipo: str = "periodo",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna dados de RET (Rota de Eficiência Tributária) consolidados do grupo.
+    Replica exatamente a tela de RET, mas com dados somados de todas as empresas.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Verificar se a empresa é matriz de algum grupo
+    grupo = await db.grupos_empresariais.find_one({
+        "matriz_id": company_id,
+        "is_active": True
+    }, {"_id": 0})
+    
+    if not grupo:
+        return {"is_grupo": False, "mensagem": "Empresa não é matriz de nenhum grupo"}
+    
+    todas_empresas = [company_id] + grupo.get("filiais_ids", [])
+    
+    # Consolidar dados de todas as empresas
+    consolidado = {
+        "faturamento": 0,
+        "simples": {"icms": 0, "pis": 0, "cofins": 0, "irpj": 0, "csll": 0, "cpp": 0, "total": 0},
+        "presumido": {"icms": 0, "pis": 0, "cofins": 0, "irpj": 0, "csll": 0, "total": 0},
+        "real": {
+            "icms": 0, "pis": 0, "cofins": 0, "irpj": 0, "csll": 0, "total": 0,
+            "pis_debitos": 0, "cofins_debitos": 0, "pis_creditos": 0, "cofins_creditos": 0,
+            "lucro_bruto": 0, "despesa_informada": 0, "lucro_contabil": 0
+        },
+        "meses_apurados": 0
+    }
+    
+    empresas_dados = []
+    
+    for empresa_id in todas_empresas:
+        try:
+            # Buscar dados de inteligência tributária para cada empresa
+            token = str(uuid.uuid4())  # Dummy token
+            empresa = await db.companies.find_one({"id": empresa_id}, {"_id": 0})
+            if not empresa:
+                continue
+            
+            # Calcular dados RET diretamente
+            pis_cofins = await calcular_pis_cofins_unificado(empresa_id, competencia, empresa)
+            
+            notas_saida = await db.xml_documents.find({
+                "company_id": empresa_id,
+                "competencia": competencia,
+                "tipo": "saida",
+                **get_filtro_notas_ativas()
+            }, {"valor_total": 1, "produtos": 1}).to_list(15000)
+            
+            notas_entrada = await db.xml_documents.find({
+                "company_id": empresa_id,
+                "competencia": competencia,
+                "tipo": "entrada",
+                **get_filtro_notas_ativas()
+            }, {"valor_total": 1, "produtos": 1}).to_list(15000)
+            
+            faturamento = sum(float(d.get("valor_total", 0) or 0) for d in notas_saida)
+            total_compras = sum(float(d.get("valor_total", 0) or 0) for d in notas_entrada)
+            
+            # ICMS
+            icms_credito = sum(float(p.get("v_icms", 0) or p.get("valor_icms", 0) or 0) 
+                             for d in notas_entrada for p in d.get("produtos", []))
+            icms_debito = sum(float(p.get("v_icms", 0) or p.get("valor_icms", 0) or 0) 
+                            for d in notas_saida for p in d.get("produtos", []))
+            icms_saldo = max(0, icms_debito - icms_credito)
+            
+            pis_creditos = float(pis_cofins.get("pis_creditos", 0) or 0)
+            cofins_creditos = float(pis_cofins.get("cofins_creditos", 0) or 0)
+            pis_debitos = float(pis_cofins.get("pis_debitos", 0) or 0)
+            cofins_debitos = float(pis_cofins.get("cofins_debitos", 0) or 0)
+            
+            # Lucro Real - PIS/COFINS é débito - crédito (pode ser negativo = credor)
+            pis_real = max(0, pis_debitos - pis_creditos)
+            cofins_real = max(0, cofins_debitos - cofins_creditos)
+            
+            # IRPJ/CSLL baseado no regime tributário da empresa
+            regime = empresa.get("regime_tributario", "lucro_presumido")
+            tipo_atividade = empresa.get("tipo_atividade", "comercio")
+            
+            if regime == "lucro_presumido":
+                perc_irpj = empresa.get("percentual_presuncao_irpj", 8.0)
+                perc_csll = empresa.get("percentual_presuncao_csll", 12.0)
+                if tipo_atividade == "servicos":
+                    perc_irpj = empresa.get("percentual_presuncao_servicos_irpj", 32.0)
+                    perc_csll = empresa.get("percentual_presuncao_servicos_csll", 32.0)
+            else:
+                # Lucro Real usa percentuais específicos
+                perc_irpj = empresa.get("percentual_presuncao_irpj", 8.0)
+                perc_csll = empresa.get("percentual_presuncao_csll", 12.0)
+            
+            base_irpj = faturamento * (perc_irpj / 100)
+            base_csll = faturamento * (perc_csll / 100)
+            irpj_devido = base_irpj * 0.15
+            irpj_adicional = max(0, (base_irpj - 20000) * 0.10)
+            irpj_total = irpj_devido + irpj_adicional
+            csll_devido = base_csll * 0.09
+            
+            # Presumido (cumulativo)
+            pis_presumido = faturamento * 0.0065
+            cofins_presumido = faturamento * 0.03
+            
+            empresa_ret = {
+                "id": empresa_id,
+                "razao_social": empresa.get("razao_social"),
+                "regime_tributario": regime,
+                "faturamento": faturamento,
+                "simples": {
+                    "icms": icms_saldo * 0.05,  # Estimativa simplificada
+                    "pis": faturamento * 0.002,
+                    "cofins": faturamento * 0.008,
+                    "irpj": faturamento * 0.004,
+                    "csll": faturamento * 0.0035,
+                    "cpp": faturamento * 0.043,
+                    "total": faturamento * 0.06
+                },
+                "presumido": {
+                    "icms": icms_saldo,
+                    "pis": pis_presumido,
+                    "cofins": cofins_presumido,
+                    "irpj": irpj_total,
+                    "csll": csll_devido,
+                    "total": icms_saldo + pis_presumido + cofins_presumido + irpj_total + csll_devido
+                },
+                "real": {
+                    "icms": icms_saldo,
+                    "pis": pis_real,
+                    "cofins": cofins_real,
+                    "irpj": irpj_total,
+                    "csll": csll_devido,
+                    "pis_debitos": pis_debitos,
+                    "cofins_debitos": cofins_debitos,
+                    "pis_creditos": pis_creditos,
+                    "cofins_creditos": cofins_creditos,
+                    "lucro_bruto": faturamento - total_compras,
+                    "despesa_informada": empresa.get("despesa_real", 0),
+                    "lucro_contabil": max(0, faturamento - total_compras - empresa.get("despesa_real", 0)),
+                    "total": icms_saldo + pis_real + cofins_real + irpj_total + csll_devido
+                }
+            }
+            
+            empresas_dados.append(empresa_ret)
+            
+            # Somar ao consolidado
+            consolidado["faturamento"] += faturamento
+            for regime_key in ["simples", "presumido"]:
+                for imposto in empresa_ret[regime_key]:
+                    consolidado[regime_key][imposto] += empresa_ret[regime_key][imposto]
+            for imposto in empresa_ret["real"]:
+                consolidado["real"][imposto] += empresa_ret["real"][imposto]
+            consolidado["meses_apurados"] = 1
+            
+        except Exception as e:
+            logger.error(f"Erro ao calcular RET para empresa {empresa_id}: {e}")
+            continue
+    
+    # Arredondar valores
+    for regime_key in ["simples", "presumido", "real"]:
+        for key in consolidado[regime_key]:
+            consolidado[regime_key][key] = round(consolidado[regime_key][key], 2)
+    consolidado["faturamento"] = round(consolidado["faturamento"], 2)
+    
+    return {
+        "is_grupo": True,
+        "grupo_nome": grupo.get("nome"),
+        "competencia": competencia,
+        "tipo": tipo,
+        "empresas": empresas_dados,
+        "consolidado": consolidado
+    }
+
+
+@api_router.get("/empresa/{company_id}/grupo-reforma")
+async def get_grupo_reforma_tributaria(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna dados de Reforma Tributária consolidados do grupo.
+    Replica exatamente a tela de Reforma Tributária, mas com dados somados de todas as empresas.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Verificar se a empresa é matriz de algum grupo
+    grupo = await db.grupos_empresariais.find_one({
+        "matriz_id": company_id,
+        "is_active": True
+    }, {"_id": 0})
+    
+    if not grupo:
+        return {"is_grupo": False, "mensagem": "Empresa não é matriz de nenhum grupo"}
+    
+    todas_empresas = [company_id] + grupo.get("filiais_ids", [])
+    
+    # Configuração padrão de alíquotas
+    aliquota_cbs = 8.80
+    aliquota_ibs = 17.70
+    aliquota_total = aliquota_cbs + aliquota_ibs
+    
+    # Consolidar dados
+    consolidado = {
+        "apuracao": {
+            "creditos": {"cbs": 0, "ibs": 0, "total": 0},
+            "debitos": {"cbs": 0, "ibs": 0, "total": 0},
+            "saldo": {"cbs": 0, "ibs": 0, "total": 0},
+            "imposto_seletivo": {"total": 0, "quantidade": 0}
+        },
+        "comparativo_regime_atual": {
+            "credito_bruto": {"pis": 0, "cofins": 0, "icms": 0},
+            "debito_bruto": {"pis": 0, "cofins": 0, "icms": 0},
+            "detalhamento": {
+                "pis_saldo": 0, "cofins_saldo": 0, "icms_saldo": 0,
+                "icms_credito": 0, "icms_debito": 0
+            }
+        },
+        "estatisticas": {
+            "entradas": {"produtos": 0, "documentos": 0},
+            "saidas": {"produtos": 0, "documentos": 0}
+        },
+        "config": {
+            "aliquota_cbs": aliquota_cbs,
+            "aliquota_ibs": aliquota_ibs,
+            "aliquota_total": aliquota_total
+        }
+    }
+    
+    empresas_dados = []
+    
+    for empresa_id in todas_empresas:
+        try:
+            empresa = await db.companies.find_one({"id": empresa_id}, {"_id": 0})
+            if not empresa:
+                continue
+            
+            # Calcular PIS/COFINS
+            pis_cofins = await calcular_pis_cofins_unificado(empresa_id, competencia, empresa)
+            
+            # Buscar notas
+            notas_entrada = await db.xml_documents.find({
+                "company_id": empresa_id,
+                "competencia": competencia,
+                "tipo": "entrada",
+                **get_filtro_notas_ativas()
+            }, {"valor_total": 1, "produtos": 1}).to_list(15000)
+            
+            notas_saida = await db.xml_documents.find({
+                "company_id": empresa_id,
+                "competencia": competencia,
+                "tipo": "saida",
+                **get_filtro_notas_ativas()
+            }, {"valor_total": 1, "produtos": 1}).to_list(15000)
+            
+            base_entradas = sum(float(d.get("valor_total", 0) or 0) for d in notas_entrada)
+            base_saidas = sum(float(d.get("valor_total", 0) or 0) for d in notas_saida)
+            qtd_produtos_entrada = sum(len(d.get("produtos", [])) for d in notas_entrada)
+            qtd_produtos_saida = sum(len(d.get("produtos", [])) for d in notas_saida)
+            
+            # Calcular CBS/IBS
+            creditos_cbs = base_entradas * (aliquota_cbs / 100)
+            creditos_ibs = base_entradas * (aliquota_ibs / 100)
+            debitos_cbs = base_saidas * (aliquota_cbs / 100)
+            debitos_ibs = base_saidas * (aliquota_ibs / 100)
+            
+            # ICMS
+            icms_credito = sum(float(p.get("v_icms", 0) or p.get("valor_icms", 0) or 0) 
+                             for d in notas_entrada for p in d.get("produtos", []))
+            icms_debito = sum(float(p.get("v_icms", 0) or p.get("valor_icms", 0) or 0) 
+                            for d in notas_saida for p in d.get("produtos", []))
+            
+            empresa_reforma = {
+                "id": empresa_id,
+                "razao_social": empresa.get("razao_social"),
+                "apuracao": {
+                    "creditos": {"cbs": creditos_cbs, "ibs": creditos_ibs, "total": creditos_cbs + creditos_ibs},
+                    "debitos": {"cbs": debitos_cbs, "ibs": debitos_ibs, "total": debitos_cbs + debitos_ibs},
+                    "saldo": {
+                        "cbs": debitos_cbs - creditos_cbs,
+                        "ibs": debitos_ibs - creditos_ibs,
+                        "total": (debitos_cbs - creditos_cbs) + (debitos_ibs - creditos_ibs)
+                    }
+                },
+                "regime_atual": {
+                    "pis_credito": float(pis_cofins.get("pis_creditos", 0) or 0),
+                    "pis_debito": float(pis_cofins.get("pis_debitos", 0) or 0),
+                    "cofins_credito": float(pis_cofins.get("cofins_creditos", 0) or 0),
+                    "cofins_debito": float(pis_cofins.get("cofins_debitos", 0) or 0),
+                    "icms_credito": icms_credito,
+                    "icms_debito": icms_debito
+                }
+            }
+            empresas_dados.append(empresa_reforma)
+            
+            # Somar ao consolidado
+            consolidado["apuracao"]["creditos"]["cbs"] += creditos_cbs
+            consolidado["apuracao"]["creditos"]["ibs"] += creditos_ibs
+            consolidado["apuracao"]["creditos"]["total"] += creditos_cbs + creditos_ibs
+            consolidado["apuracao"]["debitos"]["cbs"] += debitos_cbs
+            consolidado["apuracao"]["debitos"]["ibs"] += debitos_ibs
+            consolidado["apuracao"]["debitos"]["total"] += debitos_cbs + debitos_ibs
+            
+            consolidado["comparativo_regime_atual"]["credito_bruto"]["pis"] += float(pis_cofins.get("pis_creditos", 0) or 0)
+            consolidado["comparativo_regime_atual"]["credito_bruto"]["cofins"] += float(pis_cofins.get("cofins_creditos", 0) or 0)
+            consolidado["comparativo_regime_atual"]["credito_bruto"]["icms"] += icms_credito
+            consolidado["comparativo_regime_atual"]["debito_bruto"]["pis"] += float(pis_cofins.get("pis_debitos", 0) or 0)
+            consolidado["comparativo_regime_atual"]["debito_bruto"]["cofins"] += float(pis_cofins.get("cofins_debitos", 0) or 0)
+            consolidado["comparativo_regime_atual"]["debito_bruto"]["icms"] += icms_debito
+            
+            consolidado["comparativo_regime_atual"]["detalhamento"]["icms_credito"] += icms_credito
+            consolidado["comparativo_regime_atual"]["detalhamento"]["icms_debito"] += icms_debito
+            
+            consolidado["estatisticas"]["entradas"]["produtos"] += qtd_produtos_entrada
+            consolidado["estatisticas"]["entradas"]["documentos"] += len(notas_entrada)
+            consolidado["estatisticas"]["saidas"]["produtos"] += qtd_produtos_saida
+            consolidado["estatisticas"]["saidas"]["documentos"] += len(notas_saida)
+            
+        except Exception as e:
+            logger.error(f"Erro ao calcular Reforma Tributária para empresa {empresa_id}: {e}")
+            continue
+    
+    # Calcular saldos consolidados
+    consolidado["apuracao"]["saldo"]["cbs"] = consolidado["apuracao"]["debitos"]["cbs"] - consolidado["apuracao"]["creditos"]["cbs"]
+    consolidado["apuracao"]["saldo"]["ibs"] = consolidado["apuracao"]["debitos"]["ibs"] - consolidado["apuracao"]["creditos"]["ibs"]
+    consolidado["apuracao"]["saldo"]["total"] = consolidado["apuracao"]["saldo"]["cbs"] + consolidado["apuracao"]["saldo"]["ibs"]
+    consolidado["apuracao"]["saldo"]["situacao"] = "a_pagar" if consolidado["apuracao"]["saldo"]["total"] > 0 else "credor"
+    
+    consolidado["comparativo_regime_atual"]["detalhamento"]["pis_saldo"] = (
+        consolidado["comparativo_regime_atual"]["debito_bruto"]["pis"] - 
+        consolidado["comparativo_regime_atual"]["credito_bruto"]["pis"]
+    )
+    consolidado["comparativo_regime_atual"]["detalhamento"]["cofins_saldo"] = (
+        consolidado["comparativo_regime_atual"]["debito_bruto"]["cofins"] - 
+        consolidado["comparativo_regime_atual"]["credito_bruto"]["cofins"]
+    )
+    consolidado["comparativo_regime_atual"]["detalhamento"]["icms_saldo"] = (
+        consolidado["comparativo_regime_atual"]["detalhamento"]["icms_debito"] - 
+        consolidado["comparativo_regime_atual"]["detalhamento"]["icms_credito"]
+    )
+    
+    # Arredondar
+    for key1 in ["creditos", "debitos", "saldo"]:
+        for key2 in consolidado["apuracao"][key1]:
+            if isinstance(consolidado["apuracao"][key1][key2], (int, float)):
+                consolidado["apuracao"][key1][key2] = round(consolidado["apuracao"][key1][key2], 2)
+    for key1 in ["credito_bruto", "debito_bruto"]:
+        for key2 in consolidado["comparativo_regime_atual"][key1]:
+            consolidado["comparativo_regime_atual"][key1][key2] = round(consolidado["comparativo_regime_atual"][key1][key2], 2)
+    for key2 in consolidado["comparativo_regime_atual"]["detalhamento"]:
+        consolidado["comparativo_regime_atual"]["detalhamento"][key2] = round(consolidado["comparativo_regime_atual"]["detalhamento"][key2], 2)
+    
+    return {
+        "is_grupo": True,
+        "grupo_nome": grupo.get("nome"),
+        "competencia": competencia,
+        "empresas": empresas_dados,
+        "resumo": consolidado["apuracao"],
+        "apuracao": consolidado["apuracao"],
+        "comparativo_regime_atual": consolidado["comparativo_regime_atual"],
+        "estatisticas": consolidado["estatisticas"],
+        "config": consolidado["config"]
+    }
+
+
+
 @api_router.post("/grupos-empresariais")
 async def create_grupo_empresarial(
     grupo_data: GrupoEmpresarialCreate,
