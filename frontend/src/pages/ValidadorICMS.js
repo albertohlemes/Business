@@ -29,11 +29,15 @@ const ValidadorICMS = ({ user, onLogout }) => {
     tipo: 'ncm',
     chave: '',
     descricao: '',
-    aliquota_esperada: 18,
-    aliquota_reduzida: null,
-    condicao_reducao: '',
-    base_legal: ''
+    aliquota_interna: 18,
+    aliquota_interestadual_sul_sudeste: 12,
+    aliquota_interestadual_outros: 7,
+    aliquota_st: 0,
+    excecoes: [],
+    base_legal: '',
+    aplica_st: false
   });
+  const [novaExcecao, setNovaExcecao] = useState({ chave: '', descricao: '', aliquota: 0, condicao: '' });
 
   const fetchData = useCallback(async () => {
     if (!selectedCompany?.id || !selectedCompetencia) return;
