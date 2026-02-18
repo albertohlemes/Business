@@ -1623,9 +1623,9 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                             totais['debitos_pis'] += pis
                             totais['debitos_cofins'] += cofins
                             totais['base_debito'] += valor_base
-            except Exception as e:
-                logger.warning(f"Erro ao processar documento PIS/COFINS: {e}")
-                continue
+        except Exception as e:
+            logger.warning(f"Erro ao processar documento PIS/COFINS: {e}")
+            continue
     
     # Arredondar para 2 casas decimais no final
     def arredondar(valor) -> float:
