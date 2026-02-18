@@ -1628,6 +1628,8 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
     - saidas_por_cst: lista de totais por CST nas saídas
     """
     from decimal import Decimal, ROUND_HALF_UP
+    # Usa as constantes importadas do serviço para garantir consistência
+    from services.pis_cofins_calculator import CFOPS_SEM_CREDITO as CFOPS_SEM_CREDITO_CALC, CFOPS_SEM_DEBITO as CFOPS_SEM_DEBITO_CALC
     
     query = {
         "company_id": company_id,
@@ -1654,40 +1656,10 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
         {"produtos": 1, "tipo": 1, "tipo_operacao": 1, "desconsiderada_devolucao": 1}
     ).to_list(length=50000)
     
-    # Categorias e CFOPs que não geram crédito/débito (mesma lógica de calcular_pis_cofins_unificado)
+    # Categorias que não geram crédito/débito
     CATEGORIAS_SEM_CREDITO = ['devolucao', 'devolução', 'bonificacao', 'bonificação', 'brinde', 'transferencia', 'remessa', 'despesa', 'uso_consumo', 'imobilizado']
     CATEGORIAS_SEM_DEBITO = ['devolucao', 'devolução', 'transferencia', 'remessa', 'bonificacao', 'bonificação', 'brinde']
     
-    # CFOPs completos de remessas, devoluções, despesas
-    CFOPS_SEM_CREDITO = [
-        '1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209',
-        '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209',
-        '1410', '1411', '2410', '2411',
-        '1151', '1152', '1153', '1154', '2151', '2152', '2153', '2154',
-        '1407', '1408', '1409', '2407', '2408', '2409',
-        '1901', '1902', '1903', '1904', '1905', '1906', '1907', '1908', '1909',
-        '2901', '2902', '2903', '2904', '2905', '2906', '2907', '2908', '2909',
-        '1910', '1911', '1912', '1913', '1914', '1915', '1916', '1917', '1918', '1919',
-        '2910', '2911', '2912', '2913', '2914', '2915', '2916', '2917', '2918', '2919',
-        '1920', '1921', '1922', '1923', '1924', '1925', '1926', '1949',
-        '2920', '2921', '2922', '2923', '2924', '2925', '2926', '2949',
-        '1551', '1552', '1553', '1554', '1555', '1556', '1557',
-        '2551', '2552', '2553', '2554', '2555', '2556', '2557',
-        '1658', '2658', '1659', '2659', '1660', '2660', '1661', '2661', '1662', '2662'
-    ]
-    CFOPS_SEM_DEBITO = [
-        '5201', '5202', '5203', '5204', '5205', '5206', '5207', '5208', '5209',
-        '6201', '6202', '6203', '6204', '6205', '6206', '6207', '6208', '6209',
-        '5410', '5411', '6410', '6411',
-        '5151', '5152', '5153', '5154', '6151', '6152', '6153', '6154',
-        '5407', '5408', '5409', '6407', '6408', '6409',
-        '5901', '5902', '5903', '5904', '5905', '5906', '5907', '5908', '5909',
-        '6901', '6902', '6903', '6904', '6905', '6906', '6907', '6908', '6909',
-        '5910', '5911', '5912', '5913', '5914', '5915', '5916', '5917', '5918', '5919',
-        '6910', '6911', '6912', '6913', '6914', '6915', '6916', '6917', '6918', '6919',
-        '5920', '5921', '5922', '5923', '5924', '5925', '5926', '5927', '5949',
-        '6920', '6921', '6922', '6923', '6924', '6925', '6926', '6927', '6949'
-    ]
     # CFOPs que SEMPRE geram crédito (combustível p/ comercialização)
     CFOPS_COM_CREDITO = ['1651', '2651', '1652', '2652', '1653', '2653', '1101', '2101', '1102', '2102', '1403', '2403']
     
