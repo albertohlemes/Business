@@ -2349,23 +2349,6 @@ const PisCofins = ({ user, onLogout }) => {
             <Scale className="w-4 h-4" />
             Comparativo
           </button>
-          <button
-            onClick={() => setActiveTab('divergencias')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-              activeTab === 'divergencias'
-                ? 'bg-[#C8A951] text-black'
-                : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
-            }`}
-            data-testid="tab-divergencias"
-          >
-            <AlertTriangle className="w-4 h-4" />
-            Divergências
-            {divergencias?.totais?.produtos_divergentes > 0 && (
-              <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                {divergencias.totais.produtos_divergentes}
-              </span>
-            )}
-          </button>
         </div>
 
         {/* Conteúdo */}
