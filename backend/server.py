@@ -34071,9 +34071,12 @@ async def get_grupo_consolidado(
         "icms": {"debito": 0, "credito": 0, "saldo": 0, "a_pagar": 0},
         "pis": {"debito": 0, "credito": 0, "saldo": 0, "a_pagar": 0},
         "cofins": {"debito": 0, "credito": 0, "saldo": 0, "a_pagar": 0},
+        "irpj": {"base_presumida": 0, "devido": 0, "adicional": 0, "total": 0},
+        "csll": {"base_presumida": 0, "devido": 0},
         "iss": {"total": 0},
         "ipi": {"debito": 0, "credito": 0, "saldo": 0, "a_pagar": 0},
         "total_impostos": 0,
+        "total_impostos_federais": 0,  # PIS + COFINS + IRPJ + CSLL
         "transferencias_desconsideradas": 0,  # Valor de transferências excluídas
         "empresas": []
     }
