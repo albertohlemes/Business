@@ -54,6 +54,16 @@ from services.pis_cofins_calculator import (
 # PGDAS Extractor Service (Simples Nacional)
 from services.pgdas_extractor import calcular_rbt12_do_historico
 
+# Constantes fiscais compartilhadas
+from utils.fiscal_constants import (
+    ALIQUOTAS_INTERESTADUAIS as ALIQUOTAS_INTERESTADUAIS_SHARED,
+    get_aliquota_interestadual as get_aliquota_interestadual_shared,
+    CFOPS_EXCECAO_ENTRADA as CFOPS_EXCECAO_ENTRADA_SHARED,
+    CFOPS_EXCECAO_SAIDA as CFOPS_EXCECAO_SAIDA_SHARED,
+    TIPOS_REGRA_PIS_COFINS as TIPOS_REGRA_PIS_COFINS_SHARED,
+    REGRAS_PIS_COFINS_PADRAO as REGRAS_PIS_COFINS_PADRAO_SHARED
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
