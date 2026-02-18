@@ -594,6 +594,65 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                     </div>
                   </div>
                   
+                  {/* Card de Carga Tributária Consolidada */}
+                  <div className="bg-gradient-to-r from-[#0C0C0C] to-[#1A1A1A] border-2 border-[#C8A951]/50 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-lg bg-[#C8A951]/20 flex items-center justify-center">
+                        <DollarSign className="w-6 h-6 text-[#C8A951]" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">Carga Tributária Consolidada</h3>
+                        <p className="text-sm text-[#A1A1AA]">Total de impostos do grupo econômico</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      <div className="text-center">
+                        <p className="text-xs text-[#A1A1AA] mb-1">Faturamento</p>
+                        <p className="text-lg font-bold text-white">{formatCurrency(consolidadoData.carga_tributaria?.faturamento || consolidadoData.resumo?.total_saidas)}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-[#A1A1AA] mb-1">Impostos Federais</p>
+                        <p className="text-lg font-bold text-blue-400">{formatCurrency(consolidadoData.carga_tributaria?.total_federal || consolidadoData.total_impostos_federais)}</p>
+                        <p className="text-xs text-blue-400">{consolidadoData.carga_tributaria?.percentual_federal || 0}%</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-[#A1A1AA] mb-1">ICMS</p>
+                        <p className="text-lg font-bold text-orange-400">{formatCurrency(consolidadoData.carga_tributaria?.icms || consolidadoData.icms?.a_pagar)}</p>
+                        <p className="text-xs text-orange-400">{consolidadoData.carga_tributaria?.percentual_icms || 0}%</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-[#A1A1AA] mb-1">CARGA TOTAL</p>
+                        <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(consolidadoData.carga_tributaria?.total_geral || consolidadoData.total_impostos)}</p>
+                        <p className="text-sm text-[#C8A951] font-semibold">{consolidadoData.carga_tributaria?.percentual_total || 0}% do faturamento</p>
+                      </div>
+                    </div>
+                    
+                    {/* Detalhamento dos impostos */}
+                    <div className="grid grid-cols-5 gap-2 bg-[#0C0C0C] rounded-lg p-3">
+                      <div className="text-center py-2 border-r border-[#2A2A2A]">
+                        <p className="text-xs text-[#A1A1AA]">ICMS</p>
+                        <p className="font-bold text-orange-400">{formatCurrency(consolidadoData.icms?.a_pagar)}</p>
+                      </div>
+                      <div className="text-center py-2 border-r border-[#2A2A2A]">
+                        <p className="text-xs text-[#A1A1AA]">PIS</p>
+                        <p className="font-bold text-blue-400">{formatCurrency(consolidadoData.pis?.a_pagar)}</p>
+                      </div>
+                      <div className="text-center py-2 border-r border-[#2A2A2A]">
+                        <p className="text-xs text-[#A1A1AA]">COFINS</p>
+                        <p className="font-bold text-blue-400">{formatCurrency(consolidadoData.cofins?.a_pagar)}</p>
+                      </div>
+                      <div className="text-center py-2 border-r border-[#2A2A2A]">
+                        <p className="text-xs text-[#A1A1AA]">IRPJ</p>
+                        <p className="font-bold text-purple-400">{formatCurrency(consolidadoData.irpj?.total)}</p>
+                      </div>
+                      <div className="text-center py-2">
+                        <p className="text-xs text-[#A1A1AA]">CSLL</p>
+                        <p className="font-bold text-purple-400">{formatCurrency(consolidadoData.csll?.devido)}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
                   {/* Tabela por Empresa */}
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-3">Detalhamento por Empresa</h3>
