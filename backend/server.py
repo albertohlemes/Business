@@ -26532,18 +26532,25 @@ async def detalhamento_pis_cofins(
     for k in subtotais_saida:
         subtotais_saida[k] = round(subtotais_saida[k], 2) if isinstance(subtotais_saida[k], float) else subtotais_saida[k]
     
-    return {
-        'empresa': company.get('razao_social', ''),
-        'competencia': competencia,
-        'entradas': {
-            'itens': lista_entradas,
-            'subtotais': subtotais_entrada
-        },
-        'saidas': {
-            'itens': lista_saidas,
-            'subtotais': subtotais_saida
-        },
-        'saldo': {
+    # ============================================================
+    # USAR FUNÇÃO CENTRALIZADA para garantir MESMOS TOTAIS da Apuração
+    # O detalhamento mostra a quebra, mas os totais devem ser consistentes
+    # ============================================================
+    try:
+        resultado_unificado = await calcular_pis_cofins_unificado(company_id, competencia, company)
+        saldo_final = {
+            'credito_pis': round(resultado_unificado['pis_creditos'], 2),
+            'credito_cofins': round(resultado_unificado['cofins_creditos'], 2),
+            'debito_pis': round(resultado_unificado['pis_debitos'], 2),
+            'debito_cofins': round(resultado_unificado['cofins_debitos'], 2),
+            'saldo_pis': round(resultado_unificado['pis_saldo'], 2),
+            'saldo_cofins': round(resultado_unificado['cofins_saldo'], 2),
+            'saldo_total': round(resultado_unificado['pis_saldo'] + resultado_unificado['cofins_saldo'], 2)
+        }
+    except Exception as e:
+        logger.error(f"Erro ao calcular saldo unificado no detalhamento: {e}")
+        # Fallback para cálculo local
+        saldo_final = {
             'credito_pis': subtotais_entrada['valor_pis'],
             'credito_cofins': subtotais_entrada['valor_cofins'],
             'debito_pis': subtotais_saida['valor_pis'],
@@ -26555,6 +26562,19 @@ async def detalhamento_pis_cofins(
                 (subtotais_entrada['valor_pis'] + subtotais_entrada['valor_cofins']), 2
             )
         }
+    
+    return {
+        'empresa': company.get('razao_social', ''),
+        'competencia': competencia,
+        'entradas': {
+            'itens': lista_entradas,
+            'subtotais': subtotais_entrada
+        },
+        'saidas': {
+            'itens': lista_saidas,
+            'subtotais': subtotais_saida
+        },
+        'saldo': saldo_final
     }
 
 
