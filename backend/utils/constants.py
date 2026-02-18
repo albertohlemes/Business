@@ -108,6 +108,87 @@ ALIQUOTAS_PIS_COFINS = {
     'simples_nacional': {'pis': 0.0, 'cofins': 0.0}
 }
 
+# ==========================================================================
+# TABELA DE CONVERSÃO DE CFOP: SAÍDA -> ENTRADA
+# CFOPs de Substituição Tributária (ST) devem manter a natureza ST na entrada
+# ==========================================================================
+CFOP_CONVERSAO_SAIDA_PARA_ENTRADA = {
+    # Vendas ST para Revenda (5401/6401 -> 1403/2403)
+    '5401': '1403',  # Venda produção com ST para comercialização
+    '6401': '2403',  # Venda produção com ST interestadual
+    
+    # Vendas ST Adquirida (5403/6403 -> 1403/2403)
+    '5403': '1403',  # Venda mercadoria ST adquirida de terceiros
+    '6403': '2403',  # Venda ST interestadual adquirida
+    
+    # Vendas ST para Consumidor Final ou Uso/Consumo (5405/6404 -> 1407/2407)
+    '5405': '1407',  # Venda mercadoria ST a consumidor final
+    '6404': '2407',  # Venda ST interestadual para consumidor final (uso/consumo)
+    '6405': '2407',  # Venda ST interestadual para consumidor final
+    
+    # Transferências ST (5409/6409 -> 1409/2409)
+    '5409': '1409',  # Transferência mercadoria ST
+    '6409': '2409',  # Transferência ST interestadual
+    
+    # Vendas Tributadas Normais (5102/5101 -> 1102/1101)
+    '5101': '1101',  # Venda produção interna
+    '5102': '1102',  # Venda mercadoria adquirida interna
+    '6101': '2101',  # Venda produção interestadual
+    '6102': '2102',  # Venda mercadoria adquirida interestadual
+    
+    # Devoluções
+    '5201': '1201',  # Devolução compra para comercialização
+    '5202': '1202',  # Devolução compra para comercialização (substituto)
+    '6201': '2201',  # Devolução interestadual
+    '6202': '2202',  # Devolução interestadual (substituto)
+    
+    # Transferências Normais
+    '5151': '1151',  # Transferência produção
+    '5152': '1152',  # Transferência mercadoria
+    '6151': '2151',  # Transferência produção interestadual
+    '6152': '2152',  # Transferência mercadoria interestadual
+    
+    # Vendas Ativo Imobilizado
+    '5551': '1551',  # Venda ativo imobilizado
+    '6551': '2551',  # Venda ativo imobilizado interestadual
+    
+    # Energia/Comunicação/Combustível
+    '5651': '1651',  # Venda combustível ou lubrificante
+    '5652': '1652',  # Venda combustível ou lubrificante (substituto)
+    '5653': '1653',  # Venda combustível (consumidor final)
+    '6651': '2651',  # Venda combustível interestadual
+    '6652': '2652',  # Venda combustível interestadual (substituto)
+    '6653': '2653',  # Venda combustível interestadual (consumidor final)
+}
+
+def converter_cfop_saida_para_entrada(cfop_saida: str) -> str:
+    """
+    Converte um CFOP de saída para o CFOP de entrada correspondente.
+    
+    Mantém a natureza da operação:
+    - CFOPs de ST (5401/5403/5405) -> CFOPs de ST (1403/1407)
+    - CFOPs tributados (5101/5102) -> CFOPs tributados (1101/1102)
+    
+    Nunca converte ST para tributado normal!
+    """
+    cfop = str(cfop_saida).replace('.', '').strip()
+    
+    # Primeiro verifica na tabela de conversão específica
+    if cfop in CFOP_CONVERSAO_SAIDA_PARA_ENTRADA:
+        return CFOP_CONVERSAO_SAIDA_PARA_ENTRADA[cfop]
+    
+    # Se não está na tabela, faz conversão genérica mantendo a natureza
+    # 5xxx -> 1xxx, 6xxx -> 2xxx
+    if cfop.startswith('5'):
+        return '1' + cfop[1:]
+    elif cfop.startswith('6'):
+        return '2' + cfop[1:]
+    elif cfop.startswith('7'):
+        return '3' + cfop[1:]
+    
+    # Se já é CFOP de entrada, retorna como está
+    return cfop
+
 # Alíquotas de ICMS por UF
 ALIQUOTAS_ICMS_INTERNA = {
     'AC': 17, 'AL': 18, 'AP': 18, 'AM': 18, 'BA': 18, 'CE': 18, 'DF': 18,
