@@ -23,8 +23,8 @@ const NFsList = ({ ocorrencias, maxVisible = 2 }) => {
   const handleNFClick = (e, docId) => {
     e.stopPropagation();
     e.preventDefault();
-    // Navegar para a página de documentos com o documento selecionado
-    window.location.href = `/documents?doc=${docId}&highlight=true`;
+    // Abrir a página de documentos em uma nova aba com o documento selecionado
+    window.open(`/documents?doc=${docId}&highlight=true`, '_blank');
   };
   
   return (
