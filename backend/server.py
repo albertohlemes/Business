@@ -33983,43 +33983,100 @@ async def get_impostos_grupo(
             continue
         
         # =====================================================================
-        # BUSCAR PIS/COFINS JÁ CALCULADOS DO ENDPOINT DE APURAÇÃO INDIVIDUAL
+        # BUSCAR PIS/COFINS JÁ CALCULADOS
         # NÃO RECALCULA - apenas busca os dados já processados
-        # Isso garante que o consolidado seja a SOMA dos valores individuais
+        # Considera o regime tributário de cada empresa
         # =====================================================================
-        regime_tributario = empresa.get("regime_tributario", "lucro_presumido")
+        regime_tributario = empresa.get("regime_tributario", "lucro_real")
         
         try:
-            # Buscar dados já calculados usando a mesma lógica do endpoint individual
-            resultado_apuracao = await calcular_pis_cofins_unificado(empresa_id, competencia, empresa)
-            
-            # Para Lucro Presumido: usar débitos (não há crédito no regime cumulativo)
-            # Para Lucro Real: usar saldo (créditos - débitos)
             if regime_tributario == "lucro_presumido":
-                # Lucro Presumido: apenas débitos (regime cumulativo - sem crédito)
-                pis_creditos = 0
-                pis_debitos = float(resultado_apuracao.get("debitos_presumido_pis", 0) or 0)
-                cofins_creditos = 0
-                cofins_debitos = float(resultado_apuracao.get("debitos_presumido_cofins", 0) or 0)
-                pis_saldo = pis_debitos  # A pagar
-                cofins_saldo = cofins_debitos  # A pagar
+                # ========== LUCRO PRESUMIDO: Regime Cumulativo ==========
+                # Não tem crédito, apenas débito (0.65% PIS + 3% COFINS)
+                aliq_pis_presumido = 0.0065
+                aliq_cofins_presumido = 0.03
+                
+                # Buscar regras da empresa
+                regras_empresa = await db.regras_pis_cofins.find({
+                    "company_id": empresa_id,
+                    "ativo": True
+                }).to_list(length=1000)
+                
+                regras_por_ncm = {}
+                for r in regras_empresa:
+                    if r.get('tipo') == 'ncm':
+                        chave = str(r.get('chave', '')).replace('.', '').strip()
+                        regras_por_ncm[chave] = r
+                
+                def buscar_regra_ncm(ncm: str):
+                    if not ncm or len(ncm) < 4:
+                        return None
+                    for i in range(len(ncm), 3, -1):
+                        prefixo = ncm[:i]
+                        if prefixo in regras_por_ncm:
+                            return regras_por_ncm[prefixo]
+                    return None
+                
+                # Buscar saídas
+                query_saidas = {
+                    "company_id": empresa_id,
+                    "competencia": competencia,
+                    "tipo": "saida",
+                    **get_filtro_notas_ativas()
+                }
+                docs_saidas = await db.xml_documents.find(query_saidas, {"produtos": 1}).to_list(15000)
+                
+                base_debito_presumido = 0.0
+                for doc in docs_saidas:
+                    for prod in doc.get("produtos", []):
+                        ncm = str(prod.get("ncm", "")).replace(".", "")
+                        cfop = str(prod.get("cfop", ""))
+                        valor = float(prod.get("valor_total", 0) or 0)
+                        
+                        # Verificar se é transferência (não tributa)
+                        if cfop in ["5151", "5152", "5409", "5949", "6151", "6152", "6409", "6949"]:
+                            continue
+                        
+                        # Verificar regra NCM
+                        regra = buscar_regra_ncm(ncm)
+                        if regra:
+                            aliq_pis = float(regra.get("aliquota_pis_saida", 0) or 0)
+                            aliq_cofins = float(regra.get("aliquota_cofins_saida", 0) or 0)
+                            if aliq_pis == 0 and aliq_cofins == 0:
+                                continue  # Alíquota zero, não tributa
+                        
+                        base_debito_presumido += valor
+                
+                pis_debitos = round(base_debito_presumido * aliq_pis_presumido, 2)
+                cofins_debitos = round(base_debito_presumido * aliq_cofins_presumido, 2)
+                
+                pis_cofins = {
+                    "pis_creditos": 0,
+                    "pis_debitos": pis_debitos,
+                    "pis_saldo": pis_debitos,  # Positivo = a pagar
+                    "cofins_creditos": 0,
+                    "cofins_debitos": cofins_debitos,
+                    "cofins_saldo": cofins_debitos  # Positivo = a pagar
+                }
             else:
-                # Lucro Real: créditos e débitos (regime não-cumulativo)
-                pis_creditos = float(resultado_apuracao.get("pis_creditos", 0) or 0)
-                pis_debitos = float(resultado_apuracao.get("pis_debitos", 0) or 0)
-                cofins_creditos = float(resultado_apuracao.get("cofins_creditos", 0) or 0)
-                cofins_debitos = float(resultado_apuracao.get("cofins_debitos", 0) or 0)
-                pis_saldo = pis_debitos - pis_creditos  # Positivo = a pagar, Negativo = a recuperar
-                cofins_saldo = cofins_debitos - cofins_creditos
-            
-            pis_cofins = {
-                "pis_creditos": pis_creditos,
-                "pis_debitos": pis_debitos,
-                "pis_saldo": pis_saldo,
-                "cofins_creditos": cofins_creditos,
-                "cofins_debitos": cofins_debitos,
-                "cofins_saldo": cofins_saldo
-            }
+                # ========== LUCRO REAL: Regime Não-Cumulativo ==========
+                # Tem crédito (1.65% PIS + 7.6% COFINS) e débito
+                resultado = await calcular_pis_cofins_unificado(empresa_id, competencia, empresa)
+                
+                pis_creditos = float(resultado.get("pis_creditos", 0) or 0)
+                pis_debitos = float(resultado.get("pis_debitos", 0) or 0)
+                cofins_creditos = float(resultado.get("cofins_creditos", 0) or 0)
+                cofins_debitos = float(resultado.get("cofins_debitos", 0) or 0)
+                
+                pis_cofins = {
+                    "pis_creditos": pis_creditos,
+                    "pis_debitos": pis_debitos,
+                    "pis_saldo": pis_debitos - pis_creditos,  # Negativo = a recuperar
+                    "cofins_creditos": cofins_creditos,
+                    "cofins_debitos": cofins_debitos,
+                    "cofins_saldo": cofins_debitos - cofins_creditos
+                }
+                
         except Exception as e:
             logger.error(f"Erro ao buscar PIS/COFINS para {empresa_id}: {e}")
             pis_cofins = {
