@@ -41,6 +41,7 @@ import GruposEmpresariais from './pages/GruposEmpresariais';
 import ImportacaoPage from './pages/ImportacaoPage';
 import BatchImport from './pages/BatchImport';
 import ReformaTributaria from './pages/ReformaTributaria';
+import ValidadorICMS from './pages/ValidadorICMS';
 import './App.css';
 
 function App() {
