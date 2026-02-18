@@ -374,15 +374,25 @@ const ValidadorICMS = ({ user, onLogout }) => {
                       {getStatusBadge(item.status)}
                     </td>
                     <td className="py-3 px-4 text-center">
-                      {item.status === 'sem_regra' && (
-                        <button
-                          onClick={() => handleCriarRegraRapida(item, 'produto')}
-                          className="text-xs bg-blue-600/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-600/30"
-                          title="Criar regra para este produto"
-                        >
-                          + Regra
-                        </button>
-                      )}
+                      <div className="flex items-center justify-center gap-1">
+                        {item.status === 'sem_regra' ? (
+                          <button
+                            onClick={() => handleCriarRegraRapida(item, 'produto')}
+                            className="text-xs bg-blue-600/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-600/30"
+                            title="Criar regra para este NCM"
+                          >
+                            + Regra
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleEditarRegraNCM(item)}
+                            className="text-xs bg-[#2A2A2A] text-[#A1A1AA] px-2 py-1 rounded hover:bg-[#3A3A3A] hover:text-white"
+                            title="Editar regra deste NCM"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
