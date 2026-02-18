@@ -512,8 +512,8 @@ const Layout = ({ user, onLogout, children }) => {
           )}
           
           <div className="px-4 py-2 space-y-1">
-            {navigation.map((item) => (
-              <NavItemVertical key={item.name} item={item} />
+            {navigation.map((item, index) => (
+              <NavItemVertical key={item.name || `sep-${index}`} item={item} />
             ))}
             
             {isMasterOrAdmin && (
