@@ -257,9 +257,16 @@ class TestRegraCrudWithExcecoes:
         )
         assert update_response.status_code == 200, f"Update failed: {update_response.text}"
         
-        update_data = update_response.json()
-        updated_regra = update_data.get("regra", update_data)
-        assert len(updated_regra.get("excecoes", [])) == 1
+        # Fetch regras again to verify the update
+        get_response = requests.get(
+            f"{BASE_URL}/api/validador-pis-cofins/{TEST_COMPANY_ID}/regras",
+            headers=auth_headers
+        )
+        assert get_response.status_code == 200
+        regras = get_response.json().get("regras", [])
+        updated_regra = next((r for r in regras if r.get("id") == regra_id), None)
+        assert updated_regra is not None, f"Could not find regra {regra_id} after update"
+        assert len(updated_regra.get("excecoes", [])) == 1, f"Excecoes not saved: {updated_regra}"
         
         # Cleanup
         requests.delete(
