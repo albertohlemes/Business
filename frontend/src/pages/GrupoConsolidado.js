@@ -1,17 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
 import { 
   TrendingUp, TrendingDown, DollarSign, Building2, Users,
   BarChart3, Calculator, Scale, RefreshCw, AlertTriangle,
-  Package, ShoppingCart, Zap, Info
+  Package, ShoppingCart, Zap, Info, Award, Calendar, Target,
+  ArrowRight, ArrowDown, ArrowUp, CheckCircle, Loader2, Settings,
+  FileText, Truck, Percent, Download
 } from 'lucide-react';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 /**
  * Página de Grupo Consolidado
  * Exibe dados consolidados de todas as empresas do grupo (matriz + filiais)
- * Só deve aparecer para empresas que são matriz de um grupo empresarial
+ * Replica EXATAMENTE as telas originais de cada módulo fiscal
  */
 const GrupoConsolidado = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia } = useAppContext();
@@ -19,9 +24,12 @@ const GrupoConsolidado = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [grupoInfo, setGrupoInfo] = useState(null);
   const [dadosGrupo, setDadosGrupo] = useState(null);
+  const [dadosRet, setDadosRet] = useState(null);
+  const [dadosReforma, setDadosReforma] = useState(null);
   const [error, setError] = useState(null);
-
-  const API_URL = process.env.REACT_APP_BACKEND_URL;
+  
+  // Estado para RET
+  const [retActiveTab, setRetActiveTab] = useState('periodo');
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -41,7 +49,7 @@ const GrupoConsolidado = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `${API_URL}/api/empresa/${selectedCompany.id}/grupo-info`,
+        `${API}/empresa/${selectedCompany.id}/grupo-info`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setGrupoInfo(response.data);
@@ -49,7 +57,7 @@ const GrupoConsolidado = ({ user, onLogout }) => {
       console.error('Erro ao buscar info do grupo:', err);
       setGrupoInfo(null);
     }
-  }, [selectedCompany?.id, API_URL]);
+  }, [selectedCompany?.id]);
 
   // Buscar dados consolidados do grupo
   const fetchDadosGrupo = useCallback(async () => {
@@ -60,13 +68,19 @@ const GrupoConsolidado = ({ user, onLogout }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${API_URL}/api/empresa/${selectedCompany.id}/impostos-grupo?competencia=${selectedCompetencia}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const headers = { Authorization: `Bearer ${token}` };
       
-      if (response.data.is_grupo) {
-        setDadosGrupo(response.data);
+      // Buscar dados em paralelo
+      const [grupoRes, retRes, reformaRes] = await Promise.all([
+        axios.get(`${API}/empresa/${selectedCompany.id}/impostos-grupo?competencia=${selectedCompetencia}`, { headers }),
+        axios.get(`${API}/empresa/${selectedCompany.id}/grupo-ret?competencia=${selectedCompetencia}&tipo=periodo`, { headers }).catch(() => null),
+        axios.get(`${API}/empresa/${selectedCompany.id}/grupo-reforma?competencia=${selectedCompetencia}`, { headers }).catch(() => null)
+      ]);
+      
+      if (grupoRes.data.is_grupo) {
+        setDadosGrupo(grupoRes.data);
+        setDadosRet(retRes?.data);
+        setDadosReforma(reformaRes?.data);
       } else {
         setError('Esta empresa não é matriz de nenhum grupo empresarial');
       }
@@ -76,7 +90,7 @@ const GrupoConsolidado = ({ user, onLogout }) => {
     } finally {
       setLoading(false);
     }
-  }, [selectedCompany?.id, selectedCompetencia, API_URL]);
+  }, [selectedCompany?.id, selectedCompetencia]);
 
   useEffect(() => {
     fetchGrupoInfo();
@@ -99,7 +113,11 @@ const GrupoConsolidado = ({ user, onLogout }) => {
     { id: 'reforma', label: 'Reforma Tributária', icon: Zap },
   ];
 
-  // Card de Empresa
+  // ==============================
+  // COMPONENTES REPLICADOS DO ICMS
+  // ==============================
+  
+  // Card de Empresa com layout replicado
   const EmpresaCard = ({ titulo, empresa, tipo = 'individual', children }) => (
     <div className={`bg-[#0C0C0C] rounded-xl border ${
       tipo === 'consolidado' 
@@ -152,7 +170,10 @@ const GrupoConsolidado = ({ user, onLogout }) => {
     </div>
   );
 
-  // Renderizar conteúdo da aba
+  // ==============================
+  // RENDERIZAÇÃO DAS ABAS
+  // ==============================
+
   const renderTabContent = () => {
     if (loading) {
       return (
@@ -174,7 +195,7 @@ const GrupoConsolidado = ({ user, onLogout }) => {
 
     const { matriz, filiais, consolidado } = dadosGrupo;
 
-    // Funções auxiliares para calcular markup e saldos
+    // Funções auxiliares
     const calcMarkup = (vendas, compras) => {
       if (!compras || compras === 0) return 0;
       return ((vendas / compras) - 1) * 100;
@@ -231,6 +252,9 @@ const GrupoConsolidado = ({ user, onLogout }) => {
     };
 
     switch (activeTab) {
+      // ==============================
+      // ABA INDICADORES (JÁ IMPLEMENTADA)
+      // ==============================
       case 'indicadores':
         const markupMatriz = calcMarkup(matriz?.indicadores?.vendas, matriz?.indicadores?.compras);
         const markupConsolidado = calcMarkup(consolidado?.indicadores?.vendas, consolidado?.indicadores?.compras);
@@ -287,7 +311,6 @@ const GrupoConsolidado = ({ user, onLogout }) => {
                 </div>
               </div>
               
-              {/* Card de Markup */}
               <div className="bg-[#0C0C0C] rounded-xl p-5 border border-purple-500/30">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
@@ -304,7 +327,7 @@ const GrupoConsolidado = ({ user, onLogout }) => {
               </div>
             </div>
 
-            {/* Impostos Individualizados - Consolidado */}
+            {/* Impostos Individualizados */}
             <div className="bg-[#0C0C0C] rounded-xl p-6 border border-[#C8A951]/30">
               <h3 className="text-lg font-semibold text-[#C8A951] mb-4 flex items-center gap-2">
                 <Calculator className="w-5 h-5" />
@@ -334,10 +357,6 @@ const GrupoConsolidado = ({ user, onLogout }) => {
                       <span className="text-white">Total IRPJ</span>
                       <span className="text-red-400">{formatCurrency(consolidado?.irpj?.total)}</span>
                     </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-[#A1A1AA]">% s/ Faturamento</span>
-                      <span className="text-[#A1A1AA]">{formatPercent((consolidado?.irpj?.total || 0) / (consolidado?.faturamento || 1) * 100)}</span>
-                    </div>
                   </div>
                 </div>
                 <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
@@ -352,10 +371,6 @@ const GrupoConsolidado = ({ user, onLogout }) => {
                       <span className="text-white">CSLL 9%</span>
                       <span className="text-red-400">{formatCurrency(consolidado?.csll?.devido)}</span>
                     </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-[#A1A1AA]">% s/ Faturamento</span>
-                      <span className="text-[#A1A1AA]">{formatPercent((consolidado?.csll?.devido || 0) / (consolidado?.faturamento || 1) * 100)}</span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -366,7 +381,6 @@ const GrupoConsolidado = ({ user, onLogout }) => {
                   <div>
                     <p className="text-sm text-[#A1A1AA]">Total Federal</p>
                     <p className="text-xl font-bold text-[#C8A951]">{formatCurrency(consolidado?.total_federal)}</p>
-                    <p className="text-xs text-[#A1A1AA]">{formatPercent((consolidado?.total_federal || 0) / (consolidado?.faturamento || 1) * 100)} s/ faturamento</p>
                   </div>
                   <div>
                     <p className="text-sm text-[#A1A1AA]">PIS + COFINS</p>
@@ -382,7 +396,6 @@ const GrupoConsolidado = ({ user, onLogout }) => {
                   <div>
                     <p className="text-sm text-[#A1A1AA]">IRPJ + CSLL</p>
                     <p className="text-xl font-bold text-red-400">{formatCurrency((consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0))}</p>
-                    <p className="text-xs text-[#A1A1AA]">A Pagar</p>
                   </div>
                   <div>
                     <p className="text-sm text-[#A1A1AA]">ICMS</p>
@@ -460,6 +473,9 @@ const GrupoConsolidado = ({ user, onLogout }) => {
           </div>
         );
 
+      // ==============================
+      // ABA ICMS - REPLICA ValidadorICMS
+      // ==============================
       case 'icms':
         return (
           <div className="space-y-6">
@@ -474,6 +490,7 @@ const GrupoConsolidado = ({ user, onLogout }) => {
               </div>
             </div>
 
+            {/* Cards de ICMS por empresa */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <EmpresaCard titulo={matriz?.razao_social} empresa={matriz} tipo="matriz">
                 <ValorLinha label="ICMS Débito" valor={matriz?.icms?.debito} color="text-red-400" />
@@ -518,11 +535,63 @@ const GrupoConsolidado = ({ user, onLogout }) => {
                 </p>
               </EmpresaCard>
             </div>
+
+            {/* Tabela Consolidada ICMS */}
+            <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-[#2A2A2A]">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  <Calculator className="w-5 h-5 text-orange-400" />
+                  Resumo ICMS Consolidado
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[#0C0C0C]">
+                      <th className="text-left p-3 text-[#A1A1AA]">Empresa</th>
+                      <th className="text-right p-3 text-red-400">Débito</th>
+                      <th className="text-right p-3 text-green-400">Crédito</th>
+                      <th className="text-right p-3 text-[#C8A951]">Saldo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t border-[#2A2A2A]">
+                      <td className="p-3 text-white">{matriz?.razao_social}</td>
+                      <td className="p-3 text-right text-red-400">{formatCurrency(matriz?.icms?.debito)}</td>
+                      <td className="p-3 text-right text-green-400">{formatCurrency(matriz?.icms?.credito)}</td>
+                      <td className={`p-3 text-right font-semibold ${matriz?.icms?.saldo > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        {formatCurrency(matriz?.icms?.saldo)}
+                      </td>
+                    </tr>
+                    {filiais?.map((filial) => (
+                      <tr key={filial.id} className="border-t border-[#2A2A2A]">
+                        <td className="p-3 text-white">{filial?.razao_social}</td>
+                        <td className="p-3 text-right text-red-400">{formatCurrency(filial?.icms?.debito)}</td>
+                        <td className="p-3 text-right text-green-400">{formatCurrency(filial?.icms?.credito)}</td>
+                        <td className={`p-3 text-right font-semibold ${filial?.icms?.saldo > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                          {formatCurrency(filial?.icms?.saldo)}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="border-t-2 border-[#C8A951] bg-[#C8A951]/10">
+                      <td className="p-3 font-bold text-[#C8A951]">TOTAL CONSOLIDADO</td>
+                      <td className="p-3 text-right font-bold text-red-400">{formatCurrency(consolidado?.icms?.debito)}</td>
+                      <td className="p-3 text-right font-bold text-green-400">{formatCurrency(consolidado?.icms?.credito)}</td>
+                      <td className={`p-3 text-right font-bold ${consolidado?.icms?.saldo > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        {formatCurrency(consolidado?.icms?.saldo)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         );
 
+      // ==============================
+      // ABA PIS/COFINS - REPLICA ValidadorPisCofins
+      // ==============================
       case 'pis_cofins':
-        // Função auxiliar para exibir saldo de PIS/COFINS
         const PisCofinsCard = ({ titulo, empresa, tipo }) => {
           const pisSaldo = getSaldoImposto(empresa?.pis);
           const cofinsSaldo = getSaldoImposto(empresa?.cofins);
@@ -595,12 +664,88 @@ const GrupoConsolidado = ({ user, onLogout }) => {
 
               <PisCofinsCard titulo="CONSOLIDADO" empresa={consolidado} tipo="consolidado" />
             </div>
+
+            {/* Tabela Consolidada PIS/COFINS */}
+            <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-[#2A2A2A]">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-blue-400" />
+                  Resumo PIS/COFINS Consolidado
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[#0C0C0C]">
+                      <th className="text-left p-3 text-[#A1A1AA]">Empresa</th>
+                      <th className="text-right p-3 text-blue-400">PIS</th>
+                      <th className="text-right p-3 text-blue-400">COFINS</th>
+                      <th className="text-right p-3 text-[#C8A951]">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t border-[#2A2A2A]">
+                      <td className="p-3 text-white">{matriz?.razao_social}</td>
+                      <td className={`p-3 text-right ${matriz?.pis?.saldo > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        {formatCurrency(matriz?.pis?.saldo)}
+                      </td>
+                      <td className={`p-3 text-right ${matriz?.cofins?.saldo > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        {formatCurrency(matriz?.cofins?.saldo)}
+                      </td>
+                      <td className={`p-3 text-right font-semibold ${(matriz?.pis?.saldo + matriz?.cofins?.saldo) > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        {formatCurrency((matriz?.pis?.saldo || 0) + (matriz?.cofins?.saldo || 0))}
+                      </td>
+                    </tr>
+                    {filiais?.map((filial) => (
+                      <tr key={filial.id} className="border-t border-[#2A2A2A]">
+                        <td className="p-3 text-white">{filial?.razao_social}</td>
+                        <td className={`p-3 text-right ${filial?.pis?.saldo > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                          {formatCurrency(filial?.pis?.saldo)}
+                        </td>
+                        <td className={`p-3 text-right ${filial?.cofins?.saldo > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                          {formatCurrency(filial?.cofins?.saldo)}
+                        </td>
+                        <td className={`p-3 text-right font-semibold ${(filial?.pis?.saldo + filial?.cofins?.saldo) > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                          {formatCurrency((filial?.pis?.saldo || 0) + (filial?.cofins?.saldo || 0))}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="border-t-2 border-[#C8A951] bg-[#C8A951]/10">
+                      <td className="p-3 font-bold text-[#C8A951]">TOTAL CONSOLIDADO</td>
+                      <td className={`p-3 text-right font-bold ${consolidado?.pis?.saldo > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        {formatCurrency(consolidado?.pis?.saldo)}
+                      </td>
+                      <td className={`p-3 text-right font-bold ${consolidado?.cofins?.saldo > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        {formatCurrency(consolidado?.cofins?.saldo)}
+                      </td>
+                      <td className={`p-3 text-right font-bold ${(consolidado?.pis?.saldo + consolidado?.cofins?.saldo) > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        {formatCurrency((consolidado?.pis?.saldo || 0) + (consolidado?.cofins?.saldo || 0))}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         );
 
+      // ==============================
+      // ABA IRPJ/CSLL
+      // ==============================
       case 'irpj_csll':
         return (
           <div className="space-y-6">
+            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4 flex items-start gap-3">
+              <Info className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-purple-400 font-medium">IRPJ e CSLL por Regime Tributário</p>
+                <p className="text-sm text-[#A1A1AA]">
+                  Os cálculos são baseados no regime tributário de cada empresa. 
+                  Empresas com atividade de serviço usam presunção diferente (32%).
+                </p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <EmpresaCard titulo={matriz?.razao_social} empresa={matriz} tipo="matriz">
                 <h4 className="text-sm text-purple-400 font-medium mb-2">IRPJ</h4>
@@ -655,174 +800,632 @@ const GrupoConsolidado = ({ user, onLogout }) => {
           </div>
         );
 
+      // ==============================
+      // ABA RET - REPLICA RET.js EXATAMENTE
+      // ==============================
       case 'ret':
-        return (
-          <div className="space-y-6">
-            <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Scale className="w-5 h-5 text-[#C8A951]" />
-                Comparativo de Regimes Tributários - Consolidado
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-[#141414] rounded-lg p-4 border border-blue-500/30">
-                  <h4 className="text-sm text-blue-400 mb-3 font-medium">LUCRO REAL</h4>
-                  <ValorLinha label="PIS + COFINS (não-cumulativo)" valor={(consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0)} color="text-blue-400" />
-                  <ValorLinha label="IRPJ + CSLL" valor={(consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0)} color="text-purple-400" />
-                  <div className="border-t border-[#2A2A2A] mt-2 pt-2">
-                    <ValorLinha label="Total Federal" valor={consolidado?.total_federal} color="text-white" bold />
-                    <p className="text-xs text-[#A1A1AA] mt-1">
-                      {formatPercent((consolidado?.total_federal || 0) / (consolidado?.faturamento || 1) * 100)} do faturamento
-                    </p>
-                  </div>
+        const dadosRET = dadosRet?.consolidado || {};
+        const LIMITE_SIMPLES_MENSAL = 400000;
+        const faturamentoRET = dadosRET.faturamento || 0;
+        const simplesIndisponivel = faturamentoRET > LIMITE_SIMPLES_MENSAL;
+        
+        // Identificar melhor regime
+        const valores = [];
+        if (!simplesIndisponivel && dadosRET.simples?.total) {
+          valores.push({ regime: 'simples', total: dadosRET.simples.total, nome: 'Simples Nacional' });
+        }
+        if (dadosRET.presumido?.total !== undefined) {
+          valores.push({ regime: 'presumido', total: dadosRET.presumido.total, nome: 'Lucro Presumido' });
+        }
+        if (dadosRET.real?.total !== undefined) {
+          valores.push({ regime: 'real', total: dadosRET.real.total, nome: 'Lucro Real' });
+        }
+        valores.sort((a, b) => a.total - b.total);
+        const melhorRegime = valores[0];
+        const segundoMelhorRegime = valores[1];
+
+        const ImpostoItem = ({ label, valor, color = "text-white" }) => (
+          <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A] last:border-0">
+            <span className="text-[#A1A1AA] text-sm">{label}</span>
+            <span className={`font-semibold ${color}`}>{formatCurrency(valor)}</span>
+          </div>
+        );
+
+        const RegimeCard = ({ regime, nome, dados, isMelhor, simplesIndisponivel, corBorda }) => {
+          if (simplesIndisponivel) {
+            return (
+              <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl p-4 opacity-50">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-3 h-3 rounded-full ${corBorda}`}></div>
+                  <h3 className="text-white font-semibold text-lg">{nome}</h3>
                 </div>
-                
-                <div className="bg-[#141414] rounded-lg p-4 border border-purple-500/30">
-                  <h4 className="text-sm text-purple-400 mb-3 font-medium">LUCRO PRESUMIDO</h4>
-                  <ValorLinha label="PIS + COFINS (cumulativo)" valor={(consolidado?.faturamento || 0) * 0.0365} color="text-blue-400" />
-                  <ValorLinha label="IRPJ + CSLL" valor={(consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0)} color="text-purple-400" />
-                  <div className="border-t border-[#2A2A2A] mt-2 pt-2">
-                    <ValorLinha label="Total Federal" valor={((consolidado?.faturamento || 0) * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0)} color="text-white" bold />
-                    <p className="text-xs text-[#A1A1AA] mt-1">
-                      {formatPercent((((consolidado?.faturamento || 0) * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0)) / (consolidado?.faturamento || 1) * 100)} do faturamento
-                    </p>
+                <div className="text-center py-8">
+                  <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+                  <p className="text-amber-400 text-sm">Faturamento excede limite</p>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className={`bg-[#0C0C0C] border-2 rounded-xl overflow-hidden transition-all ${
+              isMelhor ? 'border-green-500 ring-2 ring-green-500/20' : 'border-[#2A2A2A]'
+            }`}>
+              <div className={`p-4 ${isMelhor ? 'bg-green-500/10' : 'bg-[#141414]'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${corBorda}`}></div>
+                    <h3 className="text-white font-semibold text-lg">{nome}</h3>
+                    {isMelhor && (
+                      <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                        <Award className="w-3 h-3" /> MAIS ECONÔMICO
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
-              
-              {/* Veredito */}
-              <div className="mt-4 p-4 bg-[#C8A951]/10 rounded-lg border border-[#C8A951]/30 text-center">
-                {consolidado?.total_federal < ((consolidado?.faturamento || 0) * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0) ? (
-                  <p className="text-[#C8A951] font-semibold">
-                    Lucro Real mais vantajoso - Economia de {formatCurrency(((consolidado?.faturamento || 0) * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0) - consolidado?.total_federal)}
-                  </p>
-                ) : (
-                  <p className="text-[#C8A951] font-semibold">
-                    Lucro Presumido mais vantajoso - Economia de {formatCurrency(consolidado?.total_federal - (((consolidado?.faturamento || 0) * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0)))}
-                  </p>
-                )}
+
+              <div className="p-4 space-y-1">
+                <ImpostoItem label="ICMS" valor={dados?.icms || 0} />
+                <ImpostoItem label="PIS" valor={dados?.pis || 0} />
+                <ImpostoItem label="COFINS" valor={dados?.cofins || 0} />
+                {regime === 'simples' && <ImpostoItem label="CPP" valor={dados?.cpp || 0} />}
+                <ImpostoItem label="IRPJ" valor={dados?.irpj || 0} />
+                <ImpostoItem label="CSLL" valor={dados?.csll || 0} />
+              </div>
+
+              <div className={`p-4 ${isMelhor ? 'bg-green-500/20' : 'bg-[#1A1A1A]'}`}>
+                <div className="flex justify-between items-center">
+                  <span className="text-white font-semibold">TOTAL DE IMPOSTOS</span>
+                  <span className={`text-2xl font-bold ${isMelhor ? 'text-green-400' : 'text-[#C8A951]'}`}>
+                    {formatCurrency(dados?.total || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-[#A1A1AA] text-sm">% sobre Faturamento</span>
+                  <span className="text-[#C8A951] font-medium">
+                    {formatPercent(((dados?.total || 0) / (faturamentoRET || 1)) * 100)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        return (
+          <div className="space-y-6">
+            {/* Header RET */}
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-[#C8A951]/20 rounded-xl">
+                <Zap className="w-6 h-6 text-[#C8A951]" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">RET Consolidado - Rota de Eficiência Tributária</h2>
+                <p className="text-[#A1A1AA] text-sm">Comparativo de regimes: Simples Nacional, Lucro Presumido e Lucro Real</p>
               </div>
             </div>
 
-            {/* Por Empresa */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <EmpresaCard titulo={matriz?.razao_social} empresa={matriz} tipo="matriz">
-                <ValorLinha label="Lucro Real" valor={matriz?.total_federal} color="text-blue-400" bold />
-                <ValorLinha label="Lucro Presumido" valor={(matriz?.faturamento * 0.0365) + (matriz?.irpj?.total || 0) + (matriz?.csll?.devido || 0)} color="text-purple-400" bold />
-                <div className="border-t border-[#2A2A2A] mt-2 pt-2 text-center">
-                  <p className={`text-sm font-medium ${matriz?.total_federal < ((matriz?.faturamento * 0.0365) + (matriz?.irpj?.total || 0) + (matriz?.csll?.devido || 0)) ? 'text-blue-400' : 'text-purple-400'}`}>
-                    {matriz?.total_federal < ((matriz?.faturamento * 0.0365) + (matriz?.irpj?.total || 0) + (matriz?.csll?.devido || 0)) ? 'Real' : 'Presumido'} mais vantajoso
-                  </p>
+            {/* Resumo do Período */}
+            <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="text-[#666] text-sm">Competência</p>
+                  <p className="text-white font-semibold">{selectedCompetencia}</p>
                 </div>
-              </EmpresaCard>
-
-              <div className="space-y-4">
-                {filiais?.map((filial) => (
-                  <EmpresaCard key={filial.id} titulo={filial.razao_social} empresa={filial} tipo="filial">
-                    <ValorLinha label="Lucro Real" valor={filial?.total_federal} color="text-blue-400" bold />
-                    <ValorLinha label="Lucro Presumido" valor={(filial?.faturamento * 0.0365) + (filial?.irpj?.total || 0) + (filial?.csll?.devido || 0)} color="text-purple-400" bold />
-                    <div className="border-t border-[#2A2A2A] mt-2 pt-2 text-center">
-                      <p className={`text-sm font-medium ${filial?.total_federal < ((filial?.faturamento * 0.0365) + (filial?.irpj?.total || 0) + (filial?.csll?.devido || 0)) ? 'text-blue-400' : 'text-purple-400'}`}>
-                        {filial?.total_federal < ((filial?.faturamento * 0.0365) + (filial?.irpj?.total || 0) + (filial?.csll?.devido || 0)) ? 'Real' : 'Presumido'} mais vantajoso
-                      </p>
-                    </div>
-                  </EmpresaCard>
-                ))}
+                <div className="text-right">
+                  <p className="text-[#666] text-sm">Faturamento Consolidado</p>
+                  <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(faturamentoRET)}</p>
+                </div>
               </div>
+            </div>
 
-              <EmpresaCard titulo="CONSOLIDADO" tipo="consolidado">
-                <ValorLinha label="Lucro Real" valor={consolidado?.total_federal} color="text-blue-400" bold />
-                <ValorLinha label="Lucro Presumido" valor={(consolidado?.faturamento * 0.0365) + (consolidado?.irpj?.total || 0) + (consolidado?.csll?.devido || 0)} color="text-purple-400" bold />
-              </EmpresaCard>
+            {/* Melhor Regime */}
+            {melhorRegime && segundoMelhorRegime && (
+              <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-green-500/20 rounded-full">
+                    <Award className="w-8 h-8 text-green-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-green-400 font-bold text-xl">Regime Mais Econômico: {melhorRegime.nome}</h3>
+                    <p className="text-[#A1A1AA]">
+                      Economia de {formatCurrency(segundoMelhorRegime.total - melhorRegime.total)} em comparação com {segundoMelhorRegime.nome}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[#666] text-sm">Total de Impostos</p>
+                    <p className="text-3xl font-bold text-green-400">{formatCurrency(melhorRegime.total)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Cards de Regimes */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <RegimeCard 
+                regime="simples" 
+                nome="Simples Nacional" 
+                dados={dadosRET.simples}
+                isMelhor={melhorRegime?.regime === 'simples'}
+                simplesIndisponivel={simplesIndisponivel}
+                corBorda="bg-blue-500"
+              />
+              <RegimeCard 
+                regime="presumido" 
+                nome="Lucro Presumido" 
+                dados={dadosRET.presumido}
+                isMelhor={melhorRegime?.regime === 'presumido'}
+                simplesIndisponivel={false}
+                corBorda="bg-amber-500"
+              />
+              <RegimeCard 
+                regime="real" 
+                nome="Lucro Real" 
+                dados={dadosRET.real}
+                isMelhor={melhorRegime?.regime === 'real'}
+                simplesIndisponivel={false}
+                corBorda="bg-purple-500"
+              />
+            </div>
+
+            {/* Tabela Comparativa */}
+            <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-[#2A2A2A]">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  <Scale className="w-5 h-5 text-[#C8A951]" />
+                  Tabela Comparativa Consolidada
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[#0C0C0C]">
+                      <th className="text-left p-3 text-[#A1A1AA] font-medium">Imposto</th>
+                      <th className="text-right p-3 text-blue-400 font-medium">Simples</th>
+                      <th className="text-right p-3 text-amber-400 font-medium">Presumido</th>
+                      <th className="text-right p-3 text-purple-400 font-medium">Lucro Real</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t border-[#2A2A2A]">
+                      <td className="p-3 text-[#A1A1AA]">ICMS</td>
+                      <td className="p-3 text-right text-white">{simplesIndisponivel ? '-' : formatCurrency(dadosRET.simples?.icms)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosRET.presumido?.icms)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosRET.real?.icms)}</td>
+                    </tr>
+                    <tr className="border-t border-[#2A2A2A]">
+                      <td className="p-3 text-[#A1A1AA]">PIS</td>
+                      <td className="p-3 text-right text-white">{simplesIndisponivel ? '-' : formatCurrency(dadosRET.simples?.pis)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosRET.presumido?.pis)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosRET.real?.pis)}</td>
+                    </tr>
+                    <tr className="border-t border-[#2A2A2A]">
+                      <td className="p-3 text-[#A1A1AA]">COFINS</td>
+                      <td className="p-3 text-right text-white">{simplesIndisponivel ? '-' : formatCurrency(dadosRET.simples?.cofins)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosRET.presumido?.cofins)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosRET.real?.cofins)}</td>
+                    </tr>
+                    <tr className="border-t border-[#2A2A2A]">
+                      <td className="p-3 text-[#A1A1AA]">IRPJ</td>
+                      <td className="p-3 text-right text-white">{simplesIndisponivel ? '-' : formatCurrency(dadosRET.simples?.irpj)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosRET.presumido?.irpj)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosRET.real?.irpj)}</td>
+                    </tr>
+                    <tr className="border-t border-[#2A2A2A]">
+                      <td className="p-3 text-[#A1A1AA]">CSLL</td>
+                      <td className="p-3 text-right text-white">{simplesIndisponivel ? '-' : formatCurrency(dadosRET.simples?.csll)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosRET.presumido?.csll)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosRET.real?.csll)}</td>
+                    </tr>
+                    {!simplesIndisponivel && (
+                      <tr className="border-t border-[#2A2A2A]">
+                        <td className="p-3 text-[#A1A1AA]">CPP (Simples)</td>
+                        <td className="p-3 text-right text-white">{formatCurrency(dadosRET.simples?.cpp)}</td>
+                        <td className="p-3 text-right text-[#666]">-</td>
+                        <td className="p-3 text-right text-[#666]">-</td>
+                      </tr>
+                    )}
+                    <tr className="border-t-2 border-[#C8A951] bg-[#0C0C0C]">
+                      <td className="p-3 text-[#C8A951] font-bold">TOTAL A PAGAR</td>
+                      <td className={`p-3 text-right font-bold ${melhorRegime?.regime === 'simples' ? 'text-green-400' : 'text-white'}`}>
+                        {simplesIndisponivel ? '-' : formatCurrency(dadosRET.simples?.total)}
+                        {melhorRegime?.regime === 'simples' && <Award className="w-4 h-4 inline ml-1" />}
+                      </td>
+                      <td className={`p-3 text-right font-bold ${melhorRegime?.regime === 'presumido' ? 'text-green-400' : 'text-white'}`}>
+                        {formatCurrency(dadosRET.presumido?.total)}
+                        {melhorRegime?.regime === 'presumido' && <Award className="w-4 h-4 inline ml-1" />}
+                      </td>
+                      <td className={`p-3 text-right font-bold ${melhorRegime?.regime === 'real' ? 'text-green-400' : 'text-white'}`}>
+                        {formatCurrency(dadosRET.real?.total)}
+                        {melhorRegime?.regime === 'real' && <Award className="w-4 h-4 inline ml-1" />}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         );
 
+      // ==============================
+      // ABA REFORMA TRIBUTÁRIA - REPLICA ReformaTributaria.js EXATAMENTE
+      // ==============================
       case 'reforma':
+        const dadosRef = dadosReforma || {};
+        const config = dadosRef.config || { aliquota_cbs: 8.8, aliquota_ibs: 17.7, aliquota_total: 26.5 };
+        const apuracao = dadosRef.apuracao || {};
+        const comparativo = dadosRef.comparativo_regime_atual || {};
+
         return (
           <div className="space-y-6">
-            <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 flex items-start gap-3">
-              <Zap className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
+                <Calculator className="w-6 h-6 text-white" />
+              </div>
               <div>
-                <p className="text-orange-400 font-medium">Reforma Tributária</p>
-                <p className="text-sm text-[#A1A1AA]">
-                  Comparativo entre o cenário atual (PIS/COFINS + ICMS) e o novo IBS/CBS que entrará em vigor progressivamente a partir de 2026.
+                <h2 className="text-xl font-bold text-white">Reforma Tributária Consolidada</h2>
+                <p className="text-[#A1A1AA] text-sm">Simulação IVA Dual (CBS + IBS) - Cenário 2027</p>
+              </div>
+            </div>
+
+            {/* Cards Principais */}
+            <div className="grid grid-cols-4 gap-4">
+              {/* Créditos */}
+              <div className="bg-gradient-to-br from-[#141414] to-[#1a1a1a] border border-emerald-500/30 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[#A1A1AA] text-sm">Créditos (Entradas)</span>
+                  <ArrowDown className="w-5 h-5 text-emerald-400" />
+                </div>
+                <p className="text-2xl font-bold text-emerald-400">
+                  {formatCurrency(apuracao.creditos?.total)}
+                </p>
+                <div className="mt-2 text-xs text-[#666] space-y-1">
+                  <p>CBS: {formatCurrency(apuracao.creditos?.cbs)}</p>
+                  <p>IBS: {formatCurrency(apuracao.creditos?.ibs)}</p>
+                </div>
+              </div>
+
+              {/* Débitos */}
+              <div className="bg-gradient-to-br from-[#141414] to-[#1a1a1a] border border-red-500/30 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[#A1A1AA] text-sm">Débitos (Saídas)</span>
+                  <ArrowUp className="w-5 h-5 text-red-400" />
+                </div>
+                <p className="text-2xl font-bold text-red-400">
+                  {formatCurrency(apuracao.debitos?.total)}
+                </p>
+                <div className="mt-2 text-xs text-[#666] space-y-1">
+                  <p>CBS: {formatCurrency(apuracao.debitos?.cbs)}</p>
+                  <p>IBS: {formatCurrency(apuracao.debitos?.ibs)}</p>
+                </div>
+              </div>
+
+              {/* Imposto Seletivo */}
+              <div className="bg-gradient-to-br from-[#141414] to-[#1a1a1a] border border-amber-500/30 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[#A1A1AA] text-sm">Imposto Seletivo</span>
+                  <AlertTriangle className="w-5 h-5 text-amber-400" />
+                </div>
+                <p className="text-2xl font-bold text-amber-400">
+                  {formatCurrency(apuracao.imposto_seletivo?.total || 0)}
                 </p>
               </div>
+
+              {/* Saldo */}
+              <div className={`bg-gradient-to-br from-[#141414] to-[#1a1a1a] border rounded-xl p-5 ${
+                apuracao.saldo?.situacao === 'a_pagar' ? 'border-red-500/50' : 'border-emerald-500/50'
+              }`}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[#A1A1AA] text-sm">
+                    {apuracao.saldo?.situacao === 'a_pagar' ? 'Saldo a Pagar' : 'Resultado IVA Dual'}
+                  </span>
+                  <DollarSign className={`w-5 h-5 ${
+                    apuracao.saldo?.situacao === 'a_pagar' ? 'text-red-400' : 'text-emerald-400'
+                  }`} />
+                </div>
+                
+                {apuracao.saldo?.situacao === 'a_pagar' ? (
+                  <p className="text-2xl font-bold text-red-400">
+                    {formatCurrency(apuracao.saldo?.total)}
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-2xl font-bold text-emerald-400">R$ 0,00</p>
+                    <p className="text-xs text-emerald-400 mt-1">Nada a pagar!</p>
+                    <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                      <p className="text-xs text-[#A1A1AA] mb-1">Crédito Acumulado:</p>
+                      <p className="text-lg font-bold text-emerald-400">
+                        {formatCurrency(Math.abs(apuracao.saldo?.total || 0))}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-[#0C0C0C] rounded-xl p-6 border border-blue-500/30">
-                <h4 className="text-lg font-semibold text-blue-400 mb-4">Cenário Atual</h4>
-                <ValorLinha label="PIS (1,65%)" valor={consolidado?.pis?.a_pagar} color="text-white" />
-                <ValorLinha label="COFINS (7,6%)" valor={consolidado?.cofins?.a_pagar} color="text-white" />
-                <ValorLinha label="ICMS" valor={consolidado?.icms?.a_pagar} color="text-white" />
-                <div className="border-t border-[#2A2A2A] mt-2 pt-2">
-                  <ValorLinha label="Total Atual" valor={(consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0)} color="text-blue-400" bold />
-                  <p className="text-sm text-[#A1A1AA] mt-1">
-                    Alíquota efetiva: {formatPercent(((consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0)) / (consolidado?.faturamento || 1) * 100)}
-                  </p>
+            {/* Comparativo PIS/COFINS vs CBS (Cenário 2027) */}
+            <div className="bg-gradient-to-br from-[#141414] via-[#1a1a1a] to-[#141414] border border-blue-500/30 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold flex items-center gap-3">
+                  <div className="p-2 bg-blue-500/20 rounded-lg">
+                    <Calculator className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <div>
+                    <span className="text-white">Cenário 2027: PIS/COFINS → CBS</span>
+                    <p className="text-xs text-[#A1A1AA] font-normal mt-1">CBS substitui PIS e COFINS</p>
+                  </div>
+                </h3>
+                <div className="px-4 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+                  <span className="text-blue-400 font-bold">CENÁRIO 2027</span>
                 </div>
               </div>
-
-              <div className="bg-[#0C0C0C] rounded-xl p-6 border border-orange-500/30">
-                <h4 className="text-lg font-semibold text-orange-400 mb-4">IBS + CBS (Reforma)</h4>
-                <ValorLinha label="CBS Federal (~8,8%)" valor={consolidado?.faturamento * 0.088} color="text-white" />
-                <ValorLinha label="IBS Estadual (~17%)" valor={consolidado?.faturamento * 0.17} color="text-white" />
-                <div className="border-t border-[#2A2A2A] mt-2 pt-2">
-                  <ValorLinha label="Total IBS + CBS" valor={consolidado?.faturamento * 0.258} color="text-orange-400" bold />
-                  <p className="text-sm text-[#A1A1AA] mt-1">
-                    Alíquota aproximada: 25,8%
-                  </p>
+              
+              <div className="grid grid-cols-2 gap-6">
+                {/* PIS/COFINS Atual */}
+                <div className="bg-[#0C0C0C] rounded-xl border border-[#333] p-4">
+                  <h4 className="text-amber-400 font-bold mb-3 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                    PIS/COFINS ATUAL
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#A1A1AA]">PIS Crédito:</span>
+                      <span className="text-emerald-400">{formatCurrency(comparativo.credito_bruto?.pis)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#A1A1AA]">PIS Débito:</span>
+                      <span className="text-red-400">{formatCurrency(comparativo.debito_bruto?.pis)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#A1A1AA]">COFINS Crédito:</span>
+                      <span className="text-emerald-400">{formatCurrency(comparativo.credito_bruto?.cofins)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#A1A1AA]">COFINS Débito:</span>
+                      <span className="text-red-400">{formatCurrency(comparativo.debito_bruto?.cofins)}</span>
+                    </div>
+                    <div className="border-t border-[#333] pt-2 mt-2">
+                      <div className="flex justify-between font-bold">
+                        <span className="text-amber-400">Saldo PIS/COFINS:</span>
+                        {(() => {
+                          const saldo = (comparativo.detalhamento?.pis_saldo || 0) + (comparativo.detalhamento?.cofins_saldo || 0);
+                          return saldo > 0 
+                            ? <span className="text-red-400">Pagar {formatCurrency(saldo)}</span>
+                            : <span className="text-[#C8A951]">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* CBS */}
+                <div className="bg-[#0C0C0C] rounded-xl border border-[#333] p-4">
+                  <h4 className="text-emerald-400 font-bold mb-3 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                    CBS ({config.aliquota_cbs}%)
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#A1A1AA]">CBS Crédito:</span>
+                      <span className="text-emerald-400">{formatCurrency(apuracao.creditos?.cbs)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#A1A1AA]">CBS Débito:</span>
+                      <span className="text-red-400">{formatCurrency(apuracao.debitos?.cbs)}</span>
+                    </div>
+                    <div className="border-t border-[#333] pt-2 mt-2">
+                      <div className="flex justify-between font-bold">
+                        <span className="text-emerald-400">Saldo CBS:</span>
+                        {(() => {
+                          const saldo = apuracao.saldo?.cbs || 0;
+                          return saldo > 0 
+                            ? <span className="text-red-400">Pagar {formatCurrency(saldo)}</span>
+                            : <span className="text-[#C8A951]">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                        })()}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* Impacto */}
-            <div className="bg-[#0C0C0C] rounded-xl p-6 border border-[#2A2A2A]">
-              <h4 className="text-lg font-semibold text-white mb-4">Impacto da Reforma</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-[#141414] rounded-lg">
-                  <p className="text-sm text-[#A1A1AA]">Atual</p>
-                  <p className="text-2xl font-bold text-blue-400">{formatCurrency((consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0))}</p>
-                </div>
-                <div className="text-center p-4 bg-[#141414] rounded-lg">
-                  <p className="text-sm text-[#A1A1AA]">Reforma (IBS+CBS)</p>
-                  <p className="text-2xl font-bold text-orange-400">{formatCurrency(consolidado?.faturamento * 0.258)}</p>
-                </div>
-                <div className="text-center p-4 bg-[#141414] rounded-lg">
-                  <p className="text-sm text-[#A1A1AA]">Diferença</p>
-                  <p className={`text-2xl font-bold ${
-                    (consolidado?.faturamento * 0.258) > ((consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0))
-                      ? 'text-red-400' : 'text-green-400'
+              
+              {/* Economia/Aumento Cenário 2027 */}
+              {(() => {
+                const saldoPisCofins = (comparativo.detalhamento?.pis_saldo || 0) + (comparativo.detalhamento?.cofins_saldo || 0);
+                const saldoCbs = apuracao.saldo?.cbs || 0;
+                const diferenca = saldoPisCofins - saldoCbs;
+                const temEconomia = diferenca > 0;
+                
+                return (
+                  <div className={`mt-4 p-4 rounded-xl flex items-center justify-between ${
+                    temEconomia ? 'bg-emerald-500/10 border border-emerald-500/30' : 
+                    diferenca < 0 ? 'bg-red-500/10 border border-red-500/30' : 'bg-[#333] border border-[#444]'
                   }`}>
-                    {(consolidado?.faturamento * 0.258) > ((consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0)) ? '+' : '-'}
-                    {formatCurrency(Math.abs((consolidado?.faturamento * 0.258) - ((consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0))))}
-                  </p>
-                </div>
-              </div>
+                    <div className="flex items-center gap-3">
+                      {temEconomia ? <TrendingDown className="w-6 h-6 text-emerald-400" /> : 
+                       diferenca < 0 ? <TrendingUp className="w-6 h-6 text-red-400" /> : 
+                       <ArrowRight className="w-6 h-6 text-[#666]" />}
+                      <div>
+                        <p className={`font-bold ${temEconomia ? 'text-emerald-400' : diferenca < 0 ? 'text-red-400' : 'text-[#A1A1AA]'}`}>
+                          {temEconomia ? 'Economia com CBS' : diferenca < 0 ? 'Aumento com CBS' : 'Valores Equivalentes'}
+                        </p>
+                        <p className="text-xs text-[#666]">CBS vs PIS/COFINS (sem ICMS)</p>
+                      </div>
+                    </div>
+                    <p className={`text-xl font-bold ${temEconomia ? 'text-emerald-400' : diferenca < 0 ? 'text-red-400' : 'text-[#A1A1AA]'}`}>
+                      {temEconomia ? '-' : diferenca < 0 ? '+' : ''} {formatCurrency(Math.abs(diferenca))}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
 
-            {/* Por Empresa */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <EmpresaCard titulo={matriz?.razao_social} empresa={matriz} tipo="matriz">
-                <ValorLinha label="Atual (PIS+COFINS+ICMS)" valor={(matriz?.pis?.a_pagar || 0) + (matriz?.cofins?.a_pagar || 0) + (matriz?.icms?.a_pagar || 0)} color="text-blue-400" />
-                <ValorLinha label="Reforma (IBS+CBS)" valor={matriz?.faturamento * 0.258} color="text-orange-400" />
-              </EmpresaCard>
-
-              <div className="space-y-4">
-                {filiais?.map((filial) => (
-                  <EmpresaCard key={filial.id} titulo={filial.razao_social} empresa={filial} tipo="filial">
-                    <ValorLinha label="Atual (PIS+COFINS+ICMS)" valor={(filial?.pis?.a_pagar || 0) + (filial?.cofins?.a_pagar || 0) + (filial?.icms?.a_pagar || 0)} color="text-blue-400" />
-                    <ValorLinha label="Reforma (IBS+CBS)" valor={filial?.faturamento * 0.258} color="text-orange-400" />
-                  </EmpresaCard>
-                ))}
+            {/* Comparativo Reforma Completa */}
+            <div className="bg-gradient-to-br from-[#141414] via-[#1a1a1a] to-[#141414] border border-amber-500/30 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold flex items-center gap-3">
+                  <div className="p-2 bg-amber-500/20 rounded-lg">
+                    <Calculator className="w-6 h-6 text-amber-400" />
+                  </div>
+                  <div>
+                    <span className="text-white">Reforma Completa: PIS/COFINS + ICMS → CBS + IBS</span>
+                    <p className="text-xs text-[#A1A1AA] font-normal mt-1">IVA Dual substitui PIS, COFINS e ICMS</p>
+                  </div>
+                </h3>
+                <div className="px-4 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg">
+                  <span className="text-amber-400 font-bold">REFORMA COMPLETA</span>
+                </div>
               </div>
-
-              <EmpresaCard titulo="CONSOLIDADO" tipo="consolidado">
-                <ValorLinha label="Atual (PIS+COFINS+ICMS)" valor={(consolidado?.pis?.a_pagar || 0) + (consolidado?.cofins?.a_pagar || 0) + (consolidado?.icms?.a_pagar || 0)} color="text-blue-400" bold />
-                <ValorLinha label="Reforma (IBS+CBS)" valor={consolidado?.faturamento * 0.258} color="text-orange-400" bold />
-              </EmpresaCard>
+              
+              {/* Tabela Regime Atual */}
+              <div className="bg-[#0C0C0C] rounded-xl overflow-hidden border border-[#333]">
+                <div className="grid grid-cols-4 gap-0 bg-[#1a1a1a] text-sm font-semibold">
+                  <div className="p-3 text-[#A1A1AA]">REGIME ATUAL</div>
+                  <div className="p-3 text-emerald-400 text-center">CRÉDITO</div>
+                  <div className="p-3 text-red-400 text-center">DÉBITO</div>
+                  <div className="p-3 text-[#C8A951] text-center">SALDO</div>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-0 border-t border-[#333]">
+                  <div className="p-3 text-amber-400 font-medium">PIS</div>
+                  <div className="p-3 text-center text-emerald-400">{formatCurrency(comparativo.credito_bruto?.pis)}</div>
+                  <div className="p-3 text-center text-red-400">{formatCurrency(comparativo.debito_bruto?.pis)}</div>
+                  <div className={`p-3 text-center font-medium ${(comparativo.detalhamento?.pis_saldo || 0) > 0 ? 'text-red-400' : 'text-[#C8A951]'}`}>
+                    {formatCurrency(comparativo.detalhamento?.pis_saldo)}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-0 border-t border-[#333]">
+                  <div className="p-3 text-amber-400 font-medium">COFINS</div>
+                  <div className="p-3 text-center text-emerald-400">{formatCurrency(comparativo.credito_bruto?.cofins)}</div>
+                  <div className="p-3 text-center text-red-400">{formatCurrency(comparativo.debito_bruto?.cofins)}</div>
+                  <div className={`p-3 text-center font-medium ${(comparativo.detalhamento?.cofins_saldo || 0) > 0 ? 'text-red-400' : 'text-[#C8A951]'}`}>
+                    {formatCurrency(comparativo.detalhamento?.cofins_saldo)}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-0 border-t border-[#333]">
+                  <div className="p-3 text-amber-400 font-medium">ICMS</div>
+                  <div className="p-3 text-center text-emerald-400">{formatCurrency(comparativo.detalhamento?.icms_credito)}</div>
+                  <div className="p-3 text-center text-red-400">{formatCurrency(comparativo.detalhamento?.icms_debito)}</div>
+                  <div className={`p-3 text-center font-medium ${(comparativo.detalhamento?.icms_saldo || 0) > 0 ? 'text-red-400' : 'text-[#C8A951]'}`}>
+                    {formatCurrency(comparativo.detalhamento?.icms_saldo)}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-0 border-t-2 border-amber-500/30 bg-amber-500/5">
+                  <div className="p-3 font-bold text-amber-400">TOTAL ATUAL</div>
+                  <div className="p-3 text-center text-emerald-400 font-bold">
+                    {formatCurrency(
+                      (comparativo.credito_bruto?.pis || 0) +
+                      (comparativo.credito_bruto?.cofins || 0) +
+                      (comparativo.detalhamento?.icms_credito || 0)
+                    )}
+                  </div>
+                  <div className="p-3 text-center text-red-400 font-bold">
+                    {formatCurrency(
+                      (comparativo.debito_bruto?.pis || 0) +
+                      (comparativo.debito_bruto?.cofins || 0) +
+                      (comparativo.detalhamento?.icms_debito || 0)
+                    )}
+                  </div>
+                  <div className="p-3 text-center">
+                    {(() => {
+                      const saldoTotal = (comparativo.detalhamento?.pis_saldo || 0) + 
+                                        (comparativo.detalhamento?.cofins_saldo || 0) + 
+                                        (comparativo.detalhamento?.icms_saldo || 0);
+                      return saldoTotal > 0 
+                        ? <span className="text-red-400 font-bold">Pagar {formatCurrency(saldoTotal)}</span>
+                        : <span className="text-[#C8A951] font-bold">Recuperar {formatCurrency(Math.abs(saldoTotal))}</span>;
+                    })()}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Seta */}
+              <div className="flex justify-center my-4">
+                <div className="flex items-center gap-2 text-[#666]">
+                  <ArrowRight className="w-8 h-8" />
+                  <span className="text-sm">substitui por</span>
+                  <ArrowRight className="w-8 h-8" />
+                </div>
+              </div>
+              
+              {/* Tabela IVA Dual */}
+              <div className="bg-[#0C0C0C] rounded-xl overflow-hidden border border-emerald-500/30">
+                <div className="grid grid-cols-4 gap-0 bg-emerald-500/10 text-sm font-semibold">
+                  <div className="p-3 text-emerald-400">IVA DUAL</div>
+                  <div className="p-3 text-emerald-400 text-center">CRÉDITO</div>
+                  <div className="p-3 text-red-400 text-center">DÉBITO</div>
+                  <div className="p-3 text-[#C8A951] text-center">SALDO</div>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-0 border-t border-[#333]">
+                  <div className="p-3 text-emerald-400 font-medium">CBS ({config.aliquota_cbs}%)</div>
+                  <div className="p-3 text-center text-emerald-400">{formatCurrency(apuracao.creditos?.cbs)}</div>
+                  <div className="p-3 text-center text-red-400">{formatCurrency(apuracao.debitos?.cbs)}</div>
+                  <div className={`p-3 text-center font-medium ${(apuracao.saldo?.cbs || 0) > 0 ? 'text-red-400' : 'text-[#C8A951]'}`}>
+                    {formatCurrency(apuracao.saldo?.cbs)}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-0 border-t border-[#333]">
+                  <div className="p-3 text-emerald-400 font-medium">IBS ({config.aliquota_ibs}%)</div>
+                  <div className="p-3 text-center text-emerald-400">{formatCurrency(apuracao.creditos?.ibs)}</div>
+                  <div className="p-3 text-center text-red-400">{formatCurrency(apuracao.debitos?.ibs)}</div>
+                  <div className={`p-3 text-center font-medium ${(apuracao.saldo?.ibs || 0) > 0 ? 'text-red-400' : 'text-[#C8A951]'}`}>
+                    {formatCurrency(apuracao.saldo?.ibs)}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-0 border-t-2 border-emerald-500/30 bg-emerald-500/5">
+                  <div className="p-3 font-bold text-emerald-400">TOTAL IVA</div>
+                  <div className="p-3 text-center text-emerald-400 font-bold">{formatCurrency(apuracao.creditos?.total)}</div>
+                  <div className="p-3 text-center text-red-400 font-bold">{formatCurrency(apuracao.debitos?.total)}</div>
+                  <div className="p-3 text-center">
+                    {(() => {
+                      const saldo = apuracao.saldo?.total || 0;
+                      return saldo > 0 
+                        ? <span className="text-red-400 font-bold">Pagar {formatCurrency(saldo)}</span>
+                        : <span className="text-[#C8A951] font-bold">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
+                    })()}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Economia/Aumento Reforma Completa */}
+              {(() => {
+                const totalAtual = (comparativo.detalhamento?.pis_saldo || 0) + 
+                                  (comparativo.detalhamento?.cofins_saldo || 0) + 
+                                  (comparativo.detalhamento?.icms_saldo || 0);
+                const totalIva = apuracao.saldo?.total || 0;
+                const diferenca = totalAtual - totalIva;
+                const temEconomia = diferenca > 0;
+                
+                return (
+                  <div className={`mt-4 p-5 rounded-xl flex items-center justify-between ${
+                    temEconomia ? 'bg-emerald-500/10 border border-emerald-500/30' : 
+                    diferenca < 0 ? 'bg-red-500/10 border border-red-500/30' : 'bg-[#333] border border-[#444]'
+                  }`}>
+                    <div className="flex items-center gap-4">
+                      {temEconomia ? <CheckCircle className="w-8 h-8 text-emerald-400" /> : 
+                       diferenca < 0 ? <TrendingUp className="w-8 h-8 text-red-400" /> : 
+                       <ArrowRight className="w-8 h-8 text-[#666]" />}
+                      <div>
+                        <p className={`font-bold text-lg ${temEconomia ? 'text-emerald-400' : diferenca < 0 ? 'text-red-400' : 'text-[#A1A1AA]'}`}>
+                          {temEconomia ? 'Economia com Reforma Completa' : diferenca < 0 ? 'Aumento com Reforma Completa' : 'Valores Equivalentes'}
+                        </p>
+                        <p className="text-xs text-[#666]">IVA Dual (CBS + IBS) vs Regime Atual (PIS/COFINS + ICMS)</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-2xl font-bold ${temEconomia ? 'text-emerald-400' : diferenca < 0 ? 'text-red-400' : 'text-[#A1A1AA]'}`}>
+                        {temEconomia ? '- ' : diferenca < 0 ? '+ ' : ''}{formatCurrency(Math.abs(diferenca))}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         );
