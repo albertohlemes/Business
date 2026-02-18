@@ -707,9 +707,13 @@ const Dashboard = ({ user, onLogout }) => {
                           <span className="font-medium text-red-400">{formatCurrency(stats.debitos.pis)}</span>
                         </div>
                         <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
-                          <span className="text-[#A1A1AA]">A Pagar:</span>
-                          <span className={stats.impostos_pagar.pis > 0 ? 'text-red-400' : 'text-emerald-400'}>
-                            {formatCurrency(stats.impostos_pagar.pis)}
+                          <span className="text-[#A1A1AA]">
+                            {stats.creditos.pis > stats.debitos.pis ? 'A Recuperar:' : 'A Pagar:'}
+                          </span>
+                          <span className={stats.creditos.pis > stats.debitos.pis ? 'text-[#C8A951]' : (stats.impostos_pagar.pis > 0 ? 'text-red-400' : 'text-emerald-400')}>
+                            {formatCurrency(stats.creditos.pis > stats.debitos.pis 
+                              ? Math.abs(stats.creditos.pis - stats.debitos.pis) 
+                              : stats.impostos_pagar.pis)}
                           </span>
                         </div>
                         <div className="text-xs text-[#666] pt-1 space-y-0.5">
@@ -732,9 +736,13 @@ const Dashboard = ({ user, onLogout }) => {
                           <span className="font-medium text-red-400">{formatCurrency(stats.debitos.cofins)}</span>
                         </div>
                         <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
-                          <span className="text-[#A1A1AA]">A Pagar:</span>
-                          <span className={stats.impostos_pagar.cofins > 0 ? 'text-red-400' : 'text-emerald-400'}>
-                            {formatCurrency(stats.impostos_pagar.cofins)}
+                          <span className="text-[#A1A1AA]">
+                            {stats.creditos.cofins > stats.debitos.cofins ? 'A Recuperar:' : 'A Pagar:'}
+                          </span>
+                          <span className={stats.creditos.cofins > stats.debitos.cofins ? 'text-[#C8A951]' : (stats.impostos_pagar.cofins > 0 ? 'text-red-400' : 'text-emerald-400')}>
+                            {formatCurrency(stats.creditos.cofins > stats.debitos.cofins 
+                              ? Math.abs(stats.creditos.cofins - stats.debitos.cofins) 
+                              : stats.impostos_pagar.cofins)}
                           </span>
                         </div>
                         <div className="text-xs text-[#666] pt-1 space-y-0.5">
