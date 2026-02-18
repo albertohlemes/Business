@@ -5,8 +5,8 @@ import { useAppContext } from '../context/AppContext';
 import { 
   Search, AlertTriangle, CheckCircle, XCircle, 
   Plus, Trash2, Edit2, Save, X, 
-  Package, FileText, RefreshCw, ArrowDown, ArrowUp,
-  AlertCircle, Info, DollarSign
+  Package, RefreshCw, ArrowDown, ArrowUp,
+  AlertCircle, Info
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -15,19 +15,15 @@ const API = `${BACKEND_URL}/api`;
 const ValidadorPisCofins = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia } = useAppContext();
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('cfop'); // cfop, ncm, regras
-  const [dadosPorCfop, setDadosPorCfop] = useState(null);
-  const [dadosPorNCM, setDadosPorNCM] = useState(null);
+  const [dados, setDados] = useState(null);
   const [regras, setRegras] = useState([]);
-  const [sugestoes, setSugestoes] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('todos');
-  const [filtroTipo, setFiltroTipo] = useState('todos'); // todos, entrada, saida
   
   // Modal para edição/criação de regra
   const [modalRegra, setModalRegra] = useState(null);
   const [novaRegra, setNovaRegra] = useState({
-    tipo: 'cfop',
+    tipo: 'ncm',
     chave: '',
     descricao: '',
     aliquota_pis: 1.65,
@@ -47,17 +43,14 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
       
-      const [cfopRes, ncmRes, regrasRes, sugestoesRes] = await Promise.all([
-        axios.get(`${API}/validador-pis-cofins/${selectedCompany.id}/por-cfop?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }),
-        axios.get(`${API}/validador-pis-cofins/${selectedCompany.id}/por-ncm?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }),
-        axios.get(`${API}/validador-pis-cofins/${selectedCompany.id}/regras`, { headers }),
-        axios.get(`${API}/validador-pis-cofins/${selectedCompany.id}/sugestoes?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers })
+      // Usar o endpoint unificado /dados
+      const [dadosRes, regrasRes] = await Promise.all([
+        axios.get(`${API}/validador-pis-cofins/${selectedCompany.id}/dados?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }),
+        axios.get(`${API}/validador-pis-cofins/${selectedCompany.id}/regras`, { headers })
       ]);
       
-      setDadosPorCfop(cfopRes.data);
-      setDadosPorNCM(ncmRes.data);
+      setDados(dadosRes.data);
       setRegras(regrasRes.data.regras || []);
-      setSugestoes(sugestoesRes.data);
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
     } finally {
@@ -121,344 +114,171 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
     }
   };
 
-  const handleCriarRegraRapida = (item, tipo) => {
-    if (tipo === 'cfop') {
-      setNovaRegra({
-        tipo: 'cfop',
-        chave: item.cfop,
-        descricao: item.descricao || `CFOP ${item.cfop}`,
-        aliquota_pis: 1.65,
-        aliquota_cofins: 7.6,
-        gera_credito: item.tipo === 'entrada',
-        gera_debito: item.tipo === 'saida',
-        cst_esperado_entrada: '',
-        cst_esperado_saida: '',
-        base_legal: '',
-        observacao: ''
-      });
-    } else {
-      setNovaRegra({
-        tipo: 'ncm',
-        chave: item.ncm,
-        descricao: `NCM ${item.ncm}`,
-        aliquota_pis: item.aliquota_pis_praticada || 1.65,
-        aliquota_cofins: item.aliquota_cofins_praticada || 7.6,
-        gera_credito: true,
-        gera_debito: true,
-        cst_esperado_entrada: '',
-        cst_esperado_saida: '',
-        base_legal: '',
-        observacao: ''
-      });
-    }
+  const handleCriarRegraNcm = (item) => {
+    setNovaRegra({
+      tipo: 'ncm',
+      chave: item.ncm,
+      descricao: item.descricao || `NCM ${item.ncm}`,
+      aliquota_pis: item.aliquota_pis_praticada || 1.65,
+      aliquota_cofins: item.aliquota_cofins_praticada || 7.6,
+      gera_credito: true,
+      gera_debito: true,
+      cst_esperado_entrada: '',
+      cst_esperado_saida: item.cst_esperado || '',
+      base_legal: '',
+      observacao: ''
+    });
     setModalRegra({});
-    setActiveTab('regras');
   };
 
-  // Cards de estatísticas
-  const EstatisticasCard = ({ dados }) => {
-    if (!dados?.estatisticas) return null;
-    const stats = dados.estatisticas;
-    
+  // Seção de CFOPs de Exceção
+  const SecaoCfopsExcecao = () => {
+    const cfopsEntrada = dados?.cfops_excecao?.entradas || [];
+    const cfopsSaida = dados?.cfops_excecao?.saidas || [];
+    const stats = dados?.cfops_excecao?.estatisticas || {};
+
+    if (cfopsEntrada.length === 0 && cfopsSaida.length === 0) {
+      return null;
+    }
+
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-white">{stats.total}</p>
-          <p className="text-sm text-[#A1A1AA]">Total</p>
-        </div>
-        <div className="bg-green-600/10 border border-green-600/30 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-green-400">{stats.ok}</p>
-          <p className="text-sm text-green-400/70">OK</p>
-        </div>
-        <div className="bg-red-600/10 border border-red-600/30 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-red-400">{stats.divergentes}</p>
-          <p className="text-sm text-red-400/70">Divergente</p>
-        </div>
-        <div className="bg-gray-600/10 border border-gray-600/30 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-gray-400">{stats.sem_regra}</p>
-          <p className="text-sm text-gray-400/70">Sem Regra</p>
-        </div>
-      </div>
-    );
-  };
-
-  // Tab Por CFOP
-  const TabPorCfop = () => {
-    const entradas = (dadosPorCfop?.entradas || []).filter(item => {
-      const matchSearch = searchTerm === '' || item.cfop.includes(searchTerm) || item.descricao?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchStatus = filtroStatus === 'todos' || item.status === filtroStatus;
-      return matchSearch && matchStatus;
-    });
-    
-    const saidas = (dadosPorCfop?.saidas || []).filter(item => {
-      const matchSearch = searchTerm === '' || item.cfop.includes(searchTerm) || item.descricao?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchStatus = filtroStatus === 'todos' || item.status === filtroStatus;
-      return matchSearch && matchStatus;
-    });
-    
-    const CfopTable = ({ dados, titulo, tipoOp }) => (
-      <div className="mb-6">
-        <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-          {tipoOp === 'entrada' ? <ArrowDown className="w-4 h-4 text-green-400" /> : <ArrowUp className="w-4 h-4 text-red-400" />}
-          {titulo} ({dados.length})
-        </h3>
-        <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-[#0C0C0C]">
-                <tr>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">CFOP</th>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">Descrição</th>
-                  <th className="text-right py-3 px-4 text-[#A1A1AA]">Qtd</th>
-                  <th className="text-right py-3 px-4 text-[#A1A1AA]">Valor Total</th>
-                  <th className="text-right py-3 px-4 text-[#A1A1AA]">PIS</th>
-                  <th className="text-right py-3 px-4 text-[#A1A1AA]">COFINS</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">CST</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Gera {tipoOp === 'entrada' ? 'Crédito' : 'Débito'}?</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Esperado</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Status</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dados.map((item, idx) => (
-                  <tr key={idx} className={`border-b border-[#1A1A1A] hover:bg-[#1A1A1A] ${item.status === 'divergente' ? 'bg-red-900/10' : ''}`}>
-                    <td className="py-3 px-4 font-mono text-[#C8A951] font-semibold">{item.cfop}</td>
-                    <td className="py-3 px-4 text-white max-w-[200px] truncate" title={item.descricao}>{item.descricao}</td>
-                    <td className="py-3 px-4 text-right text-[#A1A1AA]">{item.quantidade}</td>
-                    <td className="py-3 px-4 text-right text-white">{formatCurrency(item.valor_total)}</td>
-                    <td className="py-3 px-4 text-right text-blue-400">{formatCurrency(item.valor_pis)}</td>
-                    <td className="py-3 px-4 text-right text-teal-400">{formatCurrency(item.valor_cofins)}</td>
-                    <td className="py-3 px-4 text-center text-[#A1A1AA]">{item.cst_mais_comum || '-'}</td>
-                    <td className="py-3 px-4 text-center">
-                      {item.gera_credito_debito_praticado ? (
-                        <span className="text-green-400">Sim</span>
-                      ) : (
-                        <span className="text-gray-400">Não</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      {item.gera_credito_debito_esperado !== null ? (
-                        item.gera_credito_debito_esperado ? (
-                          <span className="text-blue-400">Sim</span>
-                        ) : (
-                          <span className="text-gray-400">Não</span>
-                        )
-                      ) : (
-                        <span className="text-gray-500">-</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center">{getStatusBadge(item.status)}</td>
-                    <td className="py-3 px-4 text-center">
-                      {item.status === 'sem_regra' && (
-                        <button
-                          onClick={() => handleCriarRegraRapida(item, 'cfop')}
-                          className="text-xs bg-blue-600/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-600/30"
-                        >
-                          + Regra
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {dados.length === 0 && (
-                  <tr>
-                    <td colSpan="11" className="py-8 text-center text-[#666]">
-                      Nenhum CFOP encontrado
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+      <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-yellow-400" />
+            CFOPs de Exceção (Não geram crédito/débito)
+          </h3>
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-green-400">{stats.ok || 0} OK</span>
+            <span className="text-red-400">{stats.divergentes || 0} Divergentes</span>
           </div>
         </div>
-      </div>
-    );
-    
-    return (
-      <div className="space-y-4">
-        <EstatisticasCard dados={dadosPorCfop} />
         
-        {(filtroTipo === 'todos' || filtroTipo === 'entrada') && (
-          <CfopTable dados={entradas} titulo="Entradas (Créditos)" tipoOp="entrada" />
-        )}
-        
-        {(filtroTipo === 'todos' || filtroTipo === 'saida') && (
-          <CfopTable dados={saidas} titulo="Saídas (Débitos)" tipoOp="saida" />
-        )}
-      </div>
-    );
-  };
+        <p className="text-[#A1A1AA] text-sm mb-4">
+          Itens em CFOPs abaixo devem ter CST 70/98 (entradas) ou 49/99 (saídas) - sem crédito/débito.
+        </p>
 
-  // Tab Por NCM
-  const TabPorNCM = () => {
-    const dadosFiltrados = (dadosPorNCM?.ncms || []).filter(item => {
-      const matchSearch = searchTerm === '' || item.ncm.includes(searchTerm) || item.produtos_exemplo?.some(p => p.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchStatus = filtroStatus === 'todos' || item.status === filtroStatus;
-      return matchSearch && matchStatus;
-    });
-    
-    return (
-      <div className="space-y-4">
-        <EstatisticasCard dados={dadosPorNCM} />
-        
-        <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-[#0C0C0C]">
-                <tr>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">NCM</th>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">Exemplos</th>
-                  <th className="text-right py-3 px-4 text-[#A1A1AA]">E/S</th>
-                  <th className="text-right py-3 px-4 text-[#A1A1AA]">Valor</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">PIS Prat.</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">PIS Esp.</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">COFINS Prat.</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">COFINS Esp.</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">CST</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Status</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dadosFiltrados.map((item, idx) => (
-                  <tr key={idx} className={`border-b border-[#1A1A1A] hover:bg-[#1A1A1A] ${item.status === 'divergente' ? 'bg-red-900/10' : ''}`}>
-                    <td className="py-3 px-4 font-mono text-[#C8A951] font-semibold">{item.ncm}</td>
-                    <td className="py-3 px-4">
-                      <div className="max-w-[200px]">
-                        {item.produtos_exemplo?.slice(0, 2).map((p, i) => (
-                          <p key={i} className="text-white text-xs truncate">{p}</p>
-                        ))}
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Entradas */}
+          {cfopsEntrada.length > 0 && (
+            <div>
+              <h4 className="text-green-400 font-medium mb-2 flex items-center gap-2">
+                <ArrowDown className="w-4 h-4" />
+                Entradas - Sem Crédito ({cfopsEntrada.length})
+              </h4>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {cfopsEntrada.map((cfop, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`bg-[#0C0C0C] rounded-lg p-3 ${cfop.status === 'divergente' ? 'border border-red-500/30' : 'border border-[#2A2A2A]'}`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-mono text-[#C8A951] font-semibold">{cfop.cfop}</span>
+                      {getStatusBadge(cfop.status)}
+                    </div>
+                    <p className="text-sm text-[#A1A1AA] mb-2">{cfop.descricao}</p>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#666]">{cfop.quantidade} itens</span>
+                      <span className="text-white">{formatCurrency(cfop.valor_total)}</span>
+                    </div>
+                    {cfop.status === 'divergente' && (
+                      <div className="mt-2 text-xs text-red-400">
+                        CST esperado: {cfop.cst_esperado} | Encontrado: {cfop.cst_mais_comum || 'N/A'}
                       </div>
-                    </td>
-                    <td className="py-3 px-4 text-right text-[#A1A1AA]">
-                      <span className="text-green-400">{item.entradas}</span>/<span className="text-red-400">{item.saidas}</span>
-                    </td>
-                    <td className="py-3 px-4 text-right text-white">{formatCurrency(item.valor_total)}</td>
-                    <td className="py-3 px-4 text-center text-white">{item.aliquota_pis_praticada}%</td>
-                    <td className="py-3 px-4 text-center text-blue-400">
-                      {item.aliquota_pis_esperada !== null ? `${item.aliquota_pis_esperada}%` : '-'}
-                    </td>
-                    <td className="py-3 px-4 text-center text-white">{item.aliquota_cofins_praticada}%</td>
-                    <td className="py-3 px-4 text-center text-teal-400">
-                      {item.aliquota_cofins_esperada !== null ? `${item.aliquota_cofins_esperada}%` : '-'}
-                    </td>
-                    <td className="py-3 px-4 text-center text-[#A1A1AA]">{item.cst_mais_comum || '-'}</td>
-                    <td className="py-3 px-4 text-center">{getStatusBadge(item.status)}</td>
-                    <td className="py-3 px-4 text-center">
-                      {item.status === 'sem_regra' && (
-                        <button
-                          onClick={() => handleCriarRegraRapida(item, 'ncm')}
-                          className="text-xs bg-blue-600/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-600/30"
-                        >
-                          + Regra
-                        </button>
-                      )}
-                    </td>
-                  </tr>
+                    )}
+                  </div>
                 ))}
-                {dadosFiltrados.length === 0 && (
-                  <tr>
-                    <td colSpan="11" className="py-8 text-center text-[#666]">
-                      Nenhum NCM encontrado
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </div>
+          )}
+
+          {/* Saídas */}
+          {cfopsSaida.length > 0 && (
+            <div>
+              <h4 className="text-red-400 font-medium mb-2 flex items-center gap-2">
+                <ArrowUp className="w-4 h-4" />
+                Saídas - Sem Débito ({cfopsSaida.length})
+              </h4>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {cfopsSaida.map((cfop, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`bg-[#0C0C0C] rounded-lg p-3 ${cfop.status === 'divergente' ? 'border border-red-500/30' : 'border border-[#2A2A2A]'}`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-mono text-[#C8A951] font-semibold">{cfop.cfop}</span>
+                      {getStatusBadge(cfop.status)}
+                    </div>
+                    <p className="text-sm text-[#A1A1AA] mb-2">{cfop.descricao}</p>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#666]">{cfop.quantidade} itens</span>
+                      <span className="text-white">{formatCurrency(cfop.valor_total)}</span>
+                    </div>
+                    {cfop.status === 'divergente' && (
+                      <div className="mt-2 text-xs text-red-400">
+                        CST esperado: {cfop.cst_esperado} | Encontrado: {cfop.cst_mais_comum || 'N/A'}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
   };
 
-  // Tab Regras
-  const TabRegras = () => {
-    return (
-      <div className="space-y-6">
-        {/* Sugestões */}
-        {(sugestoes?.sugestoes_ncm?.length > 0 || sugestoes?.sugestoes_cfop?.length > 0) && (
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-            <h3 className="text-blue-400 font-semibold mb-3 flex items-center gap-2">
-              <Info className="w-5 h-5" />
-              Sugestões de Regras
-            </h3>
-            
-            {sugestoes?.sugestoes_ncm?.length > 0 && (
-              <div className="mb-4">
-                <p className="text-sm text-[#A1A1AA] mb-2">NCMs frequentes sem regra:</p>
-                <div className="flex flex-wrap gap-2">
-                  {sugestoes.sugestoes_ncm.slice(0, 5).map((s, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setNovaRegra({
-                          tipo: 'ncm',
-                          chave: s.chave,
-                          descricao: s.descricao,
-                          aliquota_pis: s.aliquota_pis_sugerida,
-                          aliquota_cofins: s.aliquota_cofins_sugerida,
-                          gera_credito: true,
-                          gera_debito: true,
-                          cst_esperado_entrada: '',
-                          cst_esperado_saida: '',
-                          base_legal: '',
-                          observacao: ''
-                        });
-                        setModalRegra({});
-                      }}
-                      className="bg-[#0C0C0C] rounded-lg px-3 py-2 text-sm hover:bg-[#1A1A1A]"
-                    >
-                      <span className="font-mono text-[#C8A951]">{s.chave}</span>
-                      <span className="text-[#666] ml-2">({s.quantidade} itens)</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {sugestoes?.sugestoes_cfop?.length > 0 && (
-              <div>
-                <p className="text-sm text-[#A1A1AA] mb-2">CFOPs sem regra personalizada:</p>
-                <div className="flex flex-wrap gap-2">
-                  {sugestoes.sugestoes_cfop.slice(0, 5).map((s, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setNovaRegra({
-                          tipo: 'cfop',
-                          chave: s.chave,
-                          descricao: s.descricao,
-                          aliquota_pis: 1.65,
-                          aliquota_cofins: 7.6,
-                          gera_credito: s.gera_credito_sugerido,
-                          gera_debito: s.gera_debito_sugerido,
-                          cst_esperado_entrada: '',
-                          cst_esperado_saida: '',
-                          base_legal: '',
-                          observacao: ''
-                        });
-                        setModalRegra({});
-                      }}
-                      className="bg-[#0C0C0C] rounded-lg px-3 py-2 text-sm hover:bg-[#1A1A1A]"
-                    >
-                      <span className="font-mono text-[#C8A951]">{s.chave}</span>
-                      <span className="text-[#666] ml-2">({s.quantidade} docs)</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+  // Seção de NCMs com Regras
+  const SecaoNcms = () => {
+    const ncmsLista = dados?.ncms?.lista || [];
+    const stats = dados?.ncms?.estatisticas || {};
 
-        {/* Botão Nova Regra */}
-        <div className="flex justify-between items-center">
-          <h3 className="text-white font-semibold">Regras Configuradas ({regras.length})</h3>
+    const ncmsFiltrados = ncmsLista.filter(item => {
+      const matchSearch = searchTerm === '' || 
+        item.ncm.includes(searchTerm) || 
+        item.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.produtos_exemplo?.some(p => p.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchStatus = filtroStatus === 'todos' || item.status === filtroStatus;
+      return matchSearch && matchStatus;
+    });
+
+    return (
+      <div>
+        {/* Estatísticas */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-white">{stats.total || 0}</p>
+            <p className="text-sm text-[#A1A1AA]">Total NCMs</p>
+          </div>
+          <div className="bg-green-600/10 border border-green-600/30 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-green-400">{stats.ok || 0}</p>
+            <p className="text-sm text-green-400/70">OK</p>
+          </div>
+          <div className="bg-yellow-600/10 border border-yellow-600/30 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-yellow-400">{stats.alerta || 0}</p>
+            <p className="text-sm text-yellow-400/70">Alerta</p>
+          </div>
+          <div className="bg-red-600/10 border border-red-600/30 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-red-400">{stats.divergentes || 0}</p>
+            <p className="text-sm text-red-400/70">Divergente</p>
+          </div>
+          <div className="bg-gray-600/10 border border-gray-600/30 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-gray-400">{stats.sem_regra || 0}</p>
+            <p className="text-sm text-gray-400/70">Sem Regra</p>
+          </div>
+        </div>
+
+        {/* Header da seção */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <Package className="w-5 h-5 text-[#C8A951]" />
+            Regras por NCM (CFOPs Normais)
+          </h3>
           <button
             onClick={() => {
               setNovaRegra({
-                tipo: 'cfop',
+                tipo: 'ncm',
                 chave: '',
                 descricao: '',
                 aliquota_pis: 1.65,
@@ -479,93 +299,206 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
           </button>
         </div>
 
-        {/* Lista de Regras */}
+        <p className="text-[#A1A1AA] text-sm mb-4">
+          Produtos em CFOPs normais (não exceção) usam as regras abaixo para determinar alíquotas e CST.
+        </p>
+
+        {/* Tabela de NCMs */}
         <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
-          {regras.length > 0 ? (
+          <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-[#0C0C0C]">
                 <tr>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">Tipo</th>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">Chave</th>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">Descrição</th>
+                  <th className="text-left py-3 px-4 text-[#A1A1AA]">NCM</th>
+                  <th className="text-left py-3 px-4 text-[#A1A1AA]">Descrição/Exemplos</th>
+                  <th className="text-right py-3 px-4 text-[#A1A1AA]">E/S</th>
+                  <th className="text-right py-3 px-4 text-[#A1A1AA]">Valor</th>
                   <th className="text-center py-3 px-4 text-[#A1A1AA]">PIS</th>
                   <th className="text-center py-3 px-4 text-[#A1A1AA]">COFINS</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Crédito</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Débito</th>
+                  <th className="text-center py-3 px-4 text-[#A1A1AA]">CST</th>
                   <th className="text-center py-3 px-4 text-[#A1A1AA]">Status</th>
                   <th className="text-center py-3 px-4 text-[#A1A1AA]">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {regras.map((regra, idx) => (
-                  <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
+                {ncmsFiltrados.map((item, idx) => (
+                  <tr 
+                    key={idx} 
+                    className={`border-b border-[#1A1A1A] hover:bg-[#1A1A1A] ${
+                      item.status === 'divergente' ? 'bg-red-900/10' : 
+                      item.status === 'alerta' ? 'bg-yellow-900/5' : ''
+                    }`}
+                  >
+                    <td className="py-3 px-4 font-mono text-[#C8A951] font-semibold">{item.ncm}</td>
                     <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded text-xs ${regra.tipo === 'ncm' ? 'bg-purple-600/20 text-purple-400' : 'bg-blue-600/20 text-blue-400'}`}>
-                        {regra.tipo.toUpperCase()}
-                      </span>
+                      <div className="max-w-[200px]">
+                        {item.descricao && <p className="text-white text-xs font-medium">{item.descricao}</p>}
+                        {item.produtos_exemplo?.slice(0, 2).map((p, i) => (
+                          <p key={i} className="text-[#A1A1AA] text-xs truncate">{p}</p>
+                        ))}
+                      </div>
                     </td>
-                    <td className="py-3 px-4 font-mono text-[#C8A951]">{regra.chave}</td>
-                    <td className="py-3 px-4 text-white max-w-[200px] truncate">{regra.descricao}</td>
-                    <td className="py-3 px-4 text-center text-white">{regra.aliquota_pis}%</td>
-                    <td className="py-3 px-4 text-center text-white">{regra.aliquota_cofins}%</td>
+                    <td className="py-3 px-4 text-right text-[#A1A1AA]">
+                      <span className="text-green-400">{item.entradas}</span>/<span className="text-red-400">{item.saidas}</span>
+                    </td>
+                    <td className="py-3 px-4 text-right text-white">{formatCurrency(item.valor_total)}</td>
                     <td className="py-3 px-4 text-center">
-                      {regra.gera_credito ? <span className="text-green-400">Sim</span> : <span className="text-gray-400">Não</span>}
+                      <div className="flex flex-col items-center">
+                        <span className="text-white">{item.aliquota_pis_praticada}%</span>
+                        {item.aliquota_pis_esperada !== null && (
+                          <span className={`text-xs ${
+                            Math.abs(item.aliquota_pis_praticada - item.aliquota_pis_esperada) <= 0.1 
+                              ? 'text-green-400' 
+                              : 'text-red-400'
+                          }`}>
+                            (esp: {item.aliquota_pis_esperada}%)
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      {regra.gera_debito ? <span className="text-green-400">Sim</span> : <span className="text-gray-400">Não</span>}
+                      <div className="flex flex-col items-center">
+                        <span className="text-white">{item.aliquota_cofins_praticada}%</span>
+                        {item.aliquota_cofins_esperada !== null && (
+                          <span className={`text-xs ${
+                            Math.abs(item.aliquota_cofins_praticada - item.aliquota_cofins_esperada) <= 0.1 
+                              ? 'text-green-400' 
+                              : 'text-red-400'
+                          }`}>
+                            (esp: {item.aliquota_cofins_esperada}%)
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      {regra.ativo ? (
-                        <span className="text-xs bg-green-600/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
-                      ) : (
-                        <span className="text-xs bg-gray-600/20 text-gray-400 px-2 py-0.5 rounded">Inativo</span>
-                      )}
+                      <div className="flex flex-col items-center">
+                        <span className="text-[#A1A1AA]">{item.cst_praticado || '-'}</span>
+                        {item.cst_esperado && (
+                          <span className="text-xs text-blue-400">(esp: {item.cst_esperado})</span>
+                        )}
+                      </div>
                     </td>
+                    <td className="py-3 px-4 text-center">{getStatusBadge(item.status)}</td>
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => {
-                            setNovaRegra({
-                              tipo: regra.tipo,
-                              chave: regra.chave,
-                              descricao: regra.descricao,
-                              aliquota_pis: regra.aliquota_pis,
-                              aliquota_cofins: regra.aliquota_cofins,
-                              gera_credito: regra.gera_credito,
-                              gera_debito: regra.gera_debito,
-                              cst_esperado_entrada: regra.cst_esperado_entrada || '',
-                              cst_esperado_saida: regra.cst_esperado_saida || '',
-                              base_legal: regra.base_legal || '',
-                              observacao: regra.observacao || ''
-                            });
-                            setModalRegra(regra);
-                          }}
-                          className="text-blue-400 hover:text-blue-300"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleExcluirRegra(regra.id)}
-                          className="text-red-400 hover:text-red-300"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {item.regra_id ? (
+                          <button
+                            onClick={() => {
+                              const regra = regras.find(r => r.id === item.regra_id);
+                              if (regra) {
+                                setNovaRegra({
+                                  tipo: regra.tipo,
+                                  chave: regra.chave,
+                                  descricao: regra.descricao,
+                                  aliquota_pis: regra.aliquota_pis,
+                                  aliquota_cofins: regra.aliquota_cofins,
+                                  gera_credito: regra.gera_credito,
+                                  gera_debito: regra.gera_debito,
+                                  cst_esperado_entrada: regra.cst_esperado_entrada || '',
+                                  cst_esperado_saida: regra.cst_esperado_saida || '',
+                                  base_legal: regra.base_legal || '',
+                                  observacao: regra.observacao || ''
+                                });
+                                setModalRegra(regra);
+                              }
+                            }}
+                            className="text-blue-400 hover:text-blue-300"
+                            title="Editar regra"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleCriarRegraNcm(item)}
+                            className="text-xs bg-blue-600/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-600/30"
+                          >
+                            + Regra
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
                 ))}
+                {ncmsFiltrados.length === 0 && (
+                  <tr>
+                    <td colSpan="9" className="py-8 text-center text-[#666]">
+                      Nenhum NCM encontrado
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
-          ) : (
-            <div className="p-8 text-center">
-              <AlertTriangle className="w-12 h-12 mx-auto text-yellow-400 mb-4" />
-              <p className="text-white font-medium mb-2">Nenhuma regra configurada</p>
-              <p className="text-[#A1A1AA] text-sm">
-                Configure regras para validar PIS/COFINS automaticamente
-              </p>
-            </div>
-          )}
+          </div>
         </div>
+
+        {/* Regras configuradas */}
+        {regras.length > 0 && (
+          <div className="mt-6">
+            <h4 className="text-white font-semibold mb-3">Regras Personalizadas da Empresa ({regras.length})</h4>
+            <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-[#0C0C0C]">
+                  <tr>
+                    <th className="text-left py-3 px-4 text-[#A1A1AA]">NCM</th>
+                    <th className="text-left py-3 px-4 text-[#A1A1AA]">Descrição</th>
+                    <th className="text-center py-3 px-4 text-[#A1A1AA]">PIS</th>
+                    <th className="text-center py-3 px-4 text-[#A1A1AA]">COFINS</th>
+                    <th className="text-center py-3 px-4 text-[#A1A1AA]">Crédito</th>
+                    <th className="text-center py-3 px-4 text-[#A1A1AA]">Débito</th>
+                    <th className="text-center py-3 px-4 text-[#A1A1AA]">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {regras.map((regra, idx) => (
+                    <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
+                      <td className="py-3 px-4 font-mono text-[#C8A951]">{regra.chave}</td>
+                      <td className="py-3 px-4 text-white max-w-[200px] truncate">{regra.descricao}</td>
+                      <td className="py-3 px-4 text-center text-white">{regra.aliquota_pis}%</td>
+                      <td className="py-3 px-4 text-center text-white">{regra.aliquota_cofins}%</td>
+                      <td className="py-3 px-4 text-center">
+                        {regra.gera_credito ? <span className="text-green-400">Sim</span> : <span className="text-gray-400">Não</span>}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {regra.gera_debito ? <span className="text-green-400">Sim</span> : <span className="text-gray-400">Não</span>}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => {
+                              setNovaRegra({
+                                tipo: regra.tipo,
+                                chave: regra.chave,
+                                descricao: regra.descricao,
+                                aliquota_pis: regra.aliquota_pis,
+                                aliquota_cofins: regra.aliquota_cofins,
+                                gera_credito: regra.gera_credito,
+                                gera_debito: regra.gera_debito,
+                                cst_esperado_entrada: regra.cst_esperado_entrada || '',
+                                cst_esperado_saida: regra.cst_esperado_saida || '',
+                                base_legal: regra.base_legal || '',
+                                observacao: regra.observacao || ''
+                              });
+                              setModalRegra(regra);
+                            }}
+                            className="text-blue-400 hover:text-blue-300"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleExcluirRegra(regra.id)}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -587,29 +520,16 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
           </div>
           
           <div className="p-4 space-y-4">
-            {/* Tipo */}
-            <div>
-              <label className="block text-sm text-[#A1A1AA] mb-1">Tipo</label>
-              <select
-                value={novaRegra.tipo}
-                onChange={(e) => setNovaRegra({...novaRegra, tipo: e.target.value})}
-                className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
-              >
-                <option value="cfop">CFOP</option>
-                <option value="ncm">NCM</option>
-              </select>
-            </div>
-            
-            {/* Chave */}
+            {/* NCM */}
             <div>
               <label className="block text-sm text-[#A1A1AA] mb-1">
-                {novaRegra.tipo === 'cfop' ? 'CFOP' : 'NCM (pode ser prefixo)'}
+                NCM (pode ser prefixo - ex: 1905 para todos os pães)
               </label>
               <input
                 type="text"
                 value={novaRegra.chave}
                 onChange={(e) => setNovaRegra({...novaRegra, chave: e.target.value})}
-                placeholder={novaRegra.tipo === 'cfop' ? 'Ex: 5102' : 'Ex: 1905'}
+                placeholder="Ex: 1905 ou 19059090"
                 className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
               />
             </div>
@@ -621,7 +541,7 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
                 type="text"
                 value={novaRegra.descricao}
                 onChange={(e) => setNovaRegra({...novaRegra, descricao: e.target.value})}
-                placeholder="Ex: Venda de mercadoria adquirida"
+                placeholder="Ex: Pães e produtos de padaria"
                 className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
               />
             </div>
@@ -680,7 +600,7 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
                   type="text"
                   value={novaRegra.cst_esperado_entrada}
                   onChange={(e) => setNovaRegra({...novaRegra, cst_esperado_entrada: e.target.value})}
-                  placeholder="Ex: 50, 60"
+                  placeholder="Ex: 50, 70"
                   className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
                 />
               </div>
@@ -690,7 +610,7 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
                   type="text"
                   value={novaRegra.cst_esperado_saida}
                   onChange={(e) => setNovaRegra({...novaRegra, cst_esperado_saida: e.target.value})}
-                  placeholder="Ex: 01, 02"
+                  placeholder="Ex: 01, 06"
                   className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white"
                 />
               </div>
@@ -749,7 +669,7 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
           <div>
             <h1 className="text-2xl font-bold text-white">Validador de PIS/COFINS</h1>
             <p className="text-[#A1A1AA] text-sm">
-              Compare CFOPs e NCMs com as regras configuradas
+              Audite as alíquotas e CSTs dos itens - CFOPs exceção tratados automaticamente
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -770,7 +690,7 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A1A1AA]" />
             <input
               type="text"
-              placeholder="Buscar por CFOP, NCM ou descrição..."
+              placeholder="Buscar por NCM, descrição ou produto..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-[#141414] border border-[#2A2A2A] rounded-lg pl-10 pr-4 py-2 text-white placeholder-[#666]"
@@ -783,57 +703,10 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
           >
             <option value="todos">Todos os Status</option>
             <option value="ok">OK</option>
+            <option value="alerta">Alerta</option>
             <option value="divergente">Divergente</option>
             <option value="sem_regra">Sem Regra</option>
           </select>
-          {activeTab === 'cfop' && (
-            <select
-              value={filtroTipo}
-              onChange={(e) => setFiltroTipo(e.target.value)}
-              className="bg-[#141414] border border-[#2A2A2A] rounded-lg px-4 py-2 text-white"
-            >
-              <option value="todos">Entradas e Saídas</option>
-              <option value="entrada">Apenas Entradas</option>
-              <option value="saida">Apenas Saídas</option>
-            </select>
-          )}
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-[#2A2A2A]">
-          <button
-            onClick={() => setActiveTab('cfop')}
-            className={`px-6 py-3 font-medium transition-colors flex items-center gap-2 ${
-              activeTab === 'cfop'
-                ? 'text-[#C8A951] border-b-2 border-[#C8A951]'
-                : 'text-[#A1A1AA] hover:text-white'
-            }`}
-          >
-            <DollarSign className="w-4 h-4" />
-            Por CFOP
-          </button>
-          <button
-            onClick={() => setActiveTab('ncm')}
-            className={`px-6 py-3 font-medium transition-colors flex items-center gap-2 ${
-              activeTab === 'ncm'
-                ? 'text-[#C8A951] border-b-2 border-[#C8A951]'
-                : 'text-[#A1A1AA] hover:text-white'
-            }`}
-          >
-            <Package className="w-4 h-4" />
-            Por NCM
-          </button>
-          <button
-            onClick={() => setActiveTab('regras')}
-            className={`px-6 py-3 font-medium transition-colors flex items-center gap-2 ${
-              activeTab === 'regras'
-                ? 'text-[#C8A951] border-b-2 border-[#C8A951]'
-                : 'text-[#A1A1AA] hover:text-white'
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            Regras ({regras.length})
-          </button>
         </div>
 
         {/* Conteúdo */}
@@ -843,9 +716,11 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
           </div>
         ) : (
           <>
-            {activeTab === 'cfop' && <TabPorCfop />}
-            {activeTab === 'ncm' && <TabPorNCM />}
-            {activeTab === 'regras' && <TabRegras />}
+            {/* CFOPs de Exceção no topo */}
+            <SecaoCfopsExcecao />
+            
+            {/* NCMs abaixo */}
+            <SecaoNcms />
           </>
         )}
 
