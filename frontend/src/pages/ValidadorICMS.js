@@ -501,8 +501,8 @@ const ValidadorICMS = ({ user, onLogout }) => {
                   <th className="text-left py-3 px-4 text-[#A1A1AA]">Tipo</th>
                   <th className="text-left py-3 px-4 text-[#A1A1AA]">Chave</th>
                   <th className="text-left py-3 px-4 text-[#A1A1AA]">Descrição</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Alíq. Esperada</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Alíq. Reduzida</th>
+                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Alíq. Interna</th>
+                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Alíq. Interest.</th>
                   <th className="text-left py-3 px-4 text-[#A1A1AA]">Base Legal</th>
                   <th className="text-center py-3 px-4 text-[#A1A1AA]">Status</th>
                   <th className="text-center py-3 px-4 text-[#A1A1AA]">Ações</th>
