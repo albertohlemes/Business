@@ -2003,18 +2003,15 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
                     valor_pis = Decimal('0')
                     valor_cofins = Decimal('0')
                 else:
-                    calc = calcular_pis_cofins_produto(float(valor_base), ncm, cfop, 'entrada', perfil, regime_calc)
-                    if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
-                        cst = '50'
-                        valor_pis = Decimal(str(calc.get('valor_pis', 0)))
-                        valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                    # Chamar função que retorna cst_calculado, aliq_zero, etc.
+                    calc = calcular_cst_pis_cofins(ncm, cfop, 'entrada', perfil, regime_calc, '')
+                    cst = calc.get('cst_calculado', '70')
+                    
+                    # Se tem crédito (CST 50), calcular valores
+                    if cst == '50':
+                        valor_pis = valor_base * Decimal('0.0165')
+                        valor_cofins = valor_base * Decimal('0.076')
                     else:
-                        classificacao = calc.get('classificacao', {})
-                        tipo_trib = classificacao.get('tipo', '')
-                        if tipo_trib == 'ALIQUOTA_ZERO':
-                            cst = '73'
-                        else:
-                            cst = '70'
                         valor_pis = Decimal('0')
                         valor_cofins = Decimal('0')
                 
