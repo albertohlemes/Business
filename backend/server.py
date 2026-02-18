@@ -1461,6 +1461,17 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
             valor_total = Decimal(str(prod.get('valor_total', 0) or 0))
             v_icms = Decimal(str(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0))
             
+            # ==========================================================
+            # VERIFICAR SE É CFOP DE TRANSFERÊNCIA (MATRIZ-FILIAL)
+            # CFOPs de transferência NÃO geram crédito NEM débito de PIS/COFINS
+            # O imposto federal é centralizado na matriz
+            # ==========================================================
+            if is_cfop_transferencia(cfop):
+                # Transferência não entra na base de cálculo
+                totais['desconsiderados_credito'] += valor_total if tipo_operacao == 'entrada' else Decimal('0')
+                totais['desconsiderados_debito'] += valor_total if tipo_operacao == 'saida' else Decimal('0')
+                continue
+            
             # Obter categoria classificada do produto
             categoria = str(prod.get('categoria_classificada', '') or prod.get('categoria', '') or '').lower().strip()
             
