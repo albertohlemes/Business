@@ -39109,6 +39109,573 @@ async def sugerir_regras_icms(
     }
 
 
+# ============================================================
+# VALIDADOR DE PIS/COFINS - ENDPOINTS
+# ============================================================
+
+# CFOPs padrão que geram crédito (entradas)
+CFOPS_CREDITO_PADRAO = {
+    '1101': {'descricao': 'Compra para industrialização', 'gera_credito': True},
+    '1102': {'descricao': 'Compra para comercialização', 'gera_credito': True},
+    '1111': {'descricao': 'Compra para industrialização de mercadoria de zona franca', 'gera_credito': True},
+    '1116': {'descricao': 'Compra para industrialização originada de encomenda', 'gera_credito': True},
+    '1117': {'descricao': 'Compra para comercialização originada de encomenda', 'gera_credito': True},
+    '1120': {'descricao': 'Compra para industrialização entregue pelo vendedor', 'gera_credito': True},
+    '1121': {'descricao': 'Compra para comercialização entregue pelo vendedor', 'gera_credito': True},
+    '1122': {'descricao': 'Compra para industrialização destinada zona franca', 'gera_credito': True},
+    '1124': {'descricao': 'Industrialização efetuada por outra empresa', 'gera_credito': True},
+    '1125': {'descricao': 'Industrialização efetuada por outra empresa com mercadoria fornecida', 'gera_credito': True},
+    '1126': {'descricao': 'Compra para utilização na prestação de serviço', 'gera_credito': True},
+    '1401': {'descricao': 'Compra para industrialização em operação com mercadoria sujeita a ST', 'gera_credito': True},
+    '1403': {'descricao': 'Compra para comercialização em operação com mercadoria sujeita a ST', 'gera_credito': True},
+    '1556': {'descricao': 'Compra de material para uso ou consumo', 'gera_credito': False},
+    '1407': {'descricao': 'Compra de ativo imobilizado sujeito a ST', 'gera_credito': True},
+    '1551': {'descricao': 'Compra de ativo imobilizado', 'gera_credito': True},
+    '1652': {'descricao': 'Compra de combustível para consumo', 'gera_credito': True},
+    '1653': {'descricao': 'Compra de lubrificante para consumo', 'gera_credito': True},
+    '1910': {'descricao': 'Entrada de bonificação', 'gera_credito': False},
+    '1920': {'descricao': 'Entrada de vasilhame ou embalagem', 'gera_credito': False},
+    '1921': {'descricao': 'Retorno de vasilhame ou embalagem', 'gera_credito': False},
+    '1949': {'descricao': 'Outra entrada de mercadoria ou serviço não especificada', 'gera_credito': False},
+    '2101': {'descricao': 'Compra para industrialização (interestadual)', 'gera_credito': True},
+    '2102': {'descricao': 'Compra para comercialização (interestadual)', 'gera_credito': True},
+    '2401': {'descricao': 'Compra para industrialização em operação com ST (interestadual)', 'gera_credito': True},
+    '2403': {'descricao': 'Compra para comercialização em operação com ST (interestadual)', 'gera_credito': True},
+    '2551': {'descricao': 'Compra de ativo imobilizado (interestadual)', 'gera_credito': True},
+    '2556': {'descricao': 'Compra de material para uso ou consumo (interestadual)', 'gera_credito': False},
+    '2652': {'descricao': 'Compra de combustível para consumo (interestadual)', 'gera_credito': True},
+    '2910': {'descricao': 'Entrada de bonificação (interestadual)', 'gera_credito': False},
+    '2920': {'descricao': 'Entrada de vasilhame ou embalagem (interestadual)', 'gera_credito': False},
+    '2949': {'descricao': 'Outra entrada não especificada (interestadual)', 'gera_credito': False},
+}
+
+# CFOPs padrão que geram débito (saídas)
+CFOPS_DEBITO_PADRAO = {
+    '5101': {'descricao': 'Venda de produção do estabelecimento', 'gera_debito': True},
+    '5102': {'descricao': 'Venda de mercadoria adquirida', 'gera_debito': True},
+    '5103': {'descricao': 'Venda de produção destinada a zona franca', 'gera_debito': True},
+    '5104': {'descricao': 'Venda de mercadoria adquirida destinada a zona franca', 'gera_debito': True},
+    '5105': {'descricao': 'Venda de produção destinada a SUFRAMA', 'gera_debito': True},
+    '5109': {'descricao': 'Venda de produção destinada a não contribuinte', 'gera_debito': True},
+    '5110': {'descricao': 'Venda de mercadoria adquirida destinada a não contribuinte', 'gera_debito': True},
+    '5111': {'descricao': 'Venda de produção para industrialização', 'gera_debito': True},
+    '5112': {'descricao': 'Venda de mercadoria para industrialização', 'gera_debito': True},
+    '5113': {'descricao': 'Venda de produção para comercialização', 'gera_debito': True},
+    '5114': {'descricao': 'Venda de mercadoria para comercialização', 'gera_debito': True},
+    '5115': {'descricao': 'Venda de mercadoria para não contribuinte originada de encomenda', 'gera_debito': True},
+    '5116': {'descricao': 'Venda de produção originada de encomenda', 'gera_debito': True},
+    '5117': {'descricao': 'Venda de mercadoria adquirida originada de encomenda', 'gera_debito': True},
+    '5118': {'descricao': 'Venda de produção entregue ao destinatário pelo vendedor', 'gera_debito': True},
+    '5119': {'descricao': 'Venda de mercadoria entregue pelo vendedor', 'gera_debito': True},
+    '5120': {'descricao': 'Venda de mercadoria adquirida entregue pelo vendedor', 'gera_debito': True},
+    '5401': {'descricao': 'Venda de produção com ST', 'gera_debito': True},
+    '5403': {'descricao': 'Venda de mercadoria adquirida com ST', 'gera_debito': True},
+    '5405': {'descricao': 'Venda de mercadoria adquirida com ST para consumidor final', 'gera_debito': True},
+    '5656': {'descricao': 'Venda de combustível ou lubrificante para consumidor final', 'gera_debito': True},
+    '5910': {'descricao': 'Remessa em bonificação', 'gera_debito': False},
+    '5911': {'descricao': 'Remessa de amostra grátis', 'gera_debito': False},
+    '5920': {'descricao': 'Remessa de vasilhame ou embalagem', 'gera_debito': False},
+    '5927': {'descricao': 'Baixa de estoque decorrente de perda', 'gera_debito': False},
+    '5949': {'descricao': 'Outra saída de mercadoria não especificada', 'gera_debito': False},
+    '6101': {'descricao': 'Venda de produção (interestadual)', 'gera_debito': True},
+    '6102': {'descricao': 'Venda de mercadoria adquirida (interestadual)', 'gera_debito': True},
+    '6107': {'descricao': 'Venda de produção para não contribuinte (interestadual)', 'gera_debito': True},
+    '6108': {'descricao': 'Venda de mercadoria para não contribuinte (interestadual)', 'gera_debito': True},
+    '6109': {'descricao': 'Venda de produção para ZFM (interestadual)', 'gera_debito': True},
+    '6110': {'descricao': 'Venda de mercadoria para ZFM (interestadual)', 'gera_debito': True},
+    '6401': {'descricao': 'Venda de produção com ST (interestadual)', 'gera_debito': True},
+    '6403': {'descricao': 'Venda de mercadoria com ST (interestadual)', 'gera_debito': True},
+    '6908': {'descricao': 'Remessa de bem por conta de contrato de comodato', 'gera_debito': False},
+    '6910': {'descricao': 'Remessa em bonificação (interestadual)', 'gera_debito': False},
+    '6920': {'descricao': 'Remessa de vasilhame ou embalagem (interestadual)', 'gera_debito': False},
+    '6949': {'descricao': 'Outra saída não especificada (interestadual)', 'gera_debito': False},
+}
+
+
+@api_router.get("/validador-pis-cofins/{company_id}/por-cfop")
+async def validador_piscofins_por_cfop(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Validador de PIS/COFINS por CFOP.
+    Verifica se CFOPs estão gerando crédito/débito conforme esperado.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar regras personalizadas da empresa
+    regras = await db.regras_pis_cofins.find({
+        "company_id": company_id,
+        "tipo": "cfop",
+        "ativo": True
+    }).to_list(length=500)
+    regras_por_cfop = {r['chave']: r for r in regras}
+    
+    # Agregar documentos por CFOP
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    
+    cfops_agregados = {}
+    
+    async for doc in db.xml_documents.find(query, {"produtos": 1, "tipo": 1, "tipo_operacao": 1}):
+        tipo = doc.get('tipo') or doc.get('tipo_operacao')
+        is_entrada = tipo == 'entrada'
+        
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            if not cfop:
+                continue
+            
+            # Inferir entrada/saída pelo CFOP se não tiver tipo
+            if cfop[0] in ['1', '2', '3']:
+                is_entrada = True
+            elif cfop[0] in ['5', '6', '7']:
+                is_entrada = False
+            
+            cst_pis = str(prod.get('cst_pis', prod.get('CST_PIS', ''))).zfill(2)
+            cst_cofins = str(prod.get('cst_cofins', prod.get('CST_COFINS', ''))).zfill(2)
+            valor_pis = float(prod.get('valor_pis', 0) or 0)
+            valor_cofins = float(prod.get('valor_cofins', 0) or 0)
+            valor_total = float(prod.get('valor_total', 0) or 0)
+            
+            if cfop not in cfops_agregados:
+                cfops_agregados[cfop] = {
+                    'cfop': cfop,
+                    'tipo': 'entrada' if is_entrada else 'saida',
+                    'quantidade': 0,
+                    'valor_total': 0,
+                    'valor_pis': 0,
+                    'valor_cofins': 0,
+                    'csts_encontrados': [],
+                    'gera_credito_debito': valor_pis > 0 or valor_cofins > 0
+                }
+            
+            cfops_agregados[cfop]['quantidade'] += 1
+            cfops_agregados[cfop]['valor_total'] += valor_total
+            cfops_agregados[cfop]['valor_pis'] += valor_pis
+            cfops_agregados[cfop]['valor_cofins'] += valor_cofins
+            if cst_pis:
+                cfops_agregados[cfop]['csts_encontrados'].append(cst_pis)
+            if valor_pis > 0 or valor_cofins > 0:
+                cfops_agregados[cfop]['gera_credito_debito'] = True
+    
+    # Analisar cada CFOP
+    resultado = []
+    for cfop, dados in cfops_agregados.items():
+        is_entrada = dados['tipo'] == 'entrada'
+        
+        # Buscar regra (personalizada ou padrão)
+        regra = regras_por_cfop.get(cfop)
+        regra_padrao = CFOPS_CREDITO_PADRAO.get(cfop) if is_entrada else CFOPS_DEBITO_PADRAO.get(cfop)
+        
+        esperado = None
+        fonte_regra = None
+        
+        if regra:
+            esperado = regra.get('gera_credito') if is_entrada else regra.get('gera_debito')
+            fonte_regra = 'personalizada'
+        elif regra_padrao:
+            esperado = regra_padrao.get('gera_credito') if is_entrada else regra_padrao.get('gera_debito')
+            fonte_regra = 'padrao'
+        
+        # Verificar divergência
+        praticado = dados['gera_credito_debito']
+        status = 'sem_regra'
+        if esperado is not None:
+            if praticado == esperado:
+                status = 'ok'
+            else:
+                status = 'divergente'
+        
+        # CSTs mais comuns
+        csts = dados['csts_encontrados']
+        cst_mais_comum = max(set(csts), key=csts.count) if csts else None
+        
+        resultado.append({
+            'cfop': cfop,
+            'descricao': (regra or regra_padrao or {}).get('descricao', f'CFOP {cfop}'),
+            'tipo': dados['tipo'],
+            'quantidade': dados['quantidade'],
+            'valor_total': round(dados['valor_total'], 2),
+            'valor_pis': round(dados['valor_pis'], 2),
+            'valor_cofins': round(dados['valor_cofins'], 2),
+            'cst_mais_comum': cst_mais_comum,
+            'gera_credito_debito_praticado': praticado,
+            'gera_credito_debito_esperado': esperado,
+            'status': status,
+            'fonte_regra': fonte_regra,
+            'regra': {
+                'id': regra.get('id') if regra else None,
+                'descricao': (regra or regra_padrao or {}).get('descricao'),
+                'base_legal': regra.get('base_legal') if regra else None
+            } if regra or regra_padrao else None
+        })
+    
+    # Ordenar: divergentes primeiro, depois por valor
+    resultado.sort(key=lambda x: (0 if x['status'] == 'divergente' else 1, -x['valor_total']))
+    
+    # Separar entradas e saídas
+    entradas = [r for r in resultado if r['tipo'] == 'entrada']
+    saidas = [r for r in resultado if r['tipo'] == 'saida']
+    
+    # Estatísticas
+    total = len(resultado)
+    ok = len([r for r in resultado if r['status'] == 'ok'])
+    divergentes = len([r for r in resultado if r['status'] == 'divergente'])
+    sem_regra = len([r for r in resultado if r['status'] == 'sem_regra'])
+    
+    return {
+        "company_id": company_id,
+        "competencia": competencia,
+        "estatisticas": {
+            "total": total,
+            "ok": ok,
+            "divergentes": divergentes,
+            "sem_regra": sem_regra
+        },
+        "entradas": entradas,
+        "saidas": saidas,
+        "total_regras_personalizadas": len(regras)
+    }
+
+
+@api_router.get("/validador-pis-cofins/{company_id}/por-ncm")
+async def validador_piscofins_por_ncm(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Validador de PIS/COFINS por NCM.
+    Verifica alíquotas e CSTs esperados por NCM.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar regras personalizadas
+    regras = await db.regras_pis_cofins.find({
+        "company_id": company_id,
+        "tipo": "ncm",
+        "ativo": True
+    }).to_list(length=1000)
+    regras_por_ncm = {r['chave'].replace('.', '').strip(): r for r in regras}
+    
+    # Agregar por NCM
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    
+    ncms_agregados = {}
+    
+    async for doc in db.xml_documents.find(query, {"produtos": 1, "tipo": 1}):
+        tipo = doc.get('tipo') or doc.get('tipo_operacao')
+        
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', '')).replace('.', '').strip()
+            if not ncm or len(ncm) < 4:
+                continue
+            
+            ncm_4 = ncm[:4]
+            cfop = str(prod.get('cfop', ''))
+            is_saida = cfop and cfop[0] in ['5', '6', '7']
+            
+            aliq_pis = float(prod.get('aliq_pis', 0) or prod.get('p_pis', 0) or 0)
+            aliq_cofins = float(prod.get('aliq_cofins', 0) or prod.get('p_cofins', 0) or 0)
+            cst_pis = str(prod.get('cst_pis', '')).zfill(2)
+            valor_total = float(prod.get('valor_total', 0) or 0)
+            descricao = prod.get('descricao', prod.get('xProd', ''))
+            
+            if ncm_4 not in ncms_agregados:
+                ncms_agregados[ncm_4] = {
+                    'ncm': ncm_4,
+                    'quantidade': 0,
+                    'valor_total': 0,
+                    'aliquotas_pis': [],
+                    'aliquotas_cofins': [],
+                    'csts_pis': [],
+                    'produtos_exemplo': [],
+                    'entradas': 0,
+                    'saidas': 0
+                }
+            
+            ncms_agregados[ncm_4]['quantidade'] += 1
+            ncms_agregados[ncm_4]['valor_total'] += valor_total
+            if aliq_pis > 0:
+                ncms_agregados[ncm_4]['aliquotas_pis'].append(aliq_pis)
+            if aliq_cofins > 0:
+                ncms_agregados[ncm_4]['aliquotas_cofins'].append(aliq_cofins)
+            if cst_pis:
+                ncms_agregados[ncm_4]['csts_pis'].append(cst_pis)
+            if is_saida:
+                ncms_agregados[ncm_4]['saidas'] += 1
+            else:
+                ncms_agregados[ncm_4]['entradas'] += 1
+            if len(ncms_agregados[ncm_4]['produtos_exemplo']) < 3:
+                if descricao and descricao not in ncms_agregados[ncm_4]['produtos_exemplo']:
+                    ncms_agregados[ncm_4]['produtos_exemplo'].append(descricao[:50])
+    
+    # Analisar cada NCM
+    resultado = []
+    for ncm_4, dados in ncms_agregados.items():
+        # Buscar regra
+        regra = None
+        for i in range(4, 9):
+            if len(ncm_4) >= i:
+                prefixo = ncm_4[:i] if i <= len(ncm_4) else ncm_4
+                if prefixo in regras_por_ncm:
+                    regra = regras_por_ncm[prefixo]
+                    break
+        
+        aliq_pis_praticada = max(set(dados['aliquotas_pis']), key=dados['aliquotas_pis'].count) if dados['aliquotas_pis'] else 0
+        aliq_cofins_praticada = max(set(dados['aliquotas_cofins']), key=dados['aliquotas_cofins'].count) if dados['aliquotas_cofins'] else 0
+        cst_mais_comum = max(set(dados['csts_pis']), key=dados['csts_pis'].count) if dados['csts_pis'] else None
+        
+        aliq_pis_esperada = regra.get('aliquota_pis', 1.65) if regra else None
+        aliq_cofins_esperada = regra.get('aliquota_cofins', 7.6) if regra else None
+        
+        status = 'sem_regra'
+        divergencia_pis = 0
+        divergencia_cofins = 0
+        
+        if regra:
+            divergencia_pis = abs(aliq_pis_praticada - aliq_pis_esperada) if aliq_pis_esperada else 0
+            divergencia_cofins = abs(aliq_cofins_praticada - aliq_cofins_esperada) if aliq_cofins_esperada else 0
+            
+            if divergencia_pis <= 0.01 and divergencia_cofins <= 0.01:
+                status = 'ok'
+            elif divergencia_pis <= 0.1 and divergencia_cofins <= 0.5:
+                status = 'alerta'
+            else:
+                status = 'divergente'
+        
+        resultado.append({
+            'ncm': ncm_4,
+            'produtos_exemplo': dados['produtos_exemplo'],
+            'quantidade': dados['quantidade'],
+            'entradas': dados['entradas'],
+            'saidas': dados['saidas'],
+            'valor_total': round(dados['valor_total'], 2),
+            'aliquota_pis_praticada': round(aliq_pis_praticada, 2),
+            'aliquota_cofins_praticada': round(aliq_cofins_praticada, 2),
+            'aliquota_pis_esperada': aliq_pis_esperada,
+            'aliquota_cofins_esperada': aliq_cofins_esperada,
+            'cst_mais_comum': cst_mais_comum,
+            'status': status,
+            'regra': {
+                'id': regra.get('id'),
+                'descricao': regra.get('descricao'),
+                'gera_credito': regra.get('gera_credito'),
+                'gera_debito': regra.get('gera_debito'),
+                'base_legal': regra.get('base_legal')
+            } if regra else None
+        })
+    
+    resultado.sort(key=lambda x: (0 if x['status'] == 'divergente' else 1, -x['valor_total']))
+    
+    total = len(resultado)
+    ok = len([r for r in resultado if r['status'] == 'ok'])
+    alerta = len([r for r in resultado if r['status'] == 'alerta'])
+    divergentes = len([r for r in resultado if r['status'] == 'divergente'])
+    sem_regra = len([r for r in resultado if r['status'] == 'sem_regra'])
+    
+    return {
+        "company_id": company_id,
+        "competencia": competencia,
+        "estatisticas": {
+            "total": total,
+            "ok": ok,
+            "alerta": alerta,
+            "divergentes": divergentes,
+            "sem_regra": sem_regra
+        },
+        "ncms": resultado[:100],
+        "total_regras": len(regras)
+    }
+
+
+@api_router.get("/validador-pis-cofins/{company_id}/regras")
+async def listar_regras_piscofins(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Lista todas as regras de PIS/COFINS da empresa"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    regras = await db.regras_pis_cofins.find({
+        "company_id": company_id
+    }, {"_id": 0}).sort("created_at", -1).to_list(length=500)
+    
+    return {
+        "company_id": company_id,
+        "regras": regras,
+        "total": len(regras)
+    }
+
+
+@api_router.post("/validador-pis-cofins/{company_id}/regras")
+async def criar_regra_piscofins(
+    company_id: str,
+    regra: RegraPisCofinsCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Cria uma nova regra de PIS/COFINS"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    nova_regra = RegraPisCofins(
+        company_id=company_id,
+        tipo=regra.tipo,
+        chave=regra.chave.strip(),
+        descricao=regra.descricao,
+        aliquota_pis=regra.aliquota_pis,
+        aliquota_cofins=regra.aliquota_cofins,
+        gera_credito=regra.gera_credito,
+        gera_debito=regra.gera_debito,
+        cst_esperado_entrada=regra.cst_esperado_entrada,
+        cst_esperado_saida=regra.cst_esperado_saida,
+        excecoes=regra.excecoes,
+        base_legal=regra.base_legal,
+        observacao=regra.observacao,
+        ativo=True,
+        created_by=current_user.id
+    )
+    
+    await db.regras_pis_cofins.insert_one(nova_regra.model_dump())
+    
+    return {"message": "Regra criada com sucesso", "regra": nova_regra.model_dump()}
+
+
+@api_router.put("/validador-pis-cofins/{company_id}/regras/{regra_id}")
+async def atualizar_regra_piscofins(
+    company_id: str,
+    regra_id: str,
+    dados: RegraPisCofinsUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Atualiza uma regra de PIS/COFINS existente"""
+    regra = await db.regras_pis_cofins.find_one({"id": regra_id, "company_id": company_id})
+    if not regra:
+        raise HTTPException(status_code=404, detail="Regra não encontrada")
+    
+    update_data = {k: v for k, v in dados.model_dump().items() if v is not None}
+    if update_data:
+        await db.regras_pis_cofins.update_one(
+            {"id": regra_id},
+            {"$set": update_data}
+        )
+    
+    return {"message": "Regra atualizada com sucesso"}
+
+
+@api_router.delete("/validador-pis-cofins/{company_id}/regras/{regra_id}")
+async def excluir_regra_piscofins(
+    company_id: str,
+    regra_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Exclui uma regra de PIS/COFINS"""
+    result = await db.regras_pis_cofins.delete_one({"id": regra_id, "company_id": company_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Regra não encontrada")
+    
+    return {"message": "Regra excluída com sucesso"}
+
+
+@api_router.get("/validador-pis-cofins/{company_id}/sugestoes")
+async def sugerir_regras_piscofins(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Sugere regras de PIS/COFINS baseadas nos NCMs e CFOPs mais frequentes.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    
+    ncms_frequentes = {}
+    cfops_frequentes = {}
+    
+    async for doc in db.xml_documents.find(query, {"produtos": 1}):
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', '')).replace('.', '').strip()
+            cfop = str(prod.get('cfop', ''))
+            
+            if ncm and len(ncm) >= 4:
+                ncm_4 = ncm[:4]
+                if ncm_4 not in ncms_frequentes:
+                    ncms_frequentes[ncm_4] = {'ncm': ncm_4, 'quantidade': 0, 'descricao': prod.get('descricao', '')[:50]}
+                ncms_frequentes[ncm_4]['quantidade'] += 1
+            
+            if cfop:
+                if cfop not in cfops_frequentes:
+                    cfops_frequentes[cfop] = {'cfop': cfop, 'quantidade': 0}
+                cfops_frequentes[cfop]['quantidade'] += 1
+    
+    # Regras existentes
+    regras_existentes = await db.regras_pis_cofins.find({
+        "company_id": company_id
+    }).to_list(length=1000)
+    ncms_com_regra = set(r['chave'] for r in regras_existentes if r['tipo'] == 'ncm')
+    cfops_com_regra = set(r['chave'] for r in regras_existentes if r['tipo'] == 'cfop')
+    
+    # Sugestões NCM
+    sugestoes_ncm = []
+    for ncm_data in sorted(ncms_frequentes.values(), key=lambda x: -x['quantidade'])[:15]:
+        if ncm_data['ncm'] not in ncms_com_regra:
+            sugestoes_ncm.append({
+                'tipo': 'ncm',
+                'chave': ncm_data['ncm'],
+                'descricao': f"NCM {ncm_data['ncm']} - {ncm_data['descricao']}",
+                'quantidade': ncm_data['quantidade'],
+                'aliquota_pis_sugerida': 1.65,
+                'aliquota_cofins_sugerida': 7.6
+            })
+    
+    # Sugestões CFOP
+    sugestoes_cfop = []
+    for cfop_data in sorted(cfops_frequentes.values(), key=lambda x: -x['quantidade'])[:10]:
+        cfop = cfop_data['cfop']
+        if cfop not in cfops_com_regra:
+            padrao = CFOPS_CREDITO_PADRAO.get(cfop) or CFOPS_DEBITO_PADRAO.get(cfop)
+            if not padrao:
+                sugestoes_cfop.append({
+                    'tipo': 'cfop',
+                    'chave': cfop,
+                    'descricao': f"CFOP {cfop}",
+                    'quantidade': cfop_data['quantidade'],
+                    'gera_credito_sugerido': cfop[0] in ['1', '2', '3'],
+                    'gera_debito_sugerido': cfop[0] in ['5', '6', '7']
+                })
+    
+    return {
+        "company_id": company_id,
+        "sugestoes_ncm": sugestoes_ncm[:10],
+        "sugestoes_cfop": sugestoes_cfop[:10],
+        "total_ncms_sem_regra": len(sugestoes_ncm),
+        "total_cfops_sem_regra": len(sugestoes_cfop)
+    }
+
+
 app.include_router(api_router)
 
 app.add_middleware(
