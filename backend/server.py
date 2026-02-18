@@ -38556,6 +38556,7 @@ async def validador_icms_por_produto(
     """
     Validador de alíquota de ICMS agrupado por produto.
     Compara alíquota praticada vs. alíquota esperada (baseada nas regras).
+    Diferencia operações internas vs interestaduais.
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
@@ -38566,7 +38567,6 @@ async def validador_icms_por_produto(
     # Buscar regras de ICMS da empresa
     regras = await db.regras_icms.find({
         "company_id": company_id,
-        "uf": uf_empresa,
         "ativo": True
     }).to_list(length=1000)
     
@@ -38586,23 +38586,32 @@ async def validador_icms_por_produto(
         **get_filtro_notas_ativas()
     }
     
-    # Agregar por produto
+    # Agregar por produto e tipo de operação (interna/interestadual)
     produtos_agregados = {}
     
-    async for doc in db.xml_documents.find(query, {"produtos": 1, "tipo": 1, "tipo_operacao": 1}):
+    async for doc in db.xml_documents.find(query, {"produtos": 1, "tipo": 1, "tipo_operacao": 1, "destinatario": 1}):
         tipo = doc.get('tipo') or doc.get('tipo_operacao')
         if tipo != 'saida':
-            # Inferir pelo CFOP
             produtos = doc.get('produtos', [])
             if produtos:
                 cfop = str(produtos[0].get('cfop', ''))
                 if cfop and cfop[0] not in ['5', '6', '7']:
-                    continue  # Não é saída
+                    continue
+        
+        # Determinar UF destino
+        dest = doc.get('destinatario', {})
+        uf_destino = dest.get('uf', dest.get('UF', uf_empresa))
+        is_interestadual = uf_destino != uf_empresa
+        tipo_operacao = 'interestadual' if is_interestadual else 'interna'
         
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
             if cfop and cfop[0] not in ['5', '6', '7']:
-                continue  # Pular entradas
+                continue
+            
+            # Verificar se é ST pelo CST
+            cst_icms = str(prod.get('cst_icms', prod.get('CST', ''))).zfill(2)
+            is_st = cst_icms in ['10', '30', '60', '70']
             
             codigo = prod.get('codigo', prod.get('cProd', ''))
             descricao = prod.get('descricao', prod.get('xProd', ''))
@@ -38610,14 +38619,29 @@ async def validador_icms_por_produto(
             aliq_icms = float(prod.get('p_icms', 0) or prod.get('aliq_icms', 0) or 0)
             valor_total = float(prod.get('valor_total', 0) or 0)
             
-            chave_produto = f"{codigo}|{descricao}"
+            chave_produto = f"{codigo}|{descricao}|{tipo_operacao}"
             
             if chave_produto not in produtos_agregados:
                 produtos_agregados[chave_produto] = {
                     'codigo': codigo,
                     'descricao': descricao,
                     'ncm': ncm,
+                    'tipo_operacao': tipo_operacao,
+                    'uf_destino': uf_destino if is_interestadual else None,
+                    'is_st': is_st,
                     'quantidade': 0,
+                    'valor_total': 0,
+                    'aliquotas_praticadas': [],
+                    'aliquota_esperada': None,
+                    'regra': None
+                }
+            
+            produtos_agregados[chave_produto]['quantidade'] += 1
+            produtos_agregados[chave_produto]['valor_total'] += valor_total
+            if aliq_icms >= 0:
+                produtos_agregados[chave_produto]['aliquotas_praticadas'].append(aliq_icms)
+            if is_st:
+                produtos_agregados[chave_produto]['is_st'] = True
                     'valor_total': 0,
                     'aliquotas_praticadas': [],
                     'aliquota_esperada': None,
