@@ -26640,24 +26640,24 @@ async def detalhamento_pis_cofins(
                         'ncm': ncm,
                         'cfop': cfop,
                         'cst': cst,
-                        'classificacao': calc.get('classificacao', {}).get('grupo', 'REGRA_GERAL'),
+                        'classificacao': classificacao,
                         'quantidade': 0,
                         'valor_base': 0,
-                        'aliquota_pis': calc.get('aliquota_pis', 0),
-                        'aliquota_cofins': calc.get('aliquota_cofins', 0),
+                        'aliquota_pis': aliq_pis,
+                        'aliquota_cofins': aliq_cofins,
                         'valor_pis': 0,
                         'valor_cofins': 0,
-                        'gera_debito': cfop not in CFOPS_SEM_DEBITO
+                        'gera_debito': gera_debito
                     }
                 saidas[chave]['quantidade'] += 1
                 saidas[chave]['valor_base'] += valor_base
-                saidas[chave]['valor_pis'] += calc.get('valor_pis', 0)
-                saidas[chave]['valor_cofins'] += calc.get('valor_cofins', 0)
+                saidas[chave]['valor_pis'] += valor_pis
+                saidas[chave]['valor_cofins'] += valor_cofins
                 
                 subtotais_saida['quantidade'] += 1
                 subtotais_saida['valor_base'] += valor_base
-                subtotais_saida['valor_pis'] += calc.get('valor_pis', 0)
-                subtotais_saida['valor_cofins'] += calc.get('valor_cofins', 0)
+                subtotais_saida['valor_pis'] += valor_pis
+                subtotais_saida['valor_cofins'] += valor_cofins
     
     # Converter para listas e ordenar
     lista_entradas = list(entradas.values())
