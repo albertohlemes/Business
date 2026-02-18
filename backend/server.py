@@ -33831,6 +33831,242 @@ async def list_grupos_empresariais(
     return {"grupos": grupos, "total": len(grupos)}
 
 
+@api_router.get("/empresa/{company_id}/grupo-info")
+async def get_empresa_grupo_info(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Verifica se a empresa é matriz de um grupo empresarial e retorna informações.
+    Usado para exibir painéis dinâmicos em PIS/COFINS, RET, Reforma Tributária.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Verificar se a empresa é matriz de algum grupo
+    grupo = await db.grupos_empresariais.find_one({
+        "matriz_id": company_id,
+        "is_active": True
+    }, {"_id": 0})
+    
+    if not grupo:
+        # Verificar se a empresa é filial de algum grupo
+        grupo_como_filial = await db.grupos_empresariais.find_one({
+            "filiais_ids": company_id,
+            "is_active": True
+        }, {"_id": 0})
+        
+        return {
+            "is_matriz": False,
+            "is_filial": grupo_como_filial is not None,
+            "grupo": None,
+            "matriz": None,
+            "filiais": []
+        }
+    
+    # A empresa é matriz - buscar dados das filiais
+    filiais = []
+    for filial_id in grupo.get("filiais_ids", []):
+        filial = await db.companies.find_one(
+            {"id": filial_id}, 
+            {"_id": 0, "id": 0, "razao_social": 1, "cnpj": 1, "uf": 1, "tipo_atividade": 1, "regime_tributario": 1}
+        )
+        if filial:
+            filial["id"] = filial_id
+            filiais.append(filial)
+    
+    return {
+        "is_matriz": True,
+        "is_filial": False,
+        "grupo": {
+            "id": grupo.get("id"),
+            "nome": grupo.get("nome"),
+            "descricao": grupo.get("descricao")
+        },
+        "matriz": {
+            "id": company_id,
+            "razao_social": company.get("razao_social"),
+            "cnpj": company.get("cnpj"),
+            "uf": company.get("uf"),
+            "tipo_atividade": company.get("tipo_atividade"),
+            "regime_tributario": company.get("regime_tributario")
+        },
+        "filiais": filiais,
+        "total_empresas": 1 + len(filiais)
+    }
+
+
+@api_router.get("/empresa/{company_id}/impostos-grupo")
+async def get_impostos_grupo(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna os impostos (PIS/COFINS/IRPJ/CSLL) de todas as empresas do grupo.
+    Usado para exibir painéis dinâmicos quando a empresa é matriz.
+    
+    Retorna:
+    - matriz: dados da matriz
+    - filiais: lista com dados de cada filial
+    - consolidado: soma de matriz + filiais
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Verificar se a empresa é matriz de algum grupo
+    grupo = await db.grupos_empresariais.find_one({
+        "matriz_id": company_id,
+        "is_active": True
+    }, {"_id": 0})
+    
+    if not grupo:
+        return {
+            "is_grupo": False,
+            "mensagem": "Empresa não é matriz de nenhum grupo empresarial"
+        }
+    
+    # Lista de todas as empresas do grupo
+    todas_empresas = [company_id] + grupo.get("filiais_ids", [])
+    
+    # Estrutura de resultado
+    resultado = {
+        "is_grupo": True,
+        "grupo_id": grupo.get("id"),
+        "grupo_nome": grupo.get("nome"),
+        "competencia": competencia,
+        "matriz": None,
+        "filiais": [],
+        "consolidado": {
+            "pis": {"credito": 0, "debito": 0, "saldo": 0, "a_pagar": 0},
+            "cofins": {"credito": 0, "debito": 0, "saldo": 0, "a_pagar": 0},
+            "irpj": {"base": 0, "devido": 0, "adicional": 0, "total": 0},
+            "csll": {"base": 0, "devido": 0},
+            "total_federal": 0,
+            "faturamento": 0
+        }
+    }
+    
+    # Calcular impostos de cada empresa
+    for empresa_id in todas_empresas:
+        empresa = await db.companies.find_one({"id": empresa_id}, {"_id": 0})
+        if not empresa:
+            continue
+        
+        # Calcular PIS/COFINS usando função unificada
+        try:
+            pis_cofins = await calcular_pis_cofins_unificado(empresa_id, competencia, empresa)
+        except Exception as e:
+            logger.error(f"Erro ao calcular PIS/COFINS para {empresa_id}: {e}")
+            pis_cofins = {
+                "pis_creditos": 0, "pis_debitos": 0, "pis_saldo": 0,
+                "cofins_creditos": 0, "cofins_debitos": 0, "cofins_saldo": 0
+            }
+        
+        # Buscar faturamento (saídas)
+        saidas = await db.xml_documents.find({
+            "company_id": empresa_id,
+            "competencia": competencia,
+            "tipo": "saida",
+            **get_filtro_notas_ativas()
+        }, {"valor_total": 1}).to_list(15000)
+        
+        faturamento = sum(float(d.get("valor_total", 0) or 0) for d in saidas)
+        
+        # Calcular IRPJ/CSLL (Lucro Presumido)
+        tipo_atividade = empresa.get("tipo_atividade", "comercio")
+        perc_irpj = 8.0 if tipo_atividade != "servicos" else 32.0
+        perc_csll = 12.0 if tipo_atividade != "servicos" else 32.0
+        
+        base_irpj = faturamento * (perc_irpj / 100)
+        base_csll = faturamento * (perc_csll / 100)
+        irpj_devido = base_irpj * 0.15
+        irpj_adicional = max(0, (base_irpj - 20000) * 0.10)
+        irpj_total = irpj_devido + irpj_adicional
+        csll_devido = base_csll * 0.09
+        
+        pis_saldo = float(pis_cofins.get("pis_saldo", 0) or 0)
+        cofins_saldo = float(pis_cofins.get("cofins_saldo", 0) or 0)
+        pis_a_pagar = max(0, pis_saldo)
+        cofins_a_pagar = max(0, cofins_saldo)
+        
+        empresa_dados = {
+            "id": empresa_id,
+            "razao_social": empresa.get("razao_social"),
+            "cnpj": empresa.get("cnpj"),
+            "tipo_atividade": tipo_atividade,
+            "faturamento": round(faturamento, 2),
+            "pis": {
+                "credito": round(float(pis_cofins.get("pis_creditos", 0) or 0), 2),
+                "debito": round(float(pis_cofins.get("pis_debitos", 0) or 0), 2),
+                "saldo": round(pis_saldo, 2),
+                "a_pagar": round(pis_a_pagar, 2)
+            },
+            "cofins": {
+                "credito": round(float(pis_cofins.get("cofins_creditos", 0) or 0), 2),
+                "debito": round(float(pis_cofins.get("cofins_debitos", 0) or 0), 2),
+                "saldo": round(cofins_saldo, 2),
+                "a_pagar": round(cofins_a_pagar, 2)
+            },
+            "irpj": {
+                "base": round(base_irpj, 2),
+                "devido": round(irpj_devido, 2),
+                "adicional": round(irpj_adicional, 2),
+                "total": round(irpj_total, 2)
+            },
+            "csll": {
+                "base": round(base_csll, 2),
+                "devido": round(csll_devido, 2)
+            },
+            "total_federal": round(pis_a_pagar + cofins_a_pagar + irpj_total + csll_devido, 2)
+        }
+        
+        if empresa_id == company_id:
+            resultado["matriz"] = empresa_dados
+        else:
+            resultado["filiais"].append(empresa_dados)
+        
+        # Somar ao consolidado
+        resultado["consolidado"]["pis"]["credito"] += empresa_dados["pis"]["credito"]
+        resultado["consolidado"]["pis"]["debito"] += empresa_dados["pis"]["debito"]
+        resultado["consolidado"]["pis"]["saldo"] += empresa_dados["pis"]["saldo"]
+        resultado["consolidado"]["pis"]["a_pagar"] += empresa_dados["pis"]["a_pagar"]
+        resultado["consolidado"]["cofins"]["credito"] += empresa_dados["cofins"]["credito"]
+        resultado["consolidado"]["cofins"]["debito"] += empresa_dados["cofins"]["debito"]
+        resultado["consolidado"]["cofins"]["saldo"] += empresa_dados["cofins"]["saldo"]
+        resultado["consolidado"]["cofins"]["a_pagar"] += empresa_dados["cofins"]["a_pagar"]
+        resultado["consolidado"]["irpj"]["base"] += empresa_dados["irpj"]["base"]
+        resultado["consolidado"]["irpj"]["devido"] += empresa_dados["irpj"]["devido"]
+        resultado["consolidado"]["irpj"]["adicional"] += empresa_dados["irpj"]["adicional"]
+        resultado["consolidado"]["irpj"]["total"] += empresa_dados["irpj"]["total"]
+        resultado["consolidado"]["csll"]["base"] += empresa_dados["csll"]["base"]
+        resultado["consolidado"]["csll"]["devido"] += empresa_dados["csll"]["devido"]
+        resultado["consolidado"]["total_federal"] += empresa_dados["total_federal"]
+        resultado["consolidado"]["faturamento"] += faturamento
+    
+    # Arredondar consolidado
+    for key in ["pis", "cofins"]:
+        for subkey in resultado["consolidado"][key]:
+            resultado["consolidado"][key][subkey] = round(resultado["consolidado"][key][subkey], 2)
+    for key in ["irpj", "csll"]:
+        for subkey in resultado["consolidado"][key]:
+            resultado["consolidado"][key][subkey] = round(resultado["consolidado"][key][subkey], 2)
+    resultado["consolidado"]["total_federal"] = round(resultado["consolidado"]["total_federal"], 2)
+    resultado["consolidado"]["faturamento"] = round(resultado["consolidado"]["faturamento"], 2)
+    
+    # Calcular percentual
+    if resultado["consolidado"]["faturamento"] > 0:
+        resultado["consolidado"]["percentual"] = round(
+            resultado["consolidado"]["total_federal"] / resultado["consolidado"]["faturamento"] * 100, 2
+        )
+    else:
+        resultado["consolidado"]["percentual"] = 0
+    
+    return resultado
+
+
 @api_router.post("/grupos-empresariais")
 async def create_grupo_empresarial(
     grupo_data: GrupoEmpresarialCreate,
