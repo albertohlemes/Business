@@ -295,6 +295,8 @@ CFOPS_SEM_CREDITO = [
     '1551', '2551',  # Compra de bem para o ativo imobilizado
     '1910', '2910',  # Entrada de bonificação, doação ou brinde
     '1911', '2911',  # Entrada de amostra grátis
+    '1920', '2920',  # Entrada de vasilhame ou sacaria
+    '1921', '2921',  # Retorno de vasilhame ou sacaria
     '1949', '2949',  # Outra entrada de mercadoria não especificada
     '1916', '2916',  # Retorno de mercadoria
     '1201', '2201',  # Devolução de venda (não gera crédito adicional)
@@ -313,6 +315,27 @@ CFOPS_SEM_CREDITO = [
     '1660', '2660',  # Devolução de venda de mercadoria de produção própria
     '1661', '2661',  # Devolução de venda de mercadoria adquirida ou recebida de terceiros
     '1662', '2662',  # Devolução de venda de mercadoria de produção do estabelecimento
+    # Remessas e retornos
+    '1901', '2901',  # Entrada para industrialização por encomenda
+    '1902', '2902',  # Retorno de mercadoria remetida para industrialização
+    '1903', '2903',  # Entrada de mercadoria remetida para industrialização
+    '1904', '2904',  # Retorno de remessa para venda fora do estabelecimento
+    '1905', '2905',  # Entrada de mercadoria recebida para depósito
+    '1906', '2906',  # Retorno de mercadoria remetida para depósito
+    '1907', '2907',  # Retorno simbólico de mercadoria
+    '1908', '2908',  # Entrada de bem por conta de contrato de comodato
+    '1909', '2909',  # Retorno de bem remetido por conta de contrato de comodato
+    '1912', '2912',  # Entrada de mercadoria ou bem recebido para demonstração
+    '1913', '2913',  # Retorno de mercadoria ou bem remetido para demonstração
+    '1914', '2914',  # Retorno de mercadoria ou bem remetido para exposição ou feira
+    '1915', '2915',  # Entrada de mercadoria ou bem recebido para conserto ou reparo
+    '1917', '2917',  # Entrada de mercadoria recebida em consignação mercantil
+    '1919', '2919',  # Devolução simbólica de mercadoria vendida
+    '1922', '2922',  # Lançamento efetuado a título de simples faturamento
+    '1923', '2923',  # Entrada de mercadoria recebida do vendedor remetente
+    '1924', '2924',  # Entrada para industrialização por conta e ordem
+    '1925', '2925',  # Retorno de mercadoria remetida para industrialização por conta e ordem
+    '1926', '2926',  # Lançamento efetuado a título de reclassificação de mercadoria
 ]
 
 # CFOPs que NÃO geram débito de PIS/COFINS (CST 49 na saída)
