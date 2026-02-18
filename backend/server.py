@@ -2072,9 +2072,26 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
         for dados in saidas_cfop_cst.values()
     ], key=lambda x: (0 if x['considerado'] else 1, x['cfop']))
     
+    # BUSCAR TOTAIS DA FUNÇÃO CENTRALIZADA para garantir consistência
+    try:
+        resultado_unificado = await calcular_pis_cofins_unificado(company_id, competencia, company)
+        totais_centralizados = {
+            'credito_pis': round(resultado_unificado['pis_creditos'], 2),
+            'credito_cofins': round(resultado_unificado['cofins_creditos'], 2),
+            'debito_pis': round(resultado_unificado['pis_debitos'], 2),
+            'debito_cofins': round(resultado_unificado['cofins_debitos'], 2),
+            'base_credito': round(resultado_unificado.get('base_credito', 0), 2),
+            'base_debito': round(resultado_unificado.get('base_debito', 0), 2)
+        }
+    except Exception as e:
+        logger.error(f"Erro ao buscar totais centralizados: {e}")
+        # Fallback para cálculo local (não ideal, mas evita erro)
+        totais_centralizados = None
+    
     return {
         'entradas_cfop_cst': entradas_lista,
-        'saidas_cfop_cst': saidas_lista
+        'saidas_cfop_cst': saidas_lista,
+        'totais_centralizados': totais_centralizados  # Usar estes valores no frontend
     }
     """
     Calcula o crédito presumido de ICMS para transportadoras.
