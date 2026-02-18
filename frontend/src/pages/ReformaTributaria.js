@@ -389,14 +389,14 @@ const ReformaTributaria = ({ user, onLogout }) => {
                       <span className="text-amber-400 font-medium">PIS</span>
                     </div>
                     <div className="p-3 text-center text-emerald-400">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_pis || 0)}
+                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_bruto?.pis || 0)}
                     </div>
                     <div className="p-3 text-center text-red-400">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_pis || 0)}
+                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_bruto?.pis || 0)}
                     </div>
                     <div className="p-3 text-center">
                       {(() => {
-                        const saldo = (apuracao.comparativo_regime_atual?.debito_pis || 0) - (apuracao.comparativo_regime_atual?.credito_pis || 0);
+                        const saldo = apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo || 0;
                         return saldo > 0 
                           ? <span className="text-red-400 font-medium">Pagar {formatCurrency(saldo)}</span>
                           : <span className="text-[#C8A951] font-medium">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
@@ -411,14 +411,14 @@ const ReformaTributaria = ({ user, onLogout }) => {
                       <span className="text-amber-400 font-medium">COFINS</span>
                     </div>
                     <div className="p-3 text-center text-emerald-400">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_cofins || 0)}
+                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_bruto?.cofins || 0)}
                     </div>
                     <div className="p-3 text-center text-red-400">
-                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_cofins || 0)}
+                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_bruto?.cofins || 0)}
                     </div>
                     <div className="p-3 text-center">
                       {(() => {
-                        const saldo = (apuracao.comparativo_regime_atual?.debito_cofins || 0) - (apuracao.comparativo_regime_atual?.credito_cofins || 0);
+                        const saldo = apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0;
                         return saldo > 0 
                           ? <span className="text-red-400 font-medium">Pagar {formatCurrency(saldo)}</span>
                           : <span className="text-[#C8A951] font-medium">Recuperar {formatCurrency(Math.abs(saldo))}</span>;
@@ -430,20 +430,19 @@ const ReformaTributaria = ({ user, onLogout }) => {
                   <div className="grid grid-cols-4 gap-0 border-t-2 border-amber-500/30 bg-amber-500/5">
                     <div className="p-3 font-bold text-amber-400">TOTAL ATUAL</div>
                     <div className="p-3 text-center text-emerald-400 font-bold">
-                      {formatCurrency((apuracao.comparativo_regime_atual?.credito_pis || 0) + (apuracao.comparativo_regime_atual?.credito_cofins || 0))}
+                      {formatCurrency(apuracao.comparativo_regime_atual?.credito_bruto?.total || 0)}
                     </div>
                     <div className="p-3 text-center text-red-400 font-bold">
-                      {formatCurrency((apuracao.comparativo_regime_atual?.debito_pis || 0) + (apuracao.comparativo_regime_atual?.debito_cofins || 0))}
+                      {formatCurrency(apuracao.comparativo_regime_atual?.debito_bruto?.total || 0)}
                     </div>
                     <div className="p-3 text-center">
                       {(() => {
-                        const saldo = apuracao.comparativo_regime_atual?.pis_cofins || 0;
-                        const credito = (apuracao.comparativo_regime_atual?.credito_pis || 0) + (apuracao.comparativo_regime_atual?.credito_cofins || 0);
-                        const debito = (apuracao.comparativo_regime_atual?.debito_pis || 0) + (apuracao.comparativo_regime_atual?.debito_cofins || 0);
-                        const saldoReal = debito - credito;
-                        return saldoReal > 0 
-                          ? <span className="text-red-400 font-bold">Pagar {formatCurrency(saldoReal)}</span>
-                          : <span className="text-[#C8A951] font-bold">Recuperar {formatCurrency(Math.abs(saldoReal))}</span>;
+                        const saldoPis = apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo || 0;
+                        const saldoCofins = apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0;
+                        const saldoTotal = saldoPis + saldoCofins;
+                        return saldoTotal > 0 
+                          ? <span className="text-red-400 font-bold">Pagar {formatCurrency(saldoTotal)}</span>
+                          : <span className="text-[#C8A951] font-bold">Recuperar {formatCurrency(Math.abs(saldoTotal))}</span>;
                       })()}
                     </div>
                   </div>
@@ -477,9 +476,9 @@ const ReformaTributaria = ({ user, onLogout }) => {
                 
                 {/* Resultado 2027 - Economia ou Aumento */}
                 {(() => {
-                  const creditoPisCofins = (apuracao.comparativo_regime_atual?.credito_pis || 0) + (apuracao.comparativo_regime_atual?.credito_cofins || 0);
-                  const debitoPisCofins = (apuracao.comparativo_regime_atual?.debito_pis || 0) + (apuracao.comparativo_regime_atual?.debito_cofins || 0);
-                  const saldoPisCofins = debitoPisCofins - creditoPisCofins;
+                  const saldoPis = apuracao.comparativo_regime_atual?.detalhamento?.pis_saldo || 0;
+                  const saldoCofins = apuracao.comparativo_regime_atual?.detalhamento?.cofins_saldo || 0;
+                  const saldoPisCofins = saldoPis + saldoCofins;
                   
                   const saldoCbs = apuracao.apuracao?.saldo?.cbs || 0;
                   
