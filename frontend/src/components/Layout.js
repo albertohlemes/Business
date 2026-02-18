@@ -571,8 +571,8 @@ const Layout = ({ user, onLogout, children }) => {
               <aside className="hidden md:block w-56 flex-shrink-0 overflow-y-auto">
                 <nav className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-3">
                   <div className="space-y-1">
-                    {navigation.map((item) => (
-                      <NavItemVertical key={item.name} item={item} />
+                    {navigation.map((item, index) => (
+                      <NavItemVertical key={item.name || `sep-${index}`} item={item} />
                     ))}
                   </div>
                 </nav>
