@@ -26472,7 +26472,8 @@ async def apurar_pis_cofins(
         },
         "base_tributada": round(base_debito_presumido, 2),
         "base_excluida": round(base_excluida_presumido, 2),
-        "nota": "Considera regras customizadas da empresa (alíquota zero, monofásico, etc.)"
+        "base_transferencia": round(base_transferencia_presumido, 2),
+        "nota": "Considera regras customizadas da empresa (alíquota zero, monofásico, transferências, etc.)"
     }
     
     # Determinar melhor regime
