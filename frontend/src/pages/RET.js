@@ -174,6 +174,12 @@ const RET = ({ user, onLogout }) => {
       );
     }
 
+    // Para Lucro Real, calcular se PIS/COFINS é credor ou devedor
+    const pisCredor = regime === 'real' && (dados?.pis_creditos || 0) > (dados?.pis_debitos || 0);
+    const cofinsCredor = regime === 'real' && (dados?.cofins_creditos || 0) > (dados?.cofins_debitos || 0);
+    const pisSaldo = regime === 'real' ? (dados?.pis_debitos || 0) - (dados?.pis_creditos || 0) : (dados?.pis || 0);
+    const cofinsSaldo = regime === 'real' ? (dados?.cofins_debitos || 0) - (dados?.cofins_creditos || 0) : (dados?.cofins || 0);
+
     return (
       <div className={`bg-[#0C0C0C] border-2 rounded-xl overflow-hidden transition-all ${
         isMelhor ? 'border-green-500 ring-2 ring-green-500/20' : 'border-[#2A2A2A]'
@@ -196,8 +202,47 @@ const RET = ({ user, onLogout }) => {
         {/* Impostos Individualizados */}
         <div className="p-4 space-y-1">
           <ImpostoItem label="ICMS" valor={dados?.icms || 0} />
-          <ImpostoItem label="PIS" valor={dados?.pis || 0} />
-          <ImpostoItem label="COFINS" valor={dados?.cofins || 0} />
+          
+          {/* PIS - Para Lucro Real, mostrar crédito/débito */}
+          {regime === 'real' ? (
+            <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+              <span className="text-[#A1A1AA] text-sm">PIS</span>
+              <div className="text-right">
+                {pisCredor ? (
+                  <span className="font-semibold text-[#C8A951]">
+                    Recuperar {formatCurrency(Math.abs(pisSaldo))}
+                  </span>
+                ) : pisSaldo === 0 ? (
+                  <span className="font-semibold text-white">R$ 0,00</span>
+                ) : (
+                  <span className="font-semibold text-white">{formatCurrency(pisSaldo)}</span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <ImpostoItem label="PIS" valor={dados?.pis || 0} />
+          )}
+          
+          {/* COFINS - Para Lucro Real, mostrar crédito/débito */}
+          {regime === 'real' ? (
+            <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+              <span className="text-[#A1A1AA] text-sm">COFINS</span>
+              <div className="text-right">
+                {cofinsCredor ? (
+                  <span className="font-semibold text-[#C8A951]">
+                    Recuperar {formatCurrency(Math.abs(cofinsSaldo))}
+                  </span>
+                ) : cofinsSaldo === 0 ? (
+                  <span className="font-semibold text-white">R$ 0,00</span>
+                ) : (
+                  <span className="font-semibold text-white">{formatCurrency(cofinsSaldo)}</span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <ImpostoItem label="COFINS" valor={dados?.cofins || 0} />
+          )}
+          
           {regime === 'simples' && <ImpostoItem label="CPP" valor={dados?.cpp || 0} />}
           <ImpostoItem label="IRPJ" valor={dados?.irpj || 0} />
           <ImpostoItem label="CSLL" valor={dados?.csll || 0} />
