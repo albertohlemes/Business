@@ -39640,20 +39640,20 @@ async def validador_piscofins_dados(
     cfops_exc_entradas_list.sort(key=lambda x: (0 if x['status'] == 'divergente' else 1, -x['valor_total']))
     cfops_exc_saidas_list.sort(key=lambda x: (0 if x['status'] == 'divergente' else 1, -x['valor_total']))
     
-    # Processar NCMs com regras
+    # Processar NCMs com regras (NCM completo)
     ncms_resultado = []
-    for ncm_4, dados in ncms_agregados.items():
-        # Buscar regra (empresa > padrão)
-        regra = regras_por_ncm.get(ncm_4)
+    for ncm_key, dados in ncms_agregados.items():
+        # Buscar regra (tentar NCM completo, depois prefixos menores)
+        regra = regras_por_ncm.get(ncm_key)
         if not regra:
-            # Tentar prefixo menor
-            for i in range(4, 2, -1):
-                prefixo = ncm_4[:i]
+            # Tentar prefixos menores (8, 6, 4 dígitos)
+            for i in range(len(ncm_key) - 1, 3, -1):
+                prefixo = ncm_key[:i]
                 if prefixo in regras_por_ncm:
                     regra = regras_por_ncm[prefixo]
                     break
         
-        regra_padrao = REGRAS_PIS_COFINS_PADRAO.get(ncm_4)
+        regra_padrao = REGRAS_PIS_COFINS_PADRAO.get(ncm_key[:4]) if len(ncm_key) >= 4 else None
         
         aliq_pis_praticada = max(set(dados['aliquotas_pis']), key=dados['aliquotas_pis'].count) if dados['aliquotas_pis'] else 0
         aliq_cofins_praticada = max(set(dados['aliquotas_cofins']), key=dados['aliquotas_cofins'].count) if dados['aliquotas_cofins'] else 0
