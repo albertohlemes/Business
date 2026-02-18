@@ -38821,6 +38821,10 @@ async def validador_icms_por_ncm(
             if not ncm or len(ncm) < 4:
                 continue
             
+            # Detectar se é ST pelo CST
+            cst_icms = str(prod.get('cst_icms', prod.get('CST', ''))).zfill(2)
+            is_st = cst_icms in ['10', '30', '60', '70']
+            
             ncm_4 = ncm[:4]  # Agrupar por posição NCM (4 dígitos)
             aliq_icms = float(prod.get('p_icms', 0) or prod.get('aliq_icms', 0) or 0)
             valor_total = float(prod.get('valor_total', 0) or 0)
@@ -38833,13 +38837,16 @@ async def validador_icms_por_ncm(
                     'valor_total': 0,
                     'aliquotas_praticadas': [],
                     'produtos_exemplo': [],
-                    'ncms_completos': set()
+                    'ncms_completos': set(),
+                    'has_st': False  # Flag para indicar se tem produtos ST
                 }
             
             ncms_agregados[ncm_4]['quantidade'] += 1
             ncms_agregados[ncm_4]['valor_total'] += valor_total
             ncms_agregados[ncm_4]['ncms_completos'].add(ncm)
-            if aliq_icms > 0:
+            if is_st:
+                ncms_agregados[ncm_4]['has_st'] = True
+            if aliq_icms >= 0:  # Incluir 0% para produtos ST
                 ncms_agregados[ncm_4]['aliquotas_praticadas'].append(aliq_icms)
             if len(ncms_agregados[ncm_4]['produtos_exemplo']) < 3:
                 if descricao not in ncms_agregados[ncm_4]['produtos_exemplo']:
