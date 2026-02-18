@@ -38685,8 +38685,11 @@ async def validador_icms_por_produto(
             
             if excecao_aplicada:
                 aliq_esperada = excecao_aplicada.get('aliquota')
-            elif is_st and regra.get('aplica_st'):
-                aliq_esperada = regra.get('aliquota_st', 0)
+            elif is_st:
+                # Produtos com ST: o ICMS próprio destacado é 0% na venda
+                # O ICMS já foi recolhido por substituição tributária
+                # CSTs 10, 30, 60, 70 indicam operações com ST
+                aliq_esperada = 0.0
             elif tipo_op == 'interestadual':
                 # Determinar alíquota interestadual
                 if uf_dest and uf_dest in ALIQUOTAS_INTERESTADUAIS['sul_sudeste']:
@@ -38704,11 +38707,16 @@ async def validador_icms_por_produto(
                 'aliquota_interestadual': regra.get('aliquota_interestadual_sul_sudeste'),
                 'aliquota_st': regra.get('aliquota_st'),
                 'excecao_aplicada': excecao_aplicada,
-                'base_legal': regra.get('base_legal')
+                'base_legal': regra.get('base_legal'),
+                'is_st': is_st  # Indicar que é produto ST
             }
         else:
-            # Sem regra, usar alíquota padrão interestadual se aplicável
-            if tipo_op == 'interestadual' and uf_dest:
+            # Sem regra configurada
+            # Se for produto ST, a alíquota esperada é 0%
+            if is_st:
+                aliq_esperada = 0.0
+                dados['aliquota_esperada'] = aliq_esperada
+            elif tipo_op == 'interestadual' and uf_dest:
                 aliq_esperada = get_aliquota_interestadual(uf_empresa, uf_dest)
                 dados['aliquota_esperada'] = aliq_esperada
         
