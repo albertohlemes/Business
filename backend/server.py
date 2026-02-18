@@ -39567,15 +39567,15 @@ async def validador_piscofins_dados(
                     cfops_excecao_saidas[cfop]['itens_divergentes'] += 1
                 continue  # Não agregar no NCM
             
-            # Agregar por NCM (apenas CFOPs normais)
+            # Agregar por NCM COMPLETO (8 dígitos) - diferentes desdobramentos podem ter tributação diferente
             if ncm and len(ncm) >= 4:
-                ncm_4 = ncm[:4]
+                ncm_key = ncm[:8] if len(ncm) >= 8 else ncm  # Usar NCM completo
                 aliq_pis = float(prod.get('aliq_pis', 0) or prod.get('p_pis', 0) or 0)
                 aliq_cofins = float(prod.get('aliq_cofins', 0) or prod.get('p_cofins', 0) or 0)
                 
-                if ncm_4 not in ncms_agregados:
-                    ncms_agregados[ncm_4] = {
-                        'ncm': ncm_4,
+                if ncm_key not in ncms_agregados:
+                    ncms_agregados[ncm_key] = {
+                        'ncm': ncm_key,
                         'descricao': '',
                         'quantidade': 0,
                         'valor_total': 0,
@@ -39588,15 +39588,15 @@ async def validador_piscofins_dados(
                         'saidas': 0
                     }
                 
-                ncms_agregados[ncm_4]['quantidade'] += 1
-                ncms_agregados[ncm_4]['valor_total'] += valor_total
+                ncms_agregados[ncm_key]['quantidade'] += 1
+                ncms_agregados[ncm_key]['valor_total'] += valor_total
                 if aliq_pis > 0:
-                    ncms_agregados[ncm_4]['aliquotas_pis'].append(aliq_pis)
+                    ncms_agregados[ncm_key]['aliquotas_pis'].append(aliq_pis)
                 if aliq_cofins > 0:
-                    ncms_agregados[ncm_4]['aliquotas_cofins'].append(aliq_cofins)
+                    ncms_agregados[ncm_key]['aliquotas_cofins'].append(aliq_cofins)
                 if cst_pis:
                     if is_saida:
-                        ncms_agregados[ncm_4]['csts_pis_saida'].append(cst_pis)
+                        ncms_agregados[ncm_key]['csts_pis_saida'].append(cst_pis)
                     else:
                         ncms_agregados[ncm_4]['csts_pis_entrada'].append(cst_pis)
                 if is_saida:
