@@ -38642,28 +38642,20 @@ async def validador_icms_por_produto(
                 produtos_agregados[chave_produto]['aliquotas_praticadas'].append(aliq_icms)
             if is_st:
                 produtos_agregados[chave_produto]['is_st'] = True
-                    'valor_total': 0,
-                    'aliquotas_praticadas': [],
-                    'aliquota_esperada': None,
-                    'regra': None
-                }
-            
-            produtos_agregados[chave_produto]['quantidade'] += 1
-            produtos_agregados[chave_produto]['valor_total'] += valor_total
-            if aliq_icms > 0:
-                produtos_agregados[chave_produto]['aliquotas_praticadas'].append(aliq_icms)
     
     # Calcular alíquota média e verificar divergências
     resultado = []
     for chave, dados in produtos_agregados.items():
         aliquotas = dados['aliquotas_praticadas']
-        aliq_media = sum(aliquotas) / len(aliquotas) if aliquotas else 0
         aliq_mais_comum = max(set(aliquotas), key=aliquotas.count) if aliquotas else 0
         
         # Buscar regra aplicável
         ncm = dados['ncm']
         regra = None
         aliq_esperada = None
+        tipo_op = dados.get('tipo_operacao', 'interna')
+        is_st = dados.get('is_st', False)
+        uf_dest = dados.get('uf_destino')
         
         # Primeiro tenta por produto específico
         desc_lower = dados['descricao'].lower().strip()
@@ -38678,19 +38670,46 @@ async def validador_icms_por_produto(
                     break
         
         if regra:
-            aliq_esperada = regra.get('aliquota_esperada')
+            # Verificar exceções na regra
+            excecoes = regra.get('excecoes', [])
+            excecao_aplicada = None
+            for exc in excecoes:
+                exc_chave = exc.get('chave', '').lower()
+                if exc_chave and exc_chave in desc_lower:
+                    excecao_aplicada = exc
+                    break
+            
+            if excecao_aplicada:
+                aliq_esperada = excecao_aplicada.get('aliquota')
+            elif is_st and regra.get('aplica_st'):
+                aliq_esperada = regra.get('aliquota_st', 0)
+            elif tipo_op == 'interestadual':
+                # Determinar alíquota interestadual
+                if uf_dest and uf_dest in ALIQUOTAS_INTERESTADUAIS['sul_sudeste']:
+                    aliq_esperada = regra.get('aliquota_interestadual_sul_sudeste', 12.0)
+                else:
+                    aliq_esperada = regra.get('aliquota_interestadual_outros', 7.0)
+            else:
+                aliq_esperada = regra.get('aliquota_interna', regra.get('aliquota_esperada', 18.0))
+            
             dados['aliquota_esperada'] = aliq_esperada
             dados['regra'] = {
                 'id': regra.get('id'),
                 'descricao': regra.get('descricao'),
-                'aliquota_esperada': aliq_esperada,
-                'aliquota_reduzida': regra.get('aliquota_reduzida'),
-                'condicao_reducao': regra.get('condicao_reducao'),
+                'aliquota_interna': regra.get('aliquota_interna'),
+                'aliquota_interestadual': regra.get('aliquota_interestadual_sul_sudeste'),
+                'aliquota_st': regra.get('aliquota_st'),
+                'excecao_aplicada': excecao_aplicada,
                 'base_legal': regra.get('base_legal')
             }
+        else:
+            # Sem regra, usar alíquota padrão interestadual se aplicável
+            if tipo_op == 'interestadual' and uf_dest:
+                aliq_esperada = get_aliquota_interestadual(uf_empresa, uf_dest)
+                dados['aliquota_esperada'] = aliq_esperada
         
         # Determinar status
-        status = 'sem_regra'
+        status = 'sem_regra' if not regra and aliq_esperada is None else 'sem_regra'
         divergencia = 0
         if aliq_esperada is not None:
             divergencia = abs(aliq_mais_comum - aliq_esperada)
@@ -38698,6 +38717,8 @@ async def validador_icms_por_produto(
                 status = 'ok'
             elif divergencia <= 1:
                 status = 'alerta'
+            else:
+                status = 'divergente'
             else:
                 status = 'divergente'
         
