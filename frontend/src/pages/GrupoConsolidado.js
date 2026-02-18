@@ -657,7 +657,7 @@ const GrupoConsolidado = ({ user, onLogout }) => {
   }
 
   return (
-    <Layout>
+    <Layout user={user} onLogout={onLogout}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
