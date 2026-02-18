@@ -35,9 +35,9 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 ### Matriz-Filial (NOVO - v01/2026)
 - [x] **Grupos Empresariais**: Cadastro de grupos (matriz + filiais)
 - [x] **Grupo Consolidado**: Nova página com 6 abas:
-  1. **Indicadores**: Entradas, Compras, Saídas, Vendas consolidados
-  2. **ICMS**: Débito/Crédito/A Pagar por empresa e consolidado
-  3. **PIS/COFINS**: Apuração centralizada com visão matriz/filiais/consolidado
+  1. **Indicadores**: Entradas, Compras, Saídas, Vendas, **Markup** consolidados + Impostos individualizados (PIS, COFINS, ICMS, IRPJ, CSLL) com badges CREDOR/DEVEDOR
+  2. **ICMS**: Débito/Crédito/A Pagar ou A Recuperar por empresa e consolidado
+  3. **PIS/COFINS**: Apuração centralizada com **saldos credores** exibidos corretamente
   4. **IRPJ/CSLL**: Base presumida e impostos devidos por empresa
   5. **RET**: Comparativo Lucro Real vs Presumido consolidado
   6. **Reforma Tributária**: Simulação IBS/CBS para o grupo
@@ -77,6 +77,9 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 
 ### P0 (Crítico)
 - [x] ~~Página Grupo Consolidado com 6 abas~~
+- [x] ~~Markup (Vendas/Compras)~~
+- [x] ~~Impostos individualizados com percentuais~~
+- [x] ~~Saldos credores de PIS/COFINS exibidos corretamente~~
 
 ### P1 (Alta Prioridade)
 - [ ] Totalizador por CST nos detalhamentos de créditos/débitos PIS/COFINS
@@ -100,7 +103,7 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
         ├── components/
         │   └── Layout.js  # Menu lateral com condição isMatriz
         ├── pages/
-        │   ├── GrupoConsolidado.js  # NOVO - 6 abas consolidadas
+        │   ├── GrupoConsolidado.js  # 6 abas com markup, impostos individualizados
         │   ├── PisCofins.js
         │   ├── ApuracaoICMS.js
         │   └── ...
@@ -109,6 +112,7 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 ```
 
 ## Changelog
+- **18/02/2026**: Adicionado Markup (Vendas/Compras), impostos individualizados com badges CREDOR/DEVEDOR, e correção de saldos credores PIS/COFINS.
 - **18/02/2026**: Implementada página "Grupo Consolidado" com 6 abas (Indicadores, ICMS, PIS/COFINS, IRPJ/CSLL, RET, Reforma Tributária). Menu aparece apenas para empresas matriz.
 - **17/02/2026**: Corrigido bug no cálculo do Lucro Presumido hipotético (usava receita total em vez de tributável).
 - **16/02/2026**: Backend Matriz-Filial: exclusão de CFOPs de transferência dos cálculos de impostos.
