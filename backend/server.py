@@ -33982,11 +33982,46 @@ async def get_impostos_grupo(
         if not empresa:
             continue
         
-        # Calcular PIS/COFINS usando função unificada
+        # =====================================================================
+        # BUSCAR PIS/COFINS JÁ CALCULADOS DO ENDPOINT DE APURAÇÃO INDIVIDUAL
+        # NÃO RECALCULA - apenas busca os dados já processados
+        # Isso garante que o consolidado seja a SOMA dos valores individuais
+        # =====================================================================
+        regime_tributario = empresa.get("regime_tributario", "lucro_presumido")
+        
         try:
-            pis_cofins = await calcular_pis_cofins_unificado(empresa_id, competencia, empresa)
+            # Buscar dados já calculados usando a mesma lógica do endpoint individual
+            resultado_apuracao = await calcular_pis_cofins_unificado(empresa_id, competencia, empresa)
+            
+            # Para Lucro Presumido: usar débitos (não há crédito no regime cumulativo)
+            # Para Lucro Real: usar saldo (créditos - débitos)
+            if regime_tributario == "lucro_presumido":
+                # Lucro Presumido: apenas débitos (regime cumulativo - sem crédito)
+                pis_creditos = 0
+                pis_debitos = float(resultado_apuracao.get("debitos_presumido_pis", 0) or 0)
+                cofins_creditos = 0
+                cofins_debitos = float(resultado_apuracao.get("debitos_presumido_cofins", 0) or 0)
+                pis_saldo = pis_debitos  # A pagar
+                cofins_saldo = cofins_debitos  # A pagar
+            else:
+                # Lucro Real: créditos e débitos (regime não-cumulativo)
+                pis_creditos = float(resultado_apuracao.get("pis_creditos", 0) or 0)
+                pis_debitos = float(resultado_apuracao.get("pis_debitos", 0) or 0)
+                cofins_creditos = float(resultado_apuracao.get("cofins_creditos", 0) or 0)
+                cofins_debitos = float(resultado_apuracao.get("cofins_debitos", 0) or 0)
+                pis_saldo = pis_debitos - pis_creditos  # Positivo = a pagar, Negativo = a recuperar
+                cofins_saldo = cofins_debitos - cofins_creditos
+            
+            pis_cofins = {
+                "pis_creditos": pis_creditos,
+                "pis_debitos": pis_debitos,
+                "pis_saldo": pis_saldo,
+                "cofins_creditos": cofins_creditos,
+                "cofins_debitos": cofins_debitos,
+                "cofins_saldo": cofins_saldo
+            }
         except Exception as e:
-            logger.error(f"Erro ao calcular PIS/COFINS para {empresa_id}: {e}")
+            logger.error(f"Erro ao buscar PIS/COFINS para {empresa_id}: {e}")
             pis_cofins = {
                 "pis_creditos": 0, "pis_debitos": 0, "pis_saldo": 0,
                 "cofins_creditos": 0, "cofins_debitos": 0, "cofins_saldo": 0
