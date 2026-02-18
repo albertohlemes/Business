@@ -24,39 +24,31 @@ Sistema de análise fiscal para empresas brasileiras com funcionalidades de:
 
 ### Sessão Atual (Dezembro 2025)
 
-#### 1. Reforma Tributária - Card Regime Atual
-- **IMPLEMENTADO**: Card "Regime Atual Completo" com estrutura tabular igual ao "Cenário 2027"
-- Tabela com colunas: IMPOSTO | CRÉDITO | DÉBITO | SALDO
-- PIS, COFINS e ICMS mostrados em linhas separadas com valores corretos
-- Mostra "Recuperar" para saldos credores
+#### 1. Reforma Tributária - Dois Cenários Distintos
+- **Cenário 2027 (Azul)**: PIS/COFINS → CBS (sem ICMS)
+- **Reforma Completa (Amber)**: PIS/COFINS + ICMS → CBS + IBS
+- Interface visual clara separando os dois cenários
+- Cálculo de economia/aumento para cada cenário
 
-#### 2. Reforma Tributária - ICMS Zerado Corrigido
-- **CORRIGIDO**: ICMS agora é calculado na função agregada
-- Pipeline MongoDB para buscar ICMS de entradas e saídas
-- Considera CFOPs que não geram crédito (despesas, ST)
+#### 2. ICMS Consistente na Reforma Tributária
+- **CORRIGIDO**: Agora usa a MESMA função `_get_icms_aggregated` do menu ICMS
+- Valores de crédito, débito e saldo ICMS agora são consistentes
+- Considera CFOPs de despesas e ST conforme configuração da empresa
 
 #### 3. PIS/COFINS - Consistência de Valores
-- **CORRIGIDO**: Endpoint de detalhamento agora usa a função centralizada `calcular_pis_cofins_unificado`
-- Os totais do saldo agora são consistentes com a aba Apuração
-- A quebra por NCM/CFOP/CST continua no detalhamento
+- **CORRIGIDO**: Endpoint de detalhamento usa função centralizada `calcular_pis_cofins_unificado`
+- Os totais do saldo são consistentes com a aba Apuração
 
-#### 4. RET - Cálculo de Economia
-- **IMPLEMENTADO**: Economia agora é calculada comparando com segundo melhor regime
-- Antes: comparava com o pior regime (inflava economia)
-- Agora: economia = segundoMelhorRegime - melhorRegime
-
-#### 5. PIS/COFINS - Exportação
-- **IMPLEMENTADO**: Função de exportação para CSV
-- Botão "Exportar" agora funciona
-- Exporta: resumo + entradas (créditos) + saídas (débitos)
+#### 4. Botão Exportar PIS/COFINS
+- **IMPLEMENTADO**: Função de exportação CSV funcionando
 
 ---
 
 ## Backlog Priorizado
 
 ### P0 - Crítico
-- [PENDENTE VALIDAÇÃO] Testar correções de consistência de PIS/COFINS entre as 3 telas
-- [PENDENTE VALIDAÇÃO] Testar ICMS na Reforma Tributária
+- [PENDENTE VALIDAÇÃO] Testar valores de ICMS na Reforma Tributária
+- [PENDENTE VALIDAÇÃO] Testar consistência de PIS/COFINS entre as 3 telas
 
 ### P1 - Alta Prioridade
 - Ocultar menu "ICMS ST" para empresas não contribuintes
@@ -74,25 +66,19 @@ Sistema de análise fiscal para empresas brasileiras com funcionalidades de:
 ```
 /app/
 ├── backend/
-│   └── server.py          # Monólito FastAPI
-│       ├── calcular_pis_cofins_unificado()  # Função centralizada
-│       ├── /api/pis-cofins/apuracao         # Usa função centralizada
-│       ├── /api/pis-cofins/detalhamento     # Agora usa função centralizada para totais
-│       └── /api/reforma-tributaria/apuracao # Usa função centralizada + ICMS
+│   └── server.py
+│       ├── calcular_pis_cofins_unificado()     # Função centralizada PIS/COFINS
+│       ├── _get_icms_aggregated()              # Função centralizada ICMS
+│       ├── /api/pis-cofins/apuracao            # Usa função centralizada
+│       ├── /api/pis-cofins/detalhamento        # Usa função centralizada para totais
+│       ├── /api/apuracao-icms                  # Usa _get_icms_aggregated
+│       └── /api/reforma-tributaria/apuracao    # Usa AMBAS funções centralizadas
 └── frontend/
-    └── src/
-        ├── pages/
-        │   ├── ReformaTributaria.js
-        │   ├── RET.js
-        │   └── PisCofins.js
-        └── components/
+    └── src/pages/
+        ├── ReformaTributaria.js  # 2 cenários: 2027 (CBS) e Completo (CBS+IBS)
+        ├── RET.js
+        └── PisCofins.js
 ```
-
-## Endpoints Principais
-- `/api/reforma-tributaria/apuracao` - Dados de reforma tributária
-- `/api/inteligencia-tributaria/{id}` - Comparativo de regimes (RET)
-- `/api/pis-cofins/apuracao/{id}` - Apuração PIS/COFINS
-- `/api/pis-cofins/detalhamento/{id}` - Detalhamento por NCM/CFOP/CST
 
 ## Credenciais de Teste
 - Email: alberto.lemes@businessconta.com.br
