@@ -179,6 +179,11 @@ const Layout = ({ user, onLogout, children }) => {
       }
       
       nav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
+      
+      // Grupo Consolidado - apenas para empresas matriz (Simples Nacional)
+      if (isMatriz) {
+        nav.push({ name: 'Grupo Consolidado', href: '/grupo-consolidado', icon: Users, testId: 'nav-grupo-consolidado', badge: 'GRUPO', badgeColor: 'amber' });
+      }
     } else {
       // Lucro Presumido / Lucro Real
       // Federais
@@ -204,6 +209,11 @@ const Layout = ({ user, onLogout, children }) => {
       }
       
       nav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
+      
+      // Grupo Consolidado - apenas para empresas matriz (Lucro Real/Presumido)
+      if (isMatriz) {
+        nav.push({ name: 'Grupo Consolidado', href: '/grupo-consolidado', icon: Users, testId: 'nav-grupo-consolidado', badge: 'GRUPO', badgeColor: 'amber' });
+      }
     }
     
     // ═══════════════════════════════════════════════════════════
