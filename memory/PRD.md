@@ -80,11 +80,12 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 - [x] ~~Markup (Vendas/Compras)~~
 - [x] ~~Impostos individualizados com percentuais~~
 - [x] ~~Saldos credores de PIS/COFINS exibidos corretamente~~
+- [x] ~~Bug de tela em branco na página PIS/COFINS (erro de indentação em calcular_pis_cofins_unificado)~~
 
 ### P1 (Alta Prioridade)
 - [ ] Totalizador por CST nos detalhamentos de créditos/débitos PIS/COFINS
 - [ ] Refatoração do server.py (extrair rotas para APIRouter separados)
-- [ ] Corrigir modal de seleção de empresa em páginas globais
+- [ ] Corrigir modal de seleção de empresa em páginas globais (sobrepõe UI)
 
 ### P2 (Média Prioridade)
 - [ ] Pacote de instalação On-Premise com Docker
