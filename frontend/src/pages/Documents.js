@@ -191,6 +191,29 @@ const Documents = ({ user, onLogout }) => {
     }
   }, [ctxCompany, operacao, tipoDoc, selectedCompetencia, filterStatus]);
 
+  // Efeito para abrir automaticamente o documento destacado (vindo de outra página)
+  useEffect(() => {
+    if (highlightDocId && documents.length > 0) {
+      // Verificar se o documento está na lista atual
+      const docNaLista = documents.find(d => d.id === highlightDocId);
+      if (docNaLista) {
+        // Abrir o documento automaticamente
+        fetchDocumentDetail(highlightDocId);
+        // Scroll para o documento na lista
+        setTimeout(() => {
+          const elemento = document.querySelector(`[data-doc-id="${highlightDocId}"]`);
+          if (elemento) {
+            elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            elemento.classList.add('ring-2', 'ring-amber-500');
+          }
+        }, 100);
+      } else {
+        // Documento não está na lista atual, buscar diretamente
+        fetchDocumentDetail(highlightDocId);
+      }
+    }
+  }, [highlightDocId, documents]);
+
   const fetchDocuments = async (loadMore = false) => {
     if (loadMore) {
       setLoadingMore(true);
