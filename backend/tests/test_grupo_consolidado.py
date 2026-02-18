@@ -255,10 +255,12 @@ class TestGruposEmpresariaisEndpoints:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         data = response.json()
-        assert isinstance(data, list), "Response should be a list"
+        # API returns {grupos: [...], total: int}
+        grupos = data.get("grupos", data) if isinstance(data, dict) else data
+        assert isinstance(grupos, list), f"Response grupos should be a list, got: {type(grupos)}"
         
-        print(f"✓ Found {len(data)} grupos empresariais")
-        for grupo in data:
+        print(f"✓ Found {len(grupos)} grupos empresariais")
+        for grupo in grupos:
             print(f"  - {grupo.get('nome')} (matriz: {grupo.get('matriz_id')})")
 
 
