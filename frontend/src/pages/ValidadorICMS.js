@@ -853,7 +853,15 @@ const ValidadorICMS = ({ user, onLogout }) => {
                 <input
                   type="checkbox"
                   checked={novaRegra.aplica_st}
-                  onChange={(e) => setNovaRegra({...novaRegra, aplica_st: e.target.checked})}
+                  onChange={(e) => {
+                    const isST = e.target.checked;
+                    setNovaRegra({
+                      ...novaRegra, 
+                      aplica_st: isST,
+                      // Se marcar ST, zera alíquota interna (produto já teve ICMS recolhido por ST)
+                      aliquota_interna: isST ? 0 : novaRegra.aliquota_interna
+                    });
+                  }}
                   className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C]"
                 />
                 <span className="text-sm text-[#A1A1AA]">Produto com ST (espera 0% na saída para atacado/varejo)</span>
