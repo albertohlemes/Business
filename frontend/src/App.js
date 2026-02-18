@@ -42,6 +42,7 @@ import ImportacaoPage from './pages/ImportacaoPage';
 import BatchImport from './pages/BatchImport';
 import ReformaTributaria from './pages/ReformaTributaria';
 import ValidadorICMS from './pages/ValidadorICMS';
+import ValidadorPisCofins from './pages/ValidadorPisCofins';
 import './App.css';
 
 function App() {
