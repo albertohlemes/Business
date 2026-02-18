@@ -1,35 +1,50 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou uma revisão completa do sistema de validação fiscal (PIS/COFINS, ICMS) e, ao longo do tempo, os requisitos evoluíram para um sistema complexo de Matriz-Filial. A demanda mais recente, e o foco atual, é replicar as telas de impostos existentes (ICMS, PIS/COFINS, RET, Reforma Tributária) dentro de uma nova página consolidada chamada Grupo Consolidado, mostrando os dados somados de todo o grupo empresarial.
+O usuário iniciou com uma solicitação para revisar o sistema de validação fiscal e evoluiu para a implementação de uma funcionalidade de Grupo Consolidado para exibir dados agregados de empresas Matriz-Filial. Ao longo da sessão, o usuário reportou e solicitou a correção de múltiplos bugs críticos, tanto no ambiente de preview quanto no de produção.
 
 PRODUCT REQUIREMENTS:
-1.  **Funcionalidade Matriz-Filial (P0 - CRÍTICO)**:
-    *   Criar um novo item de menu chamado **Grupo Consolidado**, visível apenas para a empresa matriz. Este menu deve conter uma página com 6 abas:
-        1.  **Indicadores**: Já concluído e validado pelo usuário.
-        2.  **ICMS**: Replicar a tela existente de , mas com dados consolidados.
-        3.  **PIS/COFINS**: Replicar a tela existente de , com dados consolidados.
-        4.  **IRPJ/CSLL**: O cálculo deve considerar o regime tributário de cada empresa ao consolidar.
-        5.  **RET (Regime Especial de Tributação)**: Replicar a tela de  com dados consolidados.
-        6.  **Reforma Tributária**: Replicar a tela de  com dados consolidados.
-2.  **Dívida Técnica (P1)**: Continuar a refatoração do backend monolítico .
+1.  **Grupo Consolidado (P0)**:
+    *   A página deve consolidar os dados das empresas do grupo, **somando** os valores de impostos já calculados individualmente, sem realizar novos cálculos.
+    *   O cálculo de IRPJ/CSLL deve respeitar o regime tributário da empresa (ex: ser zero para Lucro Real com prejuízo). (Concluído, mas precisa de verificação de regressão).
+    *   O cálculo de PIS/COFINS deve respeitar o regime tributário (ex: não gerar créditos para Lucro Presumido). (Concluído, mas precisa de verificação de regressão).
+    *   A conversão de CFOPs de Saída com Substituição Tributária (ST) para Entrada deve seguir um mapeamento correto (ex: 5401 -> 1403), e não uma substituição genérica. (Concluído, mas precisa de verificação de regressão).
+2.  **Bug de Produção (P0 - CRÍTICO)**:
+    *   Corrigir a página de **PIS/COFINS** (localizada no menu ), que exibe uma tela em branco para a empresa **ANZEN (ID 6751)** na competência **01/2026** no ambiente de produção. As abas Apuração, Detalhamento e Comparativo não carregam.
+3.  **Bug de UI (P1)**:
+    *   Resolver o problema do modal de seleção de empresa que sobrepõe a interface em páginas que não deveriam exigi-lo.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-Uma aplicação full-stack (React/FastAPI/MongoDB). O agente anterior implementou com sucesso a página  com 6 abas, sendo a aba Indicadores concluída e validada pelo usuário. Na sessão atual, o agente deu início à principal tarefa de redesenho, que consiste em replicar as telas de impostos originais dentro das abas correspondentes. Para isso, foram adicionados novos endpoints de backend em  para fornecer dados consolidados para as abas de RET e Reforma Tributária. Em seguida, o arquivo  foi completamente reescrito para importar os componentes das páginas originais, preparando o terreno para a integração dos dados.
+Uma aplicação full-stack (React/FastAPI/MongoDB). O agente anterior implementou com sucesso as correções na página Grupo Consolidado, garantindo que os cálculos de IRPJ/CSLL e PIS/COFINS agora respeitem o regime tributário de cada empresa, somando os valores em vez de recalculá-los. Também foi corrigida a lógica de conversão de CFOPs de Substituição Tributária (ST) no backend. O trabalho atual está focado em um bug crítico no ambiente de produção.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava refatorando o componente . Ele reescreveu o arquivo para importar os componentes das páginas de impostos originais (, , , ) e renderizá-los dentro das abas correspondentes. Esta foi a primeira etapa da implementação do pivô de design solicitado pelo usuário.
--   **Status**: IN PROGRESS
+-   **Last item agent was working**: O agente estava tentando diagnosticar um erro  no endpoint de produção . Este erro causa uma tela em branco na página de apuração de PIS/COFINS para uma empresa e competência específicas (ANZEN, 01/2026). As tentativas de correção envolveram adicionar múltiplos blocos  para tornar o código mais robusto, mas isso não resolveu o problema fundamental. A descoberta mais importante, feita no final, foi que um endpoint **antigo e similar** () **FUNCIONA** para a mesma empresa e competência, mas o agente não chegou a comparar a lógica entre os dois endpoints.
+-   **Status**: BLOCKED
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: both. A primeira etapa é garantir que os componentes importados renderizem sem erros no frontend (screenshot). Depois, será necessário testar os novos endpoints de backend (curl) e, finalmente, chamar o  para uma validação completa e teste de regressão.
+-   **Which testing method agent to use?**: backend testing agent. O agente deve criar um teste que compare a lógica dos dois endpoints ( e ) para identificar a diferença que causa a falha no mais novo.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: O modal de seleção de empresa aparece sobrepondo outras funcionalidades quando não há uma empresa selecionada, dificultando o acesso a páginas globais como Grupos Empresariais. (P1 - MEDIUM)
+-   **Issue 1**: Tela em branco na página de PIS/COFINS em produção (P0 - HIGHEST)
+-   **Issue 2**: Modal de seleção de empresa sobrepõe a UI (P1 - MEDIUM)
 
 **Issues Detail**:
--   **Issue 1: Modal de seleção de empresa sobrepõe a UI**
-    -   **Attempted fixes**: Nenhuma correção efetiva foi implementada.
+-   **Issue 1: Tela em branco na página de PIS/COFINS em produção**
+    -   **Attempted fixes**:
+        -   Adição de múltiplos blocos  em  na função  para tratar possíveis dados malformados (, ). A falha persistiu em produção, indicando que o problema é lógico, não de resiliência. O deploy das correções também falhou.
+    -   **Next debug checklist**:
+        1.  **Comparar os endpoints**: O passo mais crítico é analisar e comparar o código do endpoint que falha () com o endpoint antigo que funciona () dentro de .
+        2.  **Identificar a regressão lógica**: O problema provavelmente está em como o novo endpoint lida com casos específicos, como uma empresa sem documentos para a competência ou com alíquotas  (como foi diagnosticado para a empresa ANZEN). O endpoint antigo lida com este cenário corretamente.
+        3.  **Portar a lógica correta**: Aplicar a lógica funcional do endpoint antigo ao novo para corrigir o bug.
+        4.  Confirmar com o usuário que o deploy da correção foi bem-sucedido antes de testar.
+    -   **Why fix this issue and what will be achieved with the fix?**: É um bloqueador crítico que impede o usuário de realizar o fechamento fiscal da empresa em produção.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: Não.
+
+-   **Issue 2: Modal de seleção de empresa sobrepõe a UI**
+    -   **Attempted fixes**: Nenhuma.
     -   **Next debug checklist**:
         1.  Investigar o  em  que dispara o modal.
         2.  Adicionar uma lógica condicional para que o modal não seja exibido em rotas específicas que não dependem de uma empresa (ex: ).
@@ -40,28 +55,14 @@ Uma aplicação full-stack (React/FastAPI/MongoDB). O agente anterior implemento
     -   **Blocked on other issue**: Não.
 
 **In progress Task List**:
--   **Task 1: Concluir a replicação das telas de impostos no Grupo Consolidado (P0 - HIGHEST)**
-    -   **Where to resume**: O arquivo  foi reestruturado. O próximo passo é implementar a lógica de busca de dados () dentro de cada aba para chamar os endpoints consolidados e passar os dados para os componentes replicados. **Atenção:** Os endpoints para ICMS e PIS/COFINS consolidados ainda não foram criados (ver seção ).
-    -   **What will be achieved with this?**: Atenderá à principal demanda do usuário de ter uma visão consolidada que seja familiar e completa, reutilizando a interface existente.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on something**: Sim, na criação dos endpoints de backend para ICMS e PIS/COFINS consolidados.
-
--   **Task 2: Concluir refatoração do  (Dívida Técnica - P1)**
-    -   **Where to resume**: Extrair os endpoints dos validadores (ICMS, PIS/COFINS, etc.) de  para seus próprios arquivos  em .
-    -   **What will be achieved with this?**: Melhorar a manutenibilidade e organização do código.
-    -   **Status**: NOT STARTED
-    -   **Should Test frontend/backend/both after fix?**: backend (teste de regressão completo).
-    -   **Blocked on something**: Não.
+-   Nenhum.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks**:
-    -   (P1) Ajustar o cálculo do IRPJ/CSLL consolidado na aba correspondente para considerar o regime tributário de cada empresa.
-    -   (P1) Implementar um totalizador por CST nos detalhamentos de CRÉDITOS e DÉBITOS na apuração de PIS/COFINS.
--   **Future Tasks**:
-    -   (P2) Criar um pacote de instalação On-Premise com Docker.
-    -   (P2) Investigar e popular a página .
-    -   (P2) Criar uma suíte de testes ============================= test session starts ==============================
+-   **(P1)** Continuar a refatoração do backend monolítico , extraindo rotas para arquivos  em .
+-   **(P1)** Implementar um totalizador por CST nos detalhamentos de CRÉDITOS e DÉBITOS na apuração de PIS/COFINS.
+-   **(P2)** Criar um pacote de instalação On-Premise com Docker.
+-   **(P2)** Investigar e popular a página .
+-   **(P2)** Criar uma suíte de testes ============================= test session starts ==============================
 platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
 rootdir: /app
 plugins: anyio-4.12.1
@@ -84,8 +85,8 @@ HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test
   /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
     from crypt import crypt as _crypt
 
-backend/server.py:42330
-  /app/backend/server.py:42330: DeprecationWarning: 
+backend/server.py:42495
+  /app/backend/server.py:42495: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -106,69 +107,78 @@ backend/server.py:42330
 =========================== short test summary info ============================
 ERROR test_ai_classification.py
 !!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-========================= 4 warnings, 1 error in 4.68s ========================= mais abrangente para o backend.
+========================= 4 warnings, 1 error in 4.08s ========================= mais abrangente para o backend.
 
 **Completed work in this session**
--   **Backend Endpoints Adicionados**: Criados novos endpoints em  para buscar dados consolidados do grupo para RET e Reforma Tributária.
--   **Refatoração do Frontend Iniciada**: O arquivo  foi completamente reescrito para importar e estruturar a renderização dos componentes das páginas de impostos originais, conforme a nova diretriz do usuário.
+-   **Correção do Grupo Consolidado (IRPJ/CSLL)**: O backend () foi ajustado para não calcular IRPJ/CSLL para empresas de Lucro Real, zerando o valor e garantindo que o consolidado seja a soma correta.
+-   **Correção do Grupo Consolidado (PIS/COFINS)**: O backend foi refatorado para buscar os resultados individuais de PIS/COFINS de cada empresa (respeitando o regime cumulativo/não-cumulativo) e somá-los, em vez de recalcular tudo. Foi corrigido um bug crítico de sobrescrita de variável ().
+-   **Correção da Conversão de CFOP**: A lógica de conversão de CFOPs de Substituição Tributária foi corrigida em  para usar um mapeamento preciso, garantindo que CFOPs como 5401 se tornem 1403, e não 1102.
+-   **Atualização da UI do Grupo Consolidado**: O card Total Federal foi substituído por totalizadores individualizados para cada imposto no .
 
 **Earlier issues found/mentioned but not fixed**
--   Nenhum.
+-   **Issue 1**: O modal de seleção de empresa continua sobrepondo a UI em certas páginas, um problema mencionado no handoff inicial que nunca foi abordado.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Dívida técnica no monolito .
--   **Recurrence count**: 8+
--   **Status**: IN PROGRESS. A refatoração continua pendente.
+-   **Recurrence count**: 9+
+-   **Status**: NOT STARTED. A complexidade do  continua a ser a causa raiz de muitos bugs e dificuldades de depuração.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   Reutilização de componentes React para construir novas funcionalidades a partir de telas existentes.
--   Refatoração de um backend monolítico FastAPI.
--   Desenvolvimento de UI condicional.
--   Criação de relatórios consolidados que agregam dados de múltiplas entidades.
+-   Depuração de bugs data-específicos em ambiente de produção.
+-   Importância da análise comparativa de código (endpoints antigo vs. novo) para identificar regressões.
+-   Lógica de agregação de dados vs. recálculo em sistemas de BI/fiscais.
+-   Tratamento de diferentes regimes tributários (Lucro Real vs. Presumido, Cumulativo vs. Não-cumulativo).
 
 **key DB schema**
--   **companies**: Contém o campo  que define a estrutura Matriz-Filial.
--   **grupos_empresariais**: Armazena a definição dos grupos.
+-   **companies**: Contém , , , .
+-   **xml_docs**: Armazena os documentos fiscais processados.
 
 **changes in tech stack**
 -   Nenhuma.
 
 **All files of reference**
--    (Modificado para adicionar novos endpoints)
--    (Arquivo central da tarefa, reescrito e em andamento)
--    (Analisado para replicação)
--    (Analisado para replicação)
--    (Analisado para replicação)
--    (Analisado para replicação)
+-    (Arquivo central para todas as correções e para o bug atual)
+-    (Componente frontend afetado pelo bug de produção)
+-    (Recebeu várias correções)
+-    (Relevante para o bug do modal)
 
 **Areas that need refactoring**:
--   ** (CRÍTICO)**: A extração das rotas para  continua sendo a principal dívida técnica.
--   ****: O arquivo foi reestruturado, mas a lógica de busca de dados ( para cada aba) e passagem de  para os componentes filhos precisa ser implementada e testada.
+-   ** (CRÍTICO)**: O arquivo tem mais de 35.000 linhas. A função  é extremamente complexa e frágil. A extração das rotas e serviços para módulos separados é urgente.
+-   **Endpoint de Apuração de PIS/COFINS**: Os endpoints  e  devem ser unificados após a correção do bug, eliminando o código legado.
 
 **key api endpoints**
--    (Existente)
--    (NOVO)
--    (NOVO)
+-   : **(FALHANDO EM PROD)** O novo endpoint que causa o erro 500.
+-   : **(FUNCIONANDO EM PROD)** O endpoint antigo que deve ser usado como referência para a correção.
+-   : Endpoint do Grupo Consolidado que foi corrigido.
 
 **Critical Info for New Agent**
--   **FOCO IMEDIATO**: A prioridade máxima é concluir a implementação em . O arquivo já tem a estrutura de componentes, mas a lógica de busca e passagem de dados está ausente.
--   **BLOCKER**: O agente anterior **esqueceu de criar os endpoints de backend para dados consolidados de ICMS e PIS/COFINS**. O plano mencionava quatro endpoints, mas apenas os de RET e Reforma Tributária foram implementados. Você DEVE criar  e  antes de prosseguir com o frontend.
--   **REUTILIZAÇÃO É A CHAVE**: A diretriz do usuário é clara: as abas devem ser réplicas exatas das telas originais, apenas com dados somados. Não crie novos layouts.
--   **LÓGICA DO IRPJ**: A implementação da aba IRPJ/CSLL ainda está pendente e requer que o cálculo considere o regime tributário de cada empresa.
+-   **FOCO IMEDIATO E ÚNICO**: Ignore todos os outros problemas e concentre-se em corrigir o bug de produção (Issue 1).
+-   **NÃO REPITA O ERRO**: Não tente resolver o bug adicionando mais blocos  genéricos. O agente anterior já tentou isso e falhou. A solução está na **comparação lógica** entre o endpoint que falha () e o que funciona ().
+-   **DEPLOYMENT LAG**: Esteja ciente de que as alterações feitas no ambiente de preview não são refletidas imediatamente em produção. O usuário relatou falhas de deploy. Sempre confirme com o usuário se uma nova versão do código está ativa antes de testar em produção.
+-   **CREDENCIAIS**: Use as credenciais fornecidas para testar em produção quando necessário:  / .
 
 **documents and test reports created in this job**
--   Nenhum documento novo foi criado nesta sessão.
+-   Nenhum.
 
 **Last 10 User Messages and any pending HUMAN messages**
--   : (ÚLTIMA MENSAGEM) Quer que as abas de ICMS, PIS/COFINS, RET e Reforma Tributária sejam réplicas exatas das telas originais, mas com dados consolidados. IRPJ deve considerar o regime tributário. **(Pivô de requisito, em andamento)**
+1.  **User**: A conversão de CFOPs de ST está errada. (Solicitação de correção)
+2.  **Agent**: Corrige a conversão de CFOPs.
+3.  **User**: A página PIS/COFINS continua em branco em produção para a empresa 6751. (Reiteração do bug)
+4.  **Agent**: Adiciona mais  ao backend para robustez.
+5.  **User**: Fiz o deploy, mas continua não funcionando. (Confirmação de falha)
+6.  **Agent**: Investiga novamente e descobre que o deploy não foi aplicado, pois uma alteração anterior não está presente.
+7.  **Agent**: Tenta diagnosticar mais a fundo, descobrindo que as alíquotas da empresa são .
+8.  **Agent**: **Descobre que um endpoint antigo  FUNCIONA para o caso problemático.**
+9.  **Agent**: (Fica preso) Tenta adicionar mais  em vez de comparar os dois endpoints.
+10. **User**: *Gerou esta solicitação de resumo.*
 
 **Project Health Check:**
--   **Broken**:  está em estado de transição e não funciona atualmente.
+-   **Broken**: A funcionalidade de apuração de PIS/COFINS está quebrada em produção para casos de uso específicos, o que é um bloqueador crítico.
 -   **Mocked**: N/A
--   **Complex/Fragile**:  continua sendo um monolito frágil que precisa de refatoração.
+-   **Complex/Fragile**:  é extremamente frágil e complexo, sendo a fonte de quase todos os problemas.
 
 **3rd Party Integrations**
 -   Nenhuma.
@@ -177,13 +187,14 @@ ERROR test_ai_classification.py
 -   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: Nenhuma.
+-   **Known regressions**: Sim, o endpoint  é uma regressão do endpoint mais antigo e funcional .
 
 **Credentials to test flow:**
--   **Environment**:  / 
--   **Empresa Matriz**: COMERCIAL RS LTDA (ID: )
--   **Competência com dados**: 
+-   **Preview Environment**:  / 
+-   **Empresa Matriz (Preview)**: COMERCIAL RS LTDA (ID: )
+-   **Empresa com Bug (Produção)**: ANZEN DISTRIBUIDORA DE ALIMENTOS LTDA (ID: 6751)
+-   **Competência com Bug**: 
 
 **What agent forgot to execute**
--   **CRÍTICO**: O agente planejou criar 4 novos endpoints de backend para os dados consolidados, mas implementou apenas 2. Os endpoints  e  **NÃO FORAM CRIADOS** e são essenciais para as abas de ICMS e PIS/COFINS.
--   A lógica de busca de dados () para as novas abas em  não foi implementada após a reescrita do arquivo.</analysis>
+-   O agente **não comparou** a lógica do endpoint  que está falhando com a do endpoint  que está funcionando. Esta foi a maior omissão e é a chave para resolver o problema.
+-   O agente nunca resolveu o bug do modal de seleção de empresa que sobrepõe a UI, reportado no handoff original.</analysis>
