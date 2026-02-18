@@ -1,0 +1,68 @@
+{
+  "summary": "Tested Validador PIS/COFINS and Validador ICMS redesign features. Backend: 20/20 tests passed. Frontend: Both pages load correctly with new design. Fixed syntax error in ValidadorICMS.js.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Layout.js", "issues": ["React key warning in console: Each child in a list should have a unique 'key' prop (minor)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_validadores_icms_piscofins.py",
+    "/app/test_reports/pytest/pytest_iteration69.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fixed: ValidadorICMS.js had duplicate </td> closing tag at line 527 - removed",
+    "Minor: Layout.js still has React key prop warning - consider fixing in future iteration"
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/ValidadorICMS.js",
+    "/app/backend/tests/test_validadores_icms_piscofins.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "alberto.lemes@businessconta.com.br",
+    "password": "@Ahl142536",
+    "company_id": "d7f30ea1-9df3-4124-a561-12984ffff64b",
+    "company_name": "COMERCIAL RS LTDA",
+    "competencia": "01/2026"
+  },
+  "seed_data_creation": "None - using existing company data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All features from the user request are working: 1) Validador PIS/COFINS shows CFOPs de Exceção at top (entradas/saídas) + NCM list below with stats 2) Validador ICMS has 'Pré-carregar do Regulamento' button that creates ICMS rules from RICMS with base_legal field",
+  "features_verified": {
+    "validador_pis_cofins_redesign": {
+      "cfops_excecao_at_top": "PASSED - Shows 'CFOPs de Exceção (Não geram crédito/débito)' section at top",
+      "entradas_sem_credito": "PASSED - Shows 8 CFOPs (1910, 1556, 1949, etc.) with status",
+      "saidas_sem_debito": "PASSED - Shows 10 CFOPs (5920, 5949, 5921, etc.) with status",
+      "ncm_list_below": "PASSED - Shows 'Regras por NCM (CFOPs Normais)' table below",
+      "statistics_cards": "PASSED - Shows Total NCMs (81), OK (14), Alerta (0), Divergente (5), Sem Regra (62)",
+      "cst_automatic_handling": "PASSED - CFOPs exceção items validated against CST 49/98 automatically"
+    },
+    "validador_icms_automation": {
+      "inicializar_regras_endpoint": "PASSED - POST /api/validador-icms/{company_id}/inicializar-regras creates rules",
+      "rules_from_ricms": "PASSED - 64 rules created with aliquota_interna and base_legal from RICMS SP",
+      "precarregar_button": "PASSED - 'Pré-carregar do Regulamento' button visible in Regras tab",
+      "regras_table_fields": "PASSED - Table shows Tipo, Chave, Descrição, Alíq. Interna, Alíq. Interest., Base Legal, Status",
+      "statistics_displayed": "PASSED - Shows Total (1229), OK (737), Alerta (0), Divergente (492), Sem Regra (0)"
+    },
+    "api_endpoints_tested": {
+      "validador_pis_cofins_dados": "PASSED - GET /api/validador-pis-cofins/{company_id}/dados returns cfops_excecao and ncms",
+      "validador_pis_cofins_por_ncm": "PASSED",
+      "validador_pis_cofins_regras_crud": "PASSED",
+      "validador_icms_por_produto": "PASSED",
+      "validador_icms_por_ncm": "PASSED",
+      "validador_icms_regras_crud": "PASSED",
+      "validador_icms_inicializar_regras": "PASSED"
+    }
+  }
+}
