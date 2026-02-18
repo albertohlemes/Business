@@ -12,59 +12,71 @@
 ## ✅ Implementações Concluídas (19/02/2026)
 
 ### Sistema Matriz-Filial - COMPLETO
-1. **CFOPs de Transferência** - 26 CFOPs que NÃO geram PIS/COFINS
-2. **Cadastro de Grupos Empresariais** - Vincular matriz + filiais
-3. **Dashboard Consolidado** - PIS, COFINS, IRPJ, CSLL por empresa
-4. **Carga Tributária Consolidada** - ICMS + PIS + COFINS + IRPJ + CSLL
 
-### Acessos ao Grupos Empresariais
-- **Menu Lateral**: `ANÁLISES → Grupos Empresariais`
-- **Dashboard**: Card de atalho no final da página
-- **URL Direta**: `/grupos-empresariais`
+#### 1. CFOPs de Transferência
+- 26 CFOPs que NÃO geram PIS/COFINS (transferência entre matriz/filiais)
 
-### Carga Tributária Consolidada
-```json
-{
-  "carga_tributaria": {
-    "faturamento": 12020965.86,
-    "icms": 0.00,
-    "pis": 0.00,
-    "cofins": 0.00,
-    "irpj": 237226.13,
-    "csll": 129826.43,
-    "total_federal": 367052.56,
-    "total_geral": 367052.56,
-    "percentual_federal": 3.05,
-    "percentual_icms": 0.00,
-    "percentual_total": 3.05
-  }
-}
+#### 2. Cadastro de Grupos Empresariais
+- Página `/grupos-empresariais` para criar/editar grupos
+- Vincular matriz + filiais
+
+#### 3. Painel Dinâmico em PIS/COFINS, RET e Reforma Tributária
+**Componente:** `GrupoEmpresarialPanel.js`
+
+Quando a empresa selecionada é matriz de um grupo, exibe automaticamente:
+- **Card da Matriz**: dados da empresa matriz
+- **Cards das Filiais**: cada filial com seus impostos
+- **Card Consolidado**: soma de matriz + filiais
+
+**Tabs disponíveis:**
+- Consolidado (visão geral)
+- Matriz (detalhes)
+- Filiais (lista completa)
+
+**Páginas integradas:**
+- `/pis-cofins` - PIS/COFINS
+- `/ret` - Comparativo de Regimes (RET)
+- `/reforma-tributaria` - Reforma Tributária
+
+#### 4. Carga Tributária Consolidada
+- ICMS + PIS + COFINS + IRPJ + CSLL
+- Percentuais sobre faturamento
+- Detalhamento por empresa
+
+### Endpoints Novos
+```
+GET /api/empresa/{company_id}/grupo-info
+- Verifica se empresa é matriz/filial
+- Retorna informações do grupo
+
+GET /api/empresa/{company_id}/impostos-grupo?competencia=MM/YYYY
+- Retorna impostos de todas empresas do grupo
+- Matriz, Filiais, Consolidado
 ```
 
 ### Bug Fix: Comparativo de Regimes
-- PIS/COFINS Presumido hipotético usa base tributada (não faturamento total)
+- PIS/COFINS Presumido hipotético usa base tributada
 
 ---
 
 ## Tarefas Pendentes
 
 ### P1 - IMPORTANTE
-- [ ] Totalizador por CST nos detalhamentos de PIS/COFINS
+- [ ] Totalizador por CST nos detalhamentos
 - [ ] Refatoração do server.py (extrair routers)
 
 ### P2 - BACKLOG
-- [ ] Pacote Docker para instalação On-Premise
+- [ ] Pacote Docker On-Premise
 - [ ] Popular página "Insights IA"
-- [ ] Suíte de testes pytest mais abrangente
 
 ---
 
 ## Credenciais de Teste
 - **Email**: alberto.lemes@businessconta.com.br
 - **Senha**: @Ahl142536
-- **Empresa**: COMERCIAL RS LTDA
+- **Empresa Matriz**: COMERCIAL RS LTDA
 - **Competência com dados**: 01/2026
 
 ## Última Atualização
 - **Data**: 19/02/2026
-- **Status**: Sistema Matriz-Filial completo com Carga Tributária Consolidada
+- **Status**: Painel dinâmico Matriz-Filial implementado em PIS/COFINS, RET e Reforma Tributária
