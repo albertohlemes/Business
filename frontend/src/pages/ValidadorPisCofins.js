@@ -641,9 +641,7 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
     'monofasico': 2,
     'aliquota_diferenciada': 3,
     'tributado': 4,
-    'tributado_presumido': 5,
-    'isento': 6,
-    'suspensao': 7
+    'tributado_presumido': 5
   };
 
   const SecaoRegras = () => {
