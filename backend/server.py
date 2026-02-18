@@ -34236,11 +34236,37 @@ async def get_grupo_consolidado(
         2
     )
     
+    # Total geral de impostos (ICMS + Federais)
     consolidado["total_impostos"] = round(
         consolidado["icms"]["a_pagar"] + 
         consolidado["total_impostos_federais"], 
         2
     )
+    
+    # ============================================================
+    # CARGA TRIBUTÁRIA CONSOLIDADA
+    # ============================================================
+    faturamento_total = consolidado["resumo"]["total_saidas"]
+    
+    consolidado["carga_tributaria"] = {
+        "faturamento": round(faturamento_total, 2),
+        "icms": consolidado["icms"]["a_pagar"],
+        "pis": consolidado["pis"]["a_pagar"],
+        "cofins": consolidado["cofins"]["a_pagar"],
+        "irpj": consolidado["irpj"]["total"],
+        "csll": consolidado["csll"]["devido"],
+        "total_federal": consolidado["total_impostos_federais"],
+        "total_geral": consolidado["total_impostos"],
+        "percentual_federal": round((consolidado["total_impostos_federais"] / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+        "percentual_icms": round((consolidado["icms"]["a_pagar"] / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+        "percentual_total": round((consolidado["total_impostos"] / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+        "detalhamento": {
+            "pis_percentual": round((consolidado["pis"]["a_pagar"] / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+            "cofins_percentual": round((consolidado["cofins"]["a_pagar"] / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+            "irpj_percentual": round((consolidado["irpj"]["total"] / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+            "csll_percentual": round((consolidado["csll"]["devido"] / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+        }
+    }
     
     # Arredondar totais
     consolidado["resumo"]["total_entradas"] = round(consolidado["resumo"]["total_entradas"], 2)
