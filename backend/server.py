@@ -1338,66 +1338,6 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
     CFOPS_SEM_CREDITO_LOCAL = CFOPS_SEM_CREDITO_SERVICO
     CFOPS_SEM_DEBITO_LOCAL = CFOPS_SEM_DEBITO_SERVICO
     
-    # ============================================================
-    # CFOPs que NÃO geram crédito de PIS/COFINS (entradas)
-    # ============================================================
-    CFOPS_SEM_CREDITO = [
-        # DEVOLUÇÕES (não geram crédito pois são retornos de vendas)
-        '1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209',
-        '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209',
-        '1410', '1411', '2410', '2411',  # Devoluções de vendas (ST)
-        
-        # TRANSFERÊNCIAS (não geram crédito - mesma empresa)
-        '1151', '1152', '1153', '1154', '2151', '2152', '2153', '2154',  # Transferências p/ industrialização
-        '1407', '1408', '1409', '2407', '2408', '2409',  # Transferências diversas
-        
-        # REMESSAS/RETORNOS (não geram crédito - operações transitórias)
-        '1901', '2901',  # Entrada p/ industrialização por encomenda
-        '1902', '2902',  # Retorno de mercadoria remetida
-        '1903', '2903',  # Entrada de mercadoria remetida p/ industrialização
-        '1904', '2904',  # Retorno de remessa p/ venda fora do estabelecimento
-        '1905', '2905',  # Entrada de mercadoria recebida p/ depósito
-        '1906', '2906',  # Retorno de mercadoria remetida p/ depósito
-        '1907', '2907',  # Retorno simbólico de mercadoria
-        '1908', '2908',  # Entrada de bem por conta de contrato de comodato
-        '1909', '2909',  # Retorno de bem remetido por comodato
-        '1910', '2910',  # Entrada de bonificação/doação/brinde
-        '1911', '2911',  # Entrada de amostra grátis
-        '1912', '2912',  # Entrada de mercadoria/bem sob regime de drawback
-        '1913', '2913',  # Retorno de mercadoria remetida p/ demonstração
-        '1914', '2914',  # Retorno de mercadoria remetida p/ conserto
-        '1915', '2915',  # Entrada de mercadoria p/ conserto
-        '1916', '2916',  # Retorno de mercadoria remetida p/ armazém
-        '1917', '2917',  # Entrada de mercadoria p/ armazenagem
-        '1918', '2918',  # Entrada de mercadoria p/ depósito fechado
-        '1919', '2919',  # Entrada de mercadoria p/ entrega futura
-        '1920', '2920',  # Entrada de vasilhame/sacaria
-        '1921', '2921',  # Retorno de vasilhame/sacaria
-        '1922', '2922',  # Lançamento de obrigação de restituição
-        '1923', '2923',  # Entrada de mercadoria em poder de terceiro
-        '1924', '2924',  # Entrada p/ industrialização por conta e ordem
-        '1925', '2925',  # Retorno de mercadoria remetida p/ industrialização
-        '1926', '2926',  # Lançamento relativo a cupom fiscal
-        '1949', '2949',  # Outras entradas não especificadas
-        
-        # USO/CONSUMO (não geram crédito direto - despesa)
-        '1407', '2407',  # Compra de material de uso/consumo
-        '1556', '2556',  # Compra de ativo imobilizado (crédito em 48 meses)
-        '1551', '2551',  # Compra de ativo p/ ativo imobilizado
-        '1552', '2552',  # Transferência de ativo imobilizado
-        '1553', '2553',  # Devolução de venda de ativo
-        '1554', '2554',  # Retorno de ativo remetido p/ uso fora
-        '1555', '2555',  # Entrada de ativo por conta de contrato
-        '1557', '2557',  # Transferência de material p/ uso/consumo
-        
-        # DESPESAS / USO E CONSUMO (não geram crédito) - EXCETO combustível
-        '1658', '2658',  # Compra de serviço de transporte
-        '1659', '2659',  # Compra de serviço de comunicação
-        '1660', '2660',  # Devolução de venda de combustível
-        '1661', '2661',  # Devolução de venda de energia elétrica
-        '1662', '2662',  # Devolução de venda de outros serviços
-    ]
-    
     # CFOPs que GERAM crédito (mesmo sendo combustível)
     CFOPS_COM_CREDITO_ESPECIAL = [
         '1651', '2651',  # Compra de combustível p/ INDUSTRIALIZAÇÃO
@@ -1406,46 +1346,6 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
         '1101', '2101',  # Compra p/ industrialização
         '1102', '2102',  # Compra p/ comercialização
         '1403', '2403',  # Compra p/ comercialização (ST)
-    ]
-    
-    # CFOPs que não geram débito (devoluções, remessas, etc.)
-    CFOPS_SEM_DEBITO = [
-        # DEVOLUÇÕES (não geram débito pois são retornos de compras)
-        '5201', '5202', '5203', '5204', '5205', '5206', '5207', '5208', '5209',
-        '6201', '6202', '6203', '6204', '6205', '6206', '6207', '6208', '6209',
-        '5410', '5411', '6410', '6411',  # Devoluções de compras (ST)
-        
-        # TRANSFERÊNCIAS
-        '5151', '5152', '5153', '5154', '6151', '6152', '6153', '6154',
-        '5407', '5408', '5409', '6407', '6408', '6409',
-        
-        # REMESSAS (não geram débito)
-        '5901', '6901',  # Remessa p/ industrialização
-        '5902', '6902',  # Retorno de mercadoria
-        '5903', '6903',  # Retorno de industrialização
-        '5904', '6904',  # Remessa p/ venda fora
-        '5905', '6905',  # Remessa p/ depósito fechado
-        '5906', '6906',  # Retorno de mercadoria depositada
-        '5907', '6907',  # Retorno simbólico
-        '5908', '6908',  # Remessa de bem por comodato
-        '5909', '6909',  # Retorno de bem recebido por comodato
-        '5910', '6910',  # Remessa em bonificação/doação/brinde
-        '5911', '6911',  # Remessa de amostra grátis
-        '5912', '6912',  # Remessa de mercadoria/bem sob drawback
-        '5913', '6913',  # Remessa p/ demonstração
-        '5914', '6914',  # Remessa p/ conserto/reparo
-        '5915', '6915',  # Remessa de mercadoria p/ conserto
-        '5916', '6916',  # Retorno de mercadoria de armazém
-        '5917', '6917',  # Remessa p/ armazenagem
-        '5918', '6918',  # Remessa p/ depósito fechado
-        '5919', '6919',  # Remessa p/ entrega futura
-        '5920', '6920',  # Remessa de vasilhame/sacaria
-        '5921', '6921',  # Devolução de vasilhame/sacaria
-        '5922', '6922',  # Lançamento de obrigação de restituição
-        '5923', '6923',  # Remessa de mercadoria em poder de terceiro
-        '5924', '6924',  # Remessa p/ industrialização por conta e ordem
-        '5925', '6925',  # Retorno de mercadoria industrializada
-        '5949', '6949',  # Outras saídas não especificadas
     ]
     
     # Configurações da empresa
