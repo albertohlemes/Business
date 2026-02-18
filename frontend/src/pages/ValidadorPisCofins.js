@@ -573,13 +573,46 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
   };
 
   // Aba de Regras separada
+  const [sortRegras, setSortRegras] = useState({ key: 'tipo_regra', direction: 'asc' });
+  const [filtroTipoRegra, setFiltroTipoRegra] = useState('todos');
+  
+  const handleSortRegras = (key) => {
+    setSortRegras(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const getSortIconRegras = (key) => {
+    if (sortRegras.key !== key) return <ChevronUp className="w-3 h-3 opacity-30" />;
+    return sortRegras.direction === 'asc' 
+      ? <ChevronUp className="w-3 h-3 text-[#C8A951]" /> 
+      : <ChevronDown className="w-3 h-3 text-[#C8A951]" />;
+  };
+
+  // Ordem dos tipos para classificação
+  const ORDEM_TIPOS = {
+    'aliquota_zero': 1,
+    'monofasico': 2,
+    'aliquota_diferenciada': 3,
+    'tributado': 4,
+    'tributado_presumido': 5,
+    'isento': 6,
+    'suspensao': 7
+  };
+
   const SecaoRegras = () => {
-    // Expandir regras com exceções para aparecerem na listagem
-    const regrasExpandidas = [];
+    // Contar regras por tipo
+    const contagemPorTipo = {};
+    regras.forEach(r => {
+      const tipo = r.tipo_regra || 'tributado';
+      contagemPorTipo[tipo] = (contagemPorTipo[tipo] || 0) + 1;
+    });
+
+    // Expandir regras com exceções
+    let regrasExpandidas = [];
     regras.forEach(regra => {
-      // Adicionar a regra principal
       regrasExpandidas.push({ ...regra, isExcecao: false });
-      // Adicionar cada exceção como item separado
       if (regra.excecoes?.length > 0) {
         regra.excecoes.forEach((exc, idx) => {
           regrasExpandidas.push({
@@ -587,6 +620,7 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
             parent_id: regra.id,
             parent_chave: regra.chave,
             parent_descricao: regra.descricao,
+            tipo_regra: regra.tipo_regra,
             tipo: 'excecao',
             chave: exc.chave,
             descricao: exc.descricao || `Exceção: ${exc.chave}`,
@@ -601,17 +635,66 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
       }
     });
 
+    // Filtrar por tipo
+    if (filtroTipoRegra !== 'todos') {
+      regrasExpandidas = regrasExpandidas.filter(r => r.tipo_regra === filtroTipoRegra);
+    }
+
+    // Ordenar
+    regrasExpandidas = [...regrasExpandidas].sort((a, b) => {
+      // Manter exceções logo após sua regra pai
+      if (a.isExcecao && !b.isExcecao && a.parent_id === b.id) return 1;
+      if (b.isExcecao && !a.isExcecao && b.parent_id === a.id) return -1;
+      
+      let aVal, bVal;
+      
+      if (sortRegras.key === 'tipo_regra') {
+        aVal = ORDEM_TIPOS[a.tipo_regra] || 99;
+        bVal = ORDEM_TIPOS[b.tipo_regra] || 99;
+      } else if (sortRegras.key === 'aliquota_pis' || sortRegras.key === 'aliquota_cofins') {
+        aVal = a[sortRegras.key] || 0;
+        bVal = b[sortRegras.key] || 0;
+      } else {
+        aVal = String(a[sortRegras.key] || '').toLowerCase();
+        bVal = String(b[sortRegras.key] || '').toLowerCase();
+      }
+      
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortRegras.direction === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      
+      if (sortRegras.direction === 'asc') {
+        return String(aVal).localeCompare(String(bVal));
+      }
+      return String(bVal).localeCompare(String(aVal));
+    });
+
+    // Badges de filtro por tipo
+    const TipoFiltro = ({ tipo, label, cor }) => {
+      const count = contagemPorTipo[tipo] || 0;
+      const isAtivo = filtroTipoRegra === tipo;
+      return (
+        <button
+          onClick={() => setFiltroTipoRegra(isAtivo ? 'todos' : tipo)}
+          className={`text-xs px-2 py-1 rounded transition-all ${
+            isAtivo 
+              ? `${cor} ring-1 ring-offset-1 ring-offset-[#0C0C0C]` 
+              : 'bg-[#1A1A1A] text-[#A1A1AA] hover:bg-[#2A2A2A]'
+          }`}
+        >
+          {label} ({count})
+        </button>
+      );
+    };
+
     return (
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <h3 className="text-white font-semibold">Regras Configuradas ({regras.length})</h3>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleInicializarRegras}
-              disabled={inicializando || loading}
-              className="flex items-center gap-2 bg-[#141414] border border-[#2A2A2A] text-white px-3 py-2 rounded-lg hover:bg-[#1A1A1A] disabled:opacity-50 text-sm"
-            >
-              {inicializando ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          <div className="flex items-center gap-2">
+            <button onClick={handleInicializarRegras} disabled={inicializando || loading}
+              className="flex items-center gap-2 bg-[#141414] border border-[#2A2A2A] text-white px-3 py-1.5 rounded-lg hover:bg-[#1A1A1A] disabled:opacity-50 text-xs">
+              {inicializando ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
               Pré-carregar
             </button>
             <button
@@ -627,22 +710,50 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
                 });
                 setModalRegra({});
               }}
-              className="flex items-center gap-2 bg-[#C8A951] text-black px-3 py-2 rounded-lg hover:bg-[#B89841] font-medium text-sm"
+              className="flex items-center gap-2 bg-[#C8A951] text-black px-3 py-1.5 rounded-lg hover:bg-[#B89841] font-medium text-xs"
             >
-              <Plus className="w-4 h-4" /> Nova Regra
+              <Plus className="w-3 h-3" /> Nova Regra
             </button>
           </div>
+        </div>
+
+        {/* Filtros por tipo */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <span className="text-xs text-[#666]">Filtrar:</span>
+          <button
+            onClick={() => setFiltroTipoRegra('todos')}
+            className={`text-xs px-2 py-1 rounded transition-all ${
+              filtroTipoRegra === 'todos' ? 'bg-white text-black' : 'bg-[#1A1A1A] text-[#A1A1AA] hover:bg-[#2A2A2A]'
+            }`}
+          >
+            Todos ({regras.length})
+          </button>
+          <TipoFiltro tipo="aliquota_zero" label="Alíq. Zero" cor="bg-green-600/30 text-green-400" />
+          <TipoFiltro tipo="monofasico" label="Monofásico" cor="bg-blue-600/30 text-blue-400" />
+          <TipoFiltro tipo="aliquota_diferenciada" label="Alíq. Difer." cor="bg-yellow-600/30 text-yellow-400" />
+          <TipoFiltro tipo="tributado" label="Tributado" cor="bg-purple-600/30 text-purple-400" />
+          <TipoFiltro tipo="isento" label="Isento" cor="bg-gray-600/30 text-gray-400" />
         </div>
 
         <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-[#0C0C0C]">
               <tr>
-                <th className="text-left py-2 px-3 text-[#A1A1AA]">NCM/Exceção</th>
-                <th className="text-left py-2 px-3 text-[#A1A1AA]">Descrição</th>
-                <th className="text-center py-2 px-3 text-[#A1A1AA]">Tipo</th>
-                <th className="text-center py-2 px-3 text-[#A1A1AA]">PIS</th>
-                <th className="text-center py-2 px-3 text-[#A1A1AA]">COFINS</th>
+                <th className="text-left py-2 px-3 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortRegras('chave')}>
+                  <div className="flex items-center gap-1">NCM {getSortIconRegras('chave')}</div>
+                </th>
+                <th className="text-left py-2 px-3 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortRegras('descricao')}>
+                  <div className="flex items-center gap-1">Descrição {getSortIconRegras('descricao')}</div>
+                </th>
+                <th className="text-center py-2 px-3 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortRegras('tipo_regra')}>
+                  <div className="flex items-center justify-center gap-1">Tipo {getSortIconRegras('tipo_regra')}</div>
+                </th>
+                <th className="text-center py-2 px-3 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortRegras('aliquota_pis')}>
+                  <div className="flex items-center justify-center gap-1">PIS {getSortIconRegras('aliquota_pis')}</div>
+                </th>
+                <th className="text-center py-2 px-3 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortRegras('aliquota_cofins')}>
+                  <div className="flex items-center justify-center gap-1">COFINS {getSortIconRegras('aliquota_cofins')}</div>
+                </th>
                 <th className="text-center py-2 px-3 text-[#A1A1AA]">CST E/S</th>
                 <th className="text-center py-2 px-3 text-[#A1A1AA]">Ações</th>
               </tr>
@@ -671,8 +782,19 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
                     {item.isExcecao ? (
                       <span className="text-xs bg-orange-600/20 text-orange-400 px-2 py-0.5 rounded">Exceção</span>
                     ) : (
-                      <span className="text-xs bg-purple-600/20 text-purple-400 px-2 py-0.5 rounded">
-                        {TIPOS_REGRA[item.tipo_regra]?.label?.split(' ')[0] || 'Tributado'}
+                      <span className={`text-xs px-2 py-0.5 rounded ${
+                        item.tipo_regra === 'aliquota_zero' ? 'bg-green-600/20 text-green-400' :
+                        item.tipo_regra === 'monofasico' ? 'bg-blue-600/20 text-blue-400' :
+                        item.tipo_regra === 'aliquota_diferenciada' ? 'bg-yellow-600/20 text-yellow-400' :
+                        item.tipo_regra === 'isento' ? 'bg-gray-600/20 text-gray-400' :
+                        'bg-purple-600/20 text-purple-400'
+                      }`}>
+                        {item.tipo_regra === 'aliquota_zero' ? 'Alíq. Zero' :
+                         item.tipo_regra === 'monofasico' ? 'Monofásico' :
+                         item.tipo_regra === 'aliquota_diferenciada' ? 'Alíq. Difer.' :
+                         item.tipo_regra === 'isento' ? 'Isento' :
+                         item.tipo_regra === 'suspensao' ? 'Suspensão' :
+                         'Tributado'}
                       </span>
                     )}
                   </td>
@@ -698,6 +820,34 @@ const ValidadorPisCofins = ({ user, onLogout }) => {
                               excecoes: item.excecoes || []
                             });
                             setModalRegra(item);
+                          }}
+                          className="text-blue-400 hover:text-blue-300"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleExcluirRegra(item.id)} className="text-red-400 hover:text-red-300">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {regrasExpandidas.length === 0 && (
+                <tr>
+                  <td colSpan="7" className="py-6 text-center text-[#666]">
+                    {filtroTipoRegra !== 'todos' 
+                      ? `Nenhuma regra do tipo "${filtroTipoRegra}"` 
+                      : 'Nenhuma regra configurada. Clique em "Pré-carregar" para criar regras automaticamente.'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
                           }}
                           className="text-blue-400 hover:text-blue-300"
                         >
