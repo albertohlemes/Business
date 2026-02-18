@@ -1,0 +1,79 @@
+{
+  "summary": "Tested Validador ICMS and Validador PIS/COFINS features. Backend tests: 18/18 passed. Frontend tests: All tabs and features verified working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Layout.js", "issues": ["React key warning in console: Each child in a list should have a unique 'key' prop"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_validadores_icms_piscofins.py",
+    "/app/test_reports/pytest/pytest_iteration68.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Minor: Layout.js has React key prop warning - need to add unique keys to mapped elements"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_validadores_icms_piscofins.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "alberto.lemes@businessconta.com.br",
+    "password": "@Ahl142536",
+    "company_id": "d7f30ea1-9df3-4124-a561-12984ffff64b",
+    "competencia": "01/2026"
+  },
+  "seed_data_creation": "None - Test rules created and cleaned up after each test",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Validadores ICMS and PIS/COFINS are fully functional. Backend API tests in test_validadores_icms_piscofins.py cover all CRUD operations and data validation.",
+  "features_verified": {
+    "validador_icms": {
+      "por_produto_endpoint": {
+        "tipo_operacao": "PASSED - returns 'interna' or 'interestadual'",
+        "is_st": "PASSED - boolean field present",
+        "uf_destino": "PASSED - field present for interstate operations"
+      },
+      "regras_endpoint": {
+        "excecoes_support": "PASSED - accepts list of objects with chave/descricao/aliquota",
+        "crud_operations": "PASSED - GET/POST/DELETE working"
+      },
+      "frontend_modal": {
+        "aliquota_interna": "PASSED - field visible",
+        "aliquota_interestadual_sul_sudeste": "PASSED - field labeled 'Interestadual S/SE (%)'",
+        "aliquota_interestadual_outros": "PASSED - field labeled 'Interestadual Outros (%)'",
+        "aliquota_st": "PASSED - field labeled 'ST (se aplicável)'",
+        "excecoes_section": "PASSED - 'Exceções (opcional)' with + Add button",
+        "produto_com_st": "PASSED - checkbox present"
+      }
+    },
+    "validador_pis_cofins": {
+      "por_cfop_endpoint": {
+        "entradas_saidas_separated": "PASSED - response has 'entradas' and 'saidas' arrays"
+      },
+      "por_ncm_endpoint": {
+        "aliquota_pis_cofins": "PASSED - NCMs have aliquota_pis_praticada/esperada and aliquota_cofins_praticada/esperada"
+      },
+      "regras_endpoint": {
+        "crud_operations": "PASSED - GET/POST/PUT/DELETE all working"
+      },
+      "frontend_tabs": {
+        "por_cfop": "PASSED - shows Entradas (Créditos) and Saídas (Débitos) sections",
+        "por_ncm": "PASSED - shows NCM table with PIS/COFINS columns",
+        "regras": "PASSED - shows rules list with Nova Regra button"
+      }
+    },
+    "menu_layout": {
+      "validador_pis_cofins_position": "PASSED - appears after PIS/COFINS in IMPOSTOS section"
+    }
+  }
+}
