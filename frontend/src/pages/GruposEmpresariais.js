@@ -440,7 +440,7 @@ const GruposEmpresariais = ({ user, onLogout }) => {
               ) : consolidadoData && (
                 <div className="space-y-6">
                   {/* Cards de Resumo */}
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     <div className="bg-[#0C0C0C] rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Building2 className="w-4 h-4 text-blue-400" />
@@ -451,33 +451,41 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                     <div className="bg-[#0C0C0C] rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <TrendingUp className="w-4 h-4 text-green-400" />
-                        <span className="text-sm text-[#A1A1AA]">Total Entradas</span>
+                        <span className="text-sm text-[#A1A1AA]">Entradas</span>
                       </div>
-                      <p className="text-2xl font-bold text-white">{formatCurrency(consolidadoData.resumo?.total_entradas)}</p>
+                      <p className="text-xl font-bold text-white">{formatCurrency(consolidadoData.resumo?.total_entradas)}</p>
                     </div>
                     <div className="bg-[#0C0C0C] rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <TrendingDown className="w-4 h-4 text-red-400" />
-                        <span className="text-sm text-[#A1A1AA]">Total Saídas</span>
+                        <span className="text-sm text-[#A1A1AA]">Saídas</span>
                       </div>
-                      <p className="text-2xl font-bold text-white">{formatCurrency(consolidadoData.resumo?.total_saidas)}</p>
+                      <p className="text-xl font-bold text-white">{formatCurrency(consolidadoData.resumo?.total_saidas)}</p>
+                    </div>
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="w-4 h-4 text-blue-400" />
+                        <span className="text-sm text-[#A1A1AA]">PIS + COFINS</span>
+                      </div>
+                      <p className="text-xl font-bold text-blue-400">
+                        {formatCurrency((consolidadoData.pis?.a_pagar || 0) + (consolidadoData.cofins?.a_pagar || 0))}
+                      </p>
+                    </div>
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="w-4 h-4 text-purple-400" />
+                        <span className="text-sm text-[#A1A1AA]">IRPJ + CSLL</span>
+                      </div>
+                      <p className="text-xl font-bold text-purple-400">
+                        {formatCurrency((consolidadoData.irpj?.total || 0) + (consolidadoData.csll?.devido || 0))}
+                      </p>
                     </div>
                     <div className="bg-[#0C0C0C] rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <DollarSign className="w-4 h-4 text-[#C8A951]" />
-                        <span className="text-sm text-[#A1A1AA]">Impostos Federais</span>
+                        <span className="text-sm text-[#A1A1AA]">Total Federal</span>
                       </div>
-                      <p className="text-2xl font-bold text-[#C8A951]">
-                        {formatCurrency((consolidadoData.pis?.a_pagar || 0) + (consolidadoData.cofins?.a_pagar || 0))}
-                      </p>
-                      <p className="text-xs text-[#A1A1AA] mt-1">PIS + COFINS</p>
-                    </div>
-                    <div className="bg-[#0C0C0C] rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <DollarSign className="w-4 h-4 text-orange-400" />
-                        <span className="text-sm text-[#A1A1AA]">Total Impostos</span>
-                      </div>
-                      <p className="text-2xl font-bold text-orange-400">{formatCurrency(consolidadoData.total_impostos)}</p>
+                      <p className="text-xl font-bold text-[#C8A951]">{formatCurrency(consolidadoData.total_impostos_federais)}</p>
                     </div>
                   </div>
 
@@ -495,8 +503,9 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                     </div>
                   )}
 
-                  {/* Resumo PIS/COFINS Consolidado */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Grid de Impostos Consolidados */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* PIS */}
                     <div className="bg-[#0C0C0C] rounded-lg p-4">
                       <h4 className="text-sm text-[#A1A1AA] mb-3 flex items-center gap-2">
                         <DollarSign className="w-4 h-4" />
@@ -517,6 +526,8 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                         </div>
                       </div>
                     </div>
+                    
+                    {/* COFINS */}
                     <div className="bg-[#0C0C0C] rounded-lg p-4">
                       <h4 className="text-sm text-[#A1A1AA] mb-3 flex items-center gap-2">
                         <DollarSign className="w-4 h-4" />
@@ -528,6 +539,60 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                           <span className="text-red-400">{formatCurrency(consolidadoData.cofins?.debito)}</span>
                         </div>
                         <div className="flex justify-between">
+                          <span className="text-[#A1A1AA]">Créditos:</span>
+                          <span className="text-green-400">{formatCurrency(consolidadoData.cofins?.credito)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-[#2A2A2A] pt-2">
+                          <span className="text-white font-medium">A Pagar:</span>
+                          <span className="text-[#C8A951] font-bold">{formatCurrency(consolidadoData.cofins?.a_pagar)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* IRPJ */}
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <h4 className="text-sm text-[#A1A1AA] mb-3 flex items-center gap-2">
+                        <DollarSign className="w-4 h-4" />
+                        IRPJ Consolidado
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-[#A1A1AA]">Base Presumida:</span>
+                          <span className="text-white">{formatCurrency(consolidadoData.irpj?.base_presumida)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#A1A1AA]">IRPJ 15%:</span>
+                          <span className="text-white">{formatCurrency(consolidadoData.irpj?.devido)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#A1A1AA]">Adicional 10%:</span>
+                          <span className="text-white">{formatCurrency(consolidadoData.irpj?.adicional)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-[#2A2A2A] pt-2">
+                          <span className="text-white font-medium">Total:</span>
+                          <span className="text-purple-400 font-bold">{formatCurrency(consolidadoData.irpj?.total)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* CSLL */}
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <h4 className="text-sm text-[#A1A1AA] mb-3 flex items-center gap-2">
+                        <DollarSign className="w-4 h-4" />
+                        CSLL Consolidado
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-[#A1A1AA]">Base Presumida:</span>
+                          <span className="text-white">{formatCurrency(consolidadoData.csll?.base_presumida)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-[#2A2A2A] pt-2 mt-8">
+                          <span className="text-white font-medium">CSLL 9%:</span>
+                          <span className="text-purple-400 font-bold">{formatCurrency(consolidadoData.csll?.devido)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                           <span className="text-[#A1A1AA]">Créditos:</span>
                           <span className="text-green-400">{formatCurrency(consolidadoData.cofins?.credito)}</span>
                         </div>
