@@ -1,0 +1,96 @@
+{
+  "summary": "Testes completos das features PIS/COFINS Saldo Credor e Validador ICMS. TODOS OS 15 TESTES DE BACKEND PASSARAM. Frontend validado com Playwright mostrando todas as funcionalidades operando corretamente.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_pis_cofins_validador_icms.py",
+    "/app/test_reports/pytest/pytest_iteration67.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_pis_cofins_validador_icms.py"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 testes passaram)",
+    "frontend": "100% - todas as funcionalidades testadas com sucesso"
+  },
+  "test_credentials": {
+    "email": "alberto.lemes@businessconta.com.br",
+    "password": "@Ahl142536",
+    "company_id": "d7f30ea1-9df3-4124-a561-12984ffff64b",
+    "company_name": "COMERCIAL RS LTDA",
+    "competencia": "01/2026"
+  },
+  "seed_data_creation": "Regra de ICMS para NCM 2208 (25%) já estava criada",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Todas as features testadas e funcionando: CFOPs excluídos, Saldo Credor Anterior, Saldo a Transportar, Validador ICMS com 3 abas.",
+  "features_tested": {
+    "cfop_exclusion": {
+      "status": "PASS",
+      "description": "CFOPs 1920, 2920, 1921, 5927, 6908 estão corretamente listados em CFOPS_SEM_CREDITO e CFOPS_SEM_DEBITO no pis_cofins_calculator.py",
+      "files_verified": ["/app/backend/services/pis_cofins_calculator.py lines 291-387"]
+    },
+    "saldo_credor_anterior": {
+      "status": "PASS",
+      "description": "Endpoint /api/pis-cofins/apuracao retorna saldo_credor_anterior com origem='cadastro', competencia_origem='01/2026', pis=3000, cofins=12000, icms=5000",
+      "frontend": "Seção 'Saldo Credor Anterior' exibida com badge 'Do Cadastro' mostrando PIS R$ 3.000,00 e COFINS R$ 12.000,00"
+    },
+    "saldo_a_transportar": {
+      "status": "PASS", 
+      "description": "Endpoint retorna saldo_a_transportar quando há crédito: PIS R$ 19.951,09, COFINS R$ 90.068,79, Total R$ 110.019,88",
+      "frontend": "Seção 'Saldo Credor a Transportar para Próxima Competência' exibida com valores corretos"
+    },
+    "validador_icms_por_produto": {
+      "status": "PASS",
+      "description": "Endpoint /api/validador-icms/{company_id}/por-produto retorna lista de produtos com aliquota_praticada, aliquota_esperada, status",
+      "response": "1229 produtos totais, 132 OK, 62 divergentes, 1035 sem regra"
+    },
+    "validador_icms_por_ncm": {
+      "status": "PASS",
+      "description": "Endpoint /api/validador-icms/{company_id}/por-ncm retorna lista de NCMs agrupados com validação",
+      "response": "62 NCMs totais, 1 OK (NCM 2208), 61 sem regra"
+    },
+    "validador_icms_regras_crud": {
+      "status": "PASS",
+      "description": "Endpoints GET/POST/PUT/DELETE /api/validador-icms/{company_id}/regras funcionando",
+      "existing_rule": "NCM 2208 -> 25% (Bebidas alcoólicas)"
+    },
+    "frontend_validador_tabs": {
+      "status": "PASS",
+      "description": "Frontend Validador ICMS possui 3 abas: Por Produto, Por NCM, Regras (1)",
+      "features": ["Tabela de produtos com status", "Tabela de NCMs com sugestões", "CRUD de regras com editar/excluir", "+ Nova Regra button"]
+    },
+    "menu_lateral": {
+      "status": "PASS",
+      "description": "Menu lateral mostra 'Validador ICMS' abaixo de 'ICMS' na seção IMPOSTOS"
+    }
+  },
+  "api_values_validated": {
+    "saldo_credor_anterior": {
+      "pis": 3000,
+      "cofins": 12000,
+      "icms": 5000,
+      "origem": "cadastro",
+      "competencia_origem": "01/2026"
+    },
+    "saldo_a_transportar": {
+      "pis": 19951.09,
+      "cofins": 90068.79,
+      "total": 110019.88
+    },
+    "imposto_a_pagar": {
+      "pis": 0,
+      "cofins": 0,
+      "total": 0
+    }
+  }
+}
