@@ -2011,7 +2011,7 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
                 
             else:  # saída
                 categoria_sem_debito = any(cat in categoria for cat in CATEGORIAS_SEM_DEBITO) if categoria else False
-                cfop_sem_debito = cfop in CFOPS_SEM_DEBITO
+                cfop_sem_debito = cfop in CFOPS_SEM_DEBITO_LOCAL
                 
                 if categoria_sem_debito or cfop_sem_debito:
                     cst = '49'  # Saídas sem débito = CST 49 (não 98)
