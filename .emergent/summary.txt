@@ -3,62 +3,71 @@ O usuário enfrenta uma série de problemas críticos de performance, estabilida
 
 PRODUCT REQUIREMENTS:
 1.  **Consistência e Correção do Sistema de Classificação (P0 - CRÍTICO)**:
-    *   A classificação feita pelo usuário (seja no Wizard de Alertas, no Wizard de Fechamento ou na Classificação Inteligente) deve ser a **fonte única da verdade** e ter prioridade máxima sobre qualquer automação ou classificação por IA.
-    *   O sistema de classificação de IA deve ser menos genérico, considerando o CFOP além da descrição do produto. Um produto recebido como bonificação (CFOP 1910) não deve ser classificado como revenda apenas porque sua descrição foi vista em uma operação de revenda anteriormente. A regra é: CFOP define a categoria para operações especiais (bonificação, devolução, etc.); a IA só deve atuar para operações de revenda/insumo.
-    *   As diferentes interfaces de classificação (Wizard, Classificação Inteligente) devem operar sobre a mesma base de dados (, ) e apresentar resultados consistentes.
-    *   Corrigir o bug onde classificar um produto com um CFOP específico no Wizard (ex:  como despesa ) não era respeitado, e o sistema mantinha a classificação automática ( - revenda).
-    *   Garantir que as contagens de produtos nos alertas do Wizard batam com a realidade, corrigindo o erro de processamento que causava divergências.
+    *   A classificação feita pelo usuário deve ser a **fonte única da verdade** e ter prioridade máxima.
+    *   O sistema de classificação de IA deve ser menos genérico, considerando o CFOP.
+    *   As diferentes interfaces de classificação devem operar sobre a mesma base de dados e ser consistentes.
+    *   Corrigir o bug onde a classificação manual do usuário era ignorada.
+    *   Garantir que as contagens de produtos nos alertas do Wizard sejam precisas.
 2.  **Consistência e Correção dos Cálculos Fiscais (P1)**:
-    *   A apuração de PIS/COFINS deve incluir todos os CSTs relevantes. O  não estava aparecendo no detalhamento e no confronto CFOP x CST.
-    *   Corrigir o cálculo do ICMS para desconsiderar crédito de ST para o CFOP  (bonificação interestadual), assim como já era feito para o .
-    *   Garantir que CFOPs / sejam classificados como outras_entradas e não como revenda.
+    *   A apuração de PIS/COFINS deve incluir todos os CSTs relevantes (ex: ).
+    *   Corrigir o cálculo do ICMS para desconsiderar crédito de ST para o CFOP .
+    *   Garantir que CFOPs / sejam classificados como outras_entradas.
 3.  **Melhoras de UI/UX e Funcionalidades (P1)**:
-    *   Na tela de Classificação Inteligente/Wizard, os números das notas fiscais devem ser hiperlinks que abrem a respectiva NF na tela de Documentos.
-    *   No Dashboard, o PIS/COFINS deve exibir Valor a Recuperar quando o saldo for credor, de forma similar ao ICMS.
-    *   A tela de Reforma Tributária deve ser mais clara, separar PIS e COFINS, e corrigir o cálculo do valor da economia, que estava inconsistente e incorreto.
+    *   Os números das notas fiscais devem ser hiperlinks.
+    *   No Dashboard, o PIS/COFINS deve exibir Valor a Recuperar para saldos credores.
+    *   A tela de Reforma Tributária deve ser mais clara, com cálculos corretos e UI consistente.
     *   O menu ICMS ST deve ser removido para empresas não contribuintes de ST.
-    *   Adicionar mais CFOPs estranhos (devoluções, remessas, etc., como /) à lista que gera alertas no Wizard.
+    *   Adicionar mais CFOPs estranhos (devoluções, remessas) à lista de alertas.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-Uma aplicação full-stack (React + FastAPI + MongoDB) com um backend monolítico em . O agente desta sessão realizou uma refatoração crucial na lógica de classificação de produtos. A hierarquia de classificação foi corrigida para que a decisão do usuário tenha prioridade máxima, seguida pelas regras de CFOPs especiais (bonificação, devolução) e, por último, a classificação por IA. Diversos bugs críticos que causavam a sobreposição da escolha do usuário foram corrigidos nos endpoints do Wizard de Fechamento e da Classificação Inteligente. Também foram implementadas melhorias de UI, como NFs clicáveis e correções de dados nas telas de PIS/COFINS, Dashboard e Reforma Tributária.
+Uma aplicação full-stack (React + FastAPI + MongoDB) com um backend monolítico em . O agente anterior realizou uma refatoração crucial na lógica de classificação de produtos. O agente atual tentou corrigir problemas de inconsistência de dados e UI em duas telas distintas: a página de **Reforma Tributária** () e a página **RET - Rota de Eficiência Tributária** (). As alterações foram feitas, mas o usuário reportou que os problemas persistem, indicando que as correções foram ineficazes ou aplicadas no local errado.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava no meio da correção de um lote de problemas reportados pelo usuário em uma única mensagem, focados na tela de **Reforma Tributária**. O usuário reclamou de dados inconsistentes, cálculo de economia incorreto e uma UI confusa. O agente refatorou a UI para separar PIS e COFINS e tornar a apresentação mais clara, mas a validação dos cálculos de economia e a consistência dos dados em todas as abas (mensal, ano, estimativa) ainda precisam ser verificadas.
+-   **Last item agent was working**: O agente estava tentando corrigir um conjunto de erros visuais e de cálculo nas telas de análise fiscal, após o usuário reclamar que as correções anteriores não funcionaram. O agente confundiu inicialmente a página  com a , aplicando correções na segunda. Após o feedback negativo do usuário, o agente percebeu o engano e tentou corrigir também a página , focando no cálculo do banner de economia e na exibição de saldos credores que apareciam como R$ 0,00.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: N (Para a refatoração da UI da Reforma Tributária).
--   **Which testing method agent to use?**: Frontend testing agent. O agente deve validar visualmente a tela  e, principalmente, verificar se os cálculos de Total Cenário Atual, Total Cenário 2027 e Economia Estimada estão corretos e consistentes entre as abas Mês, Ano e Estimativa Ano.
--   **User Testing Done**: N
+-   **Agent Testing Done**: N (O agente tentou tirar um screenshot, mas foi bloqueado pela tela de login, pois o ambiente de preview não possui dados. Nenhuma verificação autenticada foi realizada.)
+-   **Which testing method agent to use?**: Frontend testing agent. O agente DEVE usar as credenciais fornecidas para fazer login, navegar até as páginas  e  e verificar visualmente se as correções de UI e de cálculo foram aplicadas corretamente.
+-   **User Testing Done**: N (O último feedback do usuário foi uma reclamação de que nada foi resolvido.)
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Correção e validação da tela de Reforma Tributária (P0).
--   **Issue 2**: O processo de deploy do usuário está travado, impedindo-o de testar as correções (P1 - Blocker de ambiente).
+-   **Issue 1**: Correção da exibição de dados e cálculos nas páginas de Reforma Tributária e RET (P0).
+-   **Issue 2**: Ocultar o menu ICMS ST para empresas não contribuintes (P1).
 
 **Issues Detail**:
--   **Issue 1: Correção e validação da tela de Reforma Tributária (P0)**
-    -   **Attempted fixes**: O agente refatorou o componente  para melhorar a visualização dos dados, separando PIS e COFINS em tabelas distintas, similar ao cenário 2027. O código foi alterado para usar os campos corretos retornados pela API (, , etc.).
+-   **Issue 1: Correção da exibição de dados e cálculos nas páginas de Reforma Tributária e RET (P0)**
+    -   **Attempted fixes**:
+        -   Em , a UI foi alterada para mostrar PIS e COFINS em tabelas separadas (crédito/débito/saldo).
+        -   Em  e , a lógica foi alterada para tentar corrigir o cálculo do banner de economia e exibir saldos credores corretamente.
     -   **Next debug checklist**:
-        1.  Revisar o endpoint  em  para garantir que a lógica de cálculo da economia e dos totais esteja correta.
-        2.  Revisar o componente  e validar se os dados recebidos da API estão sendo somados e exibidos corretamente em todas as seções (Cenário Global e Cenário 2027) e em todas as abas (Mês, Ano, Estimativa Ano). O usuário reportou que o valor da economia estava errado (ex: 1.6M vs 700k).
-    -   **Why fix this issue and what will be achieved with the fix?**: É uma tela de alto valor para o usuário, que resume os benefícios financeiros da reforma. A precisão e clareza dos dados são cruciais.
+        1.  **Login Obrigatório**: Use as credenciais fornecidas para fazer login na aplicação. Testes não autenticados não funcionarão.
+        2.  **Analisar Página RET ()**: Navegue até esta página. Verifique o valor no banner de economia. Verifique o card Lucro Real para confirmar se saldos credores de PIS/COFINS são exibidos corretamente, em vez de R$ 0,00.
+        3.  **Analisar Página Reforma Tributária ()**: Navegue até esta página. Confirme que a seção Cenário Global (Regime Atual) tem a mesma estrutura de tabela (Crédito/Débito/Saldo) da seção Cenário 2027. Verifique se o cálculo de Economia Estimada está correto.
+        4.  **Backend**: Se os dados continuarem errados, investigue os endpoints  e  em .
+    -   **Why fix this issue and what will be achieved with the fix?**: Essas telas são cruciais para a análise financeira do usuário. A precisão dos dados é fundamental para a confiança na aplicação.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: both
     -   **Blocked on other issue**: Não.
 
--   **Issue 2: Deploy do usuário travado (P1 - Blocker de ambiente)**
-    -   **Attempted fixes**: Informar ao usuário que é um problema de plataforma e orientar o contato com o suporte.
-    -   **Next debug checklist**: N/A para o agente de código. Estar ciente de que o usuário pode não ter conseguido testar as últimas alterações.
-    -   **Why fix this issue and what will be achieved with the fix?**: Desbloqueia o ciclo de feedback e validação do usuário.
-    -   **Status**: BLOCKED (depende do suporte da plataforma)
+-   **Issue 2: Ocultar o menu ICMS ST para empresas não contribuintes (P1)**
+    -   **Attempted fixes**: O agente anterior inspecionou  e concluiu que a lógica, baseada na flag , está correta, mas não validou o comportamento na prática.
+    -   **Next debug checklist**:
+        1.  Após fazer login com a empresa de teste, verifique se o menu ICMS ST está visível.
+        2.  Se estiver visível, investigue por que a flag  está como  para uma empresa que não deveria apurar ST. Verifique a fonte dos dados da empresa no frontend e no backend ().
+    -   **Why fix this issue and what will be achieved with the fix?**: Atende a um pedido recorrente do usuário e melhora a UX ao remover opções irrelevantes.
+    -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: N/A
+    -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: Não.
+
+**In progress Task List**:
+-   Nenhum.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    -   (P1) Implementar o totalizador por CST nos detalhamentos de CRÉDITOS e DÉBITOS no frontend do PIS/COFINS (o backend retorna os dados, mas o frontend não exibe em todas as abas).
+    -   (P1) Implementar o totalizador por CST nos detalhamentos de CRÉDITOS e DÉBITOS no frontend do PIS/COFINS.
 -   **Future Tasks**:
     -   (P2) Criar um pacote de instalação On-Premise com Docker.
     -   (P2) Investigar e popular a página .
@@ -107,96 +116,73 @@ backend/server.py:38321
 =========================== short test summary info ============================
 ERROR test_ai_classification.py
 !!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-========================= 4 warnings, 1 error in 5.24s ========================= mais abrangente para evitar regressões de dados.
+========================= 4 warnings, 1 error in 4.84s ========================= mais abrangente.
 
 **Completed work in this session**
--   **Correção Crítica da Lógica de Classificação (RESOLVIDO)**:
-    -   Corrigido o bug central onde a classificação da IA sobrepunha a escolha do usuário. A hierarquia de classificação agora é: 1º Usuário, 2º CFOP Especial, 3º IA.
-    -   A chave de busca do histórico de classificação agora considera o contexto da operação (baseado no CFOP), impedindo que um produto de bonificação seja classificado incorretamente como revenda.
-    -   Corrigido o bug no Wizard de Fechamento que ignorava a classificação manual do usuário, garantindo que a ação seja aplicada corretamente.
--   **Correções de Dados e Consistência (RESOLVIDO)**:
-    -   CFOPs / agora são corretamente classificados como outras_entradas.
-    -   Corrigido o cálculo de crédito de ICMS para incluir o CFOP  (bonificação interestadual).
-    -   O  agora é corretamente processado e deve aparecer na apuração de PIS/COFINS.
-    -   A lista de CFOPs que geram alertas () foi expandida para incluir devoluções (), remessas, etc.
--   **Melhorias de UI/UX (RESOLVIDO/IMPLEMENTADO)**:
-    -   Os números das NFs nas telas de classificação agora são hiperlinks que abrem o documento correspondente.
-    -   O Dashboard agora exibe A Recuperar para PIS/COFINS quando o saldo é credor.
-    -   A UI da tela de Reforma Tributária foi parcialmente refatorada para maior clareza (o trabalho de validação dos cálculos está em andamento).
+-   Nenhum trabalho foi concluído e verificado com sucesso nesta sessão. As tentativas de correção nas páginas  e  foram rejeitadas pelo usuário como ineficazes.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Ocultar menu ICMS ST**
-    -   **Debug checklist**: O usuário mencionou novamente em  a necessidade de remover o menu ICMS ST de empresas não contribuintes. O handoff inicial dizia que isso estava DONE. O agente atual não verificou. É preciso confirmar em  se a lógica está implementada e funcionando corretamente.
-    -   **Why to solve this issue and what will be achieved with this?**: Evita confusão para o usuário, mostrando apenas menus relevantes para sua empresa.
-    -   **Should Test frontend/backend/both after fix**: frontend
-    -   **Is recurring issue?**: Y
+-   **Issue 1: Ocultar menu ICMS ST**: Conforme detalhado na lista de pendências, este é um problema recorrente que ainda não foi resolvido de forma definitiva.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Inconsistência de dados devido à lógica duplicada ou incorreta no monolito .
 -   **Recurrence count**: 5+
--   **Status**: IN PROGRESS. Este continua a ser o padrão de bug. Praticamente todos os problemas resolvidos nesta sessão originaram-se de lógicas conflitantes ou incorretas dentro do .
+-   **Status**: IN PROGRESS. Os problemas atuais de cálculo e exibição de dados são um sintoma direto desse problema raiz.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Hierarquia de Classificação**: O conceito mais crítico implementado nesta sessão. A prioridade é: 1. Usuário, 2. CFOP Especial, 3. IA (Histórico).
--   **Chave de Histórico Contextual**: A chave para regras de classificação agora considera o tipo de operação, evitando classificações genéricas e incorretas.
--   **MongoDB Aggregation vs Python Logic**: A causa raiz de muitos bugs de consistência. O agente teve que corrigir a lógica em múltiplos endpoints que processavam os mesmos dados de formas diferentes.
+-   Renderização condicional e gerenciamento de estado em React.
+-   Diferença entre múltiplas rotas de frontend ( vs. ) que apresentam dados similares.
+-   Necessidade de testes autenticados para validar a funcionalidade em ambientes de preview sem dados públicos.
 
 **key DB schema**
--   **xml_documents**: Contém os dados dos documentos fiscais, incluindo produtos, CFOPs, e os campos  e .
--   **learned_rules**: Regras de classificação. A forma como são salvas e buscadas foi padronizada e a lógica de aplicação foi corrigida.
+-   **xml_documents**: Armazena dados de documentos fiscais.
+-   **learned_rules**: Armazena regras de classificação de produtos.
+
+**changes in tech stack**
+-   Nenhuma.
 
 **All files of reference**
--   : Modificado extensivamente para corrigir a lógica de classificação, cálculos fiscais e endpoints do wizard.
--   : Refatorado para melhorar a UI.
--   : Modificado para exibir A Recuperar.
--   : Investigado para entender o fluxo de classificação.
--   : Modificado para aceitar um parâmetro  e destacar a NF.
--   : Modificado para tornar os números das NFs em links.
--   : Novo arquivo de teste criado.
+-    (Modificado)
+-    (Modificado)
+-    (Modificado)
+-    (Inspecionado)
+-    (Inspecionado)
 
 **Areas that need refactoring**:
--   O arquivo  continua sendo um monólito de altíssimo risco. A extração da lógica de classificação, PIS/COFINS e Reforma Tributária para serviços separados é mais crítica do que nunca para garantir a estabilidade.
+-   O arquivo monolítico  continua sendo a principal fonte de bugs de consistência de dados e requer uma refatoração urgente para extrair lógicas de negócio em módulos separados.
 
 **key api endpoints**
--   : Corrigido o bug central que ignorava a classificação do usuário.
--   : Corrigido para não sobrepor classificações e usar a nova lógica de chave de histórico.
--   : Corrigido para incluir o CST 73.
--   : Lógica de cálculo precisa ser revista.
-
-**Critical Info for New Agent**
--   **A Hierarquia de Classificação é Lei**: A prioridade máxima é SEMPRE a entrada do usuário. A segunda é a categoria definida por CFOPs especiais (bonificação, devolução). A IA só pode classificar o que sobra. Qualquer alteração deve respeitar essa regra.
--   **O Monólito é o Inimigo**: Quase todos os bugs são causados por lógicas conflitantes ou incorretas espalhadas pelo . Ao corrigir algo, investigue se a mesma lógica é replicada em outro lugar (ex: um endpoint para visualização e outro para processamento).
--   **Validação de Cálculos é Crucial**: O usuário está muito atento a inconsistências de valores. Ao mexer em qualquer tela com totais (Dashboard, Reforma, PIS/COFINS), verifique se os números batem entre as diferentes visualizações.
-
-**documents and test reports created in this job**
+-   
+-   
 -   
 
+**Critical Info for New Agent**
+-   **Login é ESSENCIAL**: Não tente depurar ou testar sem antes fazer login com as credenciais fornecidas. O ambiente de preview não tem dados e  sem uma sessão válida retornará zeros.
+-   **Atenção às Páginas**: O usuário relatou problemas em pelo menos duas páginas diferentes ( e ). Preste muita atenção aos screenshots e à descrição do usuário para corrigir o local exato do problema.
+-   **Priorize a Confiança do Usuário**: O usuário está frustrado e acredita que nada foi feito. A próxima interação deve focar em resolver de forma clara e verificável pelo menos um dos problemas apontados para reconstruir a confiança. Comece pelo , pois é o mais crítico.
+
+**documents and test reports created in this job**
+-   Nenhum.
+
 **Last 10 User Messages and any pending HUMAN messages**
-1.  : Pede para finalizar a correção urgente do Wizard. (PENDING FIX)
-2.  : Reporta que a IA está sendo muito genérica, ignorando o CFOP (ex: classificando bonificação como revenda). (RESOLVED)
-3.  : Confirma que a regra deve ser: 1º Usuário, 2º CFOP Especial, 3º IA. (ACKNOWLEDGED)
-4.  : Pede para finalizar. (ACKNOWLEDGED)
-5.  : Pergunta se o CFOP 1411 está na lista de alertas. (RESOLVED, adicionado)
-6.  : Pede para adicionar todos os CFOPs estranhos (devoluções, remessas) à lista de alertas. (RESOLVED)
-7.  : Solicita que os números das notas fiscais na tela de classificação sejam links para abrir o documento. (RESOLVED)
-8.  : Reporta que o CST 73 não aparece no detalhamento de PIS/COFINS. (RESOLVED)
-9.  : Pede para que saldos credores de PIS/COFINS no Dashboard apareçam como A Recuperar. (RESOLVED)
-10. : Reclama que a tela de Reforma Tributária está confusa e com cálculos de economia incorretos, e reitera a necessidade de ocultar o menu ICMS ST. (IN PROGRESS)
+1.   (): **CRÍTICO** - Envia um screenshot e reclama que nada do que foi pedido foi feito. O valor da economia está errado, a tela de reforma tributária continua mostrando apenas débitos (e não saldos credores), e a estrutura visual não foi atualizada como solicitado.
+2.   (): Percebe que o usuário estava se referindo à página  e não apenas a .
+3.  Mensagens anteriores ( - ): Descrevem o problema inicial e a primeira tentativa (falha) do agente de corrigi-lo, focando na página errada ().
 
 **Project Health Check:**
--   **Unstable**: O agente fez progressos massivos ao corrigir a arquitetura fundamentalmente falha do sistema de classificação, o que foi confirmado pelo usuário (perfeito, funcionou). No entanto, o projeto ainda é instável. O usuário imediatamente encontrou outra leva de bugs críticos de consistência de dados e cálculos (), demonstrando que o monolito  continua sendo uma fonte constante de erros. A confiança do usuário está baixa.
+-   **Broken**: A funcionalidade principal de relatórios financeiros está quebrada. O usuário está frustrado, a confiança no agente está muito baixa, e há uma confusão fundamental sobre quais partes da aplicação estão sendo corrigidas.
 
 **3rd Party Integrations**
--   Nenhuma integração ativa foi adicionada ou modificada.
+-   Nenhuma.
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: Nenhuma regressão explícita foi identificada, mas o risco é altíssimo a cada mudança no .
+-   **Known regressions**: Nenhuma, mas as funcionalidades principais estão incorretas.
 
 **Credentials to test flow:**
 -   **Production Environment**:  / 
@@ -204,5 +190,6 @@ ERROR test_ai_classification.py
 -   **Competência para teste**: 01/2026
 
 **What agent forgot to execute**
--   O agente não concluiu a verificação de todos os problemas levantados na . Especificamente, o cálculo incorreto da economia na tela de Reforma Tributária e a verificação da consistência dos dados em todas as suas abas (Mês, Ano, Estimativa) não foram finalizados.
--   O agente não investigou/verificou a solicitação recorrente de ocultar o menu ICMS ST para empresas não contribuintes.</analysis>
+-   O agente não realizou testes autenticados para validar suas próprias alterações, levando a um ciclo de falha.
+-   O agente não identificou corretamente as páginas que o usuário estava reportando no início, causando retrabalho e frustração.
+-   O agente não resolveu de forma conclusiva a questão recorrente do menu ICMS ST, deixando-a pendente mais uma vez.</analysis>
