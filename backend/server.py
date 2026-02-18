@@ -22222,7 +22222,39 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
     for idx, product in enumerate(products):
         product['_temp_id'] = str(idx)
         descricao = product.get('descricao', '')
-        cfop_original = str(product.get('cfop_original_emissor', product.get('cfop', '')))
+        cfop_atual = str(product.get('cfop', ''))
+        cfop_original = str(product.get('cfop_original_emissor', cfop_atual))
+        
+        # PRIORIDADE 1: CFOPs ESPECIAIS - categoria definida pelo CFOP, não pela IA
+        # Isso garante que bonificação, devolução, etc. NUNCA sejam classificadas incorretamente
+        CFOPS_BONIFICACAO = ['1910', '2910', '5910', '6910']
+        CFOPS_DEVOLUCAO = ['1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209',
+                          '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209',
+                          '5201', '5202', '5203', '5204', '5205', '5206', '5207', '5208', '5209',
+                          '6201', '6202', '6203', '6204', '6205', '6206', '6207', '6208', '6209']
+        CFOPS_AMOSTRA = ['1911', '2911', '5911', '6911']
+        CFOPS_OUTRAS_ENTRADAS = ['1949', '2949', '5949', '6949']
+        
+        categoria_pelo_cfop = None
+        if cfop_atual in CFOPS_BONIFICACAO or cfop_original in CFOPS_BONIFICACAO:
+            categoria_pelo_cfop = 'bonificacao'
+        elif cfop_atual in CFOPS_DEVOLUCAO or cfop_original in CFOPS_DEVOLUCAO:
+            categoria_pelo_cfop = 'devolucao'
+        elif cfop_atual in CFOPS_AMOSTRA or cfop_original in CFOPS_AMOSTRA:
+            categoria_pelo_cfop = 'amostra_gratis'
+        elif cfop_atual in CFOPS_OUTRAS_ENTRADAS or cfop_original in CFOPS_OUTRAS_ENTRADAS:
+            categoria_pelo_cfop = 'outras_entradas'
+        
+        # Se CFOP define categoria, usar CFOP e NÃO buscar no cache/IA
+        if categoria_pelo_cfop:
+            results[str(idx)] = {
+                'categoria': categoria_pelo_cfop,
+                'cfop': cfop_atual,  # Manter o CFOP atual
+                'justificativa': f'CFOP {cfop_atual} define categoria como {categoria_pelo_cfop}',
+                'fonte': 'cfop_especial'
+            }
+            stats["from_rules"] += 1
+            continue
         
         # Detectar ST pelo CFOP original (mais confiável que CST)
         is_st_by_cfop = cfop_original in ['5403', '5405', '5408', '5409', '5410', '5411', '5412', '5413', '5414', '5415',
