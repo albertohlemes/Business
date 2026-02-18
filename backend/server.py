@@ -26404,6 +26404,7 @@ async def apurar_pis_cofins(
     
     base_debito_presumido = 0.0
     base_excluida_presumido = 0.0  # Bases que não tributam por regra (alíquota zero, monofásico)
+    base_transferencia_presumido = 0.0  # Bases de transferência (não tributadas)
     
     for doc in docs_saidas:
         for prod in doc.get('produtos', []):
@@ -26412,6 +26413,15 @@ async def apurar_pis_cofins(
             valor_total = float(prod.get('valor_total', 0) or 0)
             v_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
             valor_base = max(0, valor_total - v_icms)
+            
+            # ==================================================================
+            # VERIFICAR SE É CFOP DE TRANSFERÊNCIA (MATRIZ-FILIAL)
+            # CFOPs de transferência NÃO geram débito de PIS/COFINS
+            # O imposto federal é centralizado na matriz
+            # ==================================================================
+            if is_cfop_transferencia(cfop):
+                base_transferencia_presumido += valor_base
+                continue
             
             # Verificar se CFOP é exceção (não gera débito)
             cfop_excecao = CFOPS_EXCECAO_SAIDA.get(cfop)
