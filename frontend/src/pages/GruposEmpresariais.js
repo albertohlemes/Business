@@ -227,12 +227,16 @@ const GruposEmpresariais = ({ user, onLogout }) => {
           <div className="bg-[#141414] rounded-xl p-8 text-center border border-[#2A2A2A]">
             <Building2 className="w-12 h-12 mx-auto mb-4 text-[#A1A1AA] opacity-50" />
             <p className="text-[#A1A1AA] mb-4">Nenhum grupo empresarial cadastrado</p>
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-4 py-2 bg-[#C8A951] text-black rounded-lg font-medium hover:bg-[#b39642]"
-            >
-              Criar Primeiro Grupo
-            </button>
+            {['admin', 'super_admin', 'master'].includes(user?.role) ? (
+              <button
+                onClick={() => setShowModal(true)}
+                className="px-4 py-2 bg-[#C8A951] text-black rounded-lg font-medium hover:bg-[#b39642]"
+              >
+                Criar Primeiro Grupo
+              </button>
+            ) : (
+              <p className="text-[#666] text-sm">Solicite a um administrador para criar grupos empresariais</p>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
