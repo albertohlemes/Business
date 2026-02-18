@@ -403,7 +403,7 @@ const ValidadorICMS = ({ user, onLogout }) => {
 
   // Tab Por NCM
   const TabPorNCM = () => {
-    const dadosFiltrados = filtrarDados(dadosPorNCM?.ncms);
+    const dadosFiltrados = filtrarDados(dadosPorNCM?.ncms, sortConfigNcm);
     
     return (
       <div className="space-y-4">
@@ -414,13 +414,25 @@ const ValidadorICMS = ({ user, onLogout }) => {
             <table className="w-full text-sm">
               <thead className="bg-[#0C0C0C]">
                 <tr>
-                  <th className="text-left py-3 px-4 text-[#A1A1AA]">NCM</th>
+                  <th className="text-left py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortNcm('ncm')}>
+                    <div className="flex items-center gap-1">NCM {getSortIcon(sortConfigNcm, 'ncm')}</div>
+                  </th>
                   <th className="text-left py-3 px-4 text-[#A1A1AA]">Exemplos de Produtos</th>
-                  <th className="text-right py-3 px-4 text-[#A1A1AA]">Qtd Itens</th>
-                  <th className="text-right py-3 px-4 text-[#A1A1AA]">Valor Total</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Alíq. Praticada</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Alíq. Esperada</th>
-                  <th className="text-center py-3 px-4 text-[#A1A1AA]">Status</th>
+                  <th className="text-right py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortNcm('quantidade')}>
+                    <div className="flex items-center justify-end gap-1">Qtd Itens {getSortIcon(sortConfigNcm, 'quantidade')}</div>
+                  </th>
+                  <th className="text-right py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortNcm('valor_total')}>
+                    <div className="flex items-center justify-end gap-1">Valor Total {getSortIcon(sortConfigNcm, 'valor_total')}</div>
+                  </th>
+                  <th className="text-center py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortNcm('aliquota_praticada')}>
+                    <div className="flex items-center justify-center gap-1">Alíq. Prat. {getSortIcon(sortConfigNcm, 'aliquota_praticada')}</div>
+                  </th>
+                  <th className="text-center py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortNcm('aliquota_esperada')}>
+                    <div className="flex items-center justify-center gap-1">Alíq. Esp. {getSortIcon(sortConfigNcm, 'aliquota_esperada')}</div>
+                  </th>
+                  <th className="text-center py-3 px-4 text-[#A1A1AA] cursor-pointer hover:text-white select-none" onClick={() => handleSortNcm('status')}>
+                    <div className="flex items-center justify-center gap-1">Status {getSortIcon(sortConfigNcm, 'status')}</div>
+                  </th>
                   <th className="text-center py-3 px-4 text-[#A1A1AA]">Ações</th>
                 </tr>
               </thead>
