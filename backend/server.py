@@ -34048,8 +34048,15 @@ async def get_impostos_grupo(
             "id": empresa_id,
             "razao_social": empresa.get("razao_social"),
             "cnpj": empresa.get("cnpj"),
+            "uf": empresa.get("uf"),
             "tipo_atividade": tipo_atividade,
             "faturamento": round(faturamento, 2),
+            "indicadores": {
+                "entradas": round(total_entradas, 2),
+                "compras": round(total_compras, 2),
+                "saidas": round(total_saidas, 2),
+                "vendas": round(total_vendas, 2)
+            },
             "pis": {
                 "credito": round(float(pis_cofins.get("pis_creditos", 0) or 0), 2),
                 "debito": round(float(pis_cofins.get("pis_debitos", 0) or 0), 2),
@@ -34061,6 +34068,13 @@ async def get_impostos_grupo(
                 "debito": round(float(pis_cofins.get("cofins_debitos", 0) or 0), 2),
                 "saldo": round(cofins_saldo, 2),
                 "a_pagar": round(cofins_a_pagar, 2)
+            },
+            "icms": {
+                "credito": round(icms_credito, 2),
+                "debito": round(icms_debito, 2),
+                "saldo": round(icms_saldo, 2),
+                "a_pagar": round(icms_a_pagar, 2),
+                "a_recuperar": round(icms_a_recuperar, 2)
             },
             "irpj": {
                 "base": round(base_irpj, 2),
@@ -34081,6 +34095,10 @@ async def get_impostos_grupo(
             resultado["filiais"].append(empresa_dados)
         
         # Somar ao consolidado
+        resultado["consolidado"]["indicadores"]["entradas"] += empresa_dados["indicadores"]["entradas"]
+        resultado["consolidado"]["indicadores"]["compras"] += empresa_dados["indicadores"]["compras"]
+        resultado["consolidado"]["indicadores"]["saidas"] += empresa_dados["indicadores"]["saidas"]
+        resultado["consolidado"]["indicadores"]["vendas"] += empresa_dados["indicadores"]["vendas"]
         resultado["consolidado"]["pis"]["credito"] += empresa_dados["pis"]["credito"]
         resultado["consolidado"]["pis"]["debito"] += empresa_dados["pis"]["debito"]
         resultado["consolidado"]["pis"]["saldo"] += empresa_dados["pis"]["saldo"]
@@ -34089,6 +34107,11 @@ async def get_impostos_grupo(
         resultado["consolidado"]["cofins"]["debito"] += empresa_dados["cofins"]["debito"]
         resultado["consolidado"]["cofins"]["saldo"] += empresa_dados["cofins"]["saldo"]
         resultado["consolidado"]["cofins"]["a_pagar"] += empresa_dados["cofins"]["a_pagar"]
+        resultado["consolidado"]["icms"]["credito"] += empresa_dados["icms"]["credito"]
+        resultado["consolidado"]["icms"]["debito"] += empresa_dados["icms"]["debito"]
+        resultado["consolidado"]["icms"]["saldo"] += empresa_dados["icms"]["saldo"]
+        resultado["consolidado"]["icms"]["a_pagar"] += empresa_dados["icms"]["a_pagar"]
+        resultado["consolidado"]["icms"]["a_recuperar"] += empresa_dados["icms"]["a_recuperar"]
         resultado["consolidado"]["irpj"]["base"] += empresa_dados["irpj"]["base"]
         resultado["consolidado"]["irpj"]["devido"] += empresa_dados["irpj"]["devido"]
         resultado["consolidado"]["irpj"]["adicional"] += empresa_dados["irpj"]["adicional"]
