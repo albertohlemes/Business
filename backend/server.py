@@ -26538,6 +26538,23 @@ async def detalhamento_pis_cofins(
     # ============================================================
     try:
         resultado_unificado = await calcular_pis_cofins_unificado(company_id, competencia, company)
+        
+        # SUBSTITUIR os subtotais pelos valores da função centralizada
+        # para garantir consistência com a aba Apuração
+        subtotais_entrada_unificado = {
+            'quantidade': subtotais_entrada.get('quantidade', 0),
+            'valor_base': subtotais_entrada.get('valor_base', 0),  # Mantém base original
+            'valor_pis': round(resultado_unificado['pis_creditos'], 2),
+            'valor_cofins': round(resultado_unificado['cofins_creditos'], 2)
+        }
+        
+        subtotais_saida_unificado = {
+            'quantidade': subtotais_saida.get('quantidade', 0),
+            'valor_base': subtotais_saida.get('valor_base', 0),  # Mantém base original
+            'valor_pis': round(resultado_unificado['pis_debitos'], 2),
+            'valor_cofins': round(resultado_unificado['cofins_debitos'], 2)
+        }
+        
         saldo_final = {
             'credito_pis': round(resultado_unificado['pis_creditos'], 2),
             'credito_cofins': round(resultado_unificado['cofins_creditos'], 2),
@@ -26547,6 +26564,11 @@ async def detalhamento_pis_cofins(
             'saldo_cofins': round(resultado_unificado['cofins_saldo'], 2),
             'saldo_total': round(resultado_unificado['pis_saldo'] + resultado_unificado['cofins_saldo'], 2)
         }
+        
+        # Usar subtotais unificados
+        subtotais_entrada = subtotais_entrada_unificado
+        subtotais_saida = subtotais_saida_unificado
+        
     except Exception as e:
         logger.error(f"Erro ao calcular saldo unificado no detalhamento: {e}")
         # Fallback para cálculo local
