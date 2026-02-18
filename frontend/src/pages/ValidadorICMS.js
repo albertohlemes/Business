@@ -128,13 +128,32 @@ const ValidadorICMS = ({ user, onLogout }) => {
       tipo: tipo,
       chave: tipo === 'ncm' ? item.ncm : item.codigo,
       descricao: tipo === 'ncm' ? `NCM ${item.ncm}` : item.descricao,
-      aliquota_esperada: item.aliquota_praticada || 18,
-      aliquota_reduzida: null,
-      condicao_reducao: '',
-      base_legal: ''
+      aliquota_interna: item.aliquota_praticada || 18,
+      aliquota_interestadual_sul_sudeste: 12,
+      aliquota_interestadual_outros: 7,
+      aliquota_st: 0,
+      excecoes: [],
+      base_legal: '',
+      aplica_st: item.is_st || false
     });
     setModalRegra({});
     setActiveTab('regras');
+  };
+
+  const handleAdicionarExcecao = () => {
+    if (!novaExcecao.chave || !novaExcecao.aliquota) return;
+    setNovaRegra({
+      ...novaRegra,
+      excecoes: [...(novaRegra.excecoes || []), { ...novaExcecao }]
+    });
+    setNovaExcecao({ chave: '', descricao: '', aliquota: 0, condicao: '' });
+  };
+
+  const handleRemoverExcecao = (index) => {
+    setNovaRegra({
+      ...novaRegra,
+      excecoes: novaRegra.excecoes.filter((_, i) => i !== index)
+    });
   };
 
   // Filtrar dados
