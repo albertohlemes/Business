@@ -26270,7 +26270,13 @@ async def apurar_pis_cofins(
     logger.info(f"PIS/COFINS: Total documentos = {total_docs}")
     
     # Usar função centralizada para cálculos de PIS/COFINS
-    resultado_unificado = await calcular_pis_cofins_unificado(company_id, competencia, company)
+    try:
+        resultado_unificado = await calcular_pis_cofins_unificado(company_id, competencia, company)
+    except Exception as e:
+        logger.error(f"Erro ao calcular PIS/COFINS: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Erro ao calcular PIS/COFINS: {str(e)}")
     
     # Montar resposta no formato esperado pelo frontend
     regime = company.get('regime_tributario', 'lucro_real')
