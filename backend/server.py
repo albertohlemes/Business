@@ -1936,7 +1936,7 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
             valor_base = max(Decimal('0'), valor_total - v_icms)
             
             if tipo_operacao == 'entrada':
-                # Determinar CST
+                # Determinar CST usando a MESMA função das outras telas
                 categoria_sem_credito = any(cat in categoria for cat in CATEGORIAS_SEM_CREDITO) if categoria else False
                 cfop_sem_credito = cfop in CFOPS_SEM_CREDITO_LOCAL
                 cfop_com_credito = cfop in CFOPS_COM_CREDITO
@@ -1951,15 +1951,24 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
                     valor_pis = Decimal('0')
                     valor_cofins = Decimal('0')
                 else:
-                    # Chamar função que retorna cst_calculado, aliq_zero, etc.
-                    calc = calcular_cst_pis_cofins(ncm, cfop, 'entrada', '', regime_calc)
-                    cst = calc.get('cst_calculado', '70')
+                    # Usar MESMA função que as outras telas para garantir consistência
+                    calc = calcular_pis_cofins_produto(float(valor_base), ncm, cfop, 'entrada', perfil, regime_calc)
                     
-                    # Se tem crédito (CST 50), calcular valores
-                    if cst == '50':
-                        valor_pis = valor_base * Decimal('0.0165')
-                        valor_cofins = valor_base * Decimal('0.076')
+                    # Determinar CST baseado no resultado
+                    if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
+                        cst = '50'  # Com crédito
+                        valor_pis = Decimal(str(calc.get('valor_pis', 0)))
+                        valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
                     else:
+                        # Verificar tipo de não-crédito
+                        classificacao = calc.get('classificacao', {})
+                        tipo_trib = classificacao.get('tipo', '')
+                        if tipo_trib == 'ALIQUOTA_ZERO':
+                            cst = '73'
+                        elif tipo_trib == 'MONOFASICO':
+                            cst = '70'
+                        else:
+                            cst = '70'
                         valor_pis = Decimal('0')
                         valor_cofins = Decimal('0')
                 
