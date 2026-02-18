@@ -38857,6 +38857,7 @@ async def validador_icms_por_ncm(
     for ncm_4, dados in ncms_agregados.items():
         aliquotas = dados['aliquotas_praticadas']
         aliq_mais_comum = max(set(aliquotas), key=aliquotas.count) if aliquotas else 0
+        has_st = dados.get('has_st', False)
         
         # Buscar regra aplicável
         regra = None
@@ -38868,10 +38869,18 @@ async def validador_icms_por_ncm(
                 prefixo = ncm_completo[:i]
                 if prefixo in regras_por_ncm:
                     regra = regras_por_ncm[prefixo]
-                    aliq_esperada = regra.get('aliquota_esperada')
+                    # Se NCM tem produtos ST, a alíquota esperada é 0%
+                    if has_st:
+                        aliq_esperada = 0.0
+                    else:
+                        aliq_esperada = regra.get('aliquota_interna', regra.get('aliquota_esperada'))
                     break
             if regra:
                 break
+        
+        # Se não tem regra mas tem ST, a alíquota esperada ainda é 0%
+        if not regra and has_st:
+            aliq_esperada = 0.0
         
         # Determinar status
         status = 'sem_regra'
@@ -38896,6 +38905,7 @@ async def validador_icms_por_ncm(
             'aliquota_esperada': aliq_esperada,
             'divergencia': round(divergencia, 2),
             'status': status,
+            'is_st': has_st,
             'regra': {
                 'id': regra.get('id'),
                 'descricao': regra.get('descricao'),
