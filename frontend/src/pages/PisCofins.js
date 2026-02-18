@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
+import GrupoEmpresarialPanel from '../components/GrupoEmpresarialPanel';
 import { 
   TrendingUp, TrendingDown, DollarSign, FileText,
   AlertTriangle, CheckCircle, ChevronDown, ChevronUp,
