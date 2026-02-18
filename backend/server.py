@@ -26139,6 +26139,57 @@ async def apurar_pis_cofins(
     # Montar resposta no formato esperado pelo frontend
     regime = company.get('regime_tributario', 'lucro_real')
     
+    # ============== SALDO CREDOR ANTERIOR ==============
+    # Buscar saldo credor da competência anterior ou inicial (cadastro da empresa)
+    saldo_credor_anterior = {
+        "pis": 0.0,
+        "cofins": 0.0,
+        "icms": 0.0,
+        "origem": None  # "cadastro" ou "competencia_anterior"
+    }
+    
+    # Calcular competência anterior
+    try:
+        mes, ano = competencia.split('/')
+        mes_int = int(mes)
+        ano_int = int(ano)
+        
+        if mes_int == 1:
+            comp_anterior = f"12/{ano_int - 1}"
+        else:
+            comp_anterior = f"{mes_int - 1:02d}/{ano_int}"
+    except:
+        comp_anterior = None
+    
+    # Verificar se é a competência inicial (usa saldo cadastrado na empresa)
+    competencia_inicial = company.get('competencia_saldo_inicial', '')
+    possui_saldo_credor = company.get('possui_saldo_credor', False)
+    
+    if competencia == competencia_inicial and possui_saldo_credor:
+        # Usar saldo inicial cadastrado na empresa
+        saldo_credor_anterior = {
+            "pis": company.get('saldo_credor_pis', 0) or 0,
+            "cofins": company.get('saldo_credor_cofins', 0) or 0,
+            "icms": company.get('saldo_credor_icms', 0) or 0,
+            "origem": "cadastro",
+            "competencia_origem": competencia_inicial
+        }
+    elif comp_anterior:
+        # Buscar saldo transportado da competência anterior
+        saldo_anterior_db = await db.saldos_credores.find_one({
+            "company_id": company_id,
+            "competencia": comp_anterior
+        })
+        if saldo_anterior_db:
+            saldo_transportar = saldo_anterior_db.get('saldo_a_transportar', {})
+            saldo_credor_anterior = {
+                "pis": saldo_transportar.get('pis', 0) or 0,
+                "cofins": saldo_transportar.get('cofins', 0) or 0,
+                "icms": saldo_transportar.get('icms', 0) or 0,
+                "origem": "competencia_anterior",
+                "competencia_origem": comp_anterior
+            }
+    
     # Lucro Real
     pis_credito = resultado_unificado['pis_creditos']
     cofins_credito = resultado_unificado['cofins_creditos']
@@ -26146,6 +26197,19 @@ async def apurar_pis_cofins(
     cofins_debito = resultado_unificado['cofins_debitos']
     pis_saldo = resultado_unificado['pis_saldo']
     cofins_saldo = resultado_unificado['cofins_saldo']
+    
+    # ============== CONSIDERAR SALDO CREDOR ANTERIOR NO CÁLCULO ==============
+    # Saldo credor anterior entra como crédito adicional
+    pis_saldo_com_anterior = pis_saldo - saldo_credor_anterior['pis']
+    cofins_saldo_com_anterior = cofins_saldo - saldo_credor_anterior['cofins']
+    
+    # Calcular o que vai pagar e o que vai transportar
+    # Se saldo final for negativo = crédito a transportar
+    # Se saldo final for positivo = imposto a pagar
+    pis_a_pagar = max(0, pis_saldo_com_anterior)
+    cofins_a_pagar = max(0, cofins_saldo_com_anterior)
+    pis_a_transportar = abs(min(0, pis_saldo_com_anterior))
+    cofins_a_transportar = abs(min(0, cofins_saldo_com_anterior))
     
     lucro_real = {
         "creditos": {
@@ -26164,15 +26228,26 @@ async def apurar_pis_cofins(
             "cofins": cofins_debito,
             "total": round(pis_debito + cofins_debito, 2)
         },
-        "saldo": {
+        "saldo_antes_anterior": {
             "pis": pis_saldo,
             "cofins": cofins_saldo,
             "total": round(pis_saldo + cofins_saldo, 2)
         },
+        "saldo_credor_anterior": saldo_credor_anterior,
+        "saldo": {
+            "pis": round(pis_saldo_com_anterior, 2),
+            "cofins": round(cofins_saldo_com_anterior, 2),
+            "total": round(pis_saldo_com_anterior + cofins_saldo_com_anterior, 2)
+        },
         "imposto_a_pagar": {
-            "pis": max(0, pis_saldo),
-            "cofins": max(0, cofins_saldo),
-            "total": max(0, round(pis_saldo + cofins_saldo, 2))
+            "pis": round(pis_a_pagar, 2),
+            "cofins": round(cofins_a_pagar, 2),
+            "total": round(pis_a_pagar + cofins_a_pagar, 2)
+        },
+        "saldo_a_transportar": {
+            "pis": round(pis_a_transportar, 2),
+            "cofins": round(cofins_a_transportar, 2),
+            "total": round(pis_a_transportar + cofins_a_transportar, 2)
         }
     }
     
