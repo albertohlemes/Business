@@ -260,13 +260,16 @@ const GruposEmpresariais = ({ user, onLogout }) => {
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openEditModal(grupo); }}
-                      className="p-2 bg-[#2A2A2A] hover:bg-[#3A3A3A] rounded-lg text-white"
-                      title="Editar"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
+                    {/* Botão Editar - apenas para admin/super_admin/master */}
+                    {['admin', 'super_admin', 'master'].includes(user?.role) && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openEditModal(grupo); }}
+                        className="p-2 bg-[#2A2A2A] hover:bg-[#3A3A3A] rounded-lg text-white"
+                        title="Editar"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                    )}
                     {/* Botão Excluir - apenas para admin/super_admin/master */}
                     {['admin', 'super_admin', 'master'].includes(user?.role) && (
                       <button
