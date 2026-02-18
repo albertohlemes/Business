@@ -26566,20 +26566,33 @@ async def detalhamento_pis_cofins(
             # ==========================================================================
             # 1º VERIFICAR CFOPs DE EXCEÇÃO (devoluções, bonificações, uso/consumo, etc.)
             # Estes NÃO geram crédito/débito independente do NCM
+            # EXCEÇÃO: Combustíveis (1652, 1653, 2652, 2653) têm CST 50 e GERAM crédito
             # ==========================================================================
             cfop_excecao_entrada = CFOPS_EXCECAO_ENTRADA.get(cfop)
             cfop_excecao_saida = CFOPS_EXCECAO_SAIDA.get(cfop)
             
             if tipo_op == 'entrada' and cfop_excecao_entrada:
-                # CFOP de exceção em entrada - não gera crédito
+                # CFOP de exceção em entrada
                 cst = cfop_excecao_entrada.get('cst_esperado', '98')
-                aliq_pis = 0
-                aliq_cofins = 0
-                valor_pis = 0
-                valor_cofins = 0
-                gera_credito = False
+                gera_credito_cfop = cfop_excecao_entrada.get('gera_credito', False)
+                
+                if gera_credito_cfop:
+                    # Combustíveis: CST 50, gera crédito com alíquota normal
+                    aliq_pis = 1.65
+                    aliq_cofins = 7.6
+                    valor_pis = valor_base * aliq_pis / 100
+                    valor_cofins = valor_base * aliq_cofins / 100
+                    gera_credito = True
+                    classificacao = f"COMBUSTIVEL_{cfop}"
+                else:
+                    # Outros CFOPs de exceção: não gera crédito
+                    aliq_pis = 0
+                    aliq_cofins = 0
+                    valor_pis = 0
+                    valor_cofins = 0
+                    gera_credito = False
+                    classificacao = f"CFOP_EXCECAO_{cfop}"
                 gera_debito = False
-                classificacao = f"CFOP_EXCECAO_{cfop}"
             elif tipo_op == 'saida' and cfop_excecao_saida:
                 # CFOP de exceção em saída - não gera débito
                 cst = cfop_excecao_saida.get('cst_esperado', '99')
