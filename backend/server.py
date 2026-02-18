@@ -1498,9 +1498,9 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                     # Transferência não entra na base de cálculo
                     totais['desconsiderados_credito'] += valor_total if tipo_operacao == 'entrada' else Decimal('0')
                     totais['desconsiderados_debito'] += valor_total if tipo_operacao == 'saida' else Decimal('0')
-                continue
-            
-            # Obter categoria classificada do produto
+                    continue
+                
+                # Obter categoria classificada do produto
             categoria = str(prod.get('categoria_classificada', '') or prod.get('categoria', '') or '').lower().strip()
             
             # Lei 14.592/2023: Excluir ICMS da base em entradas E saídas
