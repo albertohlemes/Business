@@ -39110,6 +39110,172 @@ async def sugerir_regras_icms(
 
 
 # ============================================================
+# REGRAS PADRÃO DE ICMS POR NCM - REGULAMENTO ICMS (Base RICMS SP)
+# ============================================================
+REGRAS_ICMS_PADRAO_NCM = {
+    # Alimentos - Cesta Básica (RICMS SP Art. 39, Anexo II)
+    '0201': {'descricao': 'Carnes de bovino frescas', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '0202': {'descricao': 'Carnes de bovino congeladas', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '0203': {'descricao': 'Carnes de suíno', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '0204': {'descricao': 'Carnes ovinas ou caprinas', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '0207': {'descricao': 'Carnes de aves', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '0401': {'descricao': 'Leite e creme de leite', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '0402': {'descricao': 'Leite em pó', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '0403': {'descricao': 'Iogurte, leite fermentado', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '0405': {'descricao': 'Manteiga', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '0406': {'descricao': 'Queijos', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '0407': {'descricao': 'Ovos de galinha', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '0901': {'descricao': 'Café', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '1001': {'descricao': 'Trigo', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '1006': {'descricao': 'Arroz', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '1101': {'descricao': 'Farinha de trigo', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '1507': {'descricao': 'Óleo de soja', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '1517': {'descricao': 'Margarina', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '1701': {'descricao': 'Açúcar', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '1902': {'descricao': 'Massas alimentícias', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '1905': {'descricao': 'Pão francês e produtos de padaria', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    '2501': {'descricao': 'Sal', 'aliquota_interna': 7.0, 'base_legal': 'RICMS SP Art. 39'},
+    # Bebidas NÃO ALCOÓLICAS - Alíquota padrão 18%
+    '2201': {'descricao': 'Águas minerais', 'aliquota_interna': 18.0, 'base_legal': 'RICMS SP Art. 52'},
+    '2202': {'descricao': 'Refrigerantes, sucos', 'aliquota_interna': 18.0, 'base_legal': 'RICMS SP Art. 52'},
+    # Bebidas ALCOÓLICAS - Alíquota 25% (RICMS SP Art. 55)
+    '2203': {'descricao': 'Cerveja de malte', 'aliquota_interna': 25.0, 'base_legal': 'RICMS SP Art. 55'},
+    '2204': {'descricao': 'Vinhos de uvas', 'aliquota_interna': 25.0, 'base_legal': 'RICMS SP Art. 55'},
+    '2205': {'descricao': 'Vermutes e vinhos aromatizados', 'aliquota_interna': 25.0, 'base_legal': 'RICMS SP Art. 55'},
+    '2206': {'descricao': 'Sidra, saquê e fermentados', 'aliquota_interna': 25.0, 'base_legal': 'RICMS SP Art. 55'},
+    '2207': {'descricao': 'Álcool etílico', 'aliquota_interna': 25.0, 'base_legal': 'RICMS SP Art. 55'},
+    '2208': {'descricao': 'Destilados (whisky, vodka, cachaça)', 'aliquota_interna': 25.0, 'base_legal': 'RICMS SP Art. 55', 
+             'excecoes': [{'chave': 'cachaca', 'descricao': 'Cachaça/Aguardente de cana', 'aliquota': 18.0, 'condicao': 'Produto brasileiro'}]},
+    # Combustíveis - Alíquota específica
+    '2710': {'descricao': 'Óleo diesel, gasolina', 'aliquota_interna': 25.0, 'base_legal': 'RICMS SP Art. 54', 'aplica_st': True},
+    '2711': {'descricao': 'GLP, gás natural', 'aliquota_interna': 12.0, 'base_legal': 'RICMS SP Art. 54'},
+    # Produtos industrializados - Alíquota padrão
+    '3303': {'descricao': 'Perfumes', 'aliquota_interna': 25.0, 'base_legal': 'RICMS SP Art. 55'},
+    '3304': {'descricao': 'Cosméticos e maquiagem', 'aliquota_interna': 25.0, 'base_legal': 'RICMS SP Art. 55'},
+    '3305': {'descricao': 'Produtos para cabelo', 'aliquota_interna': 25.0, 'base_legal': 'RICMS SP Art. 55'},
+    '3306': {'descricao': 'Produtos higiene bucal', 'aliquota_interna': 25.0, 'base_legal': 'RICMS SP Art. 55'},
+    # Eletrônicos e eletrodomésticos
+    '8418': {'descricao': 'Refrigeradores e freezers', 'aliquota_interna': 18.0, 'base_legal': 'RICMS SP Art. 52'},
+    '8450': {'descricao': 'Máquinas de lavar', 'aliquota_interna': 18.0, 'base_legal': 'RICMS SP Art. 52'},
+    '8471': {'descricao': 'Computadores', 'aliquota_interna': 12.0, 'base_legal': 'RICMS SP Art. 54'},
+    '8517': {'descricao': 'Aparelhos telefônicos', 'aliquota_interna': 12.0, 'base_legal': 'RICMS SP Art. 54'},
+    '8528': {'descricao': 'Monitores e TVs', 'aliquota_interna': 12.0, 'base_legal': 'RICMS SP Art. 54'},
+    # Vestuário e calçados
+    '6101': {'descricao': 'Casacos masculinos', 'aliquota_interna': 18.0, 'base_legal': 'RICMS SP Art. 52'},
+    '6102': {'descricao': 'Casacos femininos', 'aliquota_interna': 18.0, 'base_legal': 'RICMS SP Art. 52'},
+    '6109': {'descricao': 'Camisetas', 'aliquota_interna': 18.0, 'base_legal': 'RICMS SP Art. 52'},
+    '6403': {'descricao': 'Calçados', 'aliquota_interna': 18.0, 'base_legal': 'RICMS SP Art. 52'},
+    # Medicamentos
+    '3003': {'descricao': 'Medicamentos não acondicionados', 'aliquota_interna': 18.0, 'base_legal': 'RICMS SP Art. 52'},
+    '3004': {'descricao': 'Medicamentos acondicionados', 'aliquota_interna': 18.0, 'base_legal': 'RICMS SP Art. 52'},
+}
+
+
+@api_router.post("/validador-icms/{company_id}/inicializar-regras")
+async def inicializar_regras_icms(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Pré-carrega regras de ICMS baseadas nos NCMs encontrados nos documentos de SAÍDA da empresa.
+    Usa as alíquotas do Regulamento ICMS do estado da empresa como base.
+    O usuário pode depois auditar/editar as regras criadas.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    uf = company.get('uf', 'SP')
+    aliquotas_uf = ALIQUOTAS_ICMS_PADRAO.get(uf, ALIQUOTAS_ICMS_PADRAO['SP'])
+    aliquota_padrao = aliquotas_uf.get('interna', 18.0)
+    
+    # Buscar regras já existentes
+    regras_existentes = await db.regras_icms.find({
+        "company_id": company_id,
+        "tipo": "ncm"
+    }).to_list(length=1000)
+    ncms_com_regra = set(r['chave'].replace('.', '').strip()[:4] for r in regras_existentes)
+    
+    # Buscar NCMs das SAÍDAS da empresa
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    
+    ncms_encontrados = {}
+    async for doc in db.xml_documents.find(query, {"produtos": 1}):
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            # Apenas saídas
+            if not cfop or cfop[0] not in ['5', '6', '7']:
+                continue
+            
+            ncm = str(prod.get('ncm', '')).replace('.', '').strip()
+            if not ncm or len(ncm) < 4:
+                continue
+            
+            ncm_4 = ncm[:4]
+            if ncm_4 not in ncms_encontrados:
+                ncms_encontrados[ncm_4] = {
+                    'ncm': ncm_4,
+                    'quantidade': 0,
+                    'descricao_exemplo': prod.get('descricao', prod.get('xProd', ''))[:60]
+                }
+            ncms_encontrados[ncm_4]['quantidade'] += 1
+    
+    # Criar regras para NCMs sem regra
+    regras_criadas = []
+    for ncm_4, dados in ncms_encontrados.items():
+        if ncm_4 in ncms_com_regra:
+            continue  # Já tem regra
+        
+        # Buscar regra padrão do NCM
+        regra_padrao = REGRAS_ICMS_PADRAO_NCM.get(ncm_4, {})
+        
+        aliquota_interna = regra_padrao.get('aliquota_interna', aliquota_padrao)
+        descricao = regra_padrao.get('descricao', dados['descricao_exemplo'])
+        base_legal = regra_padrao.get('base_legal', f'RICMS {uf} - Alíquota padrão')
+        aplica_st = regra_padrao.get('aplica_st', False)
+        excecoes = regra_padrao.get('excecoes', [])
+        
+        nova_regra = RegraICMS(
+            company_id=company_id,
+            tipo='ncm',
+            chave=ncm_4,
+            descricao=descricao,
+            aliquota_interna=aliquota_interna,
+            aliquota_interestadual_sul_sudeste=aliquotas_uf.get('interestadual_sul_sudeste', 12.0),
+            aliquota_interestadual_outros=aliquotas_uf.get('interestadual_norte_nordeste', 7.0),
+            aliquota_st=0.0 if aplica_st else None,
+            excecoes=excecoes,
+            uf=uf,
+            base_legal=base_legal,
+            aplica_st=aplica_st,
+            ativo=True,
+            created_by=current_user.id
+        )
+        
+        await db.regras_icms.insert_one(nova_regra.model_dump())
+        regras_criadas.append({
+            'ncm': ncm_4,
+            'descricao': descricao,
+            'aliquota_interna': aliquota_interna,
+            'base_legal': base_legal
+        })
+    
+    return {
+        "message": f"Regras de ICMS inicializadas com sucesso",
+        "company_id": company_id,
+        "uf": uf,
+        "regras_criadas": len(regras_criadas),
+        "regras_existentes": len(ncms_com_regra),
+        "detalhes": regras_criadas[:20]  # Retornar as 20 primeiras
+    }
+
+
+# ============================================================
 # VALIDADOR DE PIS/COFINS - ENDPOINTS
 # ============================================================
 
