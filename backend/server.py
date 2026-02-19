@@ -15640,12 +15640,27 @@ async def _get_viloes_oportunidades_aggregated(company_id: str, competencia: str
         icms_debito = saida['icms']
         impacto_icms = icms_debito - icms_credito
         
-        # PIS/COFINS: calcular com base nos VALORES usando alíquotas fixas
-        # Isso garante consistência - se compra > venda, crédito > débito
-        pis_credito_calc = entrada['valor'] * ALIQ_PIS
-        pis_debito_calc = saida['valor'] * ALIQ_PIS
-        cofins_credito_calc = entrada['valor'] * ALIQ_COFINS
-        cofins_debito_calc = saida['valor'] * ALIQ_COFINS
+        # ==========================================================
+        # PIS/COFINS: VERIFICAR SE NCM TEM ALÍQUOTA ZERO
+        # NCMs com alíquota zero (cesta básica, monofásicos) não geram
+        # créditos NEM débitos de PIS/COFINS
+        # ==========================================================
+        ncm_tem_aliquota_zero = is_ncm_aliquota_zero(ncm)
+        
+        if ncm_tem_aliquota_zero:
+            # NCM com alíquota zero - PIS/COFINS = 0 (tanto crédito quanto débito)
+            pis_credito_calc = 0
+            pis_debito_calc = 0
+            cofins_credito_calc = 0
+            cofins_debito_calc = 0
+        else:
+            # NCM tributado normalmente
+            # PIS/COFINS: calcular com base nos VALORES usando alíquotas fixas
+            # Isso garante consistência - se compra > venda, crédito > débito
+            pis_credito_calc = entrada['valor'] * ALIQ_PIS
+            pis_debito_calc = saida['valor'] * ALIQ_PIS
+            cofins_credito_calc = entrada['valor'] * ALIQ_COFINS
+            cofins_debito_calc = saida['valor'] * ALIQ_COFINS
         
         impacto_pis = pis_debito_calc - pis_credito_calc
         impacto_cofins = cofins_debito_calc - cofins_credito_calc
