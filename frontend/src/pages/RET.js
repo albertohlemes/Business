@@ -234,7 +234,21 @@ const RET = ({ user, onLogout }) => {
 
         {/* Impostos Individualizados */}
         <div className="p-4 space-y-1">
-          <ImpostoItem label="ICMS" valor={dados?.icms || 0} />
+          {/* ICMS - mostrar "Recuperar" quando credor */}
+          <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+            <span className="text-[#A1A1AA] text-sm">ICMS</span>
+            <div className="text-right">
+              {icmsCredor ? (
+                <span className="font-semibold text-[#C8A951]">
+                  Recuperar {formatCurrency(Math.abs(icmsSaldo))}
+                </span>
+              ) : icmsSaldo === 0 ? (
+                <span className="font-semibold text-white">R$ 0,00</span>
+              ) : (
+                <span className="font-semibold text-white">{formatCurrency(icmsSaldo)}</span>
+              )}
+            </div>
+          </div>
           
           {/* PIS - Para Lucro Real, mostrar crédito/débito */}
           {regime === 'real' ? (
