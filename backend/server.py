@@ -28154,6 +28154,8 @@ async def inteligencia_tributaria(
     
     real = {
         'icms': round(icms_real, 2),
+        'icms_debitos': round(debito_icms, 2),
+        'icms_creditos': round(credito_icms, 2),
         'pis': round(pis_real, 2),
         'cofins': round(cofins_real, 2),
         'pis_debitos': round(pis_debitos_real, 2),
