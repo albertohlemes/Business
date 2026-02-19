@@ -206,6 +206,12 @@ const RET = ({ user, onLogout }) => {
     const cofinsCredor = regime === 'real' && (dados?.cofins_creditos || 0) > (dados?.cofins_debitos || 0);
     const pisSaldo = regime === 'real' ? (dados?.pis_debitos || 0) - (dados?.pis_creditos || 0) : (dados?.pis || 0);
     const cofinsSaldo = regime === 'real' ? (dados?.cofins_debitos || 0) - (dados?.cofins_creditos || 0) : (dados?.cofins || 0);
+    
+    // ICMS - calcular se é credor (a recuperar) - igual para todos os regimes
+    const icmsCreditos = dados?.icms_creditos || 0;
+    const icmsDebitos = dados?.icms_debitos || 0;
+    const icmsSaldo = icmsDebitos - icmsCreditos;
+    const icmsCredor = icmsCreditos > icmsDebitos;
 
     return (
       <div className={`bg-[#0C0C0C] border-2 rounded-xl overflow-hidden transition-all ${
