@@ -6632,23 +6632,28 @@ async def sieg_sync_execute(
                     results["duplicados"].append(chave_nfe[-10:])
                     continue
                 
-                # Aplicar CST calculado em cada produto
+                # Aplicar CST calculado em cada produto (usando regras cadastradas)
                 for product in parsed_data.get('produtos', []):
                     cfop = product.get('cfop', '')
                     ncm = product.get('ncm', '')
+                    regra_ncm = buscar_regra_pis_cofins(ncm)
                     cst_info = calcular_cst_pis_cofins(
                         ncm=ncm,
                         cfop=cfop,
                         tipo_operacao="saida",
                         cst_xml=product.get('cst_pis_xml', product.get('cst_pis', '')),
-                        regime=regime_tributario
+                        regime=regime_tributario,
+                        regra_pis_cofins=regra_ncm
                     )
                     product.update({
                         'cst_pis_calculado': cst_info['cst_calculado'],
                         'cst_cofins_calculado': cst_info['cst_calculado'],
                         'cst_pis': cst_info['cst_calculado'],
                         'cst_cofins': cst_info['cst_calculado'],
-                        'ncm_aliq_zero': cst_info['aliq_zero']
+                        'ncm_aliq_zero': cst_info['aliq_zero'],
+                        'aliquota_pis': cst_info.get('aliquota_pis', 0),
+                        'aliquota_cofins': cst_info.get('aliquota_cofins', 0),
+                        'regra_pis_cofins_aplicada': regra_ncm.get('id') if regra_ncm else None
                     })
                 
                 xml_doc = XMLDocument(
