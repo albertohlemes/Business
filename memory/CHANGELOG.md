@@ -1,24 +1,29 @@
 # Changelog - Aurion Fiscal
 
-## [18/02/2026] - Correções de Segurança e Bug Crítico
+## [18/02/2026] - Correções de Segurança, Bugs Críticos e Cálculos
 
 ### Corrigido
 - **BUG CRÍTICO**: Página de apuração PIS/COFINS exibindo tela em branco/valores zerados
-- **Causa raiz**: Erro de indentação na função `calcular_pis_cofins_unificado()` em `server.py` (linhas 1497-1628)
-  - O `continue` estava fora do bloco `if is_cfop_transferencia(cfop)`, fazendo com que TODOS os produtos fossem ignorados
-  - Todo o bloco de processamento de produtos (linhas 1503-1625) estava com indentação incorreta
-- **Solução**: Corrigida a indentação de 120+ linhas de código no processamento de documentos
+  - Causa: Erro de indentação na função `calcular_pis_cofins_unificado()` 
+  - Solução: Corrigida a indentação de 120+ linhas de código
+
+- **BUG CRÍTICO**: `KeyError: 'quantidade'` na página PIS/COFINS (empresa ANZEN)
+  - Causa: Inconsistência entre `'quantidade'` e `'qtd'` em `calcular_pis_cofins_por_cst()`
+  - Solução: Padronizado para `'qtd'` em todas as ocorrências
+
+- **BUG DE CÁLCULO**: Vilões e Oportunidades calculando PIS/COFINS para NCMs de alíquota zero
+  - Causa: Endpoint `/api/viloes-oportunidades` aplicava alíquotas fixas a TODOS os NCMs
+  - Solução: Adicionada verificação `is_ncm_aliquota_zero(ncm)` antes de calcular PIS/COFINS
+  - NCMs afetados: 1902 (massas), 1901, 1905 (produtos de cesta básica), etc.
+  - Arquivos: `server.py` linhas 15638-15662 e 16039-16064
 
 ### Segurança - Controle de Acesso Grupos Empresariais
-- **Problema reportado**: Qualquer usuário podia ver os botões de Editar/Excluir grupos empresariais
-- **Correção**: Adicionada verificação de role no frontend (`GruposEmpresariais.js`)
-  - Botões "Novo Grupo", "Editar" e "Excluir" agora só aparecem para usuários com role `admin`, `super_admin` ou `master`
-  - Backend já tinha a validação correta (retornava 403 Forbidden), mas o frontend não escondia os botões
-- **Arquivos modificados**: `/app/frontend/src/pages/GruposEmpresariais.js`
+- Botões "Novo Grupo", "Editar" e "Excluir" agora só aparecem para usuários com role `admin`, `super_admin` ou `master`
+- Arquivo: `/app/frontend/src/pages/GruposEmpresariais.js`
 
 ### Verificado
-- Endpoint `/api/pis-cofins/apuracao/{company_id}` retornando valores corretamente
-- Controle de acesso funcionando - botões de ação só visíveis para admins
+- Endpoint `/api/pis-cofins/apuracao/` testado com sucesso para ANZEN
+- NCM 19021900 agora mostra PIS/COFINS = R$ 0,00 em Vilões e Oportunidades
 
 ---
 
