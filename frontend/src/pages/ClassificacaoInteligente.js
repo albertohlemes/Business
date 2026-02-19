@@ -1748,6 +1748,9 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                         )}
                                       </div>
                                     </th>
+                                    <th className="text-center px-2 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-16">
+                                      CST
+                                    </th>
                                     <th 
                                       className="text-left px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-20 cursor-pointer hover:text-white transition-colors"
                                       onClick={() => handleColumnSort('cfop')}
