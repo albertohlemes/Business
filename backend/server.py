@@ -28091,12 +28091,16 @@ async def inteligencia_tributaria(
         # Os CFOPs de despesa e ST já são excluídos na pipeline principal (cfops_excluir_credito)
         # NÃO subtrair novamente aqui (isso causava dupla subtração do ICMS ST)
         
-        icms_real = max(0, debito_icms - credito_icms)
-        logger.info(f"RET ICMS: débito={debito_icms:.2f}, crédito={credito_icms:.2f}, saldo={icms_real:.2f}")
+        icms_saldo = debito_icms - credito_icms
+        icms_real = max(0, icms_saldo)
+        logger.info(f"RET ICMS: débito={debito_icms:.2f}, crédito={credito_icms:.2f}, saldo={icms_saldo:.2f}")
     except Exception as e:
         print(f"Erro ao calcular ICMS: {e}")
         import traceback
         traceback.print_exc()
+        debito_icms = 0
+        credito_icms = 0
+        icms_saldo = 0
     
     # Buscar apuração PIS/COFINS do regime atual usando FUNÇÃO CENTRALIZADA
     # Garante 100% de consistência com outros endpoints (Apuração e Reforma Tributária)
