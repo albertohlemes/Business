@@ -26769,14 +26769,17 @@ async def detalhamento_pis_cofins(
             # 0º VERIFICAR CFOPs DE TRANSFERÊNCIA (MATRIZ-FILIAL)
             # CFOPs de transferência NÃO geram crédito NEM débito de PIS/COFINS
             # O imposto federal é centralizado na matriz
+            # CST: Entrada = 98 (Sem incidência), Saída = 49 (Outras saídas)
             # ==========================================================================
             if is_cfop_transferencia(cfop):
+                # CST diferenciado por tipo de operação
+                cst_transferencia = '98' if tipo_op == 'entrada' else '49'
                 chave_transf = f"{ncm}_{cfop}"
                 if chave_transf not in transferencias:
                     transferencias[chave_transf] = {
                         'ncm': ncm,
                         'cfop': cfop,
-                        'cst': '98',  # Sem incidência
+                        'cst': cst_transferencia,
                         'tipo_operacao': tipo_op,
                         'classificacao': 'TRANSFERENCIA_MATRIZ_FILIAL',
                         'quantidade': 0,
