@@ -1286,6 +1286,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                             <span className="w-16 shrink-0 text-center">ORIG.</span>
                             <span className="w-20 shrink-0 text-center">DESTINO</span>
                             <span className="w-16 shrink-0 text-center">NCM</span>
+                            <span className="w-12 shrink-0 text-center">CST</span>
                             <span className="w-16 shrink-0 text-right">VALOR</span>
                           </div>
                           <div className="max-h-[200px] overflow-y-auto">
