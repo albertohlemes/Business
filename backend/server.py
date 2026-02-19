@@ -28533,6 +28533,8 @@ async def inteligencia_tributaria(
     
     presumido = {
         'icms': round(presumido_icms, 2),
+        'icms_debitos': round(debito_icms, 2),
+        'icms_creditos': round(credito_icms, 2),
         'pis': round(presumido_pis, 2),
         'cofins': round(presumido_cofins, 2),
         'irpj': round(presumido_irpj, 2),
