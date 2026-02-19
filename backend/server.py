@@ -2453,59 +2453,109 @@ def get_cst_pis_cofins_simples_nacional(tipo_operacao: str) -> str:
     else:
         return '49'  # Outras operações de saída
 
-def calcular_cst_pis_cofins(ncm: str, cfop: str, tipo_operacao: str, cst_xml: str = None, regime: str = 'lucro_real') -> dict:
+def calcular_cst_pis_cofins(ncm: str, cfop: str, tipo_operacao: str, cst_xml: str = None, regime: str = 'lucro_real', regra_pis_cofins: dict = None) -> dict:
     """
     Calcula o CST correto de PIS/COFINS baseado nas regras fiscais.
     
-    Regras:
-    - CFOP sem incidência: Entrada CST 98, Saída CST 49
-    - NCM com alíquota zero: Entrada CST 73, Saída CST 06
-    - CFOP sem direito a crédito: Entrada CST 70 (sem crédito)
-    - Normal (Lucro Real): Entrada CST 50 (com crédito), Saída CST 01 (tributado)
-    - Lucro Presumido: Entrada CST 70 (sem crédito), Saída CST 01 (cumulativo)
+    PRIORIDADE:
+    1. CFOP de transferência (matriz-filial): Entrada CST 98, Saída CST 49
+    2. CFOP sem incidência (remessa, devolução): Entrada CST 98, Saída CST 49
+    3. Regra cadastrada pela empresa (regra_pis_cofins): Usa CST da regra
+    4. NCM com alíquota zero: Entrada CST 73, Saída CST 06
+    5. Padrão:
+       - Lucro Real: Entrada CST 50 (com crédito), Saída CST 01
+       - Lucro Presumido: Entrada CST 70 (sem crédito), Saída CST 01
+    
+    Args:
+        regra_pis_cofins: Regra da empresa para este NCM (da coleção regras_pis_cofins)
     
     Returns:
-        dict com 'cst_calculado', 'cst_xml', 'divergente', 'motivo', 'sem_incidencia'
+        dict com 'cst_calculado', 'cst_xml', 'divergente', 'motivo', 'sem_incidencia', 'aliquota_pis', 'aliquota_cofins'
     """
     primeiro_digito = cfop[0] if cfop else ''
     is_entrada = primeiro_digito in ['1', '2', '3'] or tipo_operacao == 'entrada'
     is_saida = primeiro_digito in ['5', '6', '7'] or tipo_operacao == 'saida'
     
-    aliq_zero = is_ncm_aliquota_zero(ncm)
-    cfop_com_credito = cfop in CFOPS_COM_CREDITO_PIS_COFINS if cfop else True
-    
-    # Verificar se é CFOP sem incidência de PIS/COFINS
-    cfop_sem_incidencia_entrada = cfop in CFOPS_ENTRADA_SEM_INCIDENCIA
-    cfop_sem_incidencia_saida = cfop in CFOPS_SAIDA_SEM_INCIDENCIA
-    
     cst_calculado = None
     motivo = ""
     sem_incidencia = False
+    aliquota_pis = 0
+    aliquota_cofins = 0
     
-    if is_entrada:
-        if cfop_sem_incidencia_entrada:
+    # PRIORIDADE 1: CFOP de transferência (matriz-filial)
+    if is_cfop_transferencia(cfop):
+        if is_entrada:
             cst_calculado = '98'
-            motivo = 'CFOP sem incidência de PIS/COFINS (remessa/devolução/transferência)'
-            sem_incidencia = True
-        elif aliq_zero:
-            cst_calculado = '73'
-            motivo = 'NCM com alíquota zero (Tabela 4.3.13 SPED)'
-        elif regime == 'lucro_real' and cfop_com_credito:
-            cst_calculado = '50'
-            motivo = 'Operação com direito a crédito (Lucro Real)'
+            motivo = 'Transferência matriz-filial - sem incidência (entrada)'
         else:
-            cst_calculado = '70'
-            motivo = 'CFOP sem direito a crédito' if not cfop_com_credito else 'Lucro Presumido (cumulativo)'
-    elif is_saida:
-        if cfop_sem_incidencia_saida:
             cst_calculado = '49'
-            motivo = 'CFOP sem incidência de PIS/COFINS (remessa/devolução/transferência)'
-            sem_incidencia = True
-        elif aliq_zero:
-            cst_calculado = '06'
-            motivo = 'NCM com alíquota zero (Tabela 4.3.13 SPED)'
+            motivo = 'Transferência matriz-filial - outras saídas (saída)'
+        sem_incidencia = True
+        return {
+            'cst_calculado': cst_calculado,
+            'cst_xml': cst_xml,
+            'divergente': False,
+            'motivo': motivo,
+            'aliq_zero': False,
+            'sem_incidencia': sem_incidencia,
+            'aliquota_pis': 0,
+            'aliquota_cofins': 0
+        }
+    
+    # PRIORIDADE 2: CFOP sem incidência
+    cfop_sem_incidencia_entrada = cfop in CFOPS_ENTRADA_SEM_INCIDENCIA
+    cfop_sem_incidencia_saida = cfop in CFOPS_SAIDA_SEM_INCIDENCIA
+    
+    if is_entrada and cfop_sem_incidencia_entrada:
+        cst_calculado = '98'
+        motivo = 'CFOP sem incidência de PIS/COFINS (remessa/devolução)'
+        sem_incidencia = True
+    elif is_saida and cfop_sem_incidencia_saida:
+        cst_calculado = '49'
+        motivo = 'CFOP sem incidência de PIS/COFINS (remessa/devolução)'
+        sem_incidencia = True
+    
+    # PRIORIDADE 3: Regra cadastrada pela empresa
+    elif regra_pis_cofins:
+        if is_entrada:
+            cst_calculado = str(regra_pis_cofins.get('cst_esperado_entrada', '50')).zfill(2)
         else:
+            cst_calculado = str(regra_pis_cofins.get('cst_esperado_saida', '01')).zfill(2)
+        
+        tipo_regra = regra_pis_cofins.get('tipo_regra', 'tributado')
+        aliquota_pis = regra_pis_cofins.get('aliquota_pis', 0) or 0
+        aliquota_cofins = regra_pis_cofins.get('aliquota_cofins', 0) or 0
+        motivo = f'Regra cadastrada: {tipo_regra} ({regra_pis_cofins.get("descricao", "NCM " + ncm[:4])})'
+    
+    # PRIORIDADE 4: NCM com alíquota zero (regra padrão do sistema)
+    elif is_ncm_aliquota_zero(ncm):
+        if is_entrada:
+            cst_calculado = '73'
+        else:
+            cst_calculado = '06'
+        motivo = 'NCM com alíquota zero (Tabela 4.3.13 SPED)'
+    
+    # PRIORIDADE 5: Padrão baseado no regime
+    else:
+        cfop_com_credito = cfop in CFOPS_COM_CREDITO_PIS_COFINS if cfop else True
+        
+        if is_entrada:
+            if regime == 'lucro_real' and cfop_com_credito:
+                cst_calculado = '50'
+                aliquota_pis = 1.65
+                aliquota_cofins = 7.60
+                motivo = 'Operação com direito a crédito (Lucro Real)'
+            else:
+                cst_calculado = '70'
+                motivo = 'CFOP sem direito a crédito' if not cfop_com_credito else 'Lucro Presumido (cumulativo)'
+        elif is_saida:
             cst_calculado = '01'
+            if regime == 'lucro_presumido':
+                aliquota_pis = 0.65
+                aliquota_cofins = 3.00
+            else:
+                aliquota_pis = 1.65
+                aliquota_cofins = 7.60
             motivo = 'Operação tributável - alíquota básica'
     
     # Verificar divergência com XML (apenas para saídas)
@@ -2519,8 +2569,10 @@ def calcular_cst_pis_cofins(ncm: str, cfop: str, tipo_operacao: str, cst_xml: st
         'cst_xml': cst_xml,
         'divergente': divergente,
         'motivo': motivo,
-        'aliq_zero': aliq_zero,
-        'sem_incidencia': sem_incidencia
+        'aliq_zero': is_ncm_aliquota_zero(ncm),
+        'sem_incidencia': sem_incidencia,
+        'aliquota_pis': aliquota_pis,
+        'aliquota_cofins': aliquota_cofins
     }
 
 def verify_password(plain_password, hashed_password):
