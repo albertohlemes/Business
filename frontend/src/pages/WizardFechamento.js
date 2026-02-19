@@ -1270,6 +1270,14 @@ const WizardFechamento = ({ user, onLogout }) => {
                     </div>
                     <div className="flex items-center gap-4 text-xs text-[#666]">
                       <span>NCM: {prod.ncm}</span>
+                      {prod.cst_icms && (
+                        <span className={`font-mono ${
+                          prod.cst_icms?.toString().startsWith('0') ? 'text-green-400' :
+                          prod.cst_icms?.toString().startsWith('1') || prod.cst_icms?.toString().startsWith('2') ? 'text-amber-400' :
+                          prod.cst_icms?.toString().startsWith('4') || prod.cst_icms?.toString().startsWith('5') || prod.cst_icms?.toString().startsWith('6') ? 'text-blue-400' :
+                          'text-[#666]'
+                        }`}>CST: {prod.cst_icms}</span>
+                      )}
                       <span>CFOP: {prod.cfop}</span>
                       <span>NF: {prod.nfe}</span>
                     </div>
