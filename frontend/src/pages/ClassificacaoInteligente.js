@@ -1852,6 +1852,19 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                           <td className="px-4 py-3">
                                             <span className="text-[#A1A1AA] font-mono text-xs">{prod.ncm || '-'}</span>
                                           </td>
+                                          <td className="px-2 py-3 text-center">
+                                            <span className={`font-mono text-xs ${
+                                              prod.cst_icms?.toString().startsWith('0') ? 'text-green-400' :
+                                              prod.cst_icms?.toString().startsWith('1') || prod.cst_icms?.toString().startsWith('2') ? 'text-amber-400' :
+                                              prod.cst_icms?.toString().startsWith('4') || prod.cst_icms?.toString().startsWith('5') || prod.cst_icms?.toString().startsWith('6') ? 'text-blue-400' :
+                                              'text-[#666]'
+                                            }`} title={
+                                              prod.cst_icms?.toString().startsWith('0') ? 'Tributado integralmente' :
+                                              prod.cst_icms?.toString().startsWith('1') || prod.cst_icms?.toString().startsWith('2') ? 'Tributado com redução/isenção' :
+                                              prod.cst_icms?.toString().startsWith('4') || prod.cst_icms?.toString().startsWith('5') || prod.cst_icms?.toString().startsWith('6') ? 'ICMS cobrado por Substituição Tributária' :
+                                              'CST ICMS'
+                                            }>{prod.cst_icms || '-'}</span>
+                                          </td>
                                           <td className="px-4 py-3">
                                             <span className="px-2 py-0.5 bg-[#2A2A2A] text-[#A1A1AA] rounded text-xs font-mono">
                                               {prod.cfop_atual || '-'}
