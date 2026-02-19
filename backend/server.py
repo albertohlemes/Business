@@ -1759,12 +1759,12 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
                         'valor_base': Decimal('0'),
                         'valor_pis': Decimal('0'),
                         'valor_cofins': Decimal('0'),
-                        'quantidade': 0
+                        'qtd': 0
                     }
                 target_dict[cst_display]['valor_base'] += valor_base_calc
                 target_dict[cst_display]['valor_pis'] += valor_pis
                 target_dict[cst_display]['valor_cofins'] += valor_cofins
-                target_dict[cst_display]['quantidade'] += 1
+                target_dict[cst_display]['qtd'] += 1
                 continue
             
             # Obter categoria classificada
