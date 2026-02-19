@@ -3019,6 +3019,7 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                 'ncm': ncm,
                 'cfop': cfop,
                 'cst': cst_icms,
+                'cst_icms': cst_icms,  # Alias para clareza no frontend
                 'cst_pis_xml': cst_pis,  # CST original do XML
                 'cst_cofins_xml': cst_cofins,  # CST original do XML
                 'cst_pis': cst_pis,  # Será atualizado após determinar tipo de operação
