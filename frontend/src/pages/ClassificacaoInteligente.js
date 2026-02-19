@@ -1415,6 +1415,17 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                   </div>
                                   
                                   <span className="text-[#666] font-mono w-16 shrink-0 text-center text-[9px]">{prod.ncm}</span>
+                                  <span className={`font-mono w-12 shrink-0 text-center text-[9px] ${
+                                    prod.cst_icms?.toString().startsWith('0') ? 'text-green-400' :
+                                    prod.cst_icms?.toString().startsWith('1') || prod.cst_icms?.toString().startsWith('2') ? 'text-amber-400' :
+                                    prod.cst_icms?.toString().startsWith('4') || prod.cst_icms?.toString().startsWith('5') || prod.cst_icms?.toString().startsWith('6') ? 'text-blue-400' :
+                                    'text-[#666]'
+                                  }`} title={
+                                    prod.cst_icms?.toString().startsWith('0') ? 'Tributado integralmente' :
+                                    prod.cst_icms?.toString().startsWith('1') || prod.cst_icms?.toString().startsWith('2') ? 'Tributado com redução/isenção' :
+                                    prod.cst_icms?.toString().startsWith('4') || prod.cst_icms?.toString().startsWith('5') || prod.cst_icms?.toString().startsWith('6') ? 'ICMS cobrado por Substituição Tributária' :
+                                    'CST ICMS'
+                                  }>{prod.cst_icms || '-'}</span>
                                   <span className="text-[#C8A951] font-medium w-16 shrink-0 text-right text-[9px]">{formatCurrency(prod.valor)}</span>
                                 </div>
                               );
