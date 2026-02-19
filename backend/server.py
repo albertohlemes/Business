@@ -7485,6 +7485,8 @@ async def upload_xml_batch(
                 file_alertas_cfop.append({
                     'produto': product.get('descricao', ''),
                     'codigo': product.get('codigo', ''),
+                    'ncm': product.get('ncm', ''),
+                    'cst_icms': product.get('cst_icms', product.get('cst', '')),
                     'cfop_emissor': cfop_original,
                     'cfop_convertido': cfop_convertido,
                     'descricao_cfop': CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original],
