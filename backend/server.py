@@ -3240,6 +3240,7 @@ def parse_xml_nfce(xml_content: str) -> Dict[str, Any]:
                 'ncm': ncm,
                 'cfop': cfop,
                 'cst': cst_icms,
+                'cst_icms': cst_icms,  # Alias para clareza no frontend
                 'cst_pis_xml': cst_pis,
                 'cst_cofins_xml': cst_cofins,
                 'cst_pis': cst_pis,
