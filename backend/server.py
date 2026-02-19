@@ -6413,6 +6413,37 @@ async def sieg_sync_execute(
         progress["step"] = f"Encontrados {total_xmls} XMLs ({len(entrada_xmls)} entradas, {len(saida_xmls)} saídas)"
         progress["progress_percent"] = 10
         
+        # ============================================================
+        # CARREGAR REGRAS DE PIS/COFINS DA EMPRESA
+        # Para usar na classificação de CST durante a importação
+        # ============================================================
+        regras_pis_cofins_empresa = {}
+        try:
+            regras_cursor = db.regras_pis_cofins.find(
+                {"company_id": company_id, "ativo": True},
+                {"_id": 0}
+            )
+            regras_list = await regras_cursor.to_list(1000)
+            for regra in regras_list:
+                chave = regra.get('chave', '')
+                if chave:
+                    regras_pis_cofins_empresa[chave] = regra
+            logger.info(f"IMPORT: Carregadas {len(regras_pis_cofins_empresa)} regras de PIS/COFINS da empresa")
+        except Exception as e:
+            logger.warning(f"IMPORT: Erro ao carregar regras de PIS/COFINS: {e}")
+        
+        # Função auxiliar para buscar regra por NCM (prefixo)
+        def buscar_regra_pis_cofins(ncm: str) -> dict:
+            """Busca regra de PIS/COFINS pelo NCM (tenta prefixos de 8 a 4 dígitos)"""
+            if not ncm:
+                return None
+            ncm_limpo = str(ncm).replace('.', '').strip()
+            for i in range(len(ncm_limpo), 3, -1):
+                prefixo = ncm_limpo[:i]
+                if prefixo in regras_pis_cofins_empresa:
+                    return regras_pis_cofins_empresa[prefixo]
+            return None
+        
         # STEP 2: Processar XMLs de ENTRADA (com classificação IA)
         total_stats = {"from_cache": 0, "from_rules": 0, "from_ai": 0, "total": 0}
         processed_count = 0
