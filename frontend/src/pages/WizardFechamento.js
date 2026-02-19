@@ -983,7 +983,20 @@ const WizardFechamento = ({ user, onLogout }) => {
                                         <div className="flex-1">
                                           <p className="text-white text-sm font-medium truncate">{prod.descricao}</p>
                                           <p className="text-xs text-[#666]">
-                                            NCM: {prod.ncm || 'N/A'} 
+                                            NCM: {prod.ncm || 'N/A'}
+                                            {prod.cst_icms && (
+                                              <span className={`ml-2 font-mono ${
+                                                prod.cst_icms?.toString().startsWith('0') ? 'text-green-400' :
+                                                prod.cst_icms?.toString().startsWith('1') || prod.cst_icms?.toString().startsWith('2') ? 'text-amber-400' :
+                                                prod.cst_icms?.toString().startsWith('4') || prod.cst_icms?.toString().startsWith('5') || prod.cst_icms?.toString().startsWith('6') ? 'text-blue-400' :
+                                                'text-[#666]'
+                                              }`} title={
+                                                prod.cst_icms?.toString().startsWith('0') ? 'Tributado integralmente' :
+                                                prod.cst_icms?.toString().startsWith('1') || prod.cst_icms?.toString().startsWith('2') ? 'Tributado com redução/isenção' :
+                                                prod.cst_icms?.toString().startsWith('4') || prod.cst_icms?.toString().startsWith('5') || prod.cst_icms?.toString().startsWith('6') ? 'ICMS por Substituição Tributária' :
+                                                'CST ICMS'
+                                              }>CST: {prod.cst_icms}</span>
+                                            )}
                                             {prod.cfop_original_emissor && (
                                               <span className="ml-2 text-purple-400">CFOP Original: {prod.cfop_original_emissor}</span>
                                             )}
