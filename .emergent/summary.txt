@@ -1,43 +1,56 @@
 <analysis>**original_problem_statement:**
-O usuário iniciou com uma solicitação para revisar o sistema de validação fiscal e evoluiu para a implementação de uma funcionalidade de Grupo Consolidado para exibir dados agregados de empresas Matriz-Filial. Ao longo da sessão, o usuário reportou e solicitou a correção de múltiplos bugs críticos, tanto no ambiente de preview quanto no de produção.
+O usuário iniciou com uma solicitação para revisar o sistema de validação fiscal e evoluiu para a implementação de uma funcionalidade de Grupo Consolidado. Ao longo da sessão, o usuário reportou e solicitou a correção de múltiplos bugs críticos e melhorias de usabilidade, focados principalmente na correção de cálculos fiscais (PIS/COFINS, ICMS), na lógica de processamento de documentos (XMLs) e em regras de permissão e exibição na interface.
 
 PRODUCT REQUIREMENTS:
-1.  **Grupo Consolidado (P0)**:
-    *   A página deve consolidar os dados das empresas do grupo, **somando** os valores de impostos já calculados individualmente, sem realizar novos cálculos.
-    *   O cálculo de IRPJ/CSLL deve respeitar o regime tributário da empresa (ex: ser zero para Lucro Real com prejuízo). (Concluído, mas precisa de verificação de regressão).
-    *   O cálculo de PIS/COFINS deve respeitar o regime tributário (ex: não gerar créditos para Lucro Presumido). (Concluído, mas precisa de verificação de regressão).
-    *   A conversão de CFOPs de Saída com Substituição Tributária (ST) para Entrada deve seguir um mapeamento correto (ex: 5401 -> 1403), e não uma substituição genérica. (Concluído, mas precisa de verificação de regressão).
-2.  **Bug de Produção (P0 - CRÍTICO)**:
-    *   Corrigir a página de **PIS/COFINS** (localizada no menu ), que exibe uma tela em branco para a empresa **ANZEN (ID 6751)** na competência **01/2026** no ambiente de produção. As abas Apuração, Detalhamento e Comparativo não carregam.
-3.  **Bug de UI (P1)**:
-    *   Resolver o problema do modal de seleção de empresa que sobrepõe a interface em páginas que não deveriam exigi-lo.
+1.  **Lógica de CFOPs de Transferência (P0 - CRÍTICO)**:
+    *   CFOPs de transferência (ex: 5152, 5409) **não devem gerar débito ou crédito** de PIS/COFINS.
+    *   O CST de PIS/COFINS deve ser **49 para saídas** e **98 para entradas** de transferência.
+    *   A conversão de CFOP de saída para entrada deve ser **direta e automática**, sem enviar o item para a tela de Alertas de CFOP (ex: 5152 → 1152, 5409 → 1409). Este problema é recorrente.
+2.  **Consistência das Regras Fiscais (P1)**:
+    *   Garantir que a Importação de XML, o Wizard de Fechamento e os botões Rever Entradas/Saídas utilizem a **mesma lógica centralizada** de  para atribuir CST e alíquotas.
+3.  **Bugs de Cálculo e Lógica (Resolvidos, verificar regressão)**:
+    *   Corrigir cálculo na tela Vilões e Oportunidades que tributava PIS/COFINS para NCMs de alíquota zero.
+    *   A lógica de desconsideração de devolução só deve se aplicar a notas emitidas por terceiros (fornecedores), não pela própria empresa.
+4.  **Melhorias de UI/UX (P1/P2)**:
+    *   **(P1)** Resolver o bug do modal de seleção de empresa que sobrepõe a interface em páginas que não o exigem.
+    *   Adicionar a coluna CST ICMS nas telas de listagem de produtos (, ).
+    *   Padronizar a exibição do ICMS para mostrar Recuperar R quando o saldo for credor, igual ao PIS/COFINS.
+    *   Ocultar o menu Grupo Consolidado para empresas que não são a matriz do grupo.
+5.  **Permissões (Resolvido, verificar regressão)**:
+    *   Restringir a criação, edição e exclusão de grupos empresariais apenas para usuários com perfil de .
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-Uma aplicação full-stack (React/FastAPI/MongoDB). O agente anterior implementou com sucesso as correções na página Grupo Consolidado, garantindo que os cálculos de IRPJ/CSLL e PIS/COFINS agora respeitem o regime tributário de cada empresa, somando os valores em vez de recalculá-los. Também foi corrigida a lógica de conversão de CFOPs de Substituição Tributária (ST) no backend. O trabalho atual está focado em um bug crítico no ambiente de produção.
+Uma aplicação full-stack (React/FastAPI/MongoDB). O agente anterior corrigiu com sucesso vários bugs críticos, incluindo um erro que causava tela em branco na página de PIS/COFINS, erros de cálculo, e problemas de permissão. Foi feito um progresso significativo na padronização da lógica fiscal. No entanto, um problema central e recorrente persiste: o processamento incorreto de CFOPs de transferência durante a importação de XML.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava tentando diagnosticar um erro  no endpoint de produção . Este erro causa uma tela em branco na página de apuração de PIS/COFINS para uma empresa e competência específicas (ANZEN, 01/2026). As tentativas de correção envolveram adicionar múltiplos blocos  para tornar o código mais robusto, mas isso não resolveu o problema fundamental. A descoberta mais importante, feita no final, foi que um endpoint **antigo e similar** () **FUNCIONA** para a mesma empresa e competência, mas o agente não chegou a comparar a lógica entre os dois endpoints.
--   **Status**: BLOCKED
+-   **Last item agent was working**: O agente estava tentando resolver, mais uma vez, o problema de CFOPs de transferência (como ) que continuam aparecendo na tela de Alertas de CFOP e sendo tributados incorretamente. A última tentativa foi remover o CFOP  da lista  em , na esperança de impedir que ele fosse sinalizado para alerta.
+-   **Status**: USER VERIFICATION PENDING (O agente aplicou uma correção, mas a última mensagem do usuário, ainda esta vindo, indica que o problema persiste).
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: backend testing agent. O agente deve criar um teste que compare a lógica dos dois endpoints ( e ) para identificar a diferença que causa a falha no mais novo.
--   **User Testing Done**: N
+-   **Which testing method agent to use?**: backend testing agent. O agente deve criar um teste que simule o upload de um XML contendo um CFOP de transferência (ex: 5152). O teste deve verificar que o produto resultante:
+    1.  Não é adicionado à lista de .
+    2.  Tem seu CFOP corretamente convertido (ex: 5152 -> 1152).
+    3.  Tem o CST de PIS/COFINS correto (98 para entrada, 49 para saída).
+    4.  Não gera valor de débito ou crédito de PIS/COFINS na apuração.
+-   **User Testing Done**: N (O usuário reportou que o problema continua após a última tentativa de correção do agente).
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Tela em branco na página de PIS/COFINS em produção (P0 - HIGHEST)
+-   **Issue 1**: CFOPs de transferência ainda são processados incorretamente (P0 - HIGHEST)
 -   **Issue 2**: Modal de seleção de empresa sobrepõe a UI (P1 - MEDIUM)
 
 **Issues Detail**:
--   **Issue 1: Tela em branco na página de PIS/COFINS em produção**
+-   **Issue 1: CFOPs de transferência ainda são processados incorretamente**
     -   **Attempted fixes**:
-        -   Adição de múltiplos blocos  em  na função  para tratar possíveis dados malformados (, ). A falha persistiu em produção, indicando que o problema é lógico, não de resiliência. O deploy das correções também falhou.
+        -   Adicionar CFOPs de transferência à lista de exceções .
+        -   Inserir um bloco de código na função de importação para tratar e converter CFOPs de transferência diretamente, antes do mecanismo de alerta.
+        -   Remover CFOPs de transferência (ex: ) da lista  que dispara os alertas.
     -   **Next debug checklist**:
-        1.  **Comparar os endpoints**: O passo mais crítico é analisar e comparar o código do endpoint que falha () com o endpoint antigo que funciona () dentro de .
-        2.  **Identificar a regressão lógica**: O problema provavelmente está em como o novo endpoint lida com casos específicos, como uma empresa sem documentos para a competência ou com alíquotas  (como foi diagnosticado para a empresa ANZEN). O endpoint antigo lida com este cenário corretamente.
-        3.  **Portar a lógica correta**: Aplicar a lógica funcional do endpoint antigo ao novo para corrigir o bug.
-        4.  Confirmar com o usuário que o deploy da correção foi bem-sucedido antes de testar.
-    -   **Why fix this issue and what will be achieved with the fix?**: É um bloqueador crítico que impede o usuário de realizar o fechamento fiscal da empresa em produção.
+        1.  **Analisar o fluxo de importação**: Rastrear o processamento de um produto com CFOP de transferência (ex: 5152) passo a passo dentro das funções de importação ( e  em ).
+        2.  **Verificar a lógica de desvio**: O problema principal é que o produto está caindo no mecanismo de fallback que o envia para  (e consequentemente para os alertas). A lógica que deveria desviar esses produtos (o ) pode estar no lugar errado ou sendo contornada.
+        3.  **Confirmar a remoção**: Garantir que todos os CFOPs de transferência foram removidos da lista  em . É possível que o agente tenha removido apenas um (5152) e outros ainda estejam lá.
+        4.  **Consolidar a lógica**: Em vez de patches, refatorar a seção de importação para ter um único ponto de verdade para a conversão de CFOP, garantindo que as transferências sejam tratadas primeiro.
+    -   **Why fix this issue and what will be achieved with the fix?**: É um bloqueador funcional e um bug recorrente que impede o processamento fiscal correto e causa trabalho manual para o usuário.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: backend
@@ -46,9 +59,9 @@ Uma aplicação full-stack (React/FastAPI/MongoDB). O agente anterior implemento
 -   **Issue 2: Modal de seleção de empresa sobrepõe a UI**
     -   **Attempted fixes**: Nenhuma.
     -   **Next debug checklist**:
-        1.  Investigar o  em  que dispara o modal.
-        2.  Adicionar uma lógica condicional para que o modal não seja exibido em rotas específicas que não dependem de uma empresa (ex: ).
-    -   **Why fix this issue and what will be achieved with the fix?**: Melhorar a usabilidade e permitir acesso direto a funcionalidades globais.
+        1.  Localizar o hook  em  que controla a exibição do modal.
+        2.  Adicionar uma condição baseada no  atual para não renderizar o modal em rotas específicas como .
+    -   **Why fix this issue and what will be achieved with the fix?**: Melhora a usabilidade da aplicação, evitando uma interrupção desnecessária do fluxo do usuário.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
@@ -85,8 +98,8 @@ HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test
   /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
     from crypt import crypt as _crypt
 
-backend/server.py:42495
-  /app/backend/server.py:42495: DeprecationWarning: 
+backend/server.py:42746
+  /app/backend/server.py:42746: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -107,78 +120,86 @@ backend/server.py:42495
 =========================== short test summary info ============================
 ERROR test_ai_classification.py
 !!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-========================= 4 warnings, 1 error in 4.08s ========================= mais abrangente para o backend.
+========================= 4 warnings, 1 error in 4.83s ========================= mais abrangente para o backend.
 
 **Completed work in this session**
--   **Correção do Grupo Consolidado (IRPJ/CSLL)**: O backend () foi ajustado para não calcular IRPJ/CSLL para empresas de Lucro Real, zerando o valor e garantindo que o consolidado seja a soma correta.
--   **Correção do Grupo Consolidado (PIS/COFINS)**: O backend foi refatorado para buscar os resultados individuais de PIS/COFINS de cada empresa (respeitando o regime cumulativo/não-cumulativo) e somá-los, em vez de recalcular tudo. Foi corrigido um bug crítico de sobrescrita de variável ().
--   **Correção da Conversão de CFOP**: A lógica de conversão de CFOPs de Substituição Tributária foi corrigida em  para usar um mapeamento preciso, garantindo que CFOPs como 5401 se tornem 1403, e não 1102.
--   **Atualização da UI do Grupo Consolidado**: O card Total Federal foi substituído por totalizadores individualizados para cada imposto no .
+-   **Bug Crítico de Tela Branca**: Corrigido o erro de  na página de PIS/COFINS ao consertar um grave erro de indentação e um  em .
+-   **Permissões de Grupos Empresariais**: Restringido os botões de criar/editar/excluir grupos para que apenas admins os vejam, corrigindo uma falha de segurança.
+-   **Cálculo de Vilões e Oportunidades**: Ajustada a lógica para não calcular PIS/COFINS sobre NCMs de alíquota zero.
+-   **UI de Comparativo de Regimes**: Padronizada a exibição do ICMS para mostrar Recuperar R em saldos credores.
+-   **Lógica de Devolução**: Refinada a regra para desconsiderar devoluções apenas quando a nota é emitida por um terceiro (fornecedor).
+-   **Unificação de Regras PIS/COFINS**: A importação de XML agora consulta a coleção , alinhando-se com outras partes do sistema.
+-   **UI de Produtos**: Adicionada a coluna CST ICMS em telas de listagem de produtos no frontend.
+-   **Tentativa de Correção de CFOPs de Transferência**: Múltiplas tentativas foram feitas para corrigir o processamento de CFOPs de transferência, mas o problema persiste.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1**: O modal de seleção de empresa continua sobrepondo a UI em certas páginas, um problema mencionado no handoff inicial que nunca foi abordado.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Dívida técnica no monolito .
--   **Recurrence count**: 9+
--   **Status**: NOT STARTED. A complexidade do  continua a ser a causa raiz de muitos bugs e dificuldades de depuração.
+-   **Recurrence count**: 10+
+-   **Status**: NOT STARTED. A complexidade e a duplicação de lógica em  são a causa raiz do bug recorrente dos CFOPs de transferência. As correções são aplicadas em um fluxo, mas não em todos.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   Depuração de bugs data-específicos em ambiente de produção.
--   Importância da análise comparativa de código (endpoints antigo vs. novo) para identificar regressões.
--   Lógica de agregação de dados vs. recálculo em sistemas de BI/fiscais.
--   Tratamento de diferentes regimes tributários (Lucro Real vs. Presumido, Cumulativo vs. Não-cumulativo).
+-   Depuração de bugs recorrentes em um sistema monolítico complexo.
+-   Lógica fiscal de impostos brasileiros (PIS/COFINS, ICMS, CFOP, CST, NCM).
+-   Diferença entre múltiplos fluxos de processamento de dados (importação em lote vs. streaming) e a necessidade de aplicar correções em todos eles.
+-   Importância de refatorar código duplicado para evitar regressões.
 
 **key DB schema**
--   **companies**: Contém , , , .
+-   **companies**: Contém , .
 -   **xml_docs**: Armazena os documentos fiscais processados.
+-   **regras_pis_cofins**: Regras customizadas de PIS/COFINS por empresa.
+-   **learned_rules**: Regras de classificação de produtos (categoria/CFOP).
 
 **changes in tech stack**
 -   Nenhuma.
 
 **All files of reference**
 -    (Arquivo central para todas as correções e para o bug atual)
--    (Componente frontend afetado pelo bug de produção)
--    (Recebeu várias correções)
 -    (Relevante para o bug do modal)
+-    (Permissões corrigidas aqui)
+-    (UI do ICMS corrigida aqui)
+-    (Coluna CST ICMS adicionada)
+-    (Coluna CST ICMS adicionada)
+-   
 
 **Areas that need refactoring**:
--   ** (CRÍTICO)**: O arquivo tem mais de 35.000 linhas. A função  é extremamente complexa e frágil. A extração das rotas e serviços para módulos separados é urgente.
--   **Endpoint de Apuração de PIS/COFINS**: Os endpoints  e  devem ser unificados após a correção do bug, eliminando o código legado.
+-   ** (CRÍTICO)**: O arquivo é a fonte de quase todos os problemas. A lógica de importação de XML está duplicada e espalhada, o que causa o bug recorrente dos CFOPs de transferência. É urgente extrair essa lógica para um módulo de serviço dedicado.
+-   **Gerenciamento de Regras**: As coleções  e  executam funções similares e deveriam ser unificadas para simplificar a manutenção.
 
 **key api endpoints**
--   : **(FALHANDO EM PROD)** O novo endpoint que causa o erro 500.
--   : **(FUNCIONANDO EM PROD)** O endpoint antigo que deve ser usado como referência para a correção.
--   : Endpoint do Grupo Consolidado que foi corrigido.
+-   : Endpoint de importação onde o bug dos CFOPs de transferência está ocorrendo.
+-   : Endpoint Rever CST, que também precisa ser verificado.
+-   : Endpoint que causava tela em branco, agora corrigido.
+-   : Endpoint onde as permissões foram corrigidas.
 
 **Critical Info for New Agent**
--   **FOCO IMEDIATO E ÚNICO**: Ignore todos os outros problemas e concentre-se em corrigir o bug de produção (Issue 1).
--   **NÃO REPITA O ERRO**: Não tente resolver o bug adicionando mais blocos  genéricos. O agente anterior já tentou isso e falhou. A solução está na **comparação lógica** entre o endpoint que falha () e o que funciona ().
--   **DEPLOYMENT LAG**: Esteja ciente de que as alterações feitas no ambiente de preview não são refletidas imediatamente em produção. O usuário relatou falhas de deploy. Sempre confirme com o usuário se uma nova versão do código está ativa antes de testar em produção.
--   **CREDENCIAIS**: Use as credenciais fornecidas para testar em produção quando necessário:  / .
+-   **FOCO IMEDIATO E ÚNICO**: Ignorar o bug do modal por enquanto e focar 100% em resolver o bug dos CFOPs de transferência (Issue 1). O usuário está bloqueado e já relatou o problema várias vezes.
+-   **NÃO REPITA O ERRO**: A abordagem de fazer pequenos patches no  não está funcionando. A solução exige uma análise mais profunda do fluxo de importação para encontrar a causa raiz que envia os produtos para os alertas. A última tentativa do agente (remover  de uma lista) falhou.
+-   **RASTREIE O FLUXO**: A chave é entender por que um produto com CFOP de transferência está sendo colocado na lista  em vez de ser processado diretamente. A correção provavelmente envolve adicionar uma condição  para tratar as transferências *antes* do bloco de código que lida com a classificação de IA e alertas.
 
 **documents and test reports created in this job**
--   Nenhum.
+-    (atualizado)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: A conversão de CFOPs de ST está errada. (Solicitação de correção)
-2.  **Agent**: Corrige a conversão de CFOPs.
-3.  **User**: A página PIS/COFINS continua em branco em produção para a empresa 6751. (Reiteração do bug)
-4.  **Agent**: Adiciona mais  ao backend para robustez.
-5.  **User**: Fiz o deploy, mas continua não funcionando. (Confirmação de falha)
-6.  **Agent**: Investiga novamente e descobre que o deploy não foi aplicado, pois uma alteração anterior não está presente.
-7.  **Agent**: Tenta diagnosticar mais a fundo, descobrindo que as alíquotas da empresa são .
-8.  **Agent**: **Descobre que um endpoint antigo  FUNCIONA para o caso problemático.**
-9.  **Agent**: (Fica preso) Tenta adicionar mais  em vez de comparar os dois endpoints.
-10. **User**: *Gerou esta solicitação de resumo.*
+1.  **User**: Refinou a regra de devolução (só desconsiderar se for emitida por terceiro/fornecedor).
+2.  **Agent**: Corrigiu a lógica no endpoint de upload-stream.
+3.  **User**: Corrigiu o termo: não é cliente, é fornecedor.
+4.  **Agent**: Confirmou o entendimento.
+5.  **User**: Devoluções de cliente (saída) devem ser mantidas, a regra é só para devolução de fornecedor (entrada).
+6.  **Agent**: Confirmou que a lógica atual já respeita essa distinção.
+7.  **User**: **(URGENTE)** CFOP de transferência ainda está sendo tributado e indo para alertas. 5409 ainda vira 1403.
+8.  **User**: Os botões Rever CST e Recalcular CST também não consideram as regras para CFOPs de transferência. E eles ainda vão para a tela de alerta.
+9.  **Agent**: Fez múltiplas alterações, incluindo adicionar os CFOPs a uma lista de exceção e tentar interceptá-los antes dos alertas.
+10. **User**: **ainda esta vindo** (com screenshot mostrando o CFOP  ainda na tela de alertas).
 
 **Project Health Check:**
--   **Broken**: A funcionalidade de apuração de PIS/COFINS está quebrada em produção para casos de uso específicos, o que é um bloqueador crítico.
--   **Mocked**: N/A
--   **Complex/Fragile**:  é extremamente frágil e complexo, sendo a fonte de quase todos os problemas.
+-   **Broken**: A funcionalidade de importação de XML, um fluxo de trabalho central, está quebrada para documentos contendo CFOPs de transferência.
+-   **Complex/Fragile**: O arquivo  continua sendo extremamente frágil, complexo e a fonte de todos os bugs recorrentes.
 
 **3rd Party Integrations**
 -   Nenhuma.
@@ -187,14 +208,13 @@ ERROR test_ai_classification.py
 -   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: Sim, o endpoint  é uma regressão do endpoint mais antigo e funcional .
+-   **Known regressions**: Sim, o manuseio de CFOPs de transferência é uma regressão persistente e não resolvida.
 
 **Credentials to test flow:**
 -   **Preview Environment**:  / 
--   **Empresa Matriz (Preview)**: COMERCIAL RS LTDA (ID: )
--   **Empresa com Bug (Produção)**: ANZEN DISTRIBUIDORA DE ALIMENTOS LTDA (ID: 6751)
--   **Competência com Bug**: 
+-   **Empresa com Dados de Teste**: ANZEN DISTRIBUIDORA DE ALIMENTOS LTDA (ID no preview: )
+-   **Competência com Dados**: 
 
 **What agent forgot to execute**
--   O agente **não comparou** a lógica do endpoint  que está falhando com a do endpoint  que está funcionando. Esta foi a maior omissão e é a chave para resolver o problema.
--   O agente nunca resolveu o bug do modal de seleção de empresa que sobrepõe a UI, reportado no handoff original.</analysis>
+-   O agente não conseguiu resolver de forma definitiva o problema recorrente dos CFOPs de transferência, apesar de múltiplas tentativas e da insistência do usuário.
+-   O agente não abordou o bug da sobreposição do modal de seleção de empresa, que foi mencionado no handoff inicial e persistiu durante toda a sessão.</analysis>
