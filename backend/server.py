@@ -4275,8 +4275,21 @@ def generate_sped_fiscal(
             # CST ICMS (3 dígitos, ex: 000, 020, 060, 090)
             cst_icms = str(prod.get('cst', '') or prod.get('cst_icms', '') or '000').zfill(3)
             cfop = str(prod.get('cfop', '') or '')
+            cfop_original = str(prod.get('cfop_original_emissor', '') or cfop)
             ncm = str(prod.get('ncm', '') or '')
             descricao = str(prod.get('descricao', '') or prod.get('desc', '') or prod.get('nome', '') or '')
+            
+            # ==================================================================
+            # CORREÇÃO: Para ENTRADAS, garantir que o CFOP seja de entrada (1xxx/2xxx)
+            # Isso corrige o problema de transferências onde o CFOP original é 5152
+            # mas para a empresa receptora deve ser 1152
+            # ==================================================================
+            if is_entrada and cfop and cfop[0] in ['5', '6', '7']:
+                # Converter CFOP de saída para entrada
+                # 5xxx -> 1xxx, 6xxx -> 2xxx, 7xxx -> 3xxx
+                mapa_conversao = {'5': '1', '6': '2', '7': '3'}
+                cfop = mapa_conversao.get(cfop[0], cfop[0]) + cfop[1:]
+                logger.debug(f"SPED: Convertendo CFOP {cfop_original} para {cfop} (entrada)")
             
             # Determinar UF de origem (do emitente) para cálculo de ICMS interestadual
             uf_origem = (getattr(doc, 'emitente_uf', '') or '').upper() or uf_empresa
