@@ -9442,20 +9442,39 @@ async def upload_xml_with_progress(
                             cst = product.get('cst', '')
                             cfops_st_originais = ['5403', '5405', '5408', '5409', '5410', '5411', '5412', '5413', '5414', '5415',
                                                   '6403', '6404', '6405', '6408', '6409', '6410', '6411', '6412', '6413', '6414', '6415']
+                            cfops_transferencia_st = ['5409', '6409']  # Transferências com ST
+                            cfops_transferencia_normal = ['5151', '5152', '6151', '6152', '5153', '6153']  # Transferências normais
+                            
                             is_st_by_cfop = cfop_original in cfops_st_originais
                             is_st = is_st_by_cfop or cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+                            is_transferencia = cfop_original in cfops_transferencia_st or cfop_original in cfops_transferencia_normal
+                            
                             cfop_prefix = '2' if (emitente_uf and emitente_uf != uf_empresa) else '1'
                             
-                            # Usar categoria padrão baseada no tipo de atividade
-                            tipo_atividade = company.get('tipo_atividade', 'comercio')
-                            categoria_padrao, cfop_sufixo_normal, cfop_sufixo_st = obter_categoria_padrao_por_atividade(tipo_atividade)
-                            cfop_novo = cfop_prefix + (cfop_sufixo_st if is_st else cfop_sufixo_normal)
-                            
-                            product['cfop_original'] = cfop_original
-                            product['cfop'] = cfop_novo
-                            product['cfop_sugerido'] = cfop_novo
-                            product['categoria_classificada'] = categoria_padrao
-                            product['justificativa_ia'] = f'Classificação padrão: {categoria_padrao.upper()} (tipo atividade: {tipo_atividade})'
+                            # MANTER NATUREZA DE TRANSFERÊNCIA!
+                            if is_transferencia:
+                                if cfop_original in cfops_transferencia_st:
+                                    cfop_novo = cfop_prefix + '409'  # Transferência ST
+                                    categoria_padrao = 'revenda'
+                                else:
+                                    cfop_novo = cfop_prefix + '152'  # Transferência normal
+                                    categoria_padrao = 'revenda'
+                                product['cfop_original'] = cfop_original
+                                product['cfop'] = cfop_novo
+                                product['cfop_sugerido'] = cfop_novo
+                                product['categoria_classificada'] = categoria_padrao
+                                product['justificativa_ia'] = f'Transferência matriz-filial - CFOP mantido na natureza original'
+                            else:
+                                # Usar categoria padrão baseada no tipo de atividade
+                                tipo_atividade = company.get('tipo_atividade', 'comercio')
+                                categoria_padrao, cfop_sufixo_normal, cfop_sufixo_st = obter_categoria_padrao_por_atividade(tipo_atividade)
+                                cfop_novo = cfop_prefix + (cfop_sufixo_st if is_st else cfop_sufixo_normal)
+                                
+                                product['cfop_original'] = cfop_original
+                                product['cfop'] = cfop_novo
+                                product['cfop_sugerido'] = cfop_novo
+                                product['categoria_classificada'] = categoria_padrao
+                                product['justificativa_ia'] = f'Classificação padrão: {categoria_padrao.upper()} (tipo atividade: {tipo_atividade})'
                             
                             file_conversions.append({
                                 'produto': product.get('descricao', ''),
@@ -9463,7 +9482,7 @@ async def upload_xml_with_progress(
                                 'cfop_original': cfop_original,
                                 'cfop_convertido': cfop_novo,
                                 'categoria': categoria_padrao,
-                                'motivo': f'Classificação padrão ({categoria_padrao.upper()})',
+                                'motivo': f'Transferência matriz-filial' if is_transferencia else f'Classificação padrão ({categoria_padrao.upper()})',
                                 'origem': 'fallback'
                             })
                 else:
