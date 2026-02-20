@@ -1739,16 +1739,17 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
         for prod in doc.get('produtos', []):
             ncm = str(prod.get('ncm', '')).replace('.', '')
             cfop = str(prod.get('cfop', ''))
+            cfop_original_emissor = str(prod.get('cfop_original_emissor', '') or cfop)
             valor_total = Decimal(str(prod.get('valor_total', 0) or 0))
             v_icms = Decimal(str(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0))
             
             # ==========================================================
-            # ==========================================================
             # VERIFICAR SE É CFOP DE TRANSFERÊNCIA (MATRIZ-FILIAL)
+            # IMPORTANTE: Verificar TANTO o CFOP armazenado QUANTO o original do emissor
             # CFOPs de transferência NÃO geram crédito NEM débito de PIS/COFINS
             # CST: Entrada = 98 (Sem incidência), Saída = 49 (Outras saídas)
             # ==========================================================
-            if is_cfop_transferencia(cfop):
+            if is_cfop_transferencia(cfop) or is_cfop_transferencia(cfop_original_emissor):
                 # CST diferenciado por tipo de operação
                 cst_display = '98' if tipo_operacao == 'entrada' else '49'
                 valor_pis = Decimal('0')
