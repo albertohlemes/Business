@@ -34206,6 +34206,17 @@ async def get_impostos_grupo(
     # Lista de todas as empresas do grupo
     todas_empresas = [company_id] + grupo.get("filiais_ids", [])
     
+    # =========================================================================
+    # IDENTIFICAR TRANSFERÊNCIAS ENTRE EMPRESAS DO GRUPO
+    # Para não contar em duplicidade nas entradas e saídas
+    # =========================================================================
+    cnpjs_grupo = set()
+    for emp_id in todas_empresas:
+        emp = await db.companies.find_one({"id": emp_id}, {"cnpj": 1})
+        if emp:
+            cnpj = str(emp.get("cnpj", "")).replace(".", "").replace("/", "").replace("-", "")
+            cnpjs_grupo.add(cnpj[:8])  # Adiciona apenas a raiz do CNPJ
+    
     # Estrutura de resultado
     resultado = {
         "is_grupo": True,
