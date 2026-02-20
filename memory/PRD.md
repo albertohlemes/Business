@@ -3,6 +3,10 @@
 ## Visão Geral
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
+## Última Atualização: 19/02/2026
+- Correção do bug recorrente de CFOPs de transferência (5152, 5409, etc.) que apareciam em Alertas de CFOP
+- Adicionados testes unitários e de API para validação do fix
+
 ## Stack Tecnológica
 - **Frontend**: React 18 + TailwindCSS + Lucide Icons
 - **Backend**: FastAPI (Python)
