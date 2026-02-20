@@ -9462,8 +9462,8 @@ async def upload_xml_with_progress(
                             cst = product.get('cst', '')
                             cfops_st_originais = ['5403', '5405', '5408', '5409', '5410', '5411', '5412', '5413', '5414', '5415',
                                                   '6403', '6404', '6405', '6408', '6409', '6410', '6411', '6412', '6413', '6414', '6415']
-                            cfops_transferencia_st = ['5409', '6409']  # Transferências com ST
-                            cfops_transferencia_normal = ['5151', '5152', '6151', '6152', '5153', '6153']  # Transferências normais
+                            cfops_transferencia_st = ['5408', '5409', '6408', '6409']  # Transferências com ST
+                            cfops_transferencia_normal = ['5151', '5152', '5153', '5155', '5156', '6151', '6152', '6153', '6155', '6156']  # Transferências normais
                             
                             is_st_by_cfop = cfop_original in cfops_st_originais
                             is_st = is_st_by_cfop or cst in ['10', '30', '60', '70', '201', '202', '203', '500']
