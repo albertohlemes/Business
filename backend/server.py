@@ -34351,14 +34351,14 @@ async def get_impostos_grupo(
             "competencia": competencia,
             "tipo": "entrada",
             **get_filtro_notas_ativas()
-        }, {"valor_total": 1, "produtos": 1}).to_list(15000)
+        }, {"valor_total": 1, "produtos": 1, "emitente_cnpj": 1}).to_list(15000)
         
         notas_saida = await db.xml_documents.find({
             "company_id": empresa_id,
             "competencia": competencia,
             "tipo": "saida",
             **get_filtro_notas_ativas()
-        }, {"valor_total": 1, "produtos": 1}).to_list(15000)
+        }, {"valor_total": 1, "produtos": 1, "destinatario_cnpj": 1}).to_list(15000)
         
         # Calcular indicadores - DESCONTANDO TRANSFERÊNCIAS INTERCOMPANY
         total_entradas = 0
