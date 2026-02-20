@@ -17169,6 +17169,11 @@ async def alertas_cfop_operacoes_distintas(
                 cfop_original = str(prod.get('cfop_original_emissor', ''))
                 natureza = prod.get('natureza_operacao_original', '')
                 
+                # IMPORTANTE: Excluir CFOPs de TRANSFERÊNCIA - eles não devem gerar alerta
+                # São operações entre matriz e filiais e devem ser convertidos diretamente
+                if is_cfop_transferencia(cfop_original) or is_cfop_transferencia(cfop_atual):
+                    continue  # Pular CFOPs de transferência
+                
                 # Sugestões de conversão - RESPEITANDO ST
                 cfop_compra = cfop_atual.replace('9', '0') if '9' in cfop_atual else cfop_atual[:2] + '02'
                 
