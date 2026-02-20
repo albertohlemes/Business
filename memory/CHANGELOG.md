@@ -1,5 +1,26 @@
 # Changelog - Aurion Fiscal
 
+## [19/02/2026] - Correção Bug Recorrente CFOPs de Transferência
+
+### Corrigido
+- **BUG CRÍTICO RECORRENTE**: CFOPs de transferência (5151, 5152, 5153, 5155, 5156, 5408, 5409, 6151, 6152, 6153, 6155, 6156, 6408, 6409) estavam sendo enviados para a tela de "Alertas de CFOP"
+  - **Causa Raiz**: CFOPs de transferência estavam incluídos nas listas `CFOPS_OPERACOES_DISTINTAS_UPLOAD` em duas localizações no server.py (linhas ~6983 e ~8764), fazendo com que fossem tratados como "operações distintas" em vez de serem processados diretamente via `is_cfop_transferencia()`
+  - **Solução Parte 1**: Removidos TODOS os CFOPs de transferência de AMBAS as listas `CFOPS_OPERACOES_DISTINTAS_UPLOAD`
+  - **Solução Parte 2**: Adicionado filtro `is_cfop_transferencia()` nos endpoints `alertas-cfop` (linha 17174) e `alertas-cfop/agrupado` (linha 17289) para excluir CFOPs de transferência de documentos já importados
+  - **Resultado**: Antes: 83 produtos pendentes (27 eram transferência). Depois: 56 produtos pendentes (0 transferência)
+  - **Arquivos modificados**: `server.py` linhas 6978-6984, 8760-8765, 17172-17175, 17287-17290
+
+### Adicionado
+- Testes unitários em `/app/backend/tests/test_cfop_transferencia.py` (9 testes)
+- Testes de API em `/app/backend/tests/test_transferencia_alertas.py` (7 testes)
+
+### Verificado
+- Função `is_cfop_transferencia()` identifica corretamente todos os CFOPs de transferência
+- Função `calcular_cst_pis_cofins()` retorna CST 98 para entradas e CST 49 para saídas de transferência
+- Endpoints de alertas não retornam mais CFOPs de transferência
+
+---
+
 ## [18/02/2026] - Correções de Segurança, Bugs Críticos e Cálculos
 
 ### Corrigido
