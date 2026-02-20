@@ -289,6 +289,14 @@ CST_SAIDA = {
 
 # CFOPs que NÃO geram crédito de PIS/COFINS (CST 98 na entrada)
 CFOPS_SEM_CREDITO = [
+    # ===== TRANSFERÊNCIAS (MATRIZ-FILIAL) - NÃO GERAM CRÉDITO =====
+    '1151', '2151',  # Transferência para industrialização
+    '1152', '2152',  # Transferência para comercialização
+    '1153', '2153',  # Transferência de energia elétrica
+    '1154', '2154',  # Transferência para utilização na prestação de serviço
+    '1408', '2408',  # Transferência para industrialização (ST)
+    '1409', '2409',  # Transferência para comercialização (ST)
+    # ===== OUTROS CFOPs SEM CRÉDITO =====
     '1128', '2128',  # Compra para utilização na prestação de serviço
     '1407', '2407',  # Compra de mercadoria para uso ou consumo
     '1556', '2556',  # Compra de bem para o ativo imobilizado
@@ -340,6 +348,15 @@ CFOPS_SEM_CREDITO = [
 
 # CFOPs que NÃO geram débito de PIS/COFINS (CST 49 na saída)
 CFOPS_SEM_DEBITO = [
+    # ===== TRANSFERÊNCIAS (MATRIZ-FILIAL) - NÃO GERAM DÉBITO =====
+    '5151', '6151',  # Transferência para industrialização
+    '5152', '6152',  # Transferência para comercialização
+    '5153', '6153',  # Transferência de energia elétrica
+    '5155', '6155',  # Transferência de produção do estabelecimento
+    '5156', '6156',  # Transferência de mercadoria adquirida ou recebida de terceiros
+    '5408', '6408',  # Transferência para industrialização (ST)
+    '5409', '6409',  # Transferência para comercialização (ST)
+    # ===== OUTROS CFOPs SEM DÉBITO =====
     '5910', '6910',  # Remessa em bonificação, doação ou brinde
     '5911', '6911',  # Remessa de amostra grátis
     '5912', '6912',  # Remessa de mercadoria ou bem para demonstração
