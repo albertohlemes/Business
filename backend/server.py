@@ -9179,6 +9179,11 @@ async def upload_xml_with_progress(
                 cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
                 nfe_ref_devolucao = parsed_data.get('nfe_referenciada', '') or ''
                 
+                # IMPORTANTE: Verificar se emitente é TERCEIRO (diferente da empresa)
+                # Se a PRÓPRIA EMPRESA emitiu a NF de entrada (devolução de venda própria),
+                # NÃO deve desconsiderar - manter ambas as notas no cálculo
+                is_emitente_terceiro = cnpj_emitente != cnpj_empresa
+                
                 # Verificar se TODOS os CFOPs já são de ENTRADA (1xxx, 2xxx, 3xxx)
                 cfops_sao_entrada = all(
                     cfop and len(cfop) >= 1 and cfop[0] in ['1', '2', '3'] 
@@ -9188,11 +9193,17 @@ async def upload_xml_with_progress(
                 # Verificar se os CFOPs são especificamente de devolução de entrada
                 is_devolucao_por_cfop = any(cfop in CFOPS_DEVOLUCAO_ENTRADA for cfop in cfops_xml)
                 
-                logger.info(f"UPLOAD-STREAM DEVOLUÇÃO CHECK: NF {parsed_data.get('numero_nfe')} - CFOPs: {cfops_xml}, São entrada: {cfops_sao_entrada}, É devolução: {is_devolucao_por_cfop}")
+                logger.info(f"UPLOAD-STREAM DEVOLUÇÃO CHECK: NF {parsed_data.get('numero_nfe')} - CFOPs: {cfops_xml}, São entrada: {cfops_sao_entrada}, É devolução: {is_devolucao_por_cfop}, Emitente terceiro: {is_emitente_terceiro}")
                 
-                # CFOPs na lista global SEMPRE são desconsiderados
-                # Isso garante consistência com a importação em lote
-                if cfops_sao_entrada and is_devolucao_por_cfop:
+                # REGRA DE DESCONSIDERAÇÃO DE DEVOLUÇÃO:
+                # APENAS desconsiderar quando:
+                # 1. CFOPs são de entrada E
+                # 2. CFOPs são de devolução E
+                # 3. EMITENTE É TERCEIRO (não a própria empresa)
+                #
+                # Se a própria empresa emitiu a NF de entrada (ex: devolução de venda própria),
+                # MANTER ambas as notas - não desconsiderar
+                if cfops_sao_entrada and is_devolucao_por_cfop and is_emitente_terceiro:
                     cfops_unicos = list(set(cfops_xml))[:3]
                     is_devolucao_por_finalidade = str(finalidade_nfe) == '4'
                     is_devolucao_por_natureza = any(termo in natureza_operacao for termo in ['DEVOLUC', 'DEV ', 'DEVOL'])
@@ -9200,7 +9211,7 @@ async def upload_xml_with_progress(
                     
                     logger.info(f"UPLOAD-STREAM DEVOLUÇÃO: Por finalidade: {is_devolucao_por_finalidade}, Por natureza: {is_devolucao_por_natureza}, Tem NFe Ref: {tem_nfe_referenciada}")
                     
-                    # IMPORTANTE: CFOPs na lista global SEMPRE são desconsiderados
+                    # IMPORTANTE: CFOPs na lista global são desconsiderados APENAS quando emitente é terceiro
                     is_devolucao_fornecedor = True
                     motivo_devolucao = f"NF de terceiro com CFOP de devolução/bonificação ({parsed_data.get('emitente_nome', '')[:40]}) - CFOP: {', '.join(cfops_unicos)}"
                     
@@ -9219,6 +9230,9 @@ async def upload_xml_with_progress(
                         "nfe_referenciada": nfe_ref_devolucao,
                         "motivo": motivo_devolucao
                     })
+                elif cfops_sao_entrada and is_devolucao_por_cfop and not is_emitente_terceiro:
+                    # Devolução emitida pela própria empresa - NÃO desconsiderar
+                    logger.info(f"UPLOAD-STREAM: NF {parsed_data.get('numero_nfe')} - Devolução PRÓPRIA (emitida pela empresa) - NÃO desconsiderar")
             elif tipo == 'saida' and modelo != '57' and xml_type != 'cte':
                 # Com classificação automática, se tipo='saida', a empresa é o emitente
                 # Apenas validar se os CFOPs são de saída ou entrada
