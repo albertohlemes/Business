@@ -7470,6 +7470,19 @@ async def upload_xml_batch(
                         logger.info(f"TERCEIRO ENTRADA: Preservando CFOP {cfop_original} do produto {product.get('descricao', '')[:30]} - será desconsiderado")
                     elif cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
                         produtos_operacao_distinta.append((product, cfop_original))
+                    elif is_cfop_transferencia(cfop_original):
+                        # TRANSFERÊNCIA: Converter diretamente SEM ir para alertas nem classificação IA
+                        cfop_convertido = CFOP_SAIDA_PARA_ENTRADA.get(cfop_original, cfop_original)
+                        product['cfop_original_emissor'] = cfop_original
+                        product['cfop'] = cfop_convertido
+                        product['categoria_classificada'] = 'transferencia'
+                        product['justificativa_ia'] = f'Transferência matriz-filial: {cfop_original} → {cfop_convertido}'
+                        cst_transferencia = '98'
+                        product['cst_pis'] = cst_transferencia
+                        product['cst_cofins'] = cst_transferencia
+                        product['cst_pis_calculado'] = cst_transferencia
+                        product['cst_cofins_calculado'] = cst_transferencia
+                        logger.info(f"UPLOAD TRANSFERÊNCIA: {cfop_original} → {cfop_convertido} (CST {cst_transferencia})")
                     else:
                         # IMPORTANTE: Preservar CFOP original do emissor ANTES de classificar
                         # Isso é necessário para detectar corretamente ST (5403, 6403, etc.)
@@ -9379,6 +9392,19 @@ async def upload_xml_with_progress(
                         logger.info(f"TERCEIRO ENTRADA: Preservando CFOP {cfop_original} do produto {product.get('descricao', '')[:30]} - será desconsiderado")
                     elif cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
                         produtos_operacao_distinta.append((product, cfop_original))
+                    elif is_cfop_transferencia(cfop_original):
+                        # TRANSFERÊNCIA: Converter diretamente SEM ir para alertas nem classificação IA
+                        cfop_convertido = CFOP_SAIDA_PARA_ENTRADA.get(cfop_original, cfop_original)
+                        product['cfop_original_emissor'] = cfop_original
+                        product['cfop'] = cfop_convertido
+                        product['categoria_classificada'] = 'transferencia'
+                        product['justificativa_ia'] = f'Transferência matriz-filial: {cfop_original} → {cfop_convertido}'
+                        cst_transferencia = '98'
+                        product['cst_pis'] = cst_transferencia
+                        product['cst_cofins'] = cst_transferencia
+                        product['cst_pis_calculado'] = cst_transferencia
+                        product['cst_cofins_calculado'] = cst_transferencia
+                        logger.info(f"UPLOAD TRANSFERÊNCIA: {cfop_original} → {cfop_convertido} (CST {cst_transferencia})")
                     else:
                         # IMPORTANTE: Preservar CFOP original do emissor ANTES de classificar
                         # Isso é necessário para detectar corretamente ST (5403, 6403, etc.)
