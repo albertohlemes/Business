@@ -4068,22 +4068,32 @@ def generate_sped_fiscal(
     for doc in documents:
         # Verificar primeiro CFOP para determinar operação corretamente
         # CFOPs iniciados em 1, 2, 3 = ENTRADA / CFOPs iniciados em 5, 6, 7 = SAÍDA
+        # IMPORTANTE: Para transferências recebidas, o CFOP original é de saída (5xxx/6xxx)
+        # mas o doc.tipo é 'entrada'. Precisamos usar doc.tipo como fonte primária.
         primeiro_cfop = ''
         if doc.produtos:
             primeiro_cfop = str(doc.produtos[0].get('cfop', '') or '')
         
         primeiro_digito_cfop = primeiro_cfop[0] if primeiro_cfop else ''
         
-        # Usar CFOP para determinar se é entrada ou saída (mais confiável que doc.tipo)
-        # Isso corrige o problema de devoluções de entrada emitidas pela própria empresa
-        if primeiro_digito_cfop in ['1', '2', '3']:
+        # USAR doc.tipo como fonte primária para determinar entrada/saída
+        # Isso corrige o problema de transferências onde o CFOP original é de saída
+        # mas o documento foi registrado como entrada na filial
+        if doc.tipo == 'entrada':
+            ind_oper = '0'  # Entrada
+            is_entrada = True
+        elif doc.tipo == 'saida':
+            ind_oper = '1'  # Saída
+            is_entrada = False
+        elif primeiro_digito_cfop in ['1', '2', '3']:
+            # Fallback: usar CFOP se doc.tipo não estiver definido
             ind_oper = '0'  # Entrada
             is_entrada = True
         elif primeiro_digito_cfop in ['5', '6', '7']:
             ind_oper = '1'  # Saída
             is_entrada = False
         else:
-            # Fallback para doc.tipo se não conseguir determinar pelo CFOP
+            # Último fallback
             ind_oper = '1' if doc.tipo == 'saida' else '0'
             is_entrada = doc.tipo != 'saida'
         
