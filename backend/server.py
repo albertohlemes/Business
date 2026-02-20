@@ -34738,24 +34738,24 @@ async def get_grupo_ret(
                     "icms": icms_saldo,
                     "pis": pis_presumido,
                     "cofins": cofins_presumido,
-                    "irpj": irpj_total,
-                    "csll": csll_devido,
-                    "total": icms_saldo + pis_presumido + cofins_presumido + irpj_total + csll_devido
+                    "irpj": irpj_presumido,
+                    "csll": csll_presumido,
+                    "total": icms_saldo + pis_presumido + cofins_presumido + irpj_presumido + csll_presumido
                 },
                 "real": {
                     "icms": icms_saldo,
                     "pis": pis_real,
                     "cofins": cofins_real,
-                    "irpj": irpj_total,
-                    "csll": csll_devido,
+                    "irpj": irpj_real,
+                    "csll": csll_real,
                     "pis_debitos": pis_debitos,
                     "cofins_debitos": cofins_debitos,
                     "pis_creditos": pis_creditos,
                     "cofins_creditos": cofins_creditos,
-                    "lucro_bruto": faturamento - total_compras,
-                    "despesa_informada": empresa.get("despesa_real", 0),
-                    "lucro_contabil": max(0, faturamento - total_compras - empresa.get("despesa_real", 0)),
-                    "total": icms_saldo + pis_real + cofins_real + irpj_total + csll_devido
+                    "lucro_bruto": lucro_bruto,
+                    "despesa_informada": despesa_real,
+                    "lucro_contabil": lucro_contabil,
+                    "total": icms_saldo + pis_real + cofins_real + irpj_real + csll_real
                 }
             }
             
