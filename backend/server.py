@@ -6979,18 +6979,8 @@ async def upload_xml_batch(
         '5934': 'Remessa simbólica de mercadoria depositada em armazém',
         '6933': 'Prestação de serviço tributado pelo ISSQN (interestadual)',
         '6934': 'Remessa simbólica de mercadoria depositada em armazém (interestadual)',
-        
-        # ===== TRANSFERÊNCIAS =====
-        '5151': 'Transferência de produção do estabelecimento',
-        '5152': 'Transferência de mercadoria adquirida',
-        '5153': 'Transferência de energia elétrica',
-        '5155': 'Transferência de produção com ST',
-        '5156': 'Transferência de mercadoria com ST',
-        '6151': 'Transferência de produção do estabelecimento (interestadual)',
-        '6152': 'Transferência de mercadoria adquirida (interestadual)',
-        '6153': 'Transferência de energia elétrica (interestadual)',
-        '6155': 'Transferência de produção com ST (interestadual)',
-        '6156': 'Transferência de mercadoria com ST (interestadual)',
+        # NOTA: CFOPs de TRANSFERÊNCIA (5151, 5152, etc.) foram REMOVIDOS daqui
+        # Eles são tratados separadamente via is_cfop_transferencia() para conversão direta
     }
     
     # ===== PRÉ-CARREGAR CACHE DE VENDAS (uma vez só, antes do loop) =====
@@ -8761,17 +8751,8 @@ async def upload_xml_with_progress(
         '5934': 'Remessa simbólica de mercadoria depositada em armazém',
         '6933': 'Prestação de serviço tributado pelo ISSQN (interestadual)',
         '6934': 'Remessa simbólica de mercadoria depositada em armazém (interestadual)',
-        # ===== TRANSFERÊNCIAS =====
-        '5151': 'Transferência de produção do estabelecimento',
-        '5152': 'Transferência de mercadoria adquirida',
-        '5153': 'Transferência de energia elétrica',
-        '5155': 'Transferência de produção com ST',
-        '5156': 'Transferência de mercadoria com ST',
-        '6151': 'Transferência de produção do estabelecimento (interestadual)',
-        '6152': 'Transferência de mercadoria adquirida (interestadual)',
-        '6153': 'Transferência de energia elétrica (interestadual)',
-        '6155': 'Transferência de produção com ST (interestadual)',
-        '6156': 'Transferência de mercadoria com ST (interestadual)',
+        # NOTA: CFOPs de TRANSFERÊNCIA (5151, 5152, etc.) foram REMOVIDOS daqui
+        # Eles são tratados separadamente via is_cfop_transferencia() para conversão direta
     }
     
     CFOP_SAIDA_PARA_ENTRADA = {
