@@ -42501,12 +42501,45 @@ async def aplicar_regras_piscofins(
         
         for idx, prod in enumerate(produtos):
             cfop = str(prod.get('cfop', ''))
+            cfop_original_emissor = str(prod.get('cfop_original_emissor', '') or cfop)
             ncm = str(prod.get('ncm', '')).replace('.', '').strip()
             
             if not ncm or len(ncm) < 4:
                 continue
             
             total_processados += 1
+            
+            # ==================================================================
+            # PRIORIDADE 0: CFOP DE TRANSFERÊNCIA (verificar original também)
+            # CFOPs de transferência NÃO geram crédito NEM débito
+            # CST: Entrada = 98, Saída = 49
+            # ==================================================================
+            if is_cfop_transferencia(cfop) or is_cfop_transferencia(cfop_original_emissor):
+                # Determinar CST correto baseado no tipo de documento
+                cst_esperado = '98' if is_entrada else '49'
+                cst_atual = str(prod.get('cst_pis', '')).zfill(2)
+                
+                # Converter CFOP se necessário (entrada com CFOP de saída)
+                cfop_correto = cfop
+                if is_entrada and cfop[0] in ['5', '6']:
+                    # Converter 5xxx -> 1xxx, 6xxx -> 2xxx
+                    cfop_correto = ('1' if cfop[0] == '5' else '2') + cfop[1:]
+                
+                if cst_atual != cst_esperado or cfop != cfop_correto:
+                    produtos[idx]['cfop_original_emissor'] = cfop_original_emissor if cfop_original_emissor != cfop else cfop
+                    produtos[idx]['cfop'] = cfop_correto
+                    produtos[idx]['cst_pis'] = cst_esperado
+                    produtos[idx]['cst_cofins'] = cst_esperado
+                    produtos[idx]['cst_pis_calculado'] = cst_esperado
+                    produtos[idx]['cst_cofins_calculado'] = cst_esperado
+                    produtos[idx]['cst_pis_anterior'] = cst_atual
+                    produtos[idx]['cst_origem'] = 'transferencia_matriz_filial'
+                    produtos[idx]['categoria_classificada'] = 'transferencia'
+                    produtos[idx]['pendente_revisao_cfop'] = False
+                    produtos[idx]['cst_atualizado_em'] = datetime.now(timezone.utc).isoformat()
+                    doc_alterado = True
+                    total_alterados += 1
+                continue  # Não aplica outras regras
             
             # PRIORIDADE 1: CFOP de exceção
             cfop_excecao = CFOPS_EXCECAO_SEM_CREDITO_DEBITO.get(cfop)
