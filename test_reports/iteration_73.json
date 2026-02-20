@@ -1,0 +1,77 @@
+{
+  "summary": "Bug fix validated: Transfer CFOPs (5152, 5409, etc.) are now correctly excluded from CFOP Alerts page. Added filter to alertas-cfop and alertas-cfop/agrupado endpoints to exclude transfer CFOPs. All backend tests pass (16/16). Frontend loads correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cfop_transferencia.py",
+    "/app/backend/tests/test_transferencia_alertas.py",
+    "/app/test_reports/pytest/pytest_cfop_transfer_bug.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix applied: Added is_cfop_transferencia() filter to alertas-cfop endpoint (line ~17170) to exclude transfer CFOPs",
+    "Fix applied: Added is_cfop_transferencia() filter to alertas-cfop/agrupado endpoint (line ~17286) to exclude transfer CFOPs",
+    "Verified: CFOPs de transferência were already correctly removed from CFOPS_OPERACOES_DISTINTAS_UPLOAD (both instances at lines 6866-6984 and 8654-8765)",
+    "Verified: calcular_cst_pis_cofins function returns CST 98 for entrada transfers and CST 49 for saída transfers",
+    "Verified: is_cfop_transferencia function correctly identifies all transfer CFOPs"
+  ],
+  "updated_files": [
+    "/app/backend/server.py (added filter to alertas-cfop endpoint at line 17170, and alertas-cfop/agrupado at line 17286)",
+    "/app/backend/tests/test_transferencia_alertas.py (new test file created)"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "alberto.lemes@businessconta.com.br",
+    "password": "@Ahl142536",
+    "empresa_teste": "ANZEN DISTRIBUIDORA DE ALIMENTOS LTDA.",
+    "empresa_id": "24e47135-2657-47d5-a112-cd2c06357370",
+    "competencia": "01/2026"
+  },
+  "seed_data_creation": "None - used existing company with transfer CFOPs in documents",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Transfer CFOPs bug fix complete. The issue was that documents uploaded BEFORE the fix still had pendente_revisao_cfop=True set for transfer CFOPs. The fix adds a filter in the alertas-cfop endpoints to exclude these CFOPs. Before fix: 48 alertas with 83 produtos pendentes (27 were transfer CFOPs). After fix: 37 alertas with 56 produtos pendentes (0 transfer CFOPs).",
+  "features_verified": {
+    "is_cfop_transferencia_function": {
+      "status": "PASSED",
+      "details": "All transfer CFOPs (5151, 5152, 5153, 5155, 5156, 5408, 5409, 6151, 6152, 6153, 6155, 6156, 6408, 6409, 1151, 1152, 1153, 1154, 1408, 1409, 2151, 2152, 2153, 2154, 2408, 2409) are correctly identified"
+    },
+    "calcular_cst_pis_cofins_function": {
+      "status": "PASSED",
+      "details": "Returns CST 98 for entrada transfers and CST 49 for saída transfers"
+    },
+    "alertas_cfop_endpoint": {
+      "status": "PASSED",
+      "details": "Transfer CFOPs (5152, 5409, etc.) are now excluded from the alertas list"
+    },
+    "alertas_cfop_agrupado_endpoint": {
+      "status": "PASSED", 
+      "details": "Transfer CFOPs are now excluded from the grouped alertas list"
+    },
+    "pis_cofins_page_loading": {
+      "status": "PASSED",
+      "details": "PIS/COFINS Validador page loads correctly with ANZEN company for competência 01/2026"
+    },
+    "login": {
+      "status": "PASSED",
+      "details": "Login works correctly with provided credentials"
+    }
+  },
+  "bug_fixed": {
+    "description": "Transfer CFOPs (5152, 5409, 6152, etc.) were incorrectly appearing in CFOP Alerts page because documents uploaded before the fix still had pendente_revisao_cfop=True",
+    "root_cause": "The alertas-cfop endpoint did not filter out transfer CFOPs from existing documents that were uploaded before CFOPs were removed from CFOPS_OPERACOES_DISTINTAS_UPLOAD",
+    "fix_applied": "Added is_cfop_transferencia() filter to both alertas-cfop endpoints to exclude transfer CFOPs even for documents with pendente_revisao_cfop=True",
+    "before_fix": "48 alertas, 83 produtos pendentes (27 were transfer CFOPs)",
+    "after_fix": "37 alertas, 56 produtos pendentes (0 transfer CFOPs)"
+  }
+}
