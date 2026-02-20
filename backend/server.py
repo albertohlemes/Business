@@ -17284,6 +17284,11 @@ async def alertas_cfop_agrupado_por_cfop(
                 cfop_original = str(prod.get('cfop_original_emissor', '') or cfop_raw)
                 natureza = prod.get('natureza_operacao_original', '')
                 
+                # IMPORTANTE: Excluir CFOPs de TRANSFERÊNCIA - eles não devem gerar alerta
+                # São operações entre matriz e filiais e devem ser convertidos diretamente
+                if is_cfop_transferencia(cfop_original) or is_cfop_transferencia(cfop_raw):
+                    continue  # Pular CFOPs de transferência
+                
                 # CORREÇÃO: Se o CFOP armazenado ainda é de saída, converter para entrada
                 if cfop_raw.startswith('5') or cfop_raw.startswith('6'):
                     cfop_atual = CFOP_SAIDA_PARA_ENTRADA_ALERTAS.get(cfop_raw, cfop_raw.replace('5', '1', 1).replace('6', '2', 1))
