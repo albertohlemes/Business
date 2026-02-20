@@ -1474,6 +1474,7 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                 try:
                     ncm = str(prod.get('ncm', '')).replace('.', '')
                     cfop = str(prod.get('cfop', ''))
+                    cfop_original_emissor = str(prod.get('cfop_original_emissor', '') or cfop)
                     
                     # Tratamento robusto de valores numéricos
                     valor_total_raw = prod.get('valor_total', 0)
@@ -1491,10 +1492,11 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                 
                 # ==========================================================
                 # VERIFICAR SE É CFOP DE TRANSFERÊNCIA (MATRIZ-FILIAL)
+                # IMPORTANTE: Verificar TANTO o CFOP armazenado QUANTO o original do emissor
                 # CFOPs de transferência NÃO geram crédito NEM débito de PIS/COFINS
                 # O imposto federal é centralizado na matriz
                 # ==========================================================
-                if is_cfop_transferencia(cfop):
+                if is_cfop_transferencia(cfop) or is_cfop_transferencia(cfop_original_emissor):
                     # Transferência não entra na base de cálculo
                     totais['desconsiderados_credito'] += valor_total if tipo_operacao == 'entrada' else Decimal('0')
                     totais['desconsiderados_debito'] += valor_total if tipo_operacao == 'saida' else Decimal('0')
