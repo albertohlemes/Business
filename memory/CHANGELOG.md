@@ -1,23 +1,43 @@
 # Changelog - Aurion Fiscal
 
-## [19/02/2026] - Correção Bug Recorrente CFOPs de Transferência
+## [19/02/2026] - Correção Completa Bug CFOPs de Transferência
 
 ### Corrigido
-- **BUG CRÍTICO RECORRENTE**: CFOPs de transferência (5151, 5152, 5153, 5155, 5156, 5408, 5409, 6151, 6152, 6153, 6155, 6156, 6408, 6409) estavam sendo enviados para a tela de "Alertas de CFOP"
-  - **Causa Raiz**: CFOPs de transferência estavam incluídos nas listas `CFOPS_OPERACOES_DISTINTAS_UPLOAD` em duas localizações no server.py (linhas ~6983 e ~8764), fazendo com que fossem tratados como "operações distintas" em vez de serem processados diretamente via `is_cfop_transferencia()`
-  - **Solução Parte 1**: Removidos TODOS os CFOPs de transferência de AMBAS as listas `CFOPS_OPERACOES_DISTINTAS_UPLOAD`
-  - **Solução Parte 2**: Adicionado filtro `is_cfop_transferencia()` nos endpoints `alertas-cfop` (linha 17174) e `alertas-cfop/agrupado` (linha 17289) para excluir CFOPs de transferência de documentos já importados
-  - **Resultado**: Antes: 83 produtos pendentes (27 eram transferência). Depois: 56 produtos pendentes (0 transferência)
-  - **Arquivos modificados**: `server.py` linhas 6978-6984, 8760-8765, 17172-17175, 17287-17290
+- **BUG CRÍTICO RECORRENTE**: CFOPs de transferência (5152, 5409, etc.) estavam gerando débitos/créditos indevidamente e aparecendo em alertas
+
+**Causa Raiz Identificada:**
+1. CFOPs de transferência estavam incluídos nas listas `CFOPS_OPERACOES_DISTINTAS_UPLOAD`
+2. CFOPs de transferência de SAÍDA (5152, 5409) **NÃO** estavam nas listas `CFOPS_SEM_DEBITO` do serviço `pis_cofins_calculator.py`
+3. CFOPs de transferência de ENTRADA (1152, 1409) **NÃO** estavam nas listas `CFOPS_SEM_CREDITO`
+4. A verificação do `cfop_original_emissor` não era considerada em vários pontos do código
+
+**Correções Aplicadas:**
+1. Removidos CFOPs de transferência de AMBAS as listas `CFOPS_OPERACOES_DISTINTAS_UPLOAD` no `server.py`
+2. Adicionados TODOS os CFOPs de transferência de SAÍDA em `CFOPS_SEM_DEBITO` no `pis_cofins_calculator.py`
+3. Adicionados TODOS os CFOPs de transferência de ENTRADA em `CFOPS_SEM_CREDITO` no `pis_cofins_calculator.py`
+4. Modificada a função `calcular_pis_cofins_unificado` para verificar `cfop_original_emissor` além do `cfop`
+5. Modificada a função `calcular_pis_cofins_por_cst` para verificar `cfop_original_emissor` além do `cfop`
+6. Adicionado filtro `is_cfop_transferencia()` nos endpoints `alertas-cfop`
+7. Modificado o endpoint `aplicar-regras` (Rever CST) para:
+   - Verificar CFOPs de transferência como PRIORIDADE ZERO
+   - Converter CFOP de saída para entrada quando necessário (5152 → 1152)
+   - Atribuir CST correto (98 para entrada, 49 para saída)
+   - Marcar categoria como 'transferencia'
+   - Remover flag `pendente_revisao_cfop`
+
+**Arquivos modificados:**
+- `/app/backend/server.py` (múltiplas linhas)
+- `/app/backend/services/pis_cofins_calculator.py` (linhas 291-387)
+
+**IMPORTANTE - Para corrigir dados existentes:**
+O usuário deve clicar no botão "Rever CST" / "Aplicar Regras" na página de validação PIS/COFINS. Isso irá:
+1. Converter CFOPs de transferência de saída para entrada (5152 → 1152)
+2. Atribuir CST 98 para entradas e 49 para saídas
+3. Remover os alertas de CFOP pendentes
 
 ### Adicionado
 - Testes unitários em `/app/backend/tests/test_cfop_transferencia.py` (9 testes)
 - Testes de API em `/app/backend/tests/test_transferencia_alertas.py` (7 testes)
-
-### Verificado
-- Função `is_cfop_transferencia()` identifica corretamente todos os CFOPs de transferência
-- Função `calcular_cst_pis_cofins()` retorna CST 98 para entradas e CST 49 para saídas de transferência
-- Endpoints de alertas não retornam mais CFOPs de transferência
 
 ---
 
