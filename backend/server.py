@@ -42371,6 +42371,19 @@ CFOPS_EXCECAO_SEM_CREDITO_DEBITO = {
     '2910': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Entrada de bonificação interestadual'},
     '2556': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Compra uso/consumo interestadual'},
     '2949': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Outra entrada interestadual'},
+    # TRANSFERÊNCIAS - Entradas (CST 98 - sem crédito)
+    '1151': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Transferência p/ industrialização'},
+    '1152': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Transferência p/ comercialização'},
+    '1153': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Transferência de energia elétrica'},
+    '1154': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Transferência p/ prestação de serviço'},
+    '1408': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Transferência p/ industrialização (ST)'},
+    '1409': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Transferência p/ comercialização (ST)'},
+    '2151': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Transferência p/ industrialização interestadual'},
+    '2152': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Transferência p/ comercialização interestadual'},
+    '2153': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Transferência de energia elétrica interestadual'},
+    '2154': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Transferência p/ prestação de serviço interestadual'},
+    '2408': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Transferência p/ industrialização (ST) interestadual'},
+    '2409': {'tipo': 'entrada', 'cst_esperado': '98', 'descricao': 'Transferência p/ comercialização (ST) interestadual'},
     # Saídas sem débito
     '5910': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Saída de bonificação'},
     '5949': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Outra saída'},
@@ -42384,6 +42397,21 @@ CFOPS_EXCECAO_SEM_CREDITO_DEBITO = {
     '6911': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Remessa demonstração interestadual'},
     '6918': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Devolução vasilhame interestadual'},
     '6920': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Saída vasilhame interestadual'},
+    # TRANSFERÊNCIAS - Saídas (CST 49 - sem débito)
+    '5151': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência p/ industrialização'},
+    '5152': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência p/ comercialização'},
+    '5153': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência de energia elétrica'},
+    '5155': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência produção p/ industrialização'},
+    '5156': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência mercadoria de terceiros'},
+    '5408': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência p/ industrialização (ST)'},
+    '5409': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência p/ comercialização (ST)'},
+    '6151': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência p/ industrialização interestadual'},
+    '6152': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência p/ comercialização interestadual'},
+    '6153': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência de energia elétrica interestadual'},
+    '6155': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência produção p/ industrialização interestadual'},
+    '6156': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência mercadoria de terceiros interestadual'},
+    '6408': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência p/ industrialização (ST) interestadual'},
+    '6409': {'tipo': 'saida', 'cst_esperado': '49', 'descricao': 'Transferência p/ comercialização (ST) interestadual'},
 }
 
 
