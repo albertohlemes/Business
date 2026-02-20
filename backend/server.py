@@ -34694,23 +34694,27 @@ async def get_grupo_ret(
             regime = empresa.get("regime_tributario", "lucro_presumido")
             tipo_atividade = empresa.get("tipo_atividade", "comercio")
             
-            if regime == "lucro_presumido":
-                perc_irpj = empresa.get("percentual_presuncao_irpj", 8.0)
-                perc_csll = empresa.get("percentual_presuncao_csll", 12.0)
-                if tipo_atividade == "servicos":
-                    perc_irpj = empresa.get("percentual_presuncao_servicos_irpj", 32.0)
-                    perc_csll = empresa.get("percentual_presuncao_servicos_csll", 32.0)
+            # Percentuais para LUCRO PRESUMIDO
+            if tipo_atividade == "servicos":
+                perc_irpj_presumido = empresa.get("percentual_presuncao_servicos_irpj", 32.0)
+                perc_csll_presumido = empresa.get("percentual_presuncao_servicos_csll", 32.0)
             else:
-                # Lucro Real usa percentuais específicos
-                perc_irpj = empresa.get("percentual_presuncao_irpj", 8.0)
-                perc_csll = empresa.get("percentual_presuncao_csll", 12.0)
+                perc_irpj_presumido = empresa.get("percentual_presuncao_irpj", 8.0)
+                perc_csll_presumido = empresa.get("percentual_presuncao_csll", 12.0)
             
-            base_irpj = faturamento * (perc_irpj / 100)
-            base_csll = faturamento * (perc_csll / 100)
-            irpj_devido = base_irpj * 0.15
-            irpj_adicional = max(0, (base_irpj - 20000) * 0.10)
-            irpj_total = irpj_devido + irpj_adicional
-            csll_devido = base_csll * 0.09
+            base_irpj_presumido = faturamento * (perc_irpj_presumido / 100)
+            base_csll_presumido = faturamento * (perc_csll_presumido / 100)
+            irpj_presumido = base_irpj_presumido * 0.15 + max(0, (base_irpj_presumido - 20000) * 0.10)
+            csll_presumido = base_csll_presumido * 0.09
+            
+            # IRPJ/CSLL para LUCRO REAL - Baseado no lucro contábil (lucro bruto - despesas)
+            lucro_bruto = faturamento - total_compras
+            despesa_real = float(empresa.get("despesa_real", 0) or 0)
+            lucro_contabil = max(0, lucro_bruto - despesa_real)
+            
+            # No Lucro Real, IRPJ e CSLL incidem sobre o lucro contábil
+            irpj_real = lucro_contabil * 0.15 + max(0, (lucro_contabil - 20000) * 0.10)
+            csll_real = lucro_contabil * 0.09
             
             # Presumido (cumulativo)
             pis_presumido = faturamento * 0.0065
