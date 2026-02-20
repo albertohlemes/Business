@@ -34548,16 +34548,49 @@ async def get_impostos_grupo(
         resultado["consolidado"]["total_federal"] += empresa_dados["total_federal"]
         resultado["consolidado"]["faturamento"] += faturamento
     
-    # Arredondar consolidado
-    for key in ["pis", "cofins", "icms"]:
-        for subkey in resultado["consolidado"][key]:
-            resultado["consolidado"][key][subkey] = round(resultado["consolidado"][key][subkey], 2)
+    # =========================================================================
+    # RECALCULAR CONSOLIDADO COM COMPENSAÇÃO DE CRÉDITOS/DÉBITOS
+    # PIS/COFINS: Soma total de créditos, soma total de débitos, depois calcula saldo
+    # Isso permite que um saldo credor compense um saldo devedor
+    # =========================================================================
+    
+    # Arredondar consolidado - indicadores, IRPJ, CSLL
+    for subkey in resultado["consolidado"]["indicadores"]:
+        resultado["consolidado"]["indicadores"][subkey] = round(resultado["consolidado"]["indicadores"][subkey], 2)
     for key in ["irpj", "csll"]:
         for subkey in resultado["consolidado"][key]:
             resultado["consolidado"][key][subkey] = round(resultado["consolidado"][key][subkey], 2)
-    for subkey in resultado["consolidado"]["indicadores"]:
-        resultado["consolidado"]["indicadores"][subkey] = round(resultado["consolidado"]["indicadores"][subkey], 2)
-    resultado["consolidado"]["total_federal"] = round(resultado["consolidado"]["total_federal"], 2)
+    
+    # PIS/COFINS - Recalcular saldo consolidado (débito - crédito)
+    for imposto in ["pis", "cofins"]:
+        credito_total = round(resultado["consolidado"][imposto]["credito"], 2)
+        debito_total = round(resultado["consolidado"][imposto]["debito"], 2)
+        saldo = debito_total - credito_total  # Positivo = a pagar, Negativo = a recuperar
+        resultado["consolidado"][imposto]["credito"] = credito_total
+        resultado["consolidado"][imposto]["debito"] = debito_total
+        resultado["consolidado"][imposto]["saldo"] = round(saldo, 2)
+        resultado["consolidado"][imposto]["a_pagar"] = round(max(0, saldo), 2)
+        resultado["consolidado"][imposto]["a_recuperar"] = round(max(0, -saldo), 2)
+    
+    # ICMS - Recalcular saldo consolidado (débito - crédito)
+    icms_credito = round(resultado["consolidado"]["icms"]["credito"], 2)
+    icms_debito = round(resultado["consolidado"]["icms"]["debito"], 2)
+    icms_saldo = icms_debito - icms_credito
+    resultado["consolidado"]["icms"]["credito"] = icms_credito
+    resultado["consolidado"]["icms"]["debito"] = icms_debito
+    resultado["consolidado"]["icms"]["saldo"] = round(icms_saldo, 2)
+    resultado["consolidado"]["icms"]["a_pagar"] = round(max(0, icms_saldo), 2)
+    resultado["consolidado"]["icms"]["a_recuperar"] = round(max(0, -icms_saldo), 2)
+    
+    # Total federal consolidado (apenas valores a pagar)
+    resultado["consolidado"]["total_federal"] = round(
+        resultado["consolidado"]["pis"]["a_pagar"] +
+        resultado["consolidado"]["cofins"]["a_pagar"] +
+        resultado["consolidado"]["irpj"]["total"] +
+        resultado["consolidado"]["csll"]["devido"],
+        2
+    )
+    resultado["consolidado"]["faturamento"] = round(resultado["consolidado"]["faturamento"], 2)
     resultado["consolidado"]["faturamento"] = round(resultado["consolidado"]["faturamento"], 2)
     
     # Calcular percentual
