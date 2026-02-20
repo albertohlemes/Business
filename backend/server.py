@@ -34360,26 +34360,60 @@ async def get_impostos_grupo(
             **get_filtro_notas_ativas()
         }, {"valor_total": 1, "produtos": 1}).to_list(15000)
         
-        # Calcular indicadores
-        total_entradas = sum(float(d.get("valor_total", 0) or 0) for d in notas_entrada)
-        total_saidas = sum(float(d.get("valor_total", 0) or 0) for d in notas_saida)
+        # Calcular indicadores - DESCONTANDO TRANSFERÊNCIAS INTERCOMPANY
+        total_entradas = 0
+        total_entradas_transferencia = 0
+        for doc in notas_entrada:
+            valor_doc = float(doc.get("valor_total", 0) or 0)
+            # Verificar se é transferência de outra empresa do grupo
+            emitente_cnpj = str(doc.get("emitente_cnpj", "") or "").replace(".", "").replace("/", "").replace("-", "")
+            if emitente_cnpj[:8] in cnpjs_grupo:
+                total_entradas_transferencia += valor_doc
+            else:
+                total_entradas += valor_doc
+        
+        total_saidas = 0
+        total_saidas_transferencia = 0
+        for doc in notas_saida:
+            valor_doc = float(doc.get("valor_total", 0) or 0)
+            # Verificar se é transferência para outra empresa do grupo
+            dest_cnpj = str(doc.get("destinatario_cnpj", "") or "").replace(".", "").replace("/", "").replace("-", "")
+            if dest_cnpj[:8] in cnpjs_grupo:
+                total_saidas_transferencia += valor_doc
+            else:
+                total_saidas += valor_doc
         
         # Compras = entradas de revenda/insumos (CFOPs 1xxx, 2xxx para aquisição)
+        # DESCONTANDO transferências intercompany
         total_compras = 0
         for doc in notas_entrada:
+            emitente_cnpj = str(doc.get("emitente_cnpj", "") or "").replace(".", "").replace("/", "").replace("-", "")
+            is_intercompany = emitente_cnpj[:8] in cnpjs_grupo
+            
             for prod in doc.get("produtos", []):
                 cfop = str(prod.get("cfop", ""))
+                # Ignorar se for transferência intercompany
+                if is_intercompany or is_cfop_transferencia(cfop):
+                    continue
                 if cfop[:2] in ["11", "12", "21", "22", "31"]:  # Compras
                     total_compras += float(prod.get("valor_total", 0) or 0)
         
         # Vendas = saídas de venda (CFOPs 5xxx, 6xxx de venda)
+        # DESCONTANDO transferências intercompany
         total_vendas = 0
         for doc in notas_saida:
+            dest_cnpj = str(doc.get("destinatario_cnpj", "") or "").replace(".", "").replace("/", "").replace("-", "")
+            is_intercompany = dest_cnpj[:8] in cnpjs_grupo
+            
             for prod in doc.get("produtos", []):
                 cfop = str(prod.get("cfop", ""))
+                # Ignorar se for transferência intercompany
+                if is_intercompany or is_cfop_transferencia(cfop):
+                    continue
                 if cfop[:2] in ["51", "52", "61", "62", "71"]:  # Vendas
                     total_vendas += float(prod.get("valor_total", 0) or 0)
         
+        # Faturamento para cálculo de impostos (sem transferências)
         faturamento = total_saidas
         
         # Calcular ICMS de cada empresa
