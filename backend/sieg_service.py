@@ -106,8 +106,11 @@ async def get_sieg_jwt_token() -> Optional[str]:
     return None
 
 
-def build_sieg_url(endpoint: str, api_key: str = None) -> str:
-    """Constrói URL base do SIEG (sem api_key, usamos JWT agora)"""
+def build_sieg_url(endpoint: str) -> str:
+    """Constrói URL do SIEG com API Key no query parameter (para endpoints legados)"""
+    api_key = get_sieg_api_key()
+    if api_key:
+        return f"{SIEG_API_BASE}/{endpoint}?api_key={api_key}"
     return f"{SIEG_API_BASE}/{endpoint}"
 
 
