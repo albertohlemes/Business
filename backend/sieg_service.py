@@ -214,20 +214,14 @@ async def count_xmls_sieg(
     """
     Conta quantos XMLs estão disponíveis no SIEG para o CNPJ e competência
     """
-    if not api_key:
-        api_key = get_sieg_api_key()
-    
-    if not api_key:
-        raise ValueError("SIEG API Key não configurada")
-    
     # Limpar CNPJ
     cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
     
     # Obter datas da competência
     data_inicio, data_fim = get_competencia_dates(competencia)
     
-    # Obter headers (inclui JWT se disponível)
-    headers = await get_sieg_headers(api_key)
+    # Obter headers com token JWT
+    headers = await get_sieg_headers()
     
     # Request para contar XMLs
     payload = {
@@ -240,7 +234,7 @@ async def count_xmls_sieg(
         # Contar notas de entrada
         try:
             response_entrada = await client.post(
-                build_sieg_url("ContarXmls", api_key),
+                build_sieg_url("ContarXmls"),
                 headers=headers,
                 json=payload
             )
