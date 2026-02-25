@@ -208,11 +208,22 @@ async def count_xmls_sieg(
             response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
             
             if response.status_code == 200:
-                data = response.json()
+                # Double decode - SIEG retorna JSON stringificado
+                raw_data = response.text
+                data = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
+                if isinstance(data, str):
+                    data = json.loads(data)
+                    
                 if isinstance(data, list):
                     results["entrada"]["count"] = len(data)
+                elif isinstance(data, dict) and "Message" in data:
+                    # Mensagem de erro como "Nenhum arquivo localizado"
+                    results["entrada"]["count"] = 0
                 else:
                     results["entrada"]["count"] = 0
+            elif response.status_code == 404:
+                # 404 significa nenhum arquivo encontrado
+                results["entrada"]["count"] = 0
             else:
                 results["entrada"]["error"] = response.text[:200]
                 
