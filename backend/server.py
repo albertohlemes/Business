@@ -34833,6 +34833,45 @@ async def get_grupo_ret(
             if not empresa:
                 continue
             
+            # ============================================================
+            # BUSCAR SALDO CREDOR ANTERIOR
+            # ============================================================
+            saldo_credor_ant = {"pis": 0.0, "cofins": 0.0, "icms": 0.0, "ipi": 0.0}
+            try:
+                mes, ano = competencia.split('/')
+                mes_int = int(mes)
+                ano_int = int(ano)
+                if mes_int == 1:
+                    comp_anterior = f"12/{ano_int - 1}"
+                else:
+                    comp_anterior = f"{mes_int - 1:02d}/{ano_int}"
+                
+                competencia_inicial = empresa.get('competencia_saldo_inicial', '')
+                possui_saldo_credor = empresa.get('possui_saldo_credor', False)
+                
+                if competencia == competencia_inicial and possui_saldo_credor:
+                    saldo_credor_ant = {
+                        "pis": empresa.get('saldo_credor_pis', 0) or 0,
+                        "cofins": empresa.get('saldo_credor_cofins', 0) or 0,
+                        "icms": empresa.get('saldo_credor_icms', 0) or 0,
+                        "ipi": empresa.get('saldo_credor_ipi', 0) or 0
+                    }
+                else:
+                    saldo_ant_db = await db.saldos_credores.find_one({
+                        "company_id": empresa_id,
+                        "competencia": comp_anterior
+                    })
+                    if saldo_ant_db:
+                        saldo_transportar = saldo_ant_db.get('saldo_a_transportar', {})
+                        saldo_credor_ant = {
+                            "pis": saldo_transportar.get('pis', 0) or 0,
+                            "cofins": saldo_transportar.get('cofins', 0) or 0,
+                            "icms": saldo_transportar.get('icms', 0) or 0,
+                            "ipi": saldo_transportar.get('ipi', 0) or 0
+                        }
+            except Exception as e:
+                logger.warning(f"RET: Erro ao buscar saldo credor anterior: {e}")
+            
             # Calcular dados RET diretamente
             pis_cofins = await calcular_pis_cofins_unificado(empresa_id, competencia, empresa)
             
@@ -34853,21 +34892,26 @@ async def get_grupo_ret(
             faturamento = sum(float(d.get("valor_total", 0) or 0) for d in notas_saida)
             total_compras = sum(float(d.get("valor_total", 0) or 0) for d in notas_entrada)
             
-            # ICMS
+            # ICMS - COM saldo anterior
             icms_credito = sum(float(p.get("v_icms", 0) or p.get("valor_icms", 0) or 0) 
-                             for d in notas_entrada for p in d.get("produtos", []))
+                             for d in notas_entrada for p in d.get("produtos", [])
+                             if not is_cfop_transferencia(str(p.get("cfop", ""))))
             icms_debito = sum(float(p.get("v_icms", 0) or p.get("valor_icms", 0) or 0) 
-                            for d in notas_saida for p in d.get("produtos", []))
-            icms_saldo = max(0, icms_debito - icms_credito)
+                            for d in notas_saida for p in d.get("produtos", [])
+                            if not is_cfop_transferencia(str(p.get("cfop", ""))))
+            icms_saldo_antes = icms_debito - icms_credito
+            icms_saldo = max(0, icms_saldo_antes - saldo_credor_ant['icms'])
             
             pis_creditos = float(pis_cofins.get("pis_creditos", 0) or 0)
             cofins_creditos = float(pis_cofins.get("cofins_creditos", 0) or 0)
             pis_debitos = float(pis_cofins.get("pis_debitos", 0) or 0)
             cofins_debitos = float(pis_cofins.get("cofins_debitos", 0) or 0)
             
-            # Lucro Real - PIS/COFINS é débito - crédito (pode ser negativo = credor)
-            pis_real = max(0, pis_debitos - pis_creditos)
-            cofins_real = max(0, cofins_debitos - cofins_creditos)
+            # Lucro Real - PIS/COFINS é débito - crédito - saldo_anterior (pode ser negativo = credor)
+            pis_saldo_antes = pis_debitos - pis_creditos
+            cofins_saldo_antes = cofins_debitos - cofins_creditos
+            pis_real = max(0, pis_saldo_antes - saldo_credor_ant['pis'])
+            cofins_real = max(0, cofins_saldo_antes - saldo_credor_ant['cofins'])
             
             # IRPJ/CSLL baseado no regime tributário da empresa
             regime = empresa.get("regime_tributario", "lucro_presumido")
