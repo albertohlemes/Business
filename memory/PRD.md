@@ -151,9 +151,15 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 ```
 
 ## Changelog
+- **25/02/2026**: **NOVO** - Painel de Monitoramento da Integração SIEG implementado. Inclui página /sieg-monitor com 4 abas (Visão Geral, Empresas, Histórico, Cancelados), job agendado via APScheduler para sync diário às 06:00, configuração de sync por empresa, e autenticação OAuth2/JWT com a API do SIEG.
 - **26/06/2026**: **CORREÇÃO CRÍTICA** - Transporte de saldos credores entre competências agora funciona corretamente em todos os endpoints (Dashboard, Apuração ICMS, PIS/COFINS, RET, Reforma Tributária). Saldos são salvos na collection `saldos_credores` e transportados para o mês seguinte.
 - **19/02/2026**: Bug de CFOPs de transferência corrigido
 - **18/02/2026**: Adicionado Markup, impostos individualizados com badges CREDOR/DEVEDOR
 - **18/02/2026**: Implementada página "Grupo Consolidado" com 6 abas
 - **17/02/2026**: Corrigido bug no cálculo do Lucro Presumido hipotético
 - **16/02/2026**: Backend Matriz-Filial: exclusão de CFOPs de transferência dos cálculos
+
+## Credenciais SIEG (configuradas em backend/.env)
+- `SIEG_CLIENT_ID`: aurion_nucleo_de_inteligencia_operacional_7e590204e5c5
+- `SIEG_CLIENT_SECRET`: ************ (configurado)
+- `SIEG_API_KEY`: ************ (configurado)
