@@ -33,7 +33,12 @@ _jwt_token_cache = {
 
 def get_sieg_api_key() -> str:
     """Obtém a API Key do SIEG (para endpoints legados)"""
-    return os.environ.get('SIEG_API_KEY', '')
+    from urllib.parse import unquote
+    api_key = os.environ.get('SIEG_API_KEY', '')
+    # Se a chave estiver URL-encoded, decodificar
+    if '%' in api_key:
+        api_key = unquote(api_key)
+    return api_key
 
 
 def get_sieg_credentials() -> tuple:
