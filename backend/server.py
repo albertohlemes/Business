@@ -34065,47 +34065,9 @@ async def get_fechamento_mensal(
     total_saidas = sum(float(d.get('valor_total', 0) or 0) for d in saidas)
     
     # ============================================================
-    # BUSCAR SALDO CREDOR ANTERIOR (para descontar do imposto a pagar)
+    # BUSCAR SALDOS CREDORES ANTERIORES (função centralizada)
     # ============================================================
-    saldo_credor_anterior = {
-        "pis": 0.0, "cofins": 0.0, "icms": 0.0, "ipi": 0.0
-    }
-    
-    try:
-        mes, ano = competencia.split('/')
-        mes_int = int(mes)
-        ano_int = int(ano)
-        if mes_int == 1:
-            comp_anterior = f"12/{ano_int - 1}"
-        else:
-            comp_anterior = f"{mes_int - 1:02d}/{ano_int}"
-        
-        # Verificar se é a competência inicial
-        competencia_inicial = company.get('competencia_saldo_inicial', '')
-        possui_saldo_credor = company.get('possui_saldo_credor', False)
-        
-        if competencia == competencia_inicial and possui_saldo_credor:
-            saldo_credor_anterior = {
-                "pis": company.get('saldo_credor_pis', 0) or 0,
-                "cofins": company.get('saldo_credor_cofins', 0) or 0,
-                "icms": company.get('saldo_credor_icms', 0) or 0,
-                "ipi": company.get('saldo_credor_ipi', 0) or 0
-            }
-        else:
-            saldo_anterior_db = await db.saldos_credores.find_one({
-                "company_id": company_id,
-                "competencia": comp_anterior
-            })
-            if saldo_anterior_db:
-                saldo_transportar = saldo_anterior_db.get('saldo_a_transportar', {})
-                saldo_credor_anterior = {
-                    "pis": saldo_transportar.get('pis', 0) or 0,
-                    "cofins": saldo_transportar.get('cofins', 0) or 0,
-                    "icms": saldo_transportar.get('icms', 0) or 0,
-                    "ipi": saldo_transportar.get('ipi', 0) or 0
-                }
-    except Exception as e:
-        logger.warning(f"Erro ao buscar saldo credor anterior: {e}")
+    saldo_credor_anterior = await buscar_saldos_credores_anteriores(company_id, competencia, company)
     
     # Calcular ICMS (com saldo credor anterior)
     icms_debito = 0
