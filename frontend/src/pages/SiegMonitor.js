@@ -603,62 +603,8 @@ const SiegMonitor = ({ user, onLogout }) => {
         )}
           </>
         )}
-                      {cancelados.map((doc, idx) => (
-                        <tr key={idx} className="hover:bg-[#1A1A1A] transition-colors">
-                          <td className="px-4 py-3">
-                            <div>
-                              <p className="text-white text-sm">{doc.numero_nfe || '-'}</p>
-                              <p className="text-[#666] text-xs truncate max-w-[200px]">{doc.chave_acesso}</p>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-white text-sm">{doc.emitente?.razao_social || '-'}</td>
-                          <td className="px-4 py-3 text-[#A1A1AA] text-sm">
-                            {doc.data_emissao ? new Date(doc.data_emissao).toLocaleDateString('pt-BR') : '-'}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
-                              <FileX className="w-3 h-3" />
-                              {doc.situacao || 'Cancelada'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right text-white">
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(doc.valor_total || 0)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  
-                  {cancelados.length === 0 && (
-                    <div className="p-8 text-center text-[#A1A1AA]">
-                      <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
-                      <p className="text-white font-medium">Nenhuma nota cancelada</p>
-                      <p className="text-[#A1A1AA] text-sm mt-1">
-                        Todas as notas desta empresa estão ativas
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-8 text-center">
-                <FileX className="w-12 h-12 text-[#A1A1AA] mx-auto mb-4" />
-                <p className="text-white font-medium mb-2">Selecione uma empresa</p>
-                <p className="text-[#A1A1AA] text-sm mb-4">
-                  Clique no botão de histórico de uma empresa na aba "Empresas" para ver notas canceladas
-                </p>
-                <button
-                  onClick={() => setActiveTab('empresas')}
-                  className="px-4 py-2 bg-[#C8A951] text-black rounded-lg font-medium hover:bg-[#D4B962] transition-all"
-                >
-                  Ver Empresas
-                </button>
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* Config Modal */}
+        {/* Config Modal - Ainda útil para editar via modal se necessário */}
         {configModal && selectedEmpresa && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setConfigModal(false)}>
             <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6 w-full max-w-md m-4" onClick={e => e.stopPropagation()}>
