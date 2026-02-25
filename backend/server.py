@@ -43962,26 +43962,3 @@ async def startup_event():
         logger.info("[STARTUP] Scheduler SIEG iniciado com sucesso")
     except Exception as e:
         logger.error(f"[STARTUP] Erro ao iniciar scheduler: {e}")
-
-
-@api_router.get("/sieg/scheduler-status")
-async def sieg_scheduler_status(current_user: User = Depends(get_current_user)):
-    """
-    Retorna o status do scheduler de sincronização SIEG
-    """
-    return get_scheduler_status()
-
-
-@api_router.post("/sieg/run-sync-now")
-async def sieg_run_sync_now(
-    background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Executa sincronização de todas as empresas imediatamente (admin only)
-    """
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Apenas administradores podem executar sync manual em massa")
-    
-    background_tasks.add_task(run_sync_now)
-    return {"success": True, "message": "Sincronização iniciada em background"}
