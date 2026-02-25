@@ -34,6 +34,11 @@ const SiegMonitor = ({ user, onLogout }) => {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  
+  // NOVO: Estado para configuração de horários globais
+  const [configHorarios, setConfigHorarios] = useState(null);
+  const [horarioModal, setHorarioModal] = useState(false);
+  const [novoHorario, setNovoHorario] = useState('03:00');
 
   // Buscar dados do painel geral
   const fetchPainelGeral = useCallback(async () => {
