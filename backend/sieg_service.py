@@ -282,6 +282,10 @@ async def download_xmls_sieg(
     }
     
     async with httpx.AsyncClient(timeout=60.0) as client:
+        # Usar API Key diretamente no URL (funciona melhor)
+        api_key = api_key or get_sieg_api_key()
+        base_url = f"{SIEG_API_BASE}/BaixarXmls?api_key={api_key}"
+        
         for xml_type in xml_types:
             xml_type_code = XML_TYPES.get(xml_type.lower(), 1)
             
@@ -290,8 +294,8 @@ async def download_xmls_sieg(
                 "XmlType": xml_type_code,
                 "Take": take,
                 "Skip": skip,
-                "DataEmissaoInicio": data_inicio.isoformat(),
-                "DataEmissaoFim": data_fim.isoformat(),
+                "DataEmissaoInicio": data_inicio.strftime("%Y-%m-%d"),
+                "DataEmissaoFim": data_fim.strftime("%Y-%m-%d"),
                 "Downloadevent": False
             }
             
@@ -304,8 +308,8 @@ async def download_xmls_sieg(
             
             try:
                 response = await client.post(
-                    build_sieg_url("BaixarXmls"),
-                    headers=headers,
+                    base_url,
+                    headers={"Content-Type": "application/json"},
                     json=payload
                 )
                 
