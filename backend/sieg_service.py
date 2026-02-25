@@ -300,9 +300,6 @@ async def download_xmls_sieg(
     if not xml_types:
         xml_types = ["nfe"]
     
-    # Obter headers com token JWT
-    headers = await get_sieg_headers()
-    
     all_xmls = []
     stats = {
         "total_encontrados": 0,
