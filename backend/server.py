@@ -31354,6 +31354,94 @@ async def update_faturamento_competencia(
     return {"success": True, "message": f"Faturamento da competência {competencia} atualizado para {valor}"}
 
 
+# ========== SALDO CREDOR - CADASTRO E TRANSPORTE ==========
+
+@api_router.post("/saldo-credor/{company_id}/cadastrar")
+async def cadastrar_saldo_credor(
+    company_id: str,
+    competencia: str,
+    pis: float = 0,
+    cofins: float = 0,
+    icms: float = 0,
+    ipi: float = 0,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Cadastra ou atualiza os saldos credores de uma competência específica.
+    Esses saldos serão usados como crédito na competência seguinte.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Calcular próxima competência
+    try:
+        mes, ano = competencia.split('/')
+        mes_int = int(mes)
+        ano_int = int(ano)
+        
+        if mes_int == 12:
+            prox_comp = f"01/{ano_int + 1}"
+        else:
+            prox_comp = f"{mes_int + 1:02d}/{ano_int}"
+    except:
+        raise HTTPException(status_code=400, detail="Formato de competência inválido (use MM/YYYY)")
+    
+    # Salvar saldo credor
+    await db.saldos_credores.update_one(
+        {"company_id": company_id, "competencia": competencia},
+        {"$set": {
+            "company_id": company_id,
+            "competencia": competencia,
+            "saldo_a_transportar": {
+                "pis": round(pis, 2),
+                "cofins": round(cofins, 2),
+                "icms": round(icms, 2),
+                "ipi": round(ipi, 2)
+            },
+            "origem": "cadastro_manual",
+            "proxima_competencia": prox_comp,
+            "data_cadastro": datetime.now(timezone.utc).isoformat(),
+            "usuario": current_user.email
+        }},
+        upsert=True
+    )
+    
+    logger.info(f"SALDO CREDOR: Cadastrado para {company_id}/{competencia} - PIS={pis}, COFINS={cofins}, ICMS={icms}, IPI={ipi}")
+    
+    return {
+        "success": True,
+        "competencia": competencia,
+        "proxima_competencia": prox_comp,
+        "saldo_cadastrado": {
+            "pis": round(pis, 2),
+            "cofins": round(cofins, 2),
+            "icms": round(icms, 2),
+            "ipi": round(ipi, 2)
+        },
+        "mensagem": f"Saldos credores cadastrados. Serão usados na apuração de {prox_comp}."
+    }
+
+
+@api_router.get("/saldo-credor/{company_id}/listar")
+async def listar_saldos_credores(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lista todos os saldos credores cadastrados para uma empresa.
+    """
+    saldos = await db.saldos_credores.find(
+        {"company_id": company_id},
+        {"_id": 0}
+    ).sort("competencia", -1).to_list(100)
+    
+    return {
+        "company_id": company_id,
+        "saldos": saldos
+    }
+
+
 # ========== SALDO CREDOR - TRANSPORTE AUTOMÁTICO ==========
 
 @api_router.get("/saldo-credor/{company_id}")
