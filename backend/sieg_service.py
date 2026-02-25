@@ -322,13 +322,26 @@ async def download_xmls_sieg(
                         stats["por_tipo"][xml_type] = 0
                         continue
                     
-                    # A API retorna XMLs em Base64 na resposta
-                    # Formato: lista de objetos com "Xml" em Base64
+                    # A API retorna lista de XMLs em Base64 (strings separadas por vírgula)
                     if isinstance(data, list):
                         for item in data:
-                            if "Xml" in item:
-                                try:
-                                    # Decodificar Base64
+                            try:
+                                # O item pode ser uma string Base64 direta ou um objeto
+                                if isinstance(item, str):
+                                    # String Base64 direta
+                                    xml_content = base64.b64decode(item).decode('utf-8')
+                                    all_xmls.append({
+                                        "xml": xml_content,
+                                        "tipo": xml_type,
+                                        "chave": "",
+                                        "numero": "",
+                                        "data_emissao": "",
+                                        "cnpj_emit": "",
+                                        "cnpj_dest": "",
+                                        "valor": 0
+                                    })
+                                elif isinstance(item, dict) and "Xml" in item:
+                                    # Objeto com Xml em Base64
                                     xml_content = base64.b64decode(item["Xml"]).decode('utf-8')
                                     all_xmls.append({
                                         "xml": xml_content,
@@ -340,8 +353,8 @@ async def download_xmls_sieg(
                                         "cnpj_dest": item.get("CnpjDest", ""),
                                         "valor": item.get("Valor", 0)
                                     })
-                                except Exception as e:
-                                    print(f"[SIEG] Erro ao decodificar XML: {e}")
+                            except Exception as e:
+                                print(f"[SIEG] Erro ao decodificar XML: {e}")
                         
                         stats["por_tipo"][xml_type] = len(data)
                         stats["total_baixados"] += len(data)
