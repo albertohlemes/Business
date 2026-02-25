@@ -7020,6 +7020,8 @@ async def sieg_painel_geral(
 ):
     """
     Painel geral de monitoramento SIEG - visão de todas as empresas
+    
+    ATUALIZADO: Agora lê configuração diretamente de cada empresa (campos sieg_*)
     """
     user_data = {"id": current_user.id, "email": current_user.email, "role": current_user.role}
     
@@ -7043,8 +7045,10 @@ async def sieg_painel_geral(
             sort=[("data_sync", -1)]
         )
         
-        # Buscar config de sync automático
-        config_sync = await db.sieg_config.find_one({"company_id": company_id})
+        # ATUALIZADO: Ler configuração diretamente da empresa
+        sieg_ativo = empresa.get("sieg_ativo", False)
+        sync_automatico = empresa.get("sieg_sync_automatico", False)
+        frequencia_sync = empresa.get("sieg_frequencia", "diario")
         
         # Contar documentos importados via SIEG
         total_sieg = await db.xml_documents.count_documents({
@@ -7062,9 +7066,9 @@ async def sieg_painel_geral(
             "company_id": company_id,
             "razao_social": empresa.get("razao_social", ""),
             "cnpj": cnpj,
-            "sieg_ativo": bool(config_sync and config_sync.get("ativo", False)),
-            "sync_automatico": config_sync.get("sync_automatico", False) if config_sync else False,
-            "frequencia_sync": config_sync.get("frequencia", "manual") if config_sync else "manual",
+            "sieg_ativo": sieg_ativo,
+            "sync_automatico": sync_automatico,
+            "frequencia_sync": frequencia_sync,
             "ultima_sync": ultima_sync.get("data_sync") if ultima_sync else None,
             "ultima_sync_status": ultima_sync.get("status") if ultima_sync else None,
             "ultima_sync_total": ultima_sync.get("total_importados", 0) if ultima_sync else 0,
