@@ -1,6 +1,8 @@
 """
 SIEG Soluções API Integration Service
 Permite buscar XMLs diretamente do cofre SIEG
+
+Atualizado para suportar autenticação JWT (2026)
 """
 
 import os
@@ -21,10 +23,91 @@ XML_TYPES = {
     "cfe": 5,      # CF-e (Cupom Fiscal)
 }
 
+# Cache do token JWT
+_jwt_token_cache = {
+    "token": None,
+    "expires_at": None
+}
+
 
 def get_sieg_api_key() -> str:
     """Obtém a API Key do SIEG"""
     return os.environ.get('SIEG_API_KEY', '')
+
+
+def get_sieg_jwt_credentials() -> tuple:
+    """Obtém as credenciais JWT do SIEG (email e senha)"""
+    email = os.environ.get('SIEG_JWT_EMAIL', '')
+    password = os.environ.get('SIEG_JWT_PASSWORD', '')
+    return email, password
+
+
+async def get_sieg_jwt_token() -> Optional[str]:
+    """
+    Obtém token JWT do SIEG usando as credenciais configuradas.
+    Implementa cache para evitar requisições desnecessárias.
+    """
+    global _jwt_token_cache
+    
+    # Verificar se tem token válido em cache
+    if _jwt_token_cache["token"] and _jwt_token_cache["expires_at"]:
+        if datetime.now() < _jwt_token_cache["expires_at"]:
+            return _jwt_token_cache["token"]
+    
+    email, password = get_sieg_jwt_credentials()
+    if not email or not password:
+        # Se não tem credenciais JWT, tentar usar apenas API Key (modo legado)
+        return None
+    
+    # Endpoint de autenticação JWT do SIEG
+    # NOTA: Este endpoint pode variar - ajustar conforme documentação recebida
+    auth_endpoints = [
+        f"{SIEG_API_BASE}/api/auth/token",
+        f"{SIEG_API_BASE}/token",
+        f"{SIEG_API_BASE}/api/Token/Autenticar"
+    ]
+    
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        for endpoint in auth_endpoints:
+            try:
+                # Tentar formato JSON
+                response = await client.post(
+                    endpoint,
+                    json={"email": email, "password": password}
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    token = data.get("access_token") or data.get("token") or data.get("Token")
+                    if token:
+                        # Cache por 55 minutos (tokens geralmente duram 1 hora)
+                        _jwt_token_cache["token"] = token
+                        _jwt_token_cache["expires_at"] = datetime.now() + timedelta(minutes=55)
+                        print(f"[SIEG] Token JWT obtido com sucesso via {endpoint}")
+                        return token
+                
+                # Tentar formato form-urlencoded
+                response = await client.post(
+                    endpoint,
+                    data={"grant_type": "password", "username": email, "password": password},
+                    headers={"Content-Type": "application/x-www-form-urlencoded"}
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    token = data.get("access_token") or data.get("token")
+                    if token:
+                        _jwt_token_cache["token"] = token
+                        _jwt_token_cache["expires_at"] = datetime.now() + timedelta(minutes=55)
+                        print(f"[SIEG] Token JWT obtido com sucesso via {endpoint} (form)")
+                        return token
+                        
+            except Exception as e:
+                print(f"[SIEG] Erro ao obter token via {endpoint}: {e}")
+                continue
+    
+    print("[SIEG] Não foi possível obter token JWT - usando modo API Key apenas")
+    return None
 
 
 def build_sieg_url(endpoint: str, api_key: str = None) -> str:
@@ -32,6 +115,23 @@ def build_sieg_url(endpoint: str, api_key: str = None) -> str:
     if not api_key:
         api_key = get_sieg_api_key()
     return f"{SIEG_API_BASE}/{endpoint}?api_key={api_key}"
+
+
+async def get_sieg_headers(api_key: str = None) -> dict:
+    """
+    Obtém headers para requisições SIEG.
+    Inclui token JWT se disponível.
+    """
+    headers = {
+        "Content-Type": "application/json"
+    }
+    
+    # Tentar obter token JWT
+    jwt_token = await get_sieg_jwt_token()
+    if jwt_token:
+        headers["Authorization"] = f"Bearer {jwt_token}"
+    
+    return headers
 
 
 def get_competencia_dates(competencia: str) -> tuple:
