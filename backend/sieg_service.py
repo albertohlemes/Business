@@ -184,9 +184,8 @@ async def count_xmls_sieg(
     # Obter datas da competência
     data_inicio, data_fim = get_competencia_dates(competencia)
     
-    headers = {
-        "Content-Type": "application/json"
-    }
+    # Obter headers (inclui JWT se disponível)
+    headers = await get_sieg_headers(api_key)
     
     # Request para contar XMLs
     payload = {
