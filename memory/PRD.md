@@ -132,6 +132,8 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 /app/
 ├── backend/
 │   ├── server.py          # FastAPI (monolito - precisa refatorar)
+│   ├── sieg_service.py    # Integração com API SIEG (OAuth2/JWT)
+│   ├── sieg_scheduler.py  # APScheduler para jobs automáticos
 │   ├── models/            # Modelos Pydantic
 │   └── utils/             # Utilitários
 └── frontend/
@@ -139,6 +141,7 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
         ├── components/
         │   └── Layout.js  # Menu lateral com condição isMatriz
         ├── pages/
+        │   ├── SiegMonitor.js    # NOVO: Painel de Monitoramento SIEG
         │   ├── GrupoConsolidado.js  # 6 abas com markup, impostos individualizados
         │   ├── PisCofins.js
         │   ├── ApuracaoICMS.js
