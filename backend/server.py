@@ -34032,27 +34032,39 @@ async def get_fechamento_mensal(
             "qtd_saidas": len(saidas),
             "qtd_documentos": len(documents)
         },
+        "saldo_credor_anterior": {
+            "pis": round(saldo_credor_anterior['pis'], 2),
+            "cofins": round(saldo_credor_anterior['cofins'], 2),
+            "icms": round(saldo_credor_anterior['icms'], 2),
+            "ipi": round(saldo_credor_anterior['ipi'], 2)
+        },
         "icms": {
             "debito": round(icms_debito, 2),
             "credito": round(icms_credito, 2),
+            "saldo_anterior": round(saldo_credor_anterior['icms'], 2),
             "saldo": round(icms_saldo, 2),
             "st": round(icms_st, 2) if apura_icms_st else 0,
             "a_pagar": round(max(icms_saldo, 0), 2),
-            "a_recuperar": round(abs(min(icms_saldo, 0)), 2)  # Valor a recuperar quando credor
+            "a_recuperar": round(abs(min(icms_saldo, 0)), 2),
+            "a_transportar": round(icms_a_transportar, 2)
         },
         "pis": {
             "debito": round(pis_debito, 2),
             "credito": round(pis_credito, 2),
+            "saldo_anterior": round(saldo_credor_anterior['pis'], 2),
             "saldo": round(pis_saldo, 2),
             "a_pagar": round(max(pis_saldo, 0), 2),
-            "a_compensar": round(abs(min(pis_saldo, 0)), 2)
+            "a_compensar": round(abs(min(pis_saldo, 0)), 2),
+            "a_transportar": round(pis_a_transportar, 2)
         },
         "cofins": {
             "debito": round(cofins_debito, 2),
             "credito": round(cofins_credito, 2),
+            "saldo_anterior": round(saldo_credor_anterior['cofins'], 2),
             "saldo": round(cofins_saldo, 2),
             "a_pagar": round(max(cofins_saldo, 0), 2),
-            "a_compensar": round(abs(min(cofins_saldo, 0)), 2)
+            "a_compensar": round(abs(min(cofins_saldo, 0)), 2),
+            "a_transportar": round(cofins_a_transportar, 2)
         },
         "iss": {
             "total": round(iss_total, 2),
@@ -34065,7 +34077,12 @@ async def get_fechamento_mensal(
             "cofins": round(max(cofins_saldo, 0), 2),
             "iss": round(iss_total, 2)
         },
-        "saldo_credor_anterior": saldo_credor.get('saldo_a_transportar') if saldo_credor else None,
+        "saldo_a_transportar": {
+            "pis": round(pis_a_transportar, 2),
+            "cofins": round(cofins_a_transportar, 2),
+            "icms": round(icms_a_transportar, 2),
+            "ipi": round(ipi_a_transportar, 2)
+        },
         "observacoes": fechamento_existente.get('observacoes') if fechamento_existente else "",
         # Flags para frontend saber o que exibir
         "_eh_industria": eh_industria,
@@ -34077,9 +34094,11 @@ async def get_fechamento_mensal(
         response["ipi"] = {
             "debito": round(ipi_debito, 2),
             "credito": round(ipi_credito, 2),
+            "saldo_anterior": round(saldo_credor_anterior['ipi'], 2),
             "saldo": round(ipi_saldo, 2),
             "a_pagar": round(max(ipi_saldo, 0), 2),
-            "a_compensar": round(abs(min(ipi_saldo, 0)), 2)
+            "a_compensar": round(abs(min(ipi_saldo, 0)), 2),
+            "a_transportar": round(ipi_a_transportar, 2)
         }
         response["total_impostos"]["ipi"] = round(max(ipi_saldo, 0), 2)
     
