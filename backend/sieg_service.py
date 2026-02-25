@@ -116,7 +116,8 @@ def build_sieg_url(endpoint: str) -> str:
 
 async def get_sieg_headers() -> dict:
     """
-    Obtém headers para requisições SIEG com token JWT.
+    Obtém headers para requisições SIEG com token JWT e API Key.
+    Combina ambos métodos de autenticação para máxima compatibilidade.
     """
     headers = {
         "Content-Type": "application/json"
@@ -128,6 +129,11 @@ async def get_sieg_headers() -> dict:
         headers["Authorization"] = f"Bearer {jwt_token}"
     else:
         print("[SIEG] ⚠️ Requisição será feita sem token JWT")
+    
+    # Adicionar API Key também no header (alguns endpoints exigem)
+    api_key = get_sieg_api_key()
+    if api_key:
+        headers["x-api-key"] = api_key
     
     return headers
 
