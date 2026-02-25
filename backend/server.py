@@ -31186,23 +31186,27 @@ async def get_saldo_credor(
         saldo_inicial_icms = company.get('saldo_credor_icms', 0) if company.get('possui_saldo_credor', False) else 0
         saldo_inicial_pis = company.get('saldo_credor_pis', 0) if company.get('possui_saldo_credor', False) else 0
         saldo_inicial_cofins = company.get('saldo_credor_cofins', 0) if company.get('possui_saldo_credor', False) else 0
+        saldo_inicial_ipi = company.get('saldo_credor_ipi', 0) if company.get('possui_saldo_credor', False) else 0
     else:
         saldo_inicial_icms = 0
         saldo_inicial_pis = 0
         saldo_inicial_cofins = 0
+        saldo_inicial_ipi = 0
     
     # Saldo transportado da competência anterior
     saldo_transportado = {
         "icms": saldo_anterior.get('saldo_a_transportar', {}).get('icms', 0) if saldo_anterior else 0,
         "pis": saldo_anterior.get('saldo_a_transportar', {}).get('pis', 0) if saldo_anterior else 0,
-        "cofins": saldo_anterior.get('saldo_a_transportar', {}).get('cofins', 0) if saldo_anterior else 0
+        "cofins": saldo_anterior.get('saldo_a_transportar', {}).get('cofins', 0) if saldo_anterior else 0,
+        "ipi": saldo_anterior.get('saldo_a_transportar', {}).get('ipi', 0) if saldo_anterior else 0
     }
     
     # Saldo disponível = inicial + transportado
     saldo_disponivel = {
         "icms": saldo_inicial_icms + saldo_transportado["icms"],
         "pis": saldo_inicial_pis + saldo_transportado["pis"],
-        "cofins": saldo_inicial_cofins + saldo_transportado["cofins"]
+        "cofins": saldo_inicial_cofins + saldo_transportado["cofins"],
+        "ipi": saldo_inicial_ipi + saldo_transportado["ipi"]
     }
     
     return {
@@ -31211,7 +31215,8 @@ async def get_saldo_credor(
         "saldo_inicial": {
             "icms": saldo_inicial_icms,
             "pis": saldo_inicial_pis,
-            "cofins": saldo_inicial_cofins
+            "cofins": saldo_inicial_cofins,
+            "ipi": saldo_inicial_ipi
         },
         "saldo_transportado": saldo_transportado,
         "saldo_disponivel": saldo_disponivel
