@@ -286,33 +286,13 @@ def start_scheduler():
         print("[SIEG-SCHEDULER] Scheduler já está rodando")
         return
     
+    # Usar configuração padrão ao iniciar (será atualizada depois)
     # Job diário às 03:00 da madrugada
-    # Assim quando chegar de manhã, todos os XMLs já estarão importados
     scheduler.add_job(
         job_sync_todas_empresas,
         CronTrigger(hour=3, minute=0),
         id='sieg_daily_sync',
-        name='SIEG - Sincronização Diária (03:00)',
-        replace_existing=True
-    )
-    
-    # Job a cada 12 horas (para empresas com frequência 12h)
-    # 03:00 e 15:00
-    scheduler.add_job(
-        job_sync_todas_empresas,
-        CronTrigger(hour='3,15', minute=0),
-        id='sieg_12h_sync',
-        name='SIEG - Sincronização 12h (03:00 e 15:00)',
-        replace_existing=True
-    )
-    
-    # Job a cada 6 horas (para empresas com frequência 6h)
-    # 03:00, 09:00, 15:00, 21:00
-    scheduler.add_job(
-        job_sync_todas_empresas,
-        CronTrigger(hour='3,9,15,21', minute=0),
-        id='sieg_6h_sync',
-        name='SIEG - Sincronização 6h',
+        name='SIEG - Sincronização Diária',
         replace_existing=True
     )
     
@@ -321,6 +301,56 @@ def start_scheduler():
     print("[SIEG-SCHEDULER] Jobs agendados:")
     for job in scheduler.get_jobs():
         print(f"  - {job.name}: {job.trigger}")
+
+
+async def update_scheduler_jobs():
+    """
+    Atualiza os jobs do scheduler com base na configuração do banco
+    """
+    config = await get_scheduler_config()
+    
+    # Remover jobs existentes
+    for job_id in ['sieg_daily_sync', 'sieg_12h_sync', 'sieg_6h_sync']:
+        try:
+            scheduler.remove_job(job_id)
+        except:
+            pass
+    
+    # Job diário
+    horario_diario = config.get("horario_diario", "03:00")
+    hora, minuto = map(int, horario_diario.split(":"))
+    scheduler.add_job(
+        job_sync_todas_empresas,
+        CronTrigger(hour=hora, minute=minuto),
+        id='sieg_daily_sync',
+        name=f'SIEG - Sincronização Diária ({horario_diario})',
+        replace_existing=True
+    )
+    
+    # Jobs 12h
+    horarios_12h = config.get("horarios_12h", ["03:00", "15:00"])
+    horas_12h = [int(h.split(":")[0]) for h in horarios_12h]
+    scheduler.add_job(
+        job_sync_todas_empresas,
+        CronTrigger(hour=','.join(map(str, horas_12h)), minute=0),
+        id='sieg_12h_sync',
+        name=f'SIEG - Sincronização 12h ({", ".join(horarios_12h)})',
+        replace_existing=True
+    )
+    
+    # Jobs 6h
+    horarios_6h = config.get("horarios_6h", ["03:00", "09:00", "15:00", "21:00"])
+    horas_6h = [int(h.split(":")[0]) for h in horarios_6h]
+    scheduler.add_job(
+        job_sync_todas_empresas,
+        CronTrigger(hour=','.join(map(str, horas_6h)), minute=0),
+        id='sieg_6h_sync',
+        name=f'SIEG - Sincronização 6h',
+        replace_existing=True
+    )
+    
+    print(f"[SIEG-SCHEDULER] Jobs atualizados com horário diário: {horario_diario}")
+    return config
 
 
 def stop_scheduler():
