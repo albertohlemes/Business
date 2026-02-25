@@ -111,6 +111,7 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 - [x] ~~Bug de tela em branco na página PIS/COFINS~~
 - [x] ~~Bug recorrente: CFOPs de transferência aparecendo em Alertas~~ 
 - [x] ~~Transporte de saldos credores entre competências~~ (CORRIGIDO 26/06/2026)
+- [x] ~~Painel de Monitoramento SIEG~~ (IMPLEMENTADO 25/02/2026)
 
 ### P1 (Alta Prioridade)
 - [ ] Totalizador por CST nos detalhamentos de créditos/débitos PIS/COFINS
