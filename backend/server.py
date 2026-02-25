@@ -34945,19 +34945,11 @@ async def get_grupo_ret(
                 continue
             
             # ============================================================
-            # BUSCAR SALDO CREDOR ANTERIOR
+            # BUSCAR SALDOS CREDORES ANTERIORES (função centralizada)
             # ============================================================
-            saldo_credor_ant = {"pis": 0.0, "cofins": 0.0, "icms": 0.0, "ipi": 0.0}
-            try:
-                mes, ano = competencia.split('/')
-                mes_int = int(mes)
-                ano_int = int(ano)
-                if mes_int == 1:
-                    comp_anterior = f"12/{ano_int - 1}"
-                else:
-                    comp_anterior = f"{mes_int - 1:02d}/{ano_int}"
-                
-                competencia_inicial = empresa.get('competencia_saldo_inicial', '')
+            saldo_credor_ant = await buscar_saldos_credores_anteriores(empresa_id, competencia, empresa)
+            
+            # Calcular dados RET diretamente
                 possui_saldo_credor = empresa.get('possui_saldo_credor', False)
                 
                 if competencia == competencia_inicial and possui_saldo_credor:
