@@ -31230,6 +31230,7 @@ async def fechar_competencia_saldo_credor(
     saldo_icms: float = 0,
     saldo_pis: float = 0,
     saldo_cofins: float = 0,
+    saldo_ipi: float = 0,
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -31262,12 +31263,14 @@ async def fechar_competencia_saldo_credor(
     saldo_final_icms = saldo_icms - saldo_disponivel["icms"]
     saldo_final_pis = saldo_pis - saldo_disponivel["pis"]
     saldo_final_cofins = saldo_cofins - saldo_disponivel["cofins"]
+    saldo_final_ipi = saldo_ipi - saldo_disponivel["ipi"]
     
     # Saldo a transportar (apenas valores negativos/credores)
     saldo_a_transportar = {
         "icms": abs(saldo_final_icms) if saldo_final_icms < 0 else 0,
         "pis": abs(saldo_final_pis) if saldo_final_pis < 0 else 0,
-        "cofins": abs(saldo_final_cofins) if saldo_final_cofins < 0 else 0
+        "cofins": abs(saldo_final_cofins) if saldo_final_cofins < 0 else 0,
+        "ipi": abs(saldo_final_ipi) if saldo_final_ipi < 0 else 0
     }
     
     # Salvar ou atualizar registro da competência
@@ -31280,12 +31283,14 @@ async def fechar_competencia_saldo_credor(
             "saldo_apurado": {
                 "icms": saldo_icms,
                 "pis": saldo_pis,
-                "cofins": saldo_cofins
+                "cofins": saldo_cofins,
+                "ipi": saldo_ipi
             },
             "saldo_final": {
                 "icms": saldo_final_icms,
                 "pis": saldo_final_pis,
-                "cofins": saldo_final_cofins
+                "cofins": saldo_final_cofins,
+                "ipi": saldo_final_ipi
             },
             "saldo_a_transportar": saldo_a_transportar,
             "proxima_competencia": prox_comp,
