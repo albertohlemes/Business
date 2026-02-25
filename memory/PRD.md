@@ -56,6 +56,14 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 - [x] Validador ICMS (CST, CFOP, alíquotas)
 - [x] Classificação Inteligente (NCM, CFOP)
 
+### Integração SIEG (NOVO - 25/02/2026)
+- [x] **Painel de Monitoramento**: Visualização do status de todas as empresas
+- [x] **Configuração por Empresa**: Ativar/desativar SIEG, sync automático, frequência
+- [x] **Histórico de Sincronizações**: Log de execuções com status, contadores, duração
+- [x] **Notas Canceladas**: Visualização de NF-e canceladas/inutilizadas
+- [x] **Job Agendado**: APScheduler para sync automático diário às 06:00
+- [x] **Autenticação OAuth2**: Token JWT com cache de 23 horas
+
 ## Endpoints Principais
 
 ### Autenticação
