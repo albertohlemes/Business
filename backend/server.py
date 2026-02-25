@@ -33969,8 +33969,10 @@ async def get_fechamento_mensal(
                     pis_credito += float(prod.get('v_pis', 0) or 0)
                     cofins_credito += float(prod.get('v_cofins', 0) or 0)
         
-        pis_saldo = pis_debito - pis_credito
-        cofins_saldo = cofins_debito - cofins_credito
+        pis_saldo = pis_debito - pis_credito - saldo_credor_anterior['pis']
+        cofins_saldo = cofins_debito - cofins_credito - saldo_credor_anterior['cofins']
+        pis_a_transportar = abs(min(0, pis_saldo))
+        cofins_a_transportar = abs(min(0, cofins_saldo))
     
     # Calcular ISS (apenas se empresa presta serviços)
     iss_total = 0
@@ -33983,6 +33985,7 @@ async def get_fechamento_mensal(
     ipi_debito = 0
     ipi_credito = 0
     ipi_saldo = 0
+    ipi_a_transportar = 0
     
     if eh_industria:
         for doc in saidas:
@@ -33993,7 +33996,10 @@ async def get_fechamento_mensal(
             for prod in doc.get('produtos', []):
                 ipi_credito += float(prod.get('v_ipi', 0) or 0)
         
-        ipi_saldo = ipi_debito - ipi_credito
+        # Aplicar saldo credor anterior
+        ipi_saldo_antes = ipi_debito - ipi_credito
+        ipi_saldo = ipi_saldo_antes - saldo_credor_anterior['ipi']
+        ipi_a_transportar = abs(min(0, ipi_saldo))
     
     # Total de impostos a pagar (apenas valores positivos)
     total_impostos = 0
