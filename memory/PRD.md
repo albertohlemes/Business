@@ -127,13 +127,12 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 
 ### P1 (Alta Prioridade)
 - [x] ~~Centralizar configuração SIEG no cadastro da empresa~~ (CONCLUÍDO 25/02/2026)
-- [ ] Resolver bloqueio da API SIEG para download de XMLs (possivelmente IP Whitelisting)
-- [ ] Processamento incorreto de CFOPs de transferência
-- [ ] Totalizador por CST nos detalhamentos de créditos/débitos PIS/COFINS
+- [ ] Processamento incorreto de CFOPs de transferência (BUG RECORRENTE)
 - [ ] Refatoração do server.py (extrair rotas para APIRouter separados)
 - [ ] Corrigir modal de seleção de empresa em páginas globais (sobrepõe UI)
 - [ ] Corrigir bugs de cálculo e agregação no menu "Grupo Consolidado"
 - [ ] Corrigir geração incorreta de natureza de operação no arquivo SPED para transferências
+- [ ] Totalizador por CST nos detalhamentos de créditos/débitos PIS/COFINS
 
 ### P2 (Média Prioridade)
 - [ ] Pacote de instalação On-Premise com Docker
