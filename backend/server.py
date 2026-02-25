@@ -7313,6 +7313,69 @@ async def sieg_run_sync_now(
     return {"success": True, "message": "Sincronização iniciada em background"}
 
 
+@api_router.get("/sieg/config-horarios")
+async def sieg_get_config_horarios(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna configuração de horários do scheduler SIEG
+    """
+    config = await get_scheduler_config()
+    return {
+        "horario_diario": config.get("horario_diario", "03:00"),
+        "horarios_12h": config.get("horarios_12h", ["03:00", "15:00"]),
+        "horarios_6h": config.get("horarios_6h", ["03:00", "09:00", "15:00", "21:00"]),
+        "ativo": config.get("ativo", True),
+        "updated_at": config.get("updated_at")
+    }
+
+
+@api_router.post("/sieg/config-horarios")
+async def sieg_set_config_horarios(
+    horario_diario: str = Form("03:00"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Atualiza horário da sincronização diária SIEG (admin only)
+    Formato: HH:MM (ex: 03:00, 04:30, 02:00)
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Apenas administradores podem alterar configurações")
+    
+    # Validar formato do horário
+    try:
+        hora, minuto = map(int, horario_diario.split(":"))
+        if not (0 <= hora <= 23 and 0 <= minuto <= 59):
+            raise ValueError()
+    except:
+        raise HTTPException(status_code=400, detail="Formato de horário inválido. Use HH:MM (ex: 03:00)")
+    
+    # Calcular horários derivados
+    hora_12h_2 = (hora + 12) % 24
+    horarios_12h = [f"{hora:02d}:00", f"{hora_12h_2:02d}:00"]
+    
+    hora_6h_2 = (hora + 6) % 24
+    hora_6h_3 = (hora + 12) % 24
+    hora_6h_4 = (hora + 18) % 24
+    horarios_6h = [f"{hora:02d}:00", f"{hora_6h_2:02d}:00", f"{hora_6h_3:02d}:00", f"{hora_6h_4:02d}:00"]
+    
+    config = {
+        "horario_diario": horario_diario,
+        "horarios_12h": horarios_12h,
+        "horarios_6h": horarios_6h,
+        "ativo": True
+    }
+    
+    await save_scheduler_config(config)
+    await update_scheduler_jobs()
+    
+    return {
+        "success": True,
+        "message": f"Horário atualizado para {horario_diario}",
+        "config": config
+    }
+
+
 @api_router.post("/upload/logo/{company_id}")
 async def upload_company_logo(
     company_id: str,
