@@ -31308,12 +31308,14 @@ async def fechar_competencia_saldo_credor(
         "saldo_apurado": {
             "icms": saldo_icms,
             "pis": saldo_pis,
-            "cofins": saldo_cofins
+            "cofins": saldo_cofins,
+            "ipi": saldo_ipi
         },
         "saldo_final": {
             "icms": round(saldo_final_icms, 2),
             "pis": round(saldo_final_pis, 2),
-            "cofins": round(saldo_final_cofins, 2)
+            "cofins": round(saldo_final_cofins, 2),
+            "ipi": round(saldo_final_ipi, 2)
         },
         "saldo_transportado_proxima": saldo_a_transportar,
         "mensagem": "Competência fechada. Saldos credores transportados para a próxima competência."
