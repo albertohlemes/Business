@@ -449,7 +449,7 @@ async def sync_from_sieg(
             competencia=competencia,
             tipo="entrada",
             xml_types=["nfe", "nfse"],
-            take=100,
+            take=50,  # Máximo permitido pela API SIEG
             api_key=api_key
         )
         results["entrada"] = entrada
