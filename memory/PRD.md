@@ -163,4 +163,11 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 ## Credenciais SIEG (configuradas em backend/.env)
 - `SIEG_CLIENT_ID`: aurion_nucleo_de_inteligencia_operacional_7e590204e5c5
 - `SIEG_CLIENT_SECRET`: ************ (configurado)
-- `SIEG_API_KEY`: ************ (configurado)
+- `SIEG_API_KEY`: %2bYImgKji%2fameDn0%2b5iH85w%3d%3d (API Key versão antiga - URL encoded)
+
+## IMPORTANTE para Deploy
+Após o deploy em produção, certifique-se de que:
+1. A variável `SIEG_API_KEY` está configurada no backend/.env
+2. A API Key deve estar URL-encoded (com %2b, %2f, %3d em vez de +, /, =)
+3. A API SIEG tem limite de 50 XMLs por requisição (take=50)
+4. A API Key precisa ter permissão "Acesso total" no painel SIEG
