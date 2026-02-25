@@ -25177,6 +25177,34 @@ async def apurar_icms(
         },
         "markup": round(markup_calc, 2)
     }
+    
+    # ============================================================
+    # SALVAR SALDO CREDOR ICMS PARA PRÓXIMA COMPETÊNCIA
+    # ============================================================
+    if saldo_a_transportar > 0:
+        try:
+            await db.saldos_credores.update_one(
+                {"company_id": company_id, "competencia": competencia},
+                {
+                    "$set": {
+                        "company_id": company_id,
+                        "competencia": competencia,
+                        "saldo_a_transportar.icms": round(saldo_a_transportar, 2),
+                        "detalhamento.icms": {
+                            "credito": round(credito_icms, 2),
+                            "debito": round(debito_icms, 2),
+                            "credito_presumido": round(credito_presumido_icms, 2),
+                            "saldo_anterior": round(saldo_credor_anterior_icms, 2),
+                            "saldo_final": round(saldo, 2)
+                        },
+                        "data_calculo": datetime.now(timezone.utc).isoformat()
+                    }
+                },
+                upsert=True
+            )
+            logger.info(f"APURACAO-ICMS: Saldo credor de R$ {saldo_a_transportar:.2f} salvo para transporte")
+        except Exception as e:
+            logger.error(f"APURACAO-ICMS: Erro ao salvar saldo credor: {e}")
 
 
 # ============================================================
