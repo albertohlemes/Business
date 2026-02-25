@@ -610,6 +610,11 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
         
         // Responsáveis
         responsavel_ids: company.responsavel_ids || [],
+        
+        // Integração SIEG
+        sieg_ativo: company.sieg_ativo || false,
+        sieg_sync_automatico: company.sieg_sync_automatico || false,
+        sieg_frequencia: company.sieg_frequencia || 'diario',
       });
     } catch (error) {
       console.error('Erro ao carregar empresa:', error);
