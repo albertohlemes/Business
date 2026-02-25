@@ -319,12 +319,6 @@ async def download_xmls_sieg(
     Returns:
         Dict com "xmls" (lista de XMLs em string), "total", "downloaded"
     """
-    if not api_key:
-        api_key = get_sieg_api_key()
-    
-    if not api_key:
-        raise ValueError("SIEG API Key não configurada")
-    
     # Limpar CNPJ
     cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
     
@@ -335,9 +329,8 @@ async def download_xmls_sieg(
     if not xml_types:
         xml_types = ["nfe"]
     
-    headers = {
-        "Content-Type": "application/json"
-    }
+    # Obter headers com token JWT
+    headers = await get_sieg_headers()
     
     all_xmls = []
     stats = {
@@ -369,7 +362,7 @@ async def download_xmls_sieg(
             
             try:
                 response = await client.post(
-                    build_sieg_url("BaixarXmls", api_key),
+                    build_sieg_url("BaixarXmls"),
                     headers=headers,
                     json=payload
                 )
