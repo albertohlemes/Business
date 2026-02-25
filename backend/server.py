@@ -1323,6 +1323,107 @@ def detectar_transportadora(cnaes: List[str]) -> dict:
     return {"is_transportadora": False, "tipo_transporte": None}
 
 
+# ============================================================
+# FUNÇÕES AUXILIARES PARA SALDOS CREDORES - CENTRALIZADAS
+# ============================================================
+
+async def buscar_saldos_credores_anteriores(company_id: str, competencia: str, company: dict) -> dict:
+    """
+    Busca saldos credores anteriores de TODOS os impostos (PIS, COFINS, ICMS, IPI).
+    Retorna dict com os saldos a serem abatidos na competência atual.
+    
+    Lógica:
+    1. Se competência == competencia_saldo_inicial: usa saldos cadastrados na empresa
+    2. Senão: busca saldo_a_transportar da competência anterior na collection saldos_credores
+    """
+    saldos = {
+        "pis": 0.0,
+        "cofins": 0.0,
+        "icms": 0.0,
+        "ipi": 0.0,
+        "origem": None,
+        "competencia_origem": None
+    }
+    
+    try:
+        # Calcular competência anterior
+        mes, ano = competencia.split('/')
+        mes_int = int(mes)
+        ano_int = int(ano)
+        
+        if mes_int == 1:
+            comp_anterior = f"12/{ano_int - 1}"
+        else:
+            comp_anterior = f"{mes_int - 1:02d}/{ano_int}"
+        
+        # Verificar se é a competência inicial da empresa
+        competencia_inicial = company.get('competencia_saldo_inicial', '')
+        possui_saldo_credor = company.get('possui_saldo_credor', False)
+        
+        if competencia == competencia_inicial and possui_saldo_credor:
+            # Usar saldos iniciais cadastrados na empresa
+            saldos = {
+                "pis": float(company.get('saldo_credor_pis', 0) or 0),
+                "cofins": float(company.get('saldo_credor_cofins', 0) or 0),
+                "icms": float(company.get('saldo_credor_icms', 0) or 0),
+                "ipi": float(company.get('saldo_credor_ipi', 0) or 0),
+                "origem": "cadastro_empresa",
+                "competencia_origem": competencia_inicial
+            }
+        else:
+            # Buscar saldo transportado da competência anterior
+            saldo_anterior_db = await db.saldos_credores.find_one({
+                "company_id": company_id,
+                "competencia": comp_anterior
+            })
+            
+            if saldo_anterior_db:
+                saldo_transportar = saldo_anterior_db.get('saldo_a_transportar', {})
+                saldos = {
+                    "pis": float(saldo_transportar.get('pis', 0) or 0),
+                    "cofins": float(saldo_transportar.get('cofins', 0) or 0),
+                    "icms": float(saldo_transportar.get('icms', 0) or 0),
+                    "ipi": float(saldo_transportar.get('ipi', 0) or 0),
+                    "origem": "competencia_anterior",
+                    "competencia_origem": comp_anterior
+                }
+    except Exception as e:
+        logger.warning(f"Erro ao buscar saldos credores anteriores para {company_id}/{competencia}: {e}")
+    
+    return saldos
+
+
+async def salvar_saldos_credores(company_id: str, competencia: str, saldos_a_transportar: dict, detalhamento: dict = None):
+    """
+    Salva os saldos credores a serem transportados para a próxima competência.
+    """
+    try:
+        update_data = {
+            "company_id": company_id,
+            "competencia": competencia,
+            "saldo_a_transportar": {
+                "pis": round(saldos_a_transportar.get('pis', 0), 2),
+                "cofins": round(saldos_a_transportar.get('cofins', 0), 2),
+                "icms": round(saldos_a_transportar.get('icms', 0), 2),
+                "ipi": round(saldos_a_transportar.get('ipi', 0), 2)
+            },
+            "data_calculo": datetime.now(timezone.utc).isoformat()
+        }
+        
+        if detalhamento:
+            update_data["detalhamento"] = detalhamento
+        
+        await db.saldos_credores.update_one(
+            {"company_id": company_id, "competencia": competencia},
+            {"$set": update_data},
+            upsert=True
+        )
+        
+        logger.info(f"Saldos credores salvos para {company_id}/{competencia}: {saldos_a_transportar}")
+    except Exception as e:
+        logger.error(f"Erro ao salvar saldos credores para {company_id}/{competencia}: {e}")
+
+
 async def calcular_pis_cofins_unificado(company_id: str, competencia: str, company: dict) -> dict:
     """
     FUNÇÃO CENTRALIZADA para cálculo de PIS/COFINS.
