@@ -34950,32 +34950,6 @@ async def get_grupo_ret(
             saldo_credor_ant = await buscar_saldos_credores_anteriores(empresa_id, competencia, empresa)
             
             # Calcular dados RET diretamente
-                possui_saldo_credor = empresa.get('possui_saldo_credor', False)
-                
-                if competencia == competencia_inicial and possui_saldo_credor:
-                    saldo_credor_ant = {
-                        "pis": empresa.get('saldo_credor_pis', 0) or 0,
-                        "cofins": empresa.get('saldo_credor_cofins', 0) or 0,
-                        "icms": empresa.get('saldo_credor_icms', 0) or 0,
-                        "ipi": empresa.get('saldo_credor_ipi', 0) or 0
-                    }
-                else:
-                    saldo_ant_db = await db.saldos_credores.find_one({
-                        "company_id": empresa_id,
-                        "competencia": comp_anterior
-                    })
-                    if saldo_ant_db:
-                        saldo_transportar = saldo_ant_db.get('saldo_a_transportar', {})
-                        saldo_credor_ant = {
-                            "pis": saldo_transportar.get('pis', 0) or 0,
-                            "cofins": saldo_transportar.get('cofins', 0) or 0,
-                            "icms": saldo_transportar.get('icms', 0) or 0,
-                            "ipi": saldo_transportar.get('ipi', 0) or 0
-                        }
-            except Exception as e:
-                logger.warning(f"RET: Erro ao buscar saldo credor anterior: {e}")
-            
-            # Calcular dados RET diretamente
             pis_cofins = await calcular_pis_cofins_unificado(empresa_id, competencia, empresa)
             
             notas_saida = await db.xml_documents.find({
