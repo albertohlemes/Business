@@ -31458,6 +31458,132 @@ async def cadastrar_saldo_credor(
     }
 
 
+@api_router.post("/saldo-credor/{company_id}/reprocessar")
+async def reprocessar_saldos(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Reprocessa e salva os saldos credores de uma competência.
+    Calcula ICMS, PIS, COFINS e IPI e salva na collection saldos_credores.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar saldo credor anterior
+    saldo_anterior = await buscar_saldos_credores_anteriores(company_id, competencia, company)
+    
+    # Buscar documentos da competência
+    docs_entrada = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada",
+        **get_filtro_notas_ativas()
+    }, {"produtos": 1}).to_list(15000)
+    
+    docs_saida = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "saida",
+        **get_filtro_notas_ativas()
+    }, {"produtos": 1}).to_list(15000)
+    
+    # Calcular ICMS
+    icms_credito = 0
+    icms_debito = 0
+    ipi_credito = 0
+    ipi_debito = 0
+    
+    for doc in docs_entrada:
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            if not is_cfop_transferencia(cfop):
+                icms_credito += float(prod.get('v_icms', 0) or 0)
+                ipi_credito += float(prod.get('v_ipi', 0) or 0)
+    
+    for doc in docs_saida:
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            if not is_cfop_transferencia(cfop):
+                icms_debito += float(prod.get('v_icms', 0) or 0)
+                ipi_debito += float(prod.get('v_ipi', 0) or 0)
+    
+    # Calcular PIS/COFINS
+    pis_cofins = await calcular_pis_cofins_unificado(company_id, competencia, company)
+    pis_credito = float(pis_cofins.get('pis_creditos', 0) or 0)
+    pis_debito = float(pis_cofins.get('pis_debitos', 0) or 0)
+    cofins_credito = float(pis_cofins.get('cofins_creditos', 0) or 0)
+    cofins_debito = float(pis_cofins.get('cofins_debitos', 0) or 0)
+    
+    # Calcular saldos (considerando anterior)
+    icms_saldo = icms_debito - icms_credito - saldo_anterior['icms']
+    pis_saldo = pis_debito - pis_credito - saldo_anterior['pis']
+    cofins_saldo = cofins_debito - cofins_credito - saldo_anterior['cofins']
+    ipi_saldo = ipi_debito - ipi_credito - saldo_anterior['ipi']
+    
+    # Saldo a transportar (se negativo = credor)
+    icms_a_transportar = abs(min(0, icms_saldo))
+    pis_a_transportar = abs(min(0, pis_saldo))
+    cofins_a_transportar = abs(min(0, cofins_saldo))
+    ipi_a_transportar = abs(min(0, ipi_saldo))
+    
+    # Salvar saldos
+    await db.saldos_credores.update_one(
+        {"company_id": company_id, "competencia": competencia},
+        {
+            "$set": {
+                "company_id": company_id,
+                "competencia": competencia,
+                "saldo_a_transportar": {
+                    "icms": round(icms_a_transportar, 2),
+                    "pis": round(pis_a_transportar, 2),
+                    "cofins": round(cofins_a_transportar, 2),
+                    "ipi": round(ipi_a_transportar, 2)
+                },
+                "saldo_final": {
+                    "icms": round(icms_saldo, 2),
+                    "pis": round(pis_saldo, 2),
+                    "cofins": round(cofins_saldo, 2),
+                    "ipi": round(ipi_saldo, 2)
+                },
+                "detalhamento": {
+                    "icms": {"credito": round(icms_credito, 2), "debito": round(icms_debito, 2), "saldo_anterior": round(saldo_anterior['icms'], 2)},
+                    "pis": {"credito": round(pis_credito, 2), "debito": round(pis_debito, 2), "saldo_anterior": round(saldo_anterior['pis'], 2)},
+                    "cofins": {"credito": round(cofins_credito, 2), "debito": round(cofins_debito, 2), "saldo_anterior": round(saldo_anterior['cofins'], 2)},
+                    "ipi": {"credito": round(ipi_credito, 2), "debito": round(ipi_debito, 2), "saldo_anterior": round(saldo_anterior['ipi'], 2)}
+                },
+                "origem": "reprocessamento",
+                "data_reprocessamento": datetime.now(timezone.utc).isoformat(),
+                "usuario": current_user.email
+            }
+        },
+        upsert=True
+    )
+    
+    logger.info(f"SALDO CREDOR: Reprocessado {company_id}/{competencia}")
+    
+    return {
+        "success": True,
+        "competencia": competencia,
+        "saldo_anterior_usado": saldo_anterior,
+        "calculado": {
+            "icms": {"credito": round(icms_credito, 2), "debito": round(icms_debito, 2), "saldo": round(icms_saldo, 2)},
+            "pis": {"credito": round(pis_credito, 2), "debito": round(pis_debito, 2), "saldo": round(pis_saldo, 2)},
+            "cofins": {"credito": round(cofins_credito, 2), "debito": round(cofins_debito, 2), "saldo": round(cofins_saldo, 2)},
+            "ipi": {"credito": round(ipi_credito, 2), "debito": round(ipi_debito, 2), "saldo": round(ipi_saldo, 2)}
+        },
+        "saldo_a_transportar": {
+            "icms": round(icms_a_transportar, 2),
+            "pis": round(pis_a_transportar, 2),
+            "cofins": round(cofins_a_transportar, 2),
+            "ipi": round(ipi_a_transportar, 2)
+        },
+        "mensagem": "Saldos reprocessados e salvos com sucesso."
+    }
+
+
 @api_router.get("/saldo-credor/{company_id}/listar")
 async def listar_saldos_credores(
     company_id: str,
