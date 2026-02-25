@@ -26562,6 +26562,7 @@ async def apurar_pis_cofins(
         "pis": 0.0,
         "cofins": 0.0,
         "icms": 0.0,
+        "ipi": 0.0,
         "origem": None  # "cadastro" ou "competencia_anterior"
     }
     
@@ -26588,6 +26589,7 @@ async def apurar_pis_cofins(
             "pis": company.get('saldo_credor_pis', 0) or 0,
             "cofins": company.get('saldo_credor_cofins', 0) or 0,
             "icms": company.get('saldo_credor_icms', 0) or 0,
+            "ipi": company.get('saldo_credor_ipi', 0) or 0,
             "origem": "cadastro",
             "competencia_origem": competencia_inicial
         }
@@ -26603,6 +26605,7 @@ async def apurar_pis_cofins(
                 "pis": saldo_transportar.get('pis', 0) or 0,
                 "cofins": saldo_transportar.get('cofins', 0) or 0,
                 "icms": saldo_transportar.get('icms', 0) or 0,
+                "ipi": saldo_transportar.get('ipi', 0) or 0,
                 "origem": "competencia_anterior",
                 "competencia_origem": comp_anterior
             }
