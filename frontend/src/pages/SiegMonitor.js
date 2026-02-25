@@ -515,289 +515,94 @@ const SiegMonitor = ({ user, onLogout }) => {
           </div>
         )}
 
-        {activeTab === 'empresas' && (
+        {activeTab === 'historico' && (
           <div className="space-y-4">
-            {/* Search and Filter */}
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#A1A1AA]" />
-                <input
-                  type="text"
-                  placeholder="Buscar por razão social ou CNPJ..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white placeholder-[#666] focus:border-[#C8A951]/50 focus:outline-none"
-                />
-              </div>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-3 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951]/50 focus:outline-none"
-              >
-                <option value="all">Todas</option>
-                <option value="active">SIEG Ativo</option>
-                <option value="inactive">SIEG Inativo</option>
-                <option value="auto">Sync Automático</option>
-              </select>
-            </div>
-
-            {/* Empresas List */}
+            {/* Histórico Table */}
             <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg overflow-hidden">
               <table className="w-full">
                 <thead className="bg-[#1A1A1A]">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Empresa</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Data</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Competência</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Última Sync</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Docs SIEG</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Cancelados</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-[#A1A1AA] uppercase">Ações</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Encontrados</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Importados</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Erros</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-[#A1A1AA] uppercase">Duração</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#2A2A2A]">
-                  {filteredEmpresas.map((empresa) => (
-                    <tr key={empresa.company_id} className="hover:bg-[#1A1A1A] transition-colors">
-                      <td className="px-4 py-4">
-                        <div>
-                          <p className="text-white font-medium">{empresa.razao_social}</p>
-                          <p className="text-[#666] text-sm">{formatCNPJ(empresa.cnpj)}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex flex-col gap-1">
-                          {empresa.sieg_ativo ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-400 text-sm">
-                              <CheckCircle className="w-4 h-4" /> Ativo
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[#666] text-sm">
-                              <XCircle className="w-4 h-4" /> Inativo
-                            </span>
-                          )}
-                          {empresa.sync_automatico && (
-                            <span className="text-xs text-amber-400">
-                              Sync: {empresa.frequencia_sync || 'diário'}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        {empresa.ultima_sync ? (
-                          <div>
-                            <p className="text-white text-sm">{formatDate(empresa.ultima_sync)}</p>
-                            <StatusBadge status={empresa.ultima_sync_status} />
-                          </div>
-                        ) : (
-                          <span className="text-[#666] text-sm">Nunca sincronizado</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <span className="text-white font-medium">{empresa.total_docs_sieg || 0}</span>
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <span className={empresa.total_cancelados > 0 ? 'text-amber-400' : 'text-[#666]'}>
-                          {empresa.total_cancelados || 0}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedEmpresa(empresa);
-                              setConfigForm({
-                                ativo: empresa.sieg_ativo,
-                                sync_automatico: empresa.sync_automatico,
-                                frequencia: empresa.frequencia_sync || 'diario',
-                                hora_sync: '06:00',
-                                competencias_retroativas: 3
-                              });
-                              setConfigModal(true);
-                            }}
-                            className="p-2 rounded-lg bg-[#1A1A1A] text-[#A1A1AA] hover:text-white hover:bg-[#252525] transition-all"
-                            title="Configurar"
-                          >
-                            <Settings className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => startSync(empresa.company_id)}
-                            disabled={syncInProgress}
-                            className="p-2 rounded-lg bg-[#C8A951]/20 text-[#C8A951] hover:bg-[#C8A951]/30 transition-all disabled:opacity-50"
-                            title="Sincronizar agora"
-                          >
-                            {syncInProgress ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Play className="w-4 h-4" />
-                            )}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedEmpresa(empresa);
-                              setActiveTab('historico');
-                            }}
-                            className="p-2 rounded-lg bg-[#1A1A1A] text-[#A1A1AA] hover:text-white hover:bg-[#252525] transition-all"
-                            title="Ver histórico"
-                          >
-                            <History className="w-4 h-4" />
-                          </button>
-                        </div>
+                  {(painelEmpresa?.historico_sync || []).map((item, idx) => (
+                    <tr key={idx} className="hover:bg-[#1A1A1A] transition-colors">
+                      <td className="px-4 py-3 text-white text-sm">{item.data ? new Date(item.data).toLocaleString('pt-BR') : '-'}</td>
+                      <td className="px-4 py-3 text-white text-sm">{item.competencia || '-'}</td>
+                      <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
+                      <td className="px-4 py-3 text-center text-white">{item.total_encontrados || 0}</td>
+                      <td className="px-4 py-3 text-center text-emerald-400">{item.total_importados || 0}</td>
+                      <td className="px-4 py-3 text-center text-red-400">{item.total_erros || 0}</td>
+                      <td className="px-4 py-3 text-right text-[#A1A1AA] text-sm">
+                        {item.duracao_segundos ? `${item.duracao_segundos}s` : '-'}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               
-              {filteredEmpresas.length === 0 && (
+              {(!painelEmpresa?.historico_sync || painelEmpresa.historico_sync.length === 0) && (
                 <div className="p-8 text-center text-[#A1A1AA]">
-                  {searchTerm || filterStatus !== 'all' 
-                    ? 'Nenhuma empresa encontrada com os filtros aplicados'
-                    : 'Nenhuma empresa cadastrada'
-                  }
+                  Nenhuma sincronização registrada para esta empresa
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {activeTab === 'historico' && (
-          <div className="space-y-4">
-            {selectedEmpresa ? (
-              <>
-                {/* Empresa Header */}
-                <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Building2 className="w-5 h-5 text-[#C8A951]" />
-                      <div>
-                        <p className="text-white font-medium">{selectedEmpresa.razao_social}</p>
-                        <p className="text-[#666] text-sm">{formatCNPJ(selectedEmpresa.cnpj)}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setSelectedEmpresa(null)}
-                      className="text-[#A1A1AA] hover:text-white text-sm"
-                    >
-                      Ver todas empresas
-                    </button>
-                  </div>
-                </div>
-
-                {/* Stats da Empresa */}
-                {painelEmpresa && (
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
-                      <p className="text-[#A1A1AA] text-sm">Docs via SIEG</p>
-                      <p className="text-2xl font-bold text-white">{painelEmpresa.estatisticas?.total_sieg || 0}</p>
-                    </div>
-                    <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
-                      <p className="text-[#A1A1AA] text-sm">Docs Manuais</p>
-                      <p className="text-2xl font-bold text-white">{painelEmpresa.estatisticas?.total_manual || 0}</p>
-                    </div>
-                    <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
-                      <p className="text-[#A1A1AA] text-sm">Classificados</p>
-                      <p className="text-2xl font-bold text-emerald-400">{painelEmpresa.estatisticas?.total_classificados || 0}</p>
-                    </div>
-                    <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
-                      <p className="text-[#A1A1AA] text-sm">Frequência</p>
-                      <p className="text-2xl font-bold text-[#C8A951]">{painelEmpresa.config?.frequencia || 'Manual'}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Histórico Table */}
-                <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-[#1A1A1A]">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Data</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Competência</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Status</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Encontrados</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Importados</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Duplicados</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Erros</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-[#A1A1AA] uppercase">Duração</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#2A2A2A]">
-                      {historico.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-[#1A1A1A] transition-colors">
-                          <td className="px-4 py-3 text-white text-sm">{formatDate(item.data)}</td>
-                          <td className="px-4 py-3 text-white text-sm">{item.competencia || '-'}</td>
-                          <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
-                          <td className="px-4 py-3 text-center text-white">{item.total_encontrados || 0}</td>
-                          <td className="px-4 py-3 text-center text-emerald-400">{item.total_importados || 0}</td>
-                          <td className="px-4 py-3 text-center text-amber-400">{item.total_duplicados || 0}</td>
-                          <td className="px-4 py-3 text-center text-red-400">{item.total_erros || 0}</td>
-                          <td className="px-4 py-3 text-right text-[#A1A1AA] text-sm">
-                            {item.duracao_segundos ? `${item.duracao_segundos}s` : '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  
-                  {historico.length === 0 && (
-                    <div className="p-8 text-center text-[#A1A1AA]">
-                      Nenhuma sincronização registrada para esta empresa
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-8 text-center">
-                <History className="w-12 h-12 text-[#A1A1AA] mx-auto mb-4" />
-                <p className="text-white font-medium mb-2">Selecione uma empresa</p>
-                <p className="text-[#A1A1AA] text-sm mb-4">
-                  Clique no botão de histórico de uma empresa na aba "Empresas" para ver detalhes
-                </p>
-                <button
-                  onClick={() => setActiveTab('empresas')}
-                  className="px-4 py-2 bg-[#C8A951] text-black rounded-lg font-medium hover:bg-[#D4B962] transition-all"
-                >
-                  Ver Empresas
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
         {activeTab === 'cancelados' && (
           <div className="space-y-4">
-            {selectedEmpresa ? (
-              <>
-                {/* Empresa Header */}
-                <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Building2 className="w-5 h-5 text-[#C8A951]" />
-                      <div>
-                        <p className="text-white font-medium">{selectedEmpresa.razao_social}</p>
-                        <p className="text-[#666] text-sm">{formatCNPJ(selectedEmpresa.cnpj)}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setSelectedEmpresa(null)}
-                      className="text-[#A1A1AA] hover:text-white text-sm"
-                    >
-                      Ver todas empresas
-                    </button>
-                  </div>
+            {/* Cancelados Table */}
+            <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-[#1A1A1A]">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Número</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Emitente</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Data</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Situação</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-[#A1A1AA] uppercase">Valor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#2A2A2A]">
+                  {(painelEmpresa?.cancelados || cancelados || []).map((doc, idx) => (
+                    <tr key={idx} className="hover:bg-[#1A1A1A] transition-colors">
+                      <td className="px-4 py-3 text-white">{doc.numero_nfe || '-'}</td>
+                      <td className="px-4 py-3 text-white text-sm">{doc.emitente?.razao_social || '-'}</td>
+                      <td className="px-4 py-3 text-[#A1A1AA] text-sm">
+                        {doc.data_emissao ? new Date(doc.data_emissao).toLocaleDateString('pt-BR') : '-'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400 capitalize">
+                          {doc.situacao || 'cancelada'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-white">
+                        {doc.valor_total?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {(!painelEmpresa?.cancelados?.length && !cancelados?.length) && (
+                <div className="p-8 text-center text-[#A1A1AA]">
+                  <FileX className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Nenhuma nota cancelada ou inutilizada encontrada</p>
                 </div>
-
-                {/* Cancelados Table */}
-                <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-[#1A1A1A]">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Número</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Emitente</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Data</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Situação</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-[#A1A1AA] uppercase">Valor</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#2A2A2A]">
+              )}
+            </div>
+          </div>
+        )}
+          </>
+        )}
                       {cancelados.map((doc, idx) => (
                         <tr key={idx} className="hover:bg-[#1A1A1A] transition-colors">
                           <td className="px-4 py-3">
