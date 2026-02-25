@@ -41,7 +41,7 @@ async def get_sieg_jwt_token() -> Optional[str]:
     """
     Obtém token JWT do SIEG usando OAuth2 Client Credentials.
     Endpoint: https://api.sieg.com/api/v1/create-jwt
-    Headers: clientId, secretKey
+    Headers: x-client-id, x-secret-key
     """
     global _jwt_token_cache
     
@@ -53,16 +53,16 @@ async def get_sieg_jwt_token() -> Optional[str]:
     
     client_id, client_secret = get_sieg_credentials()
     if not client_id or not client_secret:
-        print("[SIEG] Credenciais OAuth2 não configuradas")
+        print("[SIEG] Credenciais não configuradas")
         return None
     
     # Endpoint oficial do SIEG para criar JWT
     token_url = f"{SIEG_API_BASE}/api/v1/create-jwt"
     
-    # Headers conforme documentação SIEG
+    # Headers conforme documentação SIEG (x-client-id e x-secret-key)
     headers = {
-        "clientId": client_id,
-        "secretKey": client_secret,
+        "x-client-id": client_id,
+        "x-secret-key": client_secret,
         "Content-Type": "application/json"
     }
     
@@ -74,35 +74,25 @@ async def get_sieg_jwt_token() -> Optional[str]:
             response = await client.post(
                 token_url,
                 headers=headers,
-                json={}  # Corpo vazio ou mínimo
+                json={}  # Corpo vazio
             )
             
             print(f"[SIEG] Resposta: {response.status_code}")
             
             if response.status_code == 200:
-                data = response.json()
-                # O token pode vir em diferentes campos
-                token = (
-                    data.get("access_token") or 
-                    data.get("token") or 
-                    data.get("Token") or 
-                    data.get("accessToken") or
-                    data.get("jwt") or
-                    data.get("JWT") or
-                    (data if isinstance(data, str) else None)
-                )
+                # O token é retornado diretamente como string
+                token = response.text.strip().strip('"')
                 
-                if token:
-                    # Cache por 55 minutos (tokens geralmente duram 1 hora)
-                    expires_in = data.get("expires_in", 3600) if isinstance(data, dict) else 3600
+                if token and token.startswith("eyJ"):
+                    # Token JWT válido! Cache por 23 horas (token dura 24h)
                     _jwt_token_cache["token"] = token
-                    _jwt_token_cache["expires_at"] = datetime.now() + timedelta(seconds=expires_in - 60)
+                    _jwt_token_cache["expires_at"] = datetime.now() + timedelta(hours=23)
                     print(f"[SIEG] ✅ Token JWT obtido com sucesso!")
                     return token
                 else:
-                    print(f"[SIEG] Token não encontrado na resposta: {data}")
+                    print(f"[SIEG] Resposta inesperada: {response.text[:100]}")
             else:
-                print(f"[SIEG] Erro {response.status_code}: {response.text[:500]}")
+                print(f"[SIEG] Erro {response.status_code}: {response.text[:200]}")
                 
         except Exception as e:
             print(f"[SIEG] Erro ao obter token: {e}")
