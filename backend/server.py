@@ -27092,19 +27092,27 @@ async def apurar_pis_cofins(
     except Exception as e:
         logger.warning(f"Erro ao calcular ICMS/IPI para transporte: {e}")
     
-    # Salvar saldo se houver algo a transportar
-    if regime.upper() == 'LUCRO_REAL' and (pis_a_transportar > 0 or cofins_a_transportar > 0 or icms_a_transportar > 0 or ipi_a_transportar > 0):
+    # SEMPRE salvar os saldos da competência (para histórico e rastreabilidade)
+    # Isso permite que a próxima competência busque os saldos corretamente
+    try:
         await db.saldos_credores.update_one(
             {"company_id": company_id, "competencia": competencia},
             {
                 "$set": {
                     "company_id": company_id,
                     "competencia": competencia,
+                    "regime": regime.upper(),
                     "saldo_a_transportar": {
                         "pis": round(pis_a_transportar, 2),
                         "cofins": round(cofins_a_transportar, 2),
                         "icms": round(icms_a_transportar, 2),
                         "ipi": round(ipi_a_transportar, 2)
+                    },
+                    "saldo_final": {
+                        "pis": round(pis_saldo, 2),
+                        "cofins": round(cofins_saldo, 2),
+                        "icms": round(icms_saldo, 2) if 'icms_saldo' in dir() else 0,
+                        "ipi": round(ipi_saldo, 2) if 'ipi_saldo' in dir() else 0
                     },
                     "detalhamento": {
                         "pis": {"credito": round(pis_credito, 2), "debito": round(pis_debito, 2), "saldo_anterior": round(saldo_credor_anterior.get('pis', 0), 2)},
@@ -27117,6 +27125,9 @@ async def apurar_pis_cofins(
             },
             upsert=True
         )
+        logger.info(f"APURACAO PIS/COFINS: Saldos salvos para {company_id}/{competencia} - PIS={pis_a_transportar}, COFINS={cofins_a_transportar}, ICMS={icms_a_transportar}")
+    except Exception as e:
+        logger.error(f"Erro ao salvar saldos credores: {e}")
     
     return {
         "empresa": {
