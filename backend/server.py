@@ -24557,8 +24557,14 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
             "credito_presumido_icms": 0,
             "credito_presumido_percent": 0,
             "is_transportadora": False,
+            "saldo_credor_anterior": 0,
+            "competencia_anterior": "",
+            "saldo_antes_anterior": round(saldo, 2),
             "saldo": round(saldo, 2),
-            "situacao": "A_PAGAR" if saldo > 0 else "A_RECUPERAR" if saldo < 0 else "ZERADO"
+            "saldo_a_transportar": round(abs(min(0, saldo)), 2),
+            "situacao": "A_PAGAR" if saldo > 0 else "A_RECUPERAR" if saldo < 0 else "ZERADO",
+            "a_pagar": round(max(0, saldo), 2),
+            "a_recuperar": round(abs(min(0, saldo)), 2)
         },
         "icms_st": {
             "saidas": {"por_cfop": [], "total_bc": 0, "total_icms_st": round(icms_st_saidas, 2)},
