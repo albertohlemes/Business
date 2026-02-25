@@ -8,6 +8,7 @@ Autenticação: OAuth2 Client Credentials
 import os
 import httpx
 import base64
+import json
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from io import BytesIO
