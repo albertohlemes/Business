@@ -7196,6 +7196,59 @@ async def sieg_configurar_empresa(
     return {"success": True, "message": "Configuração SIEG salva com sucesso"}
 
 
+
+@api_router.post("/sieg/migrate-config")
+async def sieg_migrate_config(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Migra configurações da antiga coleção sieg_config para os campos sieg_*
+    diretamente nas empresas. Executar apenas uma vez.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Apenas administradores podem executar a migração")
+    
+    # Buscar todas as configurações antigas
+    configs = await db.sieg_config.find({}).to_list(1000)
+    
+    if not configs:
+        return {"success": True, "message": "Nenhuma configuração antiga encontrada para migrar", "migrated": 0}
+    
+    migrated = 0
+    errors = []
+    
+    for config in configs:
+        company_id = config.get("company_id")
+        
+        # Verificar se empresa existe
+        company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+        if not company:
+            errors.append(f"Empresa {company_id} não encontrada")
+            continue
+        
+        # Atualizar empresa com os campos SIEG
+        update_data = {
+            "sieg_ativo": config.get("ativo", False),
+            "sieg_sync_automatico": config.get("sync_automatico", False),
+            "sieg_frequencia": config.get("frequencia", "diario")
+        }
+        
+        await db.companies.update_one(
+            {"id": company_id},
+            {"$set": update_data}
+        )
+        migrated += 1
+    
+    return {
+        "success": True,
+        "message": f"Migração concluída: {migrated} empresas atualizadas",
+        "migrated": migrated,
+        "errors": errors,
+        "total_configs": len(configs)
+    }
+
+
+
 @api_router.post("/sieg/sync-all")
 async def sieg_sync_todas_empresas(
     background_tasks: BackgroundTasks,
