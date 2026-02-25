@@ -174,7 +174,8 @@ async def count_xmls_sieg(
     api_key: str = None
 ) -> Dict[str, int]:
     """
-    Conta quantos XMLs estão disponíveis no SIEG para o CNPJ e competência
+    Conta quantos XMLs estão disponíveis no SIEG para o CNPJ e competência.
+    Usa o endpoint BaixarXmls com Take=1 para estimar contagem.
     """
     # Limpar CNPJ
     cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
@@ -182,22 +183,67 @@ async def count_xmls_sieg(
     # Obter datas da competência
     data_inicio, data_fim = get_competencia_dates(competencia)
     
-    # Obter headers com token JWT
-    headers = await get_sieg_headers()
+    # Usar API Key diretamente (funciona melhor que JWT para este endpoint)
+    api_key = api_key or get_sieg_api_key()
     
-    # Request para contar XMLs
-    payload = {
-        "CnpjDest": cnpj_limpo,  # Notas de entrada (onde a empresa é destinatária)
-        "DataEmissaoInicio": data_inicio.isoformat(),
-        "DataEmissaoFim": data_fim.isoformat()
+    results = {
+        "entrada": {"count": 0, "error": None},
+        "saida": {"count": 0, "error": None}
     }
     
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        # Contar notas de entrada
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        # Contar notas de entrada (CnpjDest)
         try:
-            response_entrada = await client.post(
-                build_sieg_url("ContarXmls"),
-                headers=headers,
+            url = f"{SIEG_API_BASE}/BaixarXmls?api_key={api_key}"
+            payload = {
+                "XmlType": 1,  # NF-e
+                "Take": 50,
+                "Skip": 0,
+                "DataEmissaoInicio": data_inicio.strftime("%Y-%m-%d"),
+                "DataEmissaoFim": data_fim.strftime("%Y-%m-%d"),
+                "CnpjDest": cnpj_limpo
+            }
+            
+            response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                    results["entrada"]["count"] = len(data)
+                else:
+                    results["entrada"]["count"] = 0
+            else:
+                results["entrada"]["error"] = response.text[:200]
+                
+        except Exception as e:
+            results["entrada"]["error"] = str(e)
+        
+        # Contar notas de saída (CnpjEmit)
+        try:
+            payload = {
+                "XmlType": 1,
+                "Take": 50,
+                "Skip": 0,
+                "DataEmissaoInicio": data_inicio.strftime("%Y-%m-%d"),
+                "DataEmissaoFim": data_fim.strftime("%Y-%m-%d"),
+                "CnpjEmit": cnpj_limpo
+            }
+            
+            response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+            
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                    results["saida"]["count"] = len(data)
+                else:
+                    results["saida"]["count"] = 0
+            else:
+                results["saida"]["error"] = response.text[:200]
+                
+        except Exception as e:
+            results["saida"]["error"] = str(e)
+    
+    return results
                 json=payload
             )
             
