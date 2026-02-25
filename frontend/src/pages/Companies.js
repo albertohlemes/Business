@@ -6,7 +6,7 @@ import CoffeeProgress from '../components/CoffeeProgress';
 import { 
   Building2, Plus, Search, RefreshCw, Trash2, Edit, X, Settings, 
   Users, ChevronDown, ChevronRight, Filter, Upload, FileSpreadsheet, Download, CheckCircle, AlertCircle, Shield, Eye, EyeOff,
-  ArrowUp, ArrowDown, ArrowUpDown, Truck, Sparkles, Loader2, Star, Wand2
+  ArrowUp, ArrowDown, ArrowUpDown, Truck, Sparkles, Loader2, Star, Wand2, Cloud
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { toast } from 'sonner';
