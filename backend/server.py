@@ -24447,7 +24447,39 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
                 saidas_por_cfop[cfop]["valor_icms_st"] += valor_icms_st
                 saidas_por_cfop[cfop]["qtd_itens"] += qtd
     
-    saldo = debito_icms - credito_icms
+    saldo_antes_anterior = debito_icms - credito_icms
+    
+    # ============== BUSCAR SALDO CREDOR ANTERIOR ==============
+    saldo_credor_anterior_icms = 0.0
+    comp_anterior = ""
+    try:
+        mes, ano = competencia.split('/')
+        mes_int = int(mes)
+        ano_int = int(ano)
+        if mes_int == 1:
+            comp_anterior = f"12/{ano_int - 1}"
+        else:
+            comp_anterior = f"{mes_int - 1:02d}/{ano_int}"
+        
+        # Verificar se é a competência inicial da empresa
+        competencia_inicial = company.get('competencia_saldo_inicial', '')
+        possui_saldo_credor = company.get('possui_saldo_credor', False)
+        
+        if competencia == competencia_inicial and possui_saldo_credor:
+            saldo_credor_anterior_icms = float(company.get('saldo_credor_icms', 0) or 0)
+        else:
+            saldo_ant_db = await db.saldos_credores.find_one({
+                "company_id": company_id,
+                "competencia": comp_anterior
+            })
+            if saldo_ant_db:
+                saldo_credor_anterior_icms = float(saldo_ant_db.get('saldo_a_transportar', {}).get('icms', 0) or 0)
+    except Exception as e:
+        logger.warning(f"ICMS AGREGADO: Erro ao buscar saldo credor anterior: {e}")
+    
+    # Saldo final considerando credor anterior
+    saldo = saldo_antes_anterior - saldo_credor_anterior_icms
+    saldo_a_transportar = abs(min(0, saldo))
     
     # ============== CALCULAR VENDAS/COMPRAS LÍQUIDAS (usando dados já agregados por CFOP) ==============
     # CFOPs de COMPRA para revenda e insumos
