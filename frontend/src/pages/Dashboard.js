@@ -708,25 +708,35 @@ const Dashboard = ({ user, onLogout }) => {
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-emerald-400">Crédito:</span>
-                          <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.pis)}</span>
+                          <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos?.pis)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-red-400">Débito:</span>
-                          <span className="font-medium text-red-400">{formatCurrency(stats.debitos.pis)}</span>
+                          <span className="font-medium text-red-400">{formatCurrency(stats.debitos?.pis)}</span>
                         </div>
+                        {/* SALDO CREDOR ANTERIOR PIS - SÓ APARECE QUANDO EXISTE */}
+                        {stats.saldo_credor_anterior?.pis > 0 && (
+                          <div className="flex justify-between text-sm bg-blue-500/10 -mx-2 px-2 py-1 rounded">
+                            <span className="text-blue-400">(-) Saldo Anterior:</span>
+                            <span className="font-medium text-blue-400">{formatCurrency(stats.saldo_credor_anterior.pis)}</span>
+                          </div>
+                        )}
                         <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
                           <span className="text-[#A1A1AA]">
-                            {stats.creditos.pis > stats.debitos.pis ? 'A Recuperar:' : 'A Pagar:'}
+                            {stats.impostos_pagar?.pis_a_recuperar > 0 ? 'A Recuperar:' : 
+                             (stats.creditos?.pis > stats.debitos?.pis) ? 'A Recuperar:' : 'A Pagar:'}
                           </span>
-                          <span className={stats.creditos.pis > stats.debitos.pis ? 'text-[#C8A951]' : (stats.impostos_pagar.pis > 0 ? 'text-red-400' : 'text-emerald-400')}>
-                            {formatCurrency(stats.creditos.pis > stats.debitos.pis 
-                              ? Math.abs(stats.creditos.pis - stats.debitos.pis) 
-                              : stats.impostos_pagar.pis)}
+                          <span className={(stats.impostos_pagar?.pis_a_recuperar > 0 || stats.creditos?.pis > stats.debitos?.pis) ? 'text-[#C8A951]' : (stats.impostos_pagar?.pis > 0 ? 'text-red-400' : 'text-emerald-400')}>
+                            {formatCurrency(stats.impostos_pagar?.pis_a_recuperar > 0 
+                              ? stats.impostos_pagar.pis_a_recuperar
+                              : (stats.creditos?.pis > stats.debitos?.pis) 
+                                ? Math.abs((stats.creditos?.pis || 0) - (stats.debitos?.pis || 0)) 
+                                : stats.impostos_pagar?.pis)}
                           </span>
                         </div>
                         <div className="text-xs text-[#666] pt-1 space-y-0.5">
-                          <div>% Saídas: {((stats.impostos_pagar.pis / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
-                          <div>% Vendas: {((stats.impostos_pagar.pis / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
+                          <div>% Saídas: {((stats.impostos_pagar?.pis / (stats.valores?.saidas?.total || 1)) * 100).toFixed(2)}%</div>
+                          <div>% Vendas: {((stats.impostos_pagar?.pis / (stats.valores?.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
                         </div>
                       </div>
                     </div>
@@ -737,25 +747,35 @@ const Dashboard = ({ user, onLogout }) => {
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-emerald-400">Crédito:</span>
-                          <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.cofins)}</span>
+                          <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos?.cofins)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-red-400">Débito:</span>
-                          <span className="font-medium text-red-400">{formatCurrency(stats.debitos.cofins)}</span>
+                          <span className="font-medium text-red-400">{formatCurrency(stats.debitos?.cofins)}</span>
                         </div>
+                        {/* SALDO CREDOR ANTERIOR COFINS - SÓ APARECE QUANDO EXISTE */}
+                        {stats.saldo_credor_anterior?.cofins > 0 && (
+                          <div className="flex justify-between text-sm bg-blue-500/10 -mx-2 px-2 py-1 rounded">
+                            <span className="text-blue-400">(-) Saldo Anterior:</span>
+                            <span className="font-medium text-blue-400">{formatCurrency(stats.saldo_credor_anterior.cofins)}</span>
+                          </div>
+                        )}
                         <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
                           <span className="text-[#A1A1AA]">
-                            {stats.creditos.cofins > stats.debitos.cofins ? 'A Recuperar:' : 'A Pagar:'}
+                            {stats.impostos_pagar?.cofins_a_recuperar > 0 ? 'A Recuperar:' : 
+                             (stats.creditos?.cofins > stats.debitos?.cofins) ? 'A Recuperar:' : 'A Pagar:'}
                           </span>
-                          <span className={stats.creditos.cofins > stats.debitos.cofins ? 'text-[#C8A951]' : (stats.impostos_pagar.cofins > 0 ? 'text-red-400' : 'text-emerald-400')}>
-                            {formatCurrency(stats.creditos.cofins > stats.debitos.cofins 
-                              ? Math.abs(stats.creditos.cofins - stats.debitos.cofins) 
-                              : stats.impostos_pagar.cofins)}
+                          <span className={(stats.impostos_pagar?.cofins_a_recuperar > 0 || stats.creditos?.cofins > stats.debitos?.cofins) ? 'text-[#C8A951]' : (stats.impostos_pagar?.cofins > 0 ? 'text-red-400' : 'text-emerald-400')}>
+                            {formatCurrency(stats.impostos_pagar?.cofins_a_recuperar > 0 
+                              ? stats.impostos_pagar.cofins_a_recuperar
+                              : (stats.creditos?.cofins > stats.debitos?.cofins) 
+                                ? Math.abs((stats.creditos?.cofins || 0) - (stats.debitos?.cofins || 0)) 
+                                : stats.impostos_pagar?.cofins)}
                           </span>
                         </div>
                         <div className="text-xs text-[#666] pt-1 space-y-0.5">
-                          <div>% Saídas: {((stats.impostos_pagar.cofins / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
-                          <div>% Vendas: {((stats.impostos_pagar.cofins / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
+                          <div>% Saídas: {((stats.impostos_pagar?.cofins / (stats.valores?.saidas?.total || 1)) * 100).toFixed(2)}%</div>
+                          <div>% Vendas: {((stats.impostos_pagar?.cofins / (stats.valores?.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
                         </div>
                       </div>
                     </div>
