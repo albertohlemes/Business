@@ -17,7 +17,8 @@ def get_auth_token():
     })
     assert login_response.status_code == 200, f"Login failed: {login_response.text}"
     data = login_response.json()
-    return data.get("token")
+    # API returns 'access_token' not 'token'
+    return data.get("access_token") or data.get("token")
 
 # Module-level token
 TOKEN = None
@@ -28,6 +29,7 @@ def setup_auth():
     """Setup authentication at module level"""
     global TOKEN, HEADERS
     TOKEN = get_auth_token()
+    assert TOKEN is not None, "Failed to get auth token"
     HEADERS = {"Authorization": f"Bearer {TOKEN}"}
     print(f"Auth token obtained: {TOKEN[:20]}...")
 
