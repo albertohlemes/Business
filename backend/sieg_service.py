@@ -314,7 +314,11 @@ async def download_xmls_sieg(
                 )
                 
                 if response.status_code == 200:
-                    data = response.json()
+                    # Double decode - SIEG retorna JSON stringificado
+                    raw_data = response.text
+                    data = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
+                    if isinstance(data, str):
+                        data = json.loads(data)
                     
                     # Verificar se é erro
                     if isinstance(data, dict) and "Message" in data:
@@ -322,13 +326,12 @@ async def download_xmls_sieg(
                         stats["por_tipo"][xml_type] = 0
                         continue
                     
-                    # A API retorna lista de XMLs em Base64 (strings separadas por vírgula)
+                    # A API retorna lista de XMLs em Base64
                     if isinstance(data, list):
                         for item in data:
                             try:
-                                # O item pode ser uma string Base64 direta ou um objeto
-                                if isinstance(item, str):
-                                    # String Base64 direta
+                                # O item é uma string Base64
+                                if isinstance(item, str) and len(item) > 50:
                                     xml_content = base64.b64decode(item).decode('utf-8')
                                     all_xmls.append({
                                         "xml": xml_content,
@@ -341,7 +344,6 @@ async def download_xmls_sieg(
                                         "valor": 0
                                     })
                                 elif isinstance(item, dict) and "Xml" in item:
-                                    # Objeto com Xml em Base64
                                     xml_content = base64.b64decode(item["Xml"]).decode('utf-8')
                                     all_xmls.append({
                                         "xml": xml_content,
@@ -356,8 +358,8 @@ async def download_xmls_sieg(
                             except Exception as e:
                                 print(f"[SIEG] Erro ao decodificar XML: {e}")
                         
-                        stats["por_tipo"][xml_type] = len(data)
-                        stats["total_baixados"] += len(data)
+                        stats["por_tipo"][xml_type] = len(all_xmls)
+                        stats["total_baixados"] = len(all_xmls)
                     
                     # Formato alternativo (V2)
                     elif isinstance(data, dict) and "Xmls" in data:
