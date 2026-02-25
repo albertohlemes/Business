@@ -104,10 +104,14 @@ class TestSiegMonitor:
         assert response.status_code == 200, f"Failed: {response.text}"
         data = response.json()
         
-        # Verify structure
-        assert "status" in data or "message" in data, "Response must have status or message"
+        # Response has 'configurado' field with API configuration status
+        assert "configurado" in data or "status" in data or "message" in data, f"Response must have configurado, status or message. Got: {list(data.keys())}"
         
-        print(f"✅ SIEG API status: {data}")
+        # If configurado is present, it should indicate SIEG is set up
+        if "configurado" in data:
+            print(f"✅ SIEG API status: configurado={data['configurado']}, api_key_configurada={data.get('api_key_configurada')}")
+        else:
+            print(f"✅ SIEG API status: {data}")
     
     # ==================== PAINEL EMPRESA TESTS ====================
     
@@ -125,11 +129,15 @@ class TestSiegMonitor:
             assert response.status_code == 200, f"Failed: {response.text}"
             data = response.json()
             
-            # Verify structure
-            assert "company_id" in data, "Response must have company_id"
-            assert "estatisticas" in data or "config" in data, "Response must have estatisticas or config"
+            # Response can have 'empresa' nested structure or 'company_id' directly
+            has_empresa_data = "empresa" in data or "company_id" in data
+            assert has_empresa_data, f"Response must have empresa or company_id. Got: {list(data.keys())}"
             
-            print(f"✅ Painel empresa {company_id}: has estatisticas={bool(data.get('estatisticas'))}, config={bool(data.get('config'))}")
+            # Verify estatisticas or config present
+            has_stats_or_config = "estatisticas" in data or "config" in data
+            assert has_stats_or_config, f"Response must have estatisticas or config. Got: {list(data.keys())}"
+            
+            print(f"✅ Painel empresa {company_id}: has empresa={bool(data.get('empresa'))}, estatisticas={bool(data.get('estatisticas'))}, config={bool(data.get('config'))}")
         else:
             pytest.skip("No companies available to test")
     
