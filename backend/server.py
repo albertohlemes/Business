@@ -7203,14 +7203,19 @@ async def sieg_sync_todas_empresas(
 ):
     """
     Inicia sincronização de todas as empresas com SIEG ativo
+    
+    ATUALIZADO: Busca empresas pela coleção companies (campos sieg_*)
     """
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Apenas administradores podem sincronizar todas as empresas")
     
-    # Buscar empresas com SIEG ativo
-    configs = await db.sieg_config.find({"ativo": True, "sync_automatico": True}).to_list(1000)
+    # ATUALIZADO: Buscar empresas com SIEG ativo diretamente da coleção companies
+    empresas = await db.companies.find({
+        "sieg_ativo": True, 
+        "sieg_sync_automatico": True
+    }, {"_id": 0, "id": 1, "razao_social": 1}).to_list(1000)
     
-    if not configs:
+    if not empresas:
         return {"success": False, "message": "Nenhuma empresa com sincronização automática ativa"}
     
     # Registrar início da sincronização em lote
@@ -7219,16 +7224,16 @@ async def sieg_sync_todas_empresas(
         "batch_id": batch_id,
         "iniciado_em": datetime.now(timezone.utc).isoformat(),
         "iniciado_por": current_user.id,
-        "total_empresas": len(configs),
+        "total_empresas": len(empresas),
         "status": "em_andamento",
-        "empresas": [c["company_id"] for c in configs]
+        "empresas": [e["id"] for e in empresas]
     })
     
     return {
         "success": True,
         "batch_id": batch_id,
-        "total_empresas": len(configs),
-        "message": f"Sincronização iniciada para {len(configs)} empresas"
+        "total_empresas": len(empresas),
+        "message": f"Sincronização iniciada para {len(empresas)} empresas"
     }
 
 
