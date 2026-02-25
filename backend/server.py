@@ -25258,23 +25258,38 @@ async def apurar_icms(
     # SEMPRE SALVAR SALDO ICMS PARA HISTÓRICO E TRANSPORTE
     # ============================================================
     try:
+        # Primeiro, buscar documento existente para manter outros campos
+        doc_existente = await db.saldos_credores.find_one({
+            "company_id": company_id,
+            "competencia": competencia
+        })
+        
+        saldo_a_transportar_obj = doc_existente.get('saldo_a_transportar', {}) if doc_existente else {}
+        saldo_final_obj = doc_existente.get('saldo_final', {}) if doc_existente else {}
+        detalhamento_obj = doc_existente.get('detalhamento', {}) if doc_existente else {}
+        
+        # Atualizar apenas ICMS
+        saldo_a_transportar_obj['icms'] = round(saldo_a_transportar, 2)
+        saldo_final_obj['icms'] = round(saldo, 2)
+        detalhamento_obj['icms'] = {
+            "credito": round(credito_icms, 2),
+            "debito": round(debito_icms, 2),
+            "credito_presumido": round(credito_presumido_icms, 2),
+            "saldo_anterior": round(saldo_credor_anterior_icms, 2),
+            "saldo_antes_anterior": round(saldo_antes_anterior, 2),
+            "saldo_final": round(saldo, 2)
+        }
+        
         await db.saldos_credores.update_one(
             {"company_id": company_id, "competencia": competencia},
             {
                 "$set": {
                     "company_id": company_id,
                     "competencia": competencia,
-                    "saldo_a_transportar.icms": round(saldo_a_transportar, 2),
-                    "saldo_final.icms": round(saldo, 2),
-                    "detalhamento.icms": {
-                        "credito": round(credito_icms, 2),
-                        "debito": round(debito_icms, 2),
-                        "credito_presumido": round(credito_presumido_icms, 2),
-                        "saldo_anterior": round(saldo_credor_anterior_icms, 2),
-                        "saldo_antes_anterior": round(saldo_antes_anterior, 2),
-                        "saldo_final": round(saldo, 2)
-                    },
-                    "data_calculo": datetime.now(timezone.utc).isoformat()
+                    "saldo_a_transportar": saldo_a_transportar_obj,
+                    "saldo_final": saldo_final_obj,
+                    "detalhamento": detalhamento_obj,
+                    "data_calculo_icms": datetime.now(timezone.utc).isoformat()
                 }
             },
             upsert=True
