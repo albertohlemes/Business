@@ -3,19 +3,19 @@
 ## Visão Geral
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
-## Última Atualização: 26/06/2026
-- **CORRIGIDO**: Transporte de saldos credores entre competências (ICMS, PIS, COFINS, IPI)
-- **MELHORADO**: Demonstrativo de Apuração ICMS agora mostra "Saldo Credor Anterior" quando existir
-- **MELHORADO**: Dashboard mostra linha "(-) Saldo Anterior" nos impostos quando existir
-- Endpoints Dashboard, Apuração ICMS, PIS/COFINS, RET, Reforma Tributária agora consideram saldo credor anterior
-- Saldos são salvos na collection `saldos_credores` e transportados automaticamente para o mês seguinte
-- **IMPORTANTE**: O saldo credor anterior SÓ aparece quando existe - não polui a tela quando não há saldo
+## Última Atualização: 25/02/2026
+- **NOVO**: Painel de Monitoramento da Integração SIEG implementado
+- **NOVO**: Job agendado (APScheduler) para sincronização automática diária às 06:00
+- **NOVO**: Página /sieg-monitor com 4 abas: Visão Geral, Empresas, Histórico, Cancelados
+- **NOVO**: Configuração de sync por empresa (ativo, automático, frequência, horário)
+- Autenticação OAuth2/JWT com a API do SIEG funcionando
 
 ## Stack Tecnológica
 - **Frontend**: React 18 + TailwindCSS + Lucide Icons
-- **Backend**: FastAPI (Python)
+- **Backend**: FastAPI (Python) + APScheduler
 - **Database**: MongoDB
 - **Auth**: JWT
+- **Integração**: SIEG Soluções (OAuth2/JWT)
 
 ## Funcionalidades Implementadas
 
