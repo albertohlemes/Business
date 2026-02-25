@@ -1449,6 +1449,20 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                   </>
                 )}
                 
+                {/* SALDO CREDOR DO PERÍODO ANTERIOR - SÓ APARECE QUANDO EXISTE */}
+                {dados.apuracao?.saldo_credor_anterior > 0 && (
+                  <>
+                    <Minus className="w-6 h-6 text-[#666]" />
+                    <div className="text-center p-4 bg-blue-500/10 rounded-lg border border-blue-500/30 min-w-[180px]">
+                      <p className="text-blue-400 text-2xl font-bold">{formatCurrency(dados.apuracao?.saldo_credor_anterior)}</p>
+                      <p className="text-[#A1A1AA] text-sm">Saldo Credor Anterior</p>
+                      <p className="text-xs text-blue-300 mt-1">
+                        {dados.apuracao?.competencia_anterior ? `Ref: ${dados.apuracao.competencia_anterior}` : 'Período anterior'}
+                      </p>
+                    </div>
+                  </>
+                )}
+                
                 <ArrowRight className="w-6 h-6 text-[#C8A951]" />
                 <div className={`text-center p-4 rounded-lg border min-w-[180px] ${
                   dados.apuracao?.situacao === 'A_PAGAR' 
