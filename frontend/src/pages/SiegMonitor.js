@@ -351,50 +351,137 @@ const SiegMonitor = ({ user, onLogout }) => {
             {/* Content based on active tab */}
             {activeTab === 'overview' && painelEmpresa && (
           <div className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                    <Building2 className="w-5 h-5 text-blue-400" />
+            {/* Status da Integração */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Card de Configuração */}
+              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-6">
+                <h3 className="text-white font-medium mb-4 flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-[#C8A951]" />
+                  Configuração da Integração
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-[#1A1A1A]">
+                    <span className="text-[#A1A1AA]">Integração SIEG</span>
+                    {painelEmpresa.config?.sieg_ativo ? (
+                      <span className="flex items-center gap-2 text-emerald-400">
+                        <CheckCircle2 className="w-4 h-4" /> Ativa
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2 text-red-400">
+                        <XCircle className="w-4 h-4" /> Inativa
+                      </span>
+                    )}
                   </div>
-                  <span className="text-[#A1A1AA] text-sm">Total Empresas</span>
+                  
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-[#1A1A1A]">
+                    <span className="text-[#A1A1AA]">Sincronização Automática</span>
+                    {painelEmpresa.config?.sync_automatico ? (
+                      <span className="flex items-center gap-2 text-emerald-400">
+                        <CheckCircle2 className="w-4 h-4" /> Ativa
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2 text-[#666]">
+                        <XCircle className="w-4 h-4" /> Desativada
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-[#1A1A1A]">
+                    <span className="text-[#A1A1AA]">Frequência</span>
+                    <span className="text-white capitalize">
+                      {painelEmpresa.config?.frequencia === '6h' ? 'A cada 6 horas' :
+                       painelEmpresa.config?.frequencia === '12h' ? 'A cada 12 horas' :
+                       'Diária'}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-3xl font-bold text-white">{painelGeral?.total_empresas || 0}</p>
+                
+                {!painelEmpresa.config?.sieg_ativo && (
+                  <div className="mt-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <p className="text-amber-400 text-sm flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      Para ativar a integração SIEG, edite a empresa no menu "Empresas"
+                    </p>
+                  </div>
+                )}
               </div>
               
-              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-emerald-400" />
+              {/* Card de Estatísticas */}
+              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-6">
+                <h3 className="text-white font-medium mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-[#C8A951]" />
+                  Estatísticas
+                </h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-lg bg-[#1A1A1A] text-center">
+                    <p className="text-3xl font-bold text-emerald-400">
+                      {painelEmpresa.estatisticas?.total_sieg || 0}
+                    </p>
+                    <p className="text-xs text-[#A1A1AA] mt-1">Docs via SIEG</p>
                   </div>
-                  <span className="text-[#A1A1AA] text-sm">SIEG Ativo</span>
-                </div>
-                <p className="text-3xl font-bold text-emerald-400">{painelGeral?.empresas_com_sieg || 0}</p>
-              </div>
-              
-              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-amber-400" />
+                  
+                  <div className="p-4 rounded-lg bg-[#1A1A1A] text-center">
+                    <p className="text-3xl font-bold text-blue-400">
+                      {painelEmpresa.estatisticas?.total_manual || 0}
+                    </p>
+                    <p className="text-xs text-[#A1A1AA] mt-1">Docs Manuais</p>
                   </div>
-                  <span className="text-[#A1A1AA] text-sm">Sync Automático</span>
-                </div>
-                <p className="text-3xl font-bold text-amber-400">{painelGeral?.empresas_sync_auto || 0}</p>
-              </div>
-              
-              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-purple-400" />
+                  
+                  <div className="p-4 rounded-lg bg-[#1A1A1A] text-center">
+                    <p className="text-3xl font-bold text-purple-400">
+                      {painelEmpresa.estatisticas?.total_classificados || 0}
+                    </p>
+                    <p className="text-xs text-[#A1A1AA] mt-1">Classificados</p>
                   </div>
-                  <span className="text-[#A1A1AA] text-sm">Docs Importados</span>
+                  
+                  <div className="p-4 rounded-lg bg-[#1A1A1A] text-center">
+                    <p className="text-3xl font-bold text-white">
+                      {(painelEmpresa.estatisticas?.total_sieg || 0) + (painelEmpresa.estatisticas?.total_manual || 0)}
+                    </p>
+                    <p className="text-xs text-[#A1A1AA] mt-1">Total Docs</p>
+                  </div>
                 </div>
-                <p className="text-3xl font-bold text-white">
-                  {(painelGeral?.empresas || []).reduce((acc, e) => acc + (e.total_docs_sieg || 0), 0)}
-                </p>
               </div>
             </div>
+            
+            {/* Última Sincronização */}
+            {painelEmpresa.historico_sync?.length > 0 && (
+              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-6">
+                <h3 className="text-white font-medium mb-4 flex items-center gap-2">
+                  <History className="w-5 h-5 text-[#C8A951]" />
+                  Última Sincronização
+                </h3>
+                
+                {(() => {
+                  const ultima = painelEmpresa.historico_sync[0];
+                  return (
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-[#1A1A1A]">
+                      <div className="flex items-center gap-4">
+                        <StatusBadge status={ultima.status} />
+                        <div>
+                          <p className="text-white">
+                            {ultima.total_importados} documentos importados
+                          </p>
+                          <p className="text-xs text-[#666]">
+                            Competência: {ultima.competencia}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[#A1A1AA]">
+                          {ultima.data ? new Date(ultima.data).toLocaleString('pt-BR') : '-'}
+                        </p>
+                        <p className="text-xs text-[#666]">
+                          Duração: {ultima.duracao_segundos || 0}s
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Info Box */}
             <div className="bg-gradient-to-r from-[#1A1A1A] to-[#141414] border border-[#2A2A2A] rounded-lg p-6">
@@ -407,58 +494,23 @@ const SiegMonitor = ({ user, onLogout }) => {
                   <ul className="space-y-2 text-[#A1A1AA] text-sm">
                     <li className="flex items-center gap-2">
                       <ChevronRight className="w-4 h-4 text-[#C8A951]" />
-                      A integração busca automaticamente XMLs de NF-e, NFS-e e CT-e do cofre SIEG
+                      A integração busca automaticamente XMLs de NF-e do cofre SIEG
                     </li>
                     <li className="flex items-center gap-2">
                       <ChevronRight className="w-4 h-4 text-[#C8A951]" />
-                      Configure a frequência de sincronização: diária, a cada 12h ou 6h
+                      XMLs baixados passam pelo rito completo: classificação, devoluções e cancelamentos
                     </li>
                     <li className="flex items-center gap-2">
                       <ChevronRight className="w-4 h-4 text-[#C8A951]" />
-                      Notas canceladas e inutilizadas são detectadas e marcadas automaticamente
+                      O horário da sincronização automática pode ser configurado (atual: {configHorarios?.horario_diario || '03:00'})
                     </li>
                     <li className="flex items-center gap-2">
                       <ChevronRight className="w-4 h-4 text-[#C8A951]" />
-                      Documentos duplicados são ignorados para evitar reprocessamento
+                      Documentos duplicados são ignorados automaticamente
                     </li>
                   </ul>
                 </div>
               </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button
-                onClick={() => setActiveTab('empresas')}
-                className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-5 text-left hover:border-[#C8A951]/50 transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Settings className="w-5 h-5 text-[#C8A951]" />
-                    <span className="text-white font-medium">Configurar Empresas</span>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-[#A1A1AA] group-hover:text-[#C8A951] transition-colors" />
-                </div>
-                <p className="text-[#A1A1AA] text-sm mt-2">
-                  Ative ou desative a sincronização automática para cada empresa
-                </p>
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('historico')}
-                className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-5 text-left hover:border-[#C8A951]/50 transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <History className="w-5 h-5 text-[#C8A951]" />
-                    <span className="text-white font-medium">Ver Histórico</span>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-[#A1A1AA] group-hover:text-[#C8A951] transition-colors" />
-                </div>
-                <p className="text-[#A1A1AA] text-sm mt-2">
-                  Veja o histórico completo de sincronizações e logs de execução
-                </p>
-              </button>
             </div>
           </div>
         )}
