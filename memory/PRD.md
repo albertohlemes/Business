@@ -65,12 +65,14 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 - [x] Validador ICMS (CST, CFOP, alíquotas)
 - [x] Classificação Inteligente (NCM, CFOP)
 
-### Integração SIEG (NOVO - 25/02/2026)
+### Integração SIEG (ATUALIZADO - 25/02/2026)
 - [x] **Painel de Monitoramento**: Visualização do status de todas as empresas
-- [x] **Configuração por Empresa**: Ativar/desativar SIEG, sync automático, frequência
+- [x] **Configuração CENTRALIZADA na Empresa**: Campos `sieg_ativo`, `sieg_sync_automatico`, `sieg_frequencia` diretamente no cadastro da empresa
+- [x] **WizardEmpresa**: Seção de Integração SIEG no step 5 (Benefícios)
+- [x] **Migração de Dados**: Endpoint `/api/sieg/migrate-config` para migrar configurações antigas
 - [x] **Histórico de Sincronizações**: Log de execuções com status, contadores, duração
 - [x] **Notas Canceladas**: Visualização de NF-e canceladas/inutilizadas
-- [x] **Job Agendado**: APScheduler para sync automático diário às 06:00
+- [x] **Job Agendado**: APScheduler para sync automático diário às 03:00
 - [x] **Autenticação OAuth2**: Token JWT com cache de 23 horas
 
 ## Endpoints Principais
