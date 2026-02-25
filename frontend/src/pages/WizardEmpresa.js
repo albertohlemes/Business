@@ -2068,6 +2068,66 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
               </div>
             </div>
             
+            {/* === INTEGRAÇÃO SIEG === */}
+            <div className="bg-[#141414] rounded-lg p-4 border border-emerald-500/20">
+              <div className="flex items-center gap-2 mb-4">
+                <Cloud className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-white font-medium">Integração SIEG</h3>
+              </div>
+              
+              <p className="text-xs text-[#666] mb-4">
+                Ative a integração com o SIEG para download automático de XMLs de notas fiscais.
+              </p>
+              
+              {/* Toggle Ativar SIEG */}
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] cursor-pointer hover:border-emerald-500/50 transition-colors mb-3">
+                <input
+                  type="checkbox"
+                  checked={formData.sieg_ativo || false}
+                  onChange={(e) => handleChange('sieg_ativo', e.target.checked)}
+                  className="w-5 h-5 rounded border-[#2A2A2A] bg-[#0C0C0C] text-emerald-500 focus:ring-emerald-500"
+                />
+                <div>
+                  <span className="text-white font-medium">Ativar Integração SIEG</span>
+                  <p className="text-xs text-[#666]">Permite download de XMLs automaticamente do SIEG</p>
+                </div>
+              </label>
+              
+              {formData.sieg_ativo && (
+                <div className="space-y-3 pl-4 border-l-2 border-emerald-500/30">
+                  {/* Sync Automático */}
+                  <label className="flex items-center gap-3 p-3 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] cursor-pointer hover:border-emerald-500/50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={formData.sieg_sync_automatico || false}
+                      onChange={(e) => handleChange('sieg_sync_automatico', e.target.checked)}
+                      className="w-5 h-5 rounded border-[#2A2A2A] bg-[#0C0C0C] text-emerald-500 focus:ring-emerald-500"
+                    />
+                    <div>
+                      <span className="text-white font-medium">Sincronização Automática</span>
+                      <p className="text-xs text-[#666]">Executa o download automaticamente</p>
+                    </div>
+                  </label>
+                  
+                  {/* Frequência */}
+                  {formData.sieg_sync_automatico && (
+                    <div className="p-3 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E]">
+                      <label className="block text-xs text-[#A1A1AA] mb-2">Frequência de Sincronização</label>
+                      <select
+                        value={formData.sieg_frequencia || 'diario'}
+                        onChange={(e) => handleChange('sieg_frequencia', e.target.value)}
+                        className="w-full px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                      >
+                        <option value="diario">Diário</option>
+                        <option value="12h">A cada 12 horas</option>
+                        <option value="6h">A cada 6 horas</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
             {/* Exemplos */}
             <div className="bg-[#1E1E1E] rounded-lg p-4 border border-[#2A2A2A]">
               <p className="text-sm text-[#A1A1AA] font-medium mb-2">Exemplos de uso:</p>
