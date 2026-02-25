@@ -160,19 +160,24 @@ class TestSaldoCredorTransporte:
         assert "apuracao" in data, f"Missing 'apuracao' in response"
         apuracao = data["apuracao"]
         
-        # Check saldo_credor_anterior
-        saldo_credor_anterior = apuracao.get("saldo_credor_anterior_icms", 0)
+        # Check saldo_credor_anterior (correct field name)
+        saldo_credor_anterior = apuracao.get("saldo_credor_anterior", 0)
+        competencia_anterior = apuracao.get("competencia_anterior", "N/A")
         
         print(f"✅ ICMS Fevereiro/2026:")
         print(f"   Saldo Credor Anterior (de Janeiro): R$ {saldo_credor_anterior:,.2f}")
+        print(f"   Competência Anterior: {competencia_anterior}")
         print(f"   Crédito ICMS: R$ {apuracao.get('credito_icms', 0):,.2f}")
         print(f"   Débito ICMS: R$ {apuracao.get('debito_icms', 0):,.2f}")
+        print(f"   Saldo Antes Anterior: R$ {apuracao.get('saldo_antes_anterior', 0):,.2f}")
         print(f"   Saldo Final: R$ {apuracao.get('saldo', 0):,.2f}")
         print(f"   Situação: {apuracao.get('situacao', 'N/A')}")
         
-        # If Janeiro had a credit balance, Fevereiro should show it as saldo_credor_anterior
+        # Verify January balance was transported to February
         if saldo_credor_anterior > 0:
-            print(f"   ✅ Correto: Saldo credor de Janeiro transportado para Fevereiro")
+            print(f"   ✅ Correto: Saldo credor de Janeiro (R$ {saldo_credor_anterior:,.2f}) transportado para Fevereiro")
+            # Verify the expected value
+            assert saldo_credor_anterior >= EXPECTED_ICMS_TRANSPORTAR_MIN, f"Saldo credor anterior menor que esperado"
     
     def test_05_piscofins_fevereiro_busca_saldo_janeiro(self, headers):
         """Test PIS/COFINS endpoint for Fevereiro fetches saldo from Janeiro"""
