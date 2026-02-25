@@ -28757,6 +28757,9 @@ async def inteligencia_tributaria(
     pis_creditos_real = 0
     cofins_creditos_real = 0
     
+    # Buscar saldos credores anteriores
+    saldo_credor_anterior_ret = await buscar_saldos_credores_anteriores(company_id, competencia, company)
+    
     try:
         # Usar função centralizada para garantir mesmos valores em todos os endpoints
         comp_pis = competencia if tipo == "periodo" else competencia
@@ -28767,8 +28770,14 @@ async def inteligencia_tributaria(
         pis_creditos_real = resultado_pis_cofins['pis_creditos']
         cofins_creditos_real = resultado_pis_cofins['cofins_creditos']
         
-        pis_real = max(0, resultado_pis_cofins['pis_saldo'])
-        cofins_real = max(0, resultado_pis_cofins['cofins_saldo'])
+        # Aplicar saldo credor anterior
+        pis_saldo_antes = resultado_pis_cofins['pis_saldo']
+        cofins_saldo_antes = resultado_pis_cofins['cofins_saldo']
+        pis_saldo_com_anterior = pis_saldo_antes - saldo_credor_anterior_ret['pis']
+        cofins_saldo_com_anterior = cofins_saldo_antes - saldo_credor_anterior_ret['cofins']
+        
+        pis_real = max(0, pis_saldo_com_anterior)
+        cofins_real = max(0, cofins_saldo_com_anterior)
         
     except Exception as e:
         print(f"Erro ao calcular PIS/COFINS: {e}")
