@@ -99,6 +99,7 @@ const SiegMonitor = ({ user, onLogout }) => {
   useEffect(() => {
     fetchPainelGeral();
     fetchSiegStatus();
+    fetchConfigHorarios();
   }, [fetchPainelGeral, fetchSiegStatus]);
 
   useEffect(() => {
@@ -106,6 +107,40 @@ const SiegMonitor = ({ user, onLogout }) => {
       fetchPainelEmpresa(selectedEmpresa.company_id);
     }
   }, [selectedEmpresa, fetchPainelEmpresa]);
+
+  // Buscar configuração de horários
+  const fetchConfigHorarios = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/sieg/config-horarios`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setConfigHorarios(response.data);
+      setNovoHorario(response.data.horario_diario || '03:00');
+    } catch (err) {
+      console.error('Erro ao carregar configuração de horários:', err);
+    }
+  };
+
+  // Salvar configuração de horários
+  const saveConfigHorarios = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('horario_diario', novoHorario);
+      
+      await axios.post(`${API}/sieg/config-horarios`, formData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setHorarioModal(false);
+      fetchConfigHorarios();
+      fetchSiegStatus();
+    } catch (err) {
+      console.error('Erro ao salvar horário:', err);
+      alert('Erro ao salvar horário. Verifique o formato (HH:MM)');
+    }
+  };
 
   // Salvar configuração de uma empresa
   const saveConfig = async () => {
