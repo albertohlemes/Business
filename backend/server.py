@@ -745,6 +745,7 @@ class Company(BaseModel):
     saldo_credor_icms: float = 0.0
     saldo_credor_pis: float = 0.0
     saldo_credor_cofins: float = 0.0
+    saldo_credor_ipi: float = 0.0
     competencia_saldo_inicial: Optional[str] = None  # Ex: "01/2026"
     
     # Presunção para serviços (se empresa é de serviços)
