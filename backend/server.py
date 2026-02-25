@@ -6868,10 +6868,15 @@ async def sieg_check_status(
     Verifica se a API do SIEG está configurada e acessível
     """
     api_key = os.environ.get('SIEG_API_KEY', '')
+    jwt_email = os.environ.get('SIEG_JWT_EMAIL', '')
+    jwt_password = os.environ.get('SIEG_JWT_PASSWORD', '')
     
     return {
         "configurado": bool(api_key),
-        "api_key_preview": api_key[:10] + "..." if api_key else None
+        "api_key_preview": api_key[:10] + "..." if api_key else None,
+        "jwt_configurado": bool(jwt_email and jwt_password),
+        "jwt_email_preview": jwt_email[:5] + "..." if jwt_email else None,
+        "mensagem": "Aguardando credenciais JWT do SIEG" if not (jwt_email and jwt_password) else "Credenciais JWT configuradas"
     }
 
 
