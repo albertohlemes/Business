@@ -1,25 +1,22 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="7" skipped="0" tests="7" time="1.781" timestamp="2026-02-25T20:15:43.685622+00:00" hostname="agent-env-beae238e-03d9-46fb-a71d-8a6f9d9a5255"><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_scheduler_status_endpoint" time="0.801"><failure message="AssertionError: Failed: {&quot;detail&quot;:&quot;Token inválido&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_sieg_monitor.py:35: in test_scheduler_status_endpoint
-    assert response.status_code == 200, f"Failed: {response.text}"
-E   AssertionError: Failed: {"detail":"Token inválido"}
-E   assert 401 == 200
-E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_sieg_painel_endpoint" time="0.121"><failure message="AssertionError: Failed: {&quot;detail&quot;:&quot;Token inválido&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_sieg_monitor.py:63: in test_sieg_painel_endpoint
-    assert response.status_code == 200, f"Failed: {response.text}"
-E   AssertionError: Failed: {"detail":"Token inválido"}
-E   assert 401 == 200
-E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_sieg_api_status" time="0.127"><failure message="AssertionError: Failed: {&quot;detail&quot;:&quot;Token inválido&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_sieg_monitor.py:92: in test_sieg_api_status
-    assert response.status_code == 200, f"Failed: {response.text}"
-E   AssertionError: Failed: {"detail":"Token inválido"}
-E   assert 401 == 200
-E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_sieg_painel_empresa" time="0.151"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_sieg_monitor.py:106: in test_sieg_painel_empresa
-    assert painel_response.status_code == 200
-E   assert 401 == 200
-E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_sieg_historico" time="0.175"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_sieg_monitor.py:129: in test_sieg_historico
-    assert painel_response.status_code == 200
-E   assert 401 == 200
-E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_sieg_cancelados" time="0.173"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_sieg_monitor.py:152: in test_sieg_cancelados
-    assert painel_response.status_code == 200
-E   assert 401 == 200
-E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_sieg_config_save" time="0.121"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_sieg_monitor.py:175: in test_sieg_config_save
-    assert painel_response.status_code == 200
-E   assert 401 == 200
-E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="7" failures="0" skipped="0" tests="7" time="0.589" timestamp="2026-02-25T20:16:14.020143+00:00" hostname="agent-env-beae238e-03d9-46fb-a71d-8a6f9d9a5255"><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_scheduler_status_endpoint" time="0.485"><error message="failed on setup with &quot;TypeError: 'NoneType' object is not subscriptable&quot;">tests/test_sieg_monitor.py:32: in setup_auth
+    print(f"Auth token obtained: {TOKEN[:20]}...")
+                                  ^^^^^^^^^^
+E   TypeError: 'NoneType' object is not subscriptable</error></testcase><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_sieg_painel_endpoint" time="0.000"><error message="failed on setup with &quot;TypeError: 'NoneType' object is not subscriptable&quot;">tests/test_sieg_monitor.py:32: in setup_auth
+    print(f"Auth token obtained: {TOKEN[:20]}...")
+                                  ^^^^^^^^^^
+E   TypeError: 'NoneType' object is not subscriptable</error></testcase><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_sieg_api_status" time="0.000"><error message="failed on setup with &quot;TypeError: 'NoneType' object is not subscriptable&quot;">tests/test_sieg_monitor.py:32: in setup_auth
+    print(f"Auth token obtained: {TOKEN[:20]}...")
+                                  ^^^^^^^^^^
+E   TypeError: 'NoneType' object is not subscriptable</error></testcase><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_sieg_painel_empresa" time="0.000"><error message="failed on setup with &quot;TypeError: 'NoneType' object is not subscriptable&quot;">tests/test_sieg_monitor.py:32: in setup_auth
+    print(f"Auth token obtained: {TOKEN[:20]}...")
+                                  ^^^^^^^^^^
+E   TypeError: 'NoneType' object is not subscriptable</error></testcase><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_sieg_historico" time="0.000"><error message="failed on setup with &quot;TypeError: 'NoneType' object is not subscriptable&quot;">tests/test_sieg_monitor.py:32: in setup_auth
+    print(f"Auth token obtained: {TOKEN[:20]}...")
+                                  ^^^^^^^^^^
+E   TypeError: 'NoneType' object is not subscriptable</error></testcase><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_sieg_cancelados" time="0.000"><error message="failed on setup with &quot;TypeError: 'NoneType' object is not subscriptable&quot;">tests/test_sieg_monitor.py:32: in setup_auth
+    print(f"Auth token obtained: {TOKEN[:20]}...")
+                                  ^^^^^^^^^^
+E   TypeError: 'NoneType' object is not subscriptable</error></testcase><testcase classname="tests.test_sieg_monitor.TestSiegMonitor" name="test_sieg_config_save" time="0.000"><error message="failed on setup with &quot;TypeError: 'NoneType' object is not subscriptable&quot;">tests/test_sieg_monitor.py:32: in setup_auth
+    print(f"Auth token obtained: {TOKEN[:20]}...")
+                                  ^^^^^^^^^^
+E   TypeError: 'NoneType' object is not subscriptable</error></testcase></testsuite></testsuites>
