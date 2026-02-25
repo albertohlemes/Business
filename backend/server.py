@@ -11801,9 +11801,17 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
             "icms_a_recuperar": round(icms_recuperar, 2),
             "icms_situacao": icms_situacao,
             "pis": round(pis_pagar, 2),
+            "pis_a_recuperar": round(pis_recuperar, 2),
             "cofins": round(cofins_pagar, 2),
+            "cofins_a_recuperar": round(cofins_recuperar, 2),
             "iss": 0,
             "total": round(total_impostos_pagar, 2)
+        },
+        "saldo_credor_anterior": {
+            "pis": round(saldo_credor_anterior['pis'], 2),
+            "cofins": round(saldo_credor_anterior['cofins'], 2),
+            "icms": round(saldo_credor_anterior['icms'], 2),
+            "ipi": round(saldo_credor_anterior['ipi'], 2)
         },
         "indicadores": {
             "markup_percentual": round(markup_calc, 2),
