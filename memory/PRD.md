@@ -85,6 +85,15 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 - `GET /api/documentos/{company_id}` - Listar documentos
 - `POST /api/upload/{company_id}` - Upload de XMLs
 
+### Integração SIEG
+- `GET /api/sieg/painel` - Visão geral de todas as empresas
+- `GET /api/sieg/painel/{company_id}` - Detalhes de uma empresa
+- `POST /api/sieg/config/{company_id}` - Configurar sync de empresa
+- `GET /api/sieg/historico/{company_id}` - Histórico de sincronizações
+- `GET /api/sieg/cancelados/{company_id}` - Notas canceladas
+- `GET /api/sieg/scheduler-status` - Status do job agendado
+- `POST /api/sieg/sync/{company_id}` - Sincronizar manualmente
+
 ## Credenciais de Teste
 - **Email**: alberto.lemes@businessconta.com.br
 - **Senha**: @Ahl142536
