@@ -638,21 +638,21 @@ const Dashboard = ({ user, onLogout }) => {
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span className="text-emerald-400">Crédito:</span>
-                            <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.icms)}</span>
+                            <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos?.icms)}</span>
                           </div>
-                          {stats.creditos.icms_st_desconsiderado > 0 && (
+                          {stats.creditos?.icms_st_desconsiderado > 0 && (
                             <div className="flex justify-between text-xs bg-amber-500/10 -mx-2 px-2 py-1 rounded">
                               <span className="text-amber-400">ICMS-ST (sem crédito):</span>
                               <span className="font-medium text-amber-400">{formatCurrency(stats.creditos.icms_st_desconsiderado)}</span>
                             </div>
                           )}
-                          {stats.creditos.icms_despesa_desconsiderado > 0 && (
+                          {stats.creditos?.icms_despesa_desconsiderado > 0 && (
                             <div className="flex justify-between text-xs bg-orange-500/10 -mx-2 px-2 py-1 rounded">
                               <span className="text-orange-400">Despesa (sem crédito):</span>
                               <span className="font-medium text-orange-400">{formatCurrency(stats.creditos.icms_despesa_desconsiderado)}</span>
                             </div>
                           )}
-                          {stats.creditos.icms_beneficio_desconsiderado > 0 && (
+                          {stats.creditos?.icms_beneficio_desconsiderado > 0 && (
                             <button 
                               onClick={() => setShowBeneficioModal(true)}
                               className="w-full bg-purple-500/10 -mx-2 px-2 py-2 rounded space-y-1 hover:bg-purple-500/20 transition-colors cursor-pointer text-left border border-purple-500/30"
@@ -674,20 +674,28 @@ const Dashboard = ({ user, onLogout }) => {
                           )}
                           <div className="flex justify-between text-sm">
                             <span className="text-red-400">Débito:</span>
-                            <span className="font-medium text-red-400">{formatCurrency(stats.debitos.icms)}</span>
+                            <span className="font-medium text-red-400">{formatCurrency(stats.debitos?.icms)}</span>
                           </div>
+                          {/* SALDO CREDOR ANTERIOR - SÓ APARECE QUANDO EXISTE */}
+                          {stats.saldo_credor_anterior?.icms > 0 && (
+                            <div className="flex justify-between text-sm bg-blue-500/10 -mx-2 px-2 py-1 rounded">
+                              <span className="text-blue-400">(-) Saldo Anterior:</span>
+                              <span className="font-medium text-blue-400">{formatCurrency(stats.saldo_credor_anterior.icms)}</span>
+                            </div>
+                          )}
                           <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
                             <span className="text-[#A1A1AA]">
-                              {stats.impostos_pagar.icms > 0 ? 'A Pagar:' : 'A Recuperar:'}
+                              {stats.impostos_pagar?.icms_situacao === 'A_RECUPERAR' ? 'A Recuperar:' : 
+                               stats.impostos_pagar?.icms > 0 ? 'A Pagar:' : 'A Recuperar:'}
                             </span>
-                            <span className={stats.impostos_pagar.icms > 0 ? 'text-red-400' : 'text-emerald-400'}>
-                              {formatCurrency(stats.impostos_pagar.icms > 0 ? stats.impostos_pagar.icms : stats.icms_a_recuperar || Math.abs(stats.creditos.icms - stats.debitos.icms))}
+                            <span className={stats.impostos_pagar?.icms > 0 ? 'text-red-400' : 'text-emerald-400'}>
+                              {formatCurrency(stats.impostos_pagar?.icms > 0 ? stats.impostos_pagar.icms : (stats.impostos_pagar?.icms_a_recuperar || Math.abs((stats.creditos?.icms || 0) - (stats.debitos?.icms || 0))))}
                             </span>
                           </div>
-                          {stats.impostos_pagar.icms > 0 && (
+                          {stats.impostos_pagar?.icms > 0 && (
                           <div className="text-xs text-[#666] pt-1 space-y-0.5">
-                            <div>% Saídas: {((stats.impostos_pagar.icms / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
-                            <div>% Vendas: {((stats.impostos_pagar.icms / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
+                            <div>% Saídas: {((stats.impostos_pagar.icms / (stats.valores?.saidas?.total || 1)) * 100).toFixed(2)}%</div>
+                            <div>% Vendas: {((stats.impostos_pagar.icms / (stats.valores?.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
                           </div>
                           )}
                         </div>
