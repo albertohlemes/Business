@@ -6734,6 +6734,62 @@ async def sieg_sync_execute(
                 doc['uploaded_at'] = doc['uploaded_at'].isoformat()
                 doc['origem'] = 'sieg'
                 
+                # ============================================================
+                # VERIFICAR SE É DEVOLUÇÃO DO FORNECEDOR
+                # ============================================================
+                is_devolucao_fornecedor = False
+                motivo_devolucao = ""
+                nfe_ref_devolucao = ""
+                
+                # Verificar finalidade da NFe (finNFe=4 = Devolução/Retorno)
+                finalidade_nfe = parsed_data.get('finalidade_nfe', '')
+                if finalidade_nfe == '4':
+                    is_devolucao_fornecedor = True
+                    motivo_devolucao = "Finalidade NFe indica devolução (finNFe=4)"
+                    nfe_ref_devolucao = parsed_data.get('nfe_referenciada', '')
+                
+                # Verificar se tem nota referenciada (campo refNFe)
+                if not is_devolucao_fornecedor and parsed_data.get('nfe_referenciada'):
+                    # Se entrada tem nota referenciada, pode ser devolução
+                    cfop_principal = ""
+                    for prod in parsed_data.get('produtos', []):
+                        cfop_principal = prod.get('cfop', '')[:4]
+                        break
+                    
+                    cfops_devolucao_entrada = ['1201', '1202', '1203', '1204', '1410', '1411', '1503', '1504', '2201', '2202', '2203', '2204']
+                    if cfop_principal in cfops_devolucao_entrada:
+                        is_devolucao_fornecedor = True
+                        motivo_devolucao = f"CFOP de devolução/retorno ({cfop_principal})"
+                        nfe_ref_devolucao = parsed_data.get('nfe_referenciada', '')
+                
+                if is_devolucao_fornecedor:
+                    doc['desconsiderada_devolucao'] = True
+                    doc['motivo_desconsideracao'] = motivo_devolucao
+                    doc['nfe_referenciada'] = nfe_ref_devolucao
+                    doc['status_validacao'] = 'desconsiderada'
+                
+                # ============================================================
+                # VERIFICAR SE HÁ EVENTO DE CANCELAMENTO
+                # ============================================================
+                chave_nfe = parsed_data.get('chave_nfe', '')
+                if chave_nfe:
+                    evento_cancelamento = await db.eventos_cancelamento.find_one({"chave_nfe": chave_nfe})
+                    if evento_cancelamento:
+                        doc['cancelada'] = True
+                        doc['data_cancelamento'] = evento_cancelamento.get('data_cancelamento', '')
+                        doc['justificativa_cancelamento'] = evento_cancelamento.get('justificativa', '')
+                        doc['protocolo_cancelamento'] = evento_cancelamento.get('protocolo', '')
+                        
+                        await db.eventos_cancelamento.update_one(
+                            {"chave_nfe": chave_nfe},
+                            {"$set": {"processado": True}}
+                        )
+                    
+                    # Verificar também se o próprio XML indica cancelamento (cStat = 101)
+                    if parsed_data.get('cancelada'):
+                        doc['cancelada'] = True
+                        doc['justificativa_cancelamento'] = parsed_data.get('xMotivo_cancelamento', 'Cancelamento detectado no XML')
+                
                 await db.xml_documents.insert_one(doc)
                 results["processados"]["entrada"] += 1
                 
