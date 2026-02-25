@@ -28759,6 +28759,11 @@ async def inteligencia_tributaria(
     # Buscar saldos credores anteriores
     saldo_credor_anterior_ret = await buscar_saldos_credores_anteriores(company_id, competencia, company)
     
+    # Aplicar saldo credor anterior ao ICMS
+    icms_saldo_com_ant = icms_saldo_antes_ant - saldo_credor_anterior_ret['icms']
+    icms_real = max(0, icms_saldo_com_ant)
+    logger.info(f"RET ICMS: saldo_credor_anterior={saldo_credor_anterior_ret['icms']:.2f}, saldo_final={icms_saldo_com_ant:.2f}")
+    
     try:
         # Usar função centralizada para garantir mesmos valores em todos os endpoints
         comp_pis = competencia if tipo == "periodo" else competencia
