@@ -8,30 +8,38 @@ import os
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
+# Get token first
+def get_auth_token():
+    """Authenticate and get token"""
+    login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
+        "email": "alberto.lemes@businessconta.com.br",
+        "password": "@Ahl142536"
+    })
+    assert login_response.status_code == 200, f"Login failed: {login_response.text}"
+    data = login_response.json()
+    return data.get("token")
+
+# Module-level token
+TOKEN = None
+HEADERS = None
+
+@pytest.fixture(scope="module", autouse=True)
+def setup_auth():
+    """Setup authentication at module level"""
+    global TOKEN, HEADERS
+    TOKEN = get_auth_token()
+    HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+    print(f"Auth token obtained: {TOKEN[:20]}...")
+
 class TestSiegMonitor:
     """Test suite for SIEG Monitor feature"""
     
-    @pytest.fixture(scope="class")
-    def auth_token(self):
-        """Authenticate and get token"""
-        login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "alberto.lemes@businessconta.com.br",
-            "password": "@Ahl142536"
-        })
-        assert login_response.status_code == 200, f"Login failed: {login_response.text}"
-        data = login_response.json()
-        return data.get("token")
-    
-    @pytest.fixture(scope="class")
-    def auth_headers(self, auth_token):
-        """Headers with authentication"""
-        return {"Authorization": f"Bearer {auth_token}"}
-    
     # ==================== SCHEDULER STATUS TESTS ====================
     
-    def test_scheduler_status_endpoint(self, auth_headers):
+    def test_scheduler_status_endpoint(self):
         """Test /api/sieg/scheduler-status returns scheduler status"""
-        response = requests.get(f"{BASE_URL}/api/sieg/scheduler-status", headers=auth_headers)
+        global HEADERS
+        response = requests.get(f"{BASE_URL}/api/sieg/scheduler-status", headers=HEADERS)
         assert response.status_code == 200, f"Failed: {response.text}"
         data = response.json()
         
@@ -57,9 +65,10 @@ class TestSiegMonitor:
     
     # ==================== PAINEL GERAL TESTS ====================
     
-    def test_sieg_painel_endpoint(self, auth_headers):
+    def test_sieg_painel_endpoint(self):
         """Test /api/sieg/painel returns companies list with SIEG status"""
-        response = requests.get(f"{BASE_URL}/api/sieg/painel", headers=auth_headers)
+        global HEADERS
+        response = requests.get(f"{BASE_URL}/api/sieg/painel", headers=HEADERS)
         assert response.status_code == 200, f"Failed: {response.text}"
         data = response.json()
         
@@ -86,9 +95,10 @@ class TestSiegMonitor:
     
     # ==================== SIEG STATUS TESTS ====================
     
-    def test_sieg_api_status(self, auth_headers):
+    def test_sieg_api_status(self):
         """Test /api/sieg/status returns API connection status"""
-        response = requests.get(f"{BASE_URL}/api/sieg/status", headers=auth_headers)
+        global HEADERS
+        response = requests.get(f"{BASE_URL}/api/sieg/status", headers=HEADERS)
         assert response.status_code == 200, f"Failed: {response.text}"
         data = response.json()
         
@@ -99,16 +109,17 @@ class TestSiegMonitor:
     
     # ==================== PAINEL EMPRESA TESTS ====================
     
-    def test_sieg_painel_empresa(self, auth_headers):
+    def test_sieg_painel_empresa(self):
         """Test /api/sieg/painel/{company_id} returns specific company data"""
+        global HEADERS
         # First get a company from the painel
-        painel_response = requests.get(f"{BASE_URL}/api/sieg/painel", headers=auth_headers)
+        painel_response = requests.get(f"{BASE_URL}/api/sieg/painel", headers=HEADERS)
         assert painel_response.status_code == 200
         empresas = painel_response.json().get("empresas", [])
         
         if len(empresas) > 0:
             company_id = empresas[0]["company_id"]
-            response = requests.get(f"{BASE_URL}/api/sieg/painel/{company_id}", headers=auth_headers)
+            response = requests.get(f"{BASE_URL}/api/sieg/painel/{company_id}", headers=HEADERS)
             assert response.status_code == 200, f"Failed: {response.text}"
             data = response.json()
             
@@ -116,22 +127,23 @@ class TestSiegMonitor:
             assert "company_id" in data, "Response must have company_id"
             assert "estatisticas" in data or "config" in data, "Response must have estatisticas or config"
             
-            print(f"✅ Painel empresa {company_id}: {data}")
+            print(f"✅ Painel empresa {company_id}: has estatisticas={bool(data.get('estatisticas'))}, config={bool(data.get('config'))}")
         else:
             pytest.skip("No companies available to test")
     
     # ==================== HISTORICO TESTS ====================
     
-    def test_sieg_historico(self, auth_headers):
+    def test_sieg_historico(self):
         """Test /api/sieg/historico/{company_id} returns sync history"""
+        global HEADERS
         # First get a company
-        painel_response = requests.get(f"{BASE_URL}/api/sieg/painel", headers=auth_headers)
+        painel_response = requests.get(f"{BASE_URL}/api/sieg/painel", headers=HEADERS)
         assert painel_response.status_code == 200
         empresas = painel_response.json().get("empresas", [])
         
         if len(empresas) > 0:
             company_id = empresas[0]["company_id"]
-            response = requests.get(f"{BASE_URL}/api/sieg/historico/{company_id}", headers=auth_headers)
+            response = requests.get(f"{BASE_URL}/api/sieg/historico/{company_id}", headers=HEADERS)
             assert response.status_code == 200, f"Failed: {response.text}"
             data = response.json()
             
@@ -145,16 +157,17 @@ class TestSiegMonitor:
     
     # ==================== CANCELADOS TESTS ====================
     
-    def test_sieg_cancelados(self, auth_headers):
+    def test_sieg_cancelados(self):
         """Test /api/sieg/cancelados/{company_id} returns cancelled notes"""
+        global HEADERS
         # First get a company
-        painel_response = requests.get(f"{BASE_URL}/api/sieg/painel", headers=auth_headers)
+        painel_response = requests.get(f"{BASE_URL}/api/sieg/painel", headers=HEADERS)
         assert painel_response.status_code == 200
         empresas = painel_response.json().get("empresas", [])
         
         if len(empresas) > 0:
             company_id = empresas[0]["company_id"]
-            response = requests.get(f"{BASE_URL}/api/sieg/cancelados/{company_id}", headers=auth_headers)
+            response = requests.get(f"{BASE_URL}/api/sieg/cancelados/{company_id}", headers=HEADERS)
             assert response.status_code == 200, f"Failed: {response.text}"
             data = response.json()
             
@@ -168,10 +181,11 @@ class TestSiegMonitor:
     
     # ==================== CONFIG TESTS ====================
     
-    def test_sieg_config_save(self, auth_headers):
+    def test_sieg_config_save(self):
         """Test /api/sieg/config/{company_id} saves configuration"""
+        global HEADERS
         # First get a company
-        painel_response = requests.get(f"{BASE_URL}/api/sieg/painel", headers=auth_headers)
+        painel_response = requests.get(f"{BASE_URL}/api/sieg/painel", headers=HEADERS)
         assert painel_response.status_code == 200
         empresas = painel_response.json().get("empresas", [])
         
@@ -190,7 +204,7 @@ class TestSiegMonitor:
             response = requests.post(
                 f"{BASE_URL}/api/sieg/config/{company_id}",
                 json=config_data,
-                headers=auth_headers
+                headers=HEADERS
             )
             assert response.status_code == 200, f"Failed: {response.text}"
             data = response.json()
