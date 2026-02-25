@@ -24978,6 +24978,40 @@ async def apurar_icms(
     credito_icms = totais["entradas"]["valor_icms"]
     debito_icms = totais["saidas"]["valor_icms"]
     
+    # ============================================================
+    # BUSCAR SALDO CREDOR ICMS DO MÊS ANTERIOR
+    # ============================================================
+    saldo_credor_anterior_icms = 0.0
+    comp_anterior = ""
+    try:
+        mes, ano = competencia.split('/')
+        mes_int = int(mes)
+        ano_int = int(ano)
+        if mes_int == 1:
+            comp_anterior = f"12/{ano_int - 1}"
+        else:
+            comp_anterior = f"{mes_int - 1:02d}/{ano_int}"
+        
+        # Verificar se é a competência inicial da empresa
+        competencia_inicial = company.get('competencia_saldo_inicial', '')
+        possui_saldo_credor = company.get('possui_saldo_credor', False)
+        
+        if competencia == competencia_inicial and possui_saldo_credor:
+            # Usar saldo inicial cadastrado na empresa
+            saldo_credor_anterior_icms = float(company.get('saldo_credor_icms', 0) or 0)
+            logger.info(f"APURACAO-ICMS: Usando saldo credor inicial da empresa: R$ {saldo_credor_anterior_icms:.2f}")
+        else:
+            # Buscar saldo transportado da competência anterior
+            saldo_ant_db = await db.saldos_credores.find_one({
+                "company_id": company_id,
+                "competencia": comp_anterior
+            })
+            if saldo_ant_db:
+                saldo_credor_anterior_icms = float(saldo_ant_db.get('saldo_a_transportar', {}).get('icms', 0) or 0)
+                logger.info(f"APURACAO-ICMS: Saldo credor anterior ({comp_anterior}): R$ {saldo_credor_anterior_icms:.2f}")
+    except Exception as e:
+        logger.warning(f"APURACAO-ICMS: Erro ao buscar saldo credor anterior: {e}")
+    
     # NOVO: Verificar se é transportadora e calcular crédito presumido
     is_transportadora = company.get('is_transportadora', False)
     credito_presumido_percent = company.get('credito_presumido_icms_percent', 20.0)
@@ -24986,8 +25020,15 @@ async def apurar_icms(
     if is_transportadora and debito_icms > 0:
         credito_presumido_icms = calcular_credito_presumido_icms_transportadora(debito_icms, credito_presumido_percent)
     
-    # Saldo final = Débito - Crédito - Crédito Presumido (transportadora)
-    saldo = debito_icms - credito_icms - credito_presumido_icms
+    # Saldo final = Débito - Crédito - Crédito Presumido - Saldo Credor Anterior
+    saldo_antes_anterior = debito_icms - credito_icms - credito_presumido_icms
+    saldo = saldo_antes_anterior - saldo_credor_anterior_icms
+    
+    # Saldo a transportar para próximo mês (se negativo = credor)
+    saldo_a_transportar = abs(min(0, saldo))
+    
+    logger.info(f"APURACAO-ICMS: Débito={debito_icms:.2f}, Crédito={credito_icms:.2f}, Crédito Presumido={credito_presumido_icms:.2f}")
+    logger.info(f"APURACAO-ICMS: Saldo Antes Anterior={saldo_antes_anterior:.2f}, Saldo Credor Anterior={saldo_credor_anterior_icms:.2f}, Saldo Final={saldo:.2f}")
     
     # Arredondar valores
     def arredondar_dict(d):
