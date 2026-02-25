@@ -487,7 +487,8 @@ class TestSaldoCredorPersistence:
         assert icms_resp.status_code == 200
         icms_data = icms_resp.json()
         
-        icms_saldo_anterior = icms_data.get('apuracao', {}).get('saldo_credor_anterior_icms', 0)
+        # Correct field name: saldo_credor_anterior (not saldo_credor_anterior_icms)
+        icms_saldo_anterior = icms_data.get('apuracao', {}).get('saldo_credor_anterior', 0)
         
         # Get PIS/COFINS for Fevereiro
         piscofins_resp = requests.get(
@@ -504,9 +505,14 @@ class TestSaldoCredorPersistence:
         print(f"   PIS Saldo Credor Anterior: R$ {saldo_anterior.get('pis', 0):,.2f}")
         print(f"   COFINS Saldo Credor Anterior: R$ {saldo_anterior.get('cofins', 0):,.2f}")
         
-        # Verify that ICMS was not overwritten by PIS/COFINS
+        # Verify that all values are correctly transported
         icms_from_piscofins = saldo_anterior.get('icms', 0)
         print(f"   ICMS from PIS/COFINS response: R$ {icms_from_piscofins:,.2f}")
+        
+        # Validate that ICMS values match between endpoints
+        assert abs(icms_saldo_anterior - icms_from_piscofins) < 0.01, \
+            f"ICMS values don't match: ICMS endpoint={icms_saldo_anterior}, PIS/COFINS endpoint={icms_from_piscofins}"
+        print(f"   ✅ Valores de ICMS consistentes entre endpoints")
 
 
 if __name__ == "__main__":
