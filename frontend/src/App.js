@@ -44,6 +44,7 @@ import ReformaTributaria from './pages/ReformaTributaria';
 import ValidadorICMS from './pages/ValidadorICMS';
 import ValidadorPisCofins from './pages/ValidadorPisCofins';
 import GrupoConsolidado from './pages/GrupoConsolidado';
+import SiegMonitor from './pages/SiegMonitor';
 import './App.css';
 
 function App() {
@@ -270,6 +271,10 @@ function App() {
             <Route
               path="/grupo-consolidado"
               element={user ? <GrupoConsolidado user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/sieg-monitor"
+              element={user ? <SiegMonitor user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
           </Routes>
           </UploadProvider>
