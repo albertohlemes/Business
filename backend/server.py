@@ -29248,7 +29248,15 @@ async def inteligencia_tributaria(
         'economia_potencial': round(max(
             presumido['total'] - regimes[0][1],
             real['total'] - regimes[0][1]
-        ), 2) if regimes else 0
+        ), 2) if regimes else 0,
+        'saldo_credor_anterior': {
+            'pis': round(saldo_credor_anterior_ret.get('pis', 0), 2),
+            'cofins': round(saldo_credor_anterior_ret.get('cofins', 0), 2),
+            'icms': round(saldo_credor_anterior_ret.get('icms', 0), 2),
+            'ipi': round(saldo_credor_anterior_ret.get('ipi', 0), 2),
+            'origem': saldo_credor_anterior_ret.get('origem', 'sem_dados'),
+            'competencia_origem': saldo_credor_anterior_ret.get('competencia_origem', '')
+        }
     }
 
 
