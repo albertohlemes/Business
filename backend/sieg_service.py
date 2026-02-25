@@ -308,7 +308,7 @@ async def download_xmls_sieg(
         "por_tipo": {}
     }
     
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=120.0) as client:  # Timeout maior para paginação
         # Usar API Key diretamente no URL (funciona melhor)
         api_key = api_key or get_sieg_api_key()
         from urllib.parse import quote
@@ -317,107 +317,139 @@ async def download_xmls_sieg(
         
         for xml_type in xml_types:
             xml_type_code = XML_TYPES.get(xml_type.lower(), 1)
+            current_skip = skip
+            type_total = 0
             
-            # Configurar filtro baseado no tipo (entrada/saída)
-            payload = {
-                "XmlType": xml_type_code,
-                "Take": take,
-                "Skip": skip,
-                "DataEmissaoInicio": data_inicio.strftime("%Y-%m-%d"),
-                "DataEmissaoFim": data_fim.strftime("%Y-%m-%d"),
-                "Downloadevent": False
-            }
-            
-            if tipo == "entrada":
-                payload["CnpjDest"] = cnpj_limpo
-            else:
-                payload["CnpjEmit"] = cnpj_limpo
-            
-            print(f"[SIEG] Baixando {xml_type.upper()} - {tipo} para CNPJ {cnpj_limpo}")
-            
-            try:
-                response = await client.post(
-                    base_url,
-                    headers={"Content-Type": "application/json"},
-                    json=payload
-                )
+            while True:  # Loop de paginação
+                # Configurar filtro baseado no tipo (entrada/saída)
+                payload = {
+                    "XmlType": xml_type_code,
+                    "Take": take,  # Máximo 50 por requisição
+                    "Skip": current_skip,
+                    "DataEmissaoInicio": data_inicio.strftime("%Y-%m-%d"),
+                    "DataEmissaoFim": data_fim.strftime("%Y-%m-%d"),
+                    "Downloadevent": False
+                }
                 
-                if response.status_code == 200:
-                    # Double decode - SIEG retorna JSON stringificado
-                    raw_data = response.text
-                    data = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
-                    if isinstance(data, str):
-                        data = json.loads(data)
+                if tipo == "entrada":
+                    payload["CnpjDest"] = cnpj_limpo
+                else:
+                    payload["CnpjEmit"] = cnpj_limpo
+                
+                print(f"[SIEG] Baixando {xml_type.upper()} - {tipo} para CNPJ {cnpj_limpo} (skip={current_skip})")
+                
+                try:
+                    response = await client.post(
+                        base_url,
+                        headers={"Content-Type": "application/json"},
+                        json=payload
+                    )
                     
-                    # Verificar se é erro
-                    if isinstance(data, dict) and "Message" in data:
-                        print(f"[SIEG] Aviso {xml_type}: {data['Message']}")
-                        stats["por_tipo"][xml_type] = 0
-                        continue
-                    
-                    # A API retorna lista de XMLs em Base64
-                    if isinstance(data, list):
-                        for item in data:
-                            try:
-                                # O item é uma string Base64
-                                if isinstance(item, str) and len(item) > 50:
-                                    xml_content = base64.b64decode(item).decode('utf-8')
-                                    all_xmls.append({
-                                        "xml": xml_content,
-                                        "tipo": xml_type,
-                                        "chave": "",
-                                        "numero": "",
-                                        "data_emissao": "",
-                                        "cnpj_emit": "",
-                                        "cnpj_dest": "",
-                                        "valor": 0
-                                    })
-                                elif isinstance(item, dict) and "Xml" in item:
-                                    xml_content = base64.b64decode(item["Xml"]).decode('utf-8')
-                                    all_xmls.append({
-                                        "xml": xml_content,
-                                        "tipo": xml_type,
-                                        "chave": item.get("Chave", ""),
-                                        "numero": item.get("Numero", ""),
-                                        "data_emissao": item.get("DataEmissao", ""),
-                                        "cnpj_emit": item.get("CnpjEmit", ""),
-                                        "cnpj_dest": item.get("CnpjDest", ""),
-                                        "valor": item.get("Valor", 0)
-                                    })
-                            except Exception as e:
-                                print(f"[SIEG] Erro ao decodificar XML: {e}")
+                    if response.status_code == 200:
+                        # Double decode - SIEG retorna JSON stringificado
+                        raw_data = response.text
+                        data = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
+                        if isinstance(data, str):
+                            data = json.loads(data)
                         
-                        stats["por_tipo"][xml_type] = len(all_xmls)
-                        stats["total_baixados"] = len(all_xmls)
-                    
-                    # Formato alternativo (V2)
-                    elif isinstance(data, dict) and "Xmls" in data:
-                        for item in data["Xmls"]:
-                            if "Xml" in item:
+                        # Verificar se é erro
+                        if isinstance(data, dict) and "Message" in data:
+                            print(f"[SIEG] Aviso {xml_type}: {data['Message']}")
+                            break  # Sair do loop de paginação
+                        
+                        batch_count = 0
+                        
+                        # A API retorna lista de XMLs em Base64
+                        if isinstance(data, list):
+                            for item in data:
                                 try:
-                                    xml_content = base64.b64decode(item["Xml"]).decode('utf-8')
-                                    all_xmls.append({
-                                        "xml": xml_content,
-                                        "tipo": xml_type,
-                                        "chave": item.get("Chave", ""),
-                                        "numero": item.get("Numero", ""),
-                                        "data_emissao": item.get("DataEmissao", ""),
-                                        "cnpj_emit": item.get("CnpjEmit", ""),
-                                        "cnpj_dest": item.get("CnpjDest", ""),
-                                        "valor": item.get("Valor", 0)
-                                    })
+                                    # O item é uma string Base64
+                                    if isinstance(item, str) and len(item) > 50:
+                                        xml_content = base64.b64decode(item).decode('utf-8')
+                                        all_xmls.append({
+                                            "xml": xml_content,
+                                            "tipo": xml_type,
+                                            "chave": "",
+                                            "numero": "",
+                                            "data_emissao": "",
+                                            "cnpj_emit": "",
+                                            "cnpj_dest": "",
+                                            "valor": 0
+                                        })
+                                        batch_count += 1
+                                    elif isinstance(item, dict) and "Xml" in item:
+                                        xml_content = base64.b64decode(item["Xml"]).decode('utf-8')
+                                        all_xmls.append({
+                                            "xml": xml_content,
+                                            "tipo": xml_type,
+                                            "chave": item.get("Chave", ""),
+                                            "numero": item.get("Numero", ""),
+                                            "data_emissao": item.get("DataEmissao", ""),
+                                            "cnpj_emit": item.get("CnpjEmit", ""),
+                                            "cnpj_dest": item.get("CnpjDest", ""),
+                                            "valor": item.get("Valor", 0)
+                                        })
+                                        batch_count += 1
                                 except Exception as e:
                                     print(f"[SIEG] Erro ao decodificar XML: {e}")
+                            
+                            type_total += batch_count
+                            
+                            # Se baixar_todos=True e recebeu 50 itens, pode ter mais
+                            if baixar_todos and batch_count >= take:
+                                current_skip += take
+                                print(f"[SIEG] Paginação: baixados {type_total} {xml_type.upper()}, buscando mais...")
+                                continue  # Continuar paginação
+                            else:
+                                break  # Fim da paginação
                         
-                        stats["por_tipo"][xml_type] = len(data.get("Xmls", []))
-                        stats["total_baixados"] += len(data.get("Xmls", []))
-                else:
-                    print(f"[SIEG] Erro na requisição: {response.status_code} - {response.text}")
-                    stats["por_tipo"][xml_type] = 0
-                    
-            except Exception as e:
-                print(f"[SIEG] Exceção ao baixar {xml_type}: {e}")
-                stats["por_tipo"][xml_type] = 0
+                        # Formato alternativo (V2)
+                        elif isinstance(data, dict) and "Xmls" in data:
+                            for item in data["Xmls"]:
+                                if "Xml" in item:
+                                    try:
+                                        xml_content = base64.b64decode(item["Xml"]).decode('utf-8')
+                                        all_xmls.append({
+                                            "xml": xml_content,
+                                            "tipo": xml_type,
+                                            "chave": item.get("Chave", ""),
+                                            "numero": item.get("Numero", ""),
+                                            "data_emissao": item.get("DataEmissao", ""),
+                                            "cnpj_emit": item.get("CnpjEmit", ""),
+                                            "cnpj_dest": item.get("CnpjDest", ""),
+                                            "valor": item.get("Valor", 0)
+                                        })
+                                        batch_count += 1
+                                    except Exception as e:
+                                        print(f"[SIEG] Erro ao decodificar XML: {e}")
+                            
+                            type_total += batch_count
+                            
+                            if baixar_todos and batch_count >= take:
+                                current_skip += take
+                                continue
+                            else:
+                                break
+                        else:
+                            break
+                    elif response.status_code == 404:
+                        # 404 = Nenhum arquivo encontrado (não é erro)
+                        break
+                    else:
+                        print(f"[SIEG] Erro na requisição: {response.status_code} - {response.text[:200]}")
+                        break
+                        
+                except Exception as e:
+                    print(f"[SIEG] Exceção ao baixar {xml_type}: {e}")
+                    break
+                
+                # Se não está paginando, sair do loop
+                if not baixar_todos:
+                    break
+            
+            stats["por_tipo"][xml_type] = type_total
+            stats["total_baixados"] = len(all_xmls)
+            print(f"[SIEG] Total {xml_type.upper()} baixados: {type_total}")
     
     return {
         "xmls": all_xmls,
