@@ -33933,13 +33933,22 @@ async def get_fechamento_mensal(
         pis_cofins_real = await calcular_pis_cofins_unificado(company_id, competencia, company)
         pis_credito = pis_cofins_real.get('pis_creditos', 0)
         pis_debito = pis_cofins_real.get('pis_debitos', 0)
-        pis_saldo = pis_debito - pis_credito
+        pis_saldo_antes = pis_debito - pis_credito
         
         cofins_credito = pis_cofins_real.get('cofins_creditos', 0)
         cofins_debito = pis_cofins_real.get('cofins_debitos', 0)
-        cofins_saldo = cofins_debito - cofins_credito
+        cofins_saldo_antes = cofins_debito - cofins_credito
         
-        logger.info(f"FECHAMENTO MENSAL: Usando PIS/COFINS unificado - PIS saldo={pis_saldo:.2f}, COFINS saldo={cofins_saldo:.2f}")
+        # Aplicar saldo credor anterior
+        pis_saldo = pis_saldo_antes - saldo_credor_anterior['pis']
+        cofins_saldo = cofins_saldo_antes - saldo_credor_anterior['cofins']
+        
+        # Calcular saldo a transportar (se negativo = credor)
+        pis_a_transportar = abs(min(0, pis_saldo))
+        cofins_a_transportar = abs(min(0, cofins_saldo))
+        
+        logger.info(f"FECHAMENTO MENSAL: PIS saldo={pis_saldo:.2f} (antes={pis_saldo_antes:.2f}, anterior={saldo_credor_anterior['pis']:.2f})")
+        logger.info(f"FECHAMENTO MENSAL: COFINS saldo={cofins_saldo:.2f} (antes={cofins_saldo_antes:.2f}, anterior={saldo_credor_anterior['cofins']:.2f})")
     except Exception as e:
         logger.error(f"FECHAMENTO MENSAL: Erro ao buscar PIS/COFINS real: {e}")
         # Fallback para cálculo manual (menos preciso)
