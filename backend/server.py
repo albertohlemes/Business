@@ -940,6 +940,7 @@ class CompanyUpdate(BaseModel):
     saldo_credor_icms: Optional[float] = None
     saldo_credor_pis: Optional[float] = None
     saldo_credor_cofins: Optional[float] = None
+    saldo_credor_ipi: Optional[float] = None
     competencia_saldo_inicial: Optional[str] = None
     # Presunção para serviços
     percentual_presuncao_servicos_irpj: Optional[float] = None
