@@ -1,0 +1,94 @@
+{
+  "summary": "Testes de validação do transporte de saldos credores de impostos (ICMS, PIS, COFINS) entre competências. Todos os 13 testes passaram. Os saldos credores de Janeiro/2026 (ICMS R$ 12.288,90, PIS R$ 2.213,23, COFINS R$ 10.193,64) são corretamente transportados para Fevereiro/2026 nos endpoints ICMS, PIS/COFINS, Reforma Tributária.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/dashboard/stats/{company_id}",
+        "issue": "Dashboard para competências sem documentos retorna saldo_credor_anterior como null. Isso é esperado pois não há movimentação, mas poderia mostrar o saldo credor disponível para dedução futura.",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_saldo_credor_transporte.py",
+    "/app/test_reports/pytest/pytest_saldo_credor_transporte.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "✅ Função buscar_saldos_credores_anteriores (linha ~1330) está corretamente buscando saldos da competência anterior",
+    "✅ Endpoint /apuracao-icms/{company_id} salva saldo_a_transportar em saldos_credores collection após cálculo",
+    "✅ Endpoint /pis-cofins/apuracao/{company_id} preserva ICMS existente ao salvar PIS/COFINS",
+    "✅ Endpoint /inteligencia-tributaria/{company_id} usa função centralizada buscar_saldos_credores_anteriores",
+    "✅ Endpoint /reforma-tributaria/apuracao/{company_id} busca saldo_credor_anterior via buscar_saldos_credores_anteriores e mostra em comparativo_regime_atual",
+    "✅ Endpoint /dashboard/stats/{company_id} aplica saldo_credor_anterior no cálculo de impostos a pagar"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_saldo_credor_transporte.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "N/A (backend only testing)"
+  },
+  "test_credentials": {
+    "email": "alberto.lemes@businessconta.com.br",
+    "password": "@Ahl142536",
+    "empresa_teste": "ANZEN DISTRIBUIDORA DE ALIMENTOS LTDA",
+    "empresa_id": "24e47135-2657-47d5-a112-cd2c06357370",
+    "competencia_janeiro": "01/2026",
+    "competencia_fevereiro": "02/2026"
+  },
+  "seed_data_creation": "Nenhum - usado dados existentes da empresa de teste",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Testes de transporte de saldo credor validados. Janeiro/2026 tem saldos credores salvos na collection saldos_credores: ICMS R$ 12.288,90, PIS R$ 2.213,23, COFINS R$ 10.193,64, IPI R$ 6.386,57. Esses valores são corretamente buscados pelos endpoints quando competência é Fevereiro/2026.",
+  "verified_values": {
+    "janeiro_2026": {
+      "icms_saldo_credor_anterior": 0,
+      "icms_saldo_a_transportar": 12288.90,
+      "pis_saldo_a_transportar": 2213.23,
+      "cofins_saldo_a_transportar": 10193.64,
+      "ipi_saldo_a_transportar": 6386.57
+    },
+    "fevereiro_2026": {
+      "icms_saldo_credor_anterior": 12288.90,
+      "pis_saldo_credor_anterior": 2213.23,
+      "cofins_saldo_credor_anterior": 10193.64,
+      "origem": "competencia_anterior",
+      "competencia_origem": "01/2026"
+    }
+  },
+  "endpoints_verified": {
+    "apuracao_icms": {
+      "status": "PASSED",
+      "saldo_credor_anterior_shown": true,
+      "saldo_a_transportar_shown": true,
+      "competencia_anterior_shown": true
+    },
+    "pis_cofins_apuracao": {
+      "status": "PASSED",
+      "saldo_credor_anterior_shown": true,
+      "preserva_icms": true,
+      "saldo_a_transportar_shown": true
+    },
+    "inteligencia_tributaria": {
+      "status": "PASSED",
+      "returns_correct_values": true
+    },
+    "reforma_tributaria_apuracao": {
+      "status": "PASSED",
+      "saldo_credor_anterior_shown": true,
+      "origem_shown": true
+    },
+    "dashboard_stats": {
+      "status": "PASSED",
+      "saldo_credor_anterior_shown": true,
+      "impostos_a_pagar_applied": true
+    }
+  }
+}
