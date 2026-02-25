@@ -189,7 +189,10 @@ async def sync_empresa_sieg(company_id: str, cnpj: str, competencia: str = None)
 
 async def job_sync_todas_empresas():
     """
-    Job principal que sincroniza todas as empresas com sync automático ativo
+    Job principal que sincroniza todas as empresas com sync automático ativo.
+    
+    ATUALIZADO: Agora lê configuração diretamente da coleção 'companies'
+    em vez da antiga coleção 'sieg_config'.
     """
     db = get_scheduler_db()
     
@@ -208,15 +211,15 @@ async def job_sync_todas_empresas():
     }
     
     try:
-        # Buscar empresas com sync automático ativo
-        configs = await db.sieg_config.find({
-            "ativo": True,
-            "sync_automatico": True
-        }).to_list(1000)
+        # NOVO: Buscar empresas com sync automático ativo diretamente da coleção companies
+        empresas = await db.companies.find({
+            "sieg_ativo": True,
+            "sieg_sync_automatico": True
+        }, {"_id": 0}).to_list(1000)
         
-        batch_log["total_empresas"] = len(configs)
+        batch_log["total_empresas"] = len(empresas)
         
-        if not configs:
+        if not empresas:
             print("[SIEG-SCHEDULER] Nenhuma empresa com sync automático ativo")
             batch_log["status"] = "concluido"
             await db.sieg_sync_batches.insert_one(batch_log)
@@ -227,17 +230,11 @@ async def job_sync_todas_empresas():
         competencia_atual = f"{now.month:02d}/{now.year}"
         
         # Processar cada empresa
-        for config in configs:
-            company_id = config.get("company_id")
-            
-            # Buscar dados da empresa
-            company = await db.companies.find_one({"id": company_id}, {"_id": 0})
-            if not company:
-                print(f"[SIEG-SCHEDULER] Empresa {company_id} não encontrada")
-                batch_log["empresas_erro"] += 1
-                continue
-            
+        for company in empresas:
+            company_id = company.get("id")
             cnpj = company.get("cnpj", "")
+            razao_social = company.get("razao_social", "N/A")
+            
             if not cnpj:
                 print(f"[SIEG-SCHEDULER] CNPJ não encontrado para empresa {company_id}")
                 batch_log["empresas_erro"] += 1
@@ -245,10 +242,12 @@ async def job_sync_todas_empresas():
             
             # Executar sync
             try:
+                print(f"[SIEG-SCHEDULER] Sincronizando: {razao_social} ({cnpj})")
                 result = await sync_empresa_sieg(company_id, cnpj, competencia_atual)
                 batch_log["empresas_processadas"] += 1
                 batch_log["resultados"].append({
                     "company_id": company_id,
+                    "razao_social": razao_social,
                     "status": result.get("status"),
                     "total_importados": result.get("total_importados", 0)
                 })
@@ -257,6 +256,7 @@ async def job_sync_todas_empresas():
                 batch_log["empresas_erro"] += 1
                 batch_log["resultados"].append({
                     "company_id": company_id,
+                    "razao_social": razao_social,
                     "status": "erro",
                     "mensagem": str(e)
                 })
