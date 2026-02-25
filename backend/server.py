@@ -31,7 +31,7 @@ import json
 
 # SIEG Integration
 from sieg_service import count_xmls_sieg, download_xmls_sieg, sync_from_sieg
-from sieg_scheduler import start_scheduler, stop_scheduler, get_scheduler_status, run_sync_now
+from sieg_scheduler import start_scheduler, stop_scheduler, get_scheduler_status, run_sync_now, get_scheduler_config, save_scheduler_config, update_scheduler_jobs
 
 # Document AI Service
 from services.document_ai import validate_xml_type, extract_nfse_from_file, extract_outros_docs_from_file, extract_fatura_recibo_from_file, get_mime_type
