@@ -97,10 +97,13 @@ const SiegMonitor = ({ user, onLogout }) => {
   }, []);
 
   useEffect(() => {
-    fetchPainelGeral();
+    // Se tem empresa selecionada no contexto, carrega dados dela automaticamente
+    if (selectedCompany?.id) {
+      fetchPainelEmpresa(selectedCompany.id);
+    }
     fetchSiegStatus();
     fetchConfigHorarios();
-  }, [fetchPainelGeral, fetchSiegStatus]);
+  }, [selectedCompany, fetchSiegStatus]);
 
   useEffect(() => {
     if (selectedEmpresa) {
