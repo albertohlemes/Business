@@ -282,7 +282,8 @@ async def download_xmls_sieg(
     xml_types: List[str] = None,  # ["nfe", "nfse", etc]
     take: int = 50,
     skip: int = 0,
-    api_key: str = None
+    api_key: str = None,
+    baixar_todos: bool = True  # Se True, faz paginação automática para baixar todos os XMLs
 ) -> Dict[str, Any]:
     """
     Baixa XMLs do SIEG para o CNPJ e competência especificados
