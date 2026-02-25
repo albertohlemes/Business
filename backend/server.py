@@ -6869,6 +6869,7 @@ async def sieg_check_status(
     """
     client_id = os.environ.get('SIEG_CLIENT_ID', '')
     client_secret = os.environ.get('SIEG_CLIENT_SECRET', '')
+    api_key = os.environ.get('SIEG_API_KEY', '')
     
     # Tentar obter token
     from sieg_service import get_sieg_jwt_token
@@ -6876,9 +6877,11 @@ async def sieg_check_status(
     
     return {
         "configurado": bool(client_id and client_secret),
-        "client_id_preview": client_id[:20] + "..." if client_id else None,
-        "token_obtido": bool(token),
-        "mensagem": "✅ Integração SIEG ativa" if token else "❌ Não foi possível obter token JWT"
+        "client_id_preview": client_id[:20] + "..." if len(client_id) > 20 else client_id,
+        "api_key_configurada": bool(api_key),
+        "api_key_preview": api_key[:15] + "..." if len(api_key) > 15 else api_key,
+        "token_jwt_obtido": bool(token),
+        "mensagem": "✅ Integração SIEG configurada" if (token and api_key) else "⚠️ Configuração parcial - aguardando liberação dos endpoints"
     }
 
 
