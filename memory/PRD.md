@@ -97,9 +97,10 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 - `POST /api/upload/{company_id}` - Upload de XMLs
 
 ### Integração SIEG
-- `GET /api/sieg/painel` - Visão geral de todas as empresas
+- `GET /api/sieg/painel` - Visão geral de todas as empresas (lê de `companies.sieg_*`)
 - `GET /api/sieg/painel/{company_id}` - Detalhes de uma empresa
-- `POST /api/sieg/config/{company_id}` - Configurar sync de empresa
+- `POST /api/sieg/config/{company_id}` - Configurar sync (atualiza empresa diretamente)
+- `POST /api/sieg/migrate-config` - Migra configurações antigas para empresas
 - `GET /api/sieg/historico/{company_id}` - Histórico de sincronizações
 - `GET /api/sieg/cancelados/{company_id}` - Notas canceladas
 - `GET /api/sieg/scheduler-status` - Status do job agendado
