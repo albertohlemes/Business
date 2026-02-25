@@ -40724,11 +40724,40 @@ async def get_apuracao_reforma_tributaria(
         
         logger.info(f"REFORMA TRIBUTÁRIA (UNIFICADO): PIS déb={pis_debito:.2f}, PIS créd={pis_credito:.2f}")
         
-        regime_atual['pis'] = max(0, pis_debito - pis_credito)
-        regime_atual['cofins'] = max(0, cofins_debito - cofins_credito)
+        # Calcular saldo considerando saldo credor anterior
+        pis_saldo_bruto = pis_debito - pis_credito
+        cofins_saldo_bruto = cofins_debito - cofins_credito
+        icms_saldo_bruto = total_icms_saida_calc - total_icms_entrada_calc
+        
+        # Aplicar saldo credor anterior
+        pis_saldo_final = pis_saldo_bruto - saldo_anterior_reforma.get('pis', 0)
+        cofins_saldo_final = cofins_saldo_bruto - saldo_anterior_reforma.get('cofins', 0)
+        icms_saldo_final = icms_saldo_bruto - saldo_anterior_reforma.get('icms', 0)
+        
+        regime_atual['pis'] = max(0, pis_saldo_final)
+        regime_atual['cofins'] = max(0, cofins_saldo_final)
         regime_atual['pis_cofins'] = regime_atual['pis'] + regime_atual['cofins']
-        regime_atual['icms'] = max(0, total_icms_saida_calc - total_icms_entrada_calc)
+        regime_atual['icms'] = max(0, icms_saldo_final)
         regime_atual['total'] = regime_atual['pis_cofins'] + regime_atual['icms']
+        
+        # Armazenar os saldos (negativos indicam saldo credor a transportar)
+        regime_atual['saldo_bruto'] = {
+            'pis': round(pis_saldo_bruto, 2),
+            'cofins': round(cofins_saldo_bruto, 2),
+            'icms': round(icms_saldo_bruto, 2),
+        }
+        regime_atual['saldo_com_anterior'] = {
+            'pis': round(pis_saldo_final, 2),
+            'cofins': round(cofins_saldo_final, 2),
+            'icms': round(icms_saldo_final, 2),
+        }
+        regime_atual['saldo_credor_anterior'] = {
+            'pis': round(saldo_anterior_reforma.get('pis', 0), 2),
+            'cofins': round(saldo_anterior_reforma.get('cofins', 0), 2),
+            'icms': round(saldo_anterior_reforma.get('icms', 0), 2),
+            'origem': saldo_anterior_reforma.get('origem'),
+            'competencia_origem': saldo_anterior_reforma.get('competencia_origem')
+        }
         
         logger.info(f"REFORMA TRIBUTÁRIA: regime_atual calculado: pis={regime_atual['pis']:.2f}, cofins={regime_atual['cofins']:.2f}, icms={regime_atual['icms']:.2f}")
         
