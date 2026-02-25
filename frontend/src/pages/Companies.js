@@ -1660,6 +1660,68 @@ const Companies = ({ user, onLogout }) => {
                   )}
                 </div>
 
+                {/* Integração SIEG */}
+                <div className="pt-4 border-t border-[#2A2A2A]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Cloud className="w-4 h-4 text-emerald-400" />
+                    <span className="text-sm font-medium text-white">Integração SIEG</span>
+                    <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-full">Automação</span>
+                  </div>
+                  
+                  <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 mb-4">
+                    <input
+                      type="checkbox"
+                      checked={formData.sieg_ativo || false}
+                      onChange={(e) => setFormData({ ...formData, sieg_ativo: e.target.checked })}
+                      className="mt-1 w-4 h-4 text-emerald-500 bg-[#141414] border-[#2A2A2A] rounded focus:ring-emerald-500 focus:ring-2"
+                    />
+                    <div>
+                      <span className="text-white font-medium">Ativar Integração SIEG</span>
+                      <p className="text-xs text-[#A1A1AA] mt-0.5">
+                        Habilita a importação automática de XMLs do cofre SIEG para esta empresa.
+                      </p>
+                    </div>
+                  </label>
+                  
+                  {formData.sieg_ativo && (
+                    <div className="bg-[#0C0C0C] rounded-lg p-4 space-y-4 border border-emerald-500/30">
+                      <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all bg-[#141414] border-[#2A2A2A] hover:border-emerald-500/50">
+                        <input
+                          type="checkbox"
+                          checked={formData.sieg_sync_automatico || false}
+                          onChange={(e) => setFormData({ ...formData, sieg_sync_automatico: e.target.checked })}
+                          className="mt-1 w-4 h-4 text-emerald-500 bg-[#141414] border-[#2A2A2A] rounded focus:ring-emerald-500 focus:ring-2"
+                        />
+                        <div>
+                          <span className="text-white font-medium">Sincronização Automática</span>
+                          <p className="text-xs text-[#A1A1AA] mt-0.5">
+                            Os XMLs serão importados automaticamente no horário programado.
+                          </p>
+                        </div>
+                      </label>
+
+                      {formData.sieg_sync_automatico && (
+                        <div>
+                          <label className="block text-xs text-[#A1A1AA] mb-2">Frequência de Sincronização</label>
+                          <select
+                            value={formData.sieg_frequencia || 'diario'}
+                            onChange={(e) => setFormData({ ...formData, sieg_frequencia: e.target.value })}
+                            className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                          >
+                            <option value="diario">Diário (1x ao dia - 03:00)</option>
+                            <option value="12h">A cada 12 horas</option>
+                            <option value="6h">A cada 6 horas</option>
+                          </select>
+                        </div>
+                      )}
+
+                      <p className="text-xs text-[#A1A1AA]">
+                        * Os XMLs importados serão automaticamente classificados e validados com as mesmas regras do upload manual.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Responsáveis */}
                 {allUsers.length > 0 && (
                   <div>
