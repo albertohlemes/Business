@@ -7091,13 +7091,12 @@ async def sieg_painel_empresa(
 ):
     """
     Painel detalhado de uma empresa específica
+    
+    ATUALIZADO: Lê configuração dos campos sieg_* diretamente da empresa
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
-    
-    # Config de sync
-    config = await db.sieg_config.find_one({"company_id": company_id}) or {}
     
     # Histórico de sincronizações (últimas 30)
     historico = await db.sieg_sync_logs.find(
@@ -7132,6 +7131,7 @@ async def sieg_painel_empresa(
     total_manual = await db.xml_documents.count_documents({"company_id": company_id, "origem_importacao": {"$ne": "sieg"}})
     total_classificados = await db.xml_documents.count_documents({"company_id": company_id, "classificado": True})
     
+    # ATUALIZADO: Ler config diretamente da empresa
     return {
         "empresa": {
             "id": company_id,
@@ -7139,11 +7139,9 @@ async def sieg_painel_empresa(
             "cnpj": company.get("cnpj")
         },
         "config": {
-            "sieg_ativo": config.get("ativo", False),
-            "sync_automatico": config.get("sync_automatico", False),
-            "frequencia": config.get("frequencia", "manual"),
-            "hora_sync": config.get("hora_sync", "06:00"),
-            "ultima_verificacao": config.get("ultima_verificacao")
+            "sieg_ativo": company.get("sieg_ativo", False),
+            "sync_automatico": company.get("sieg_sync_automatico", False),
+            "frequencia": company.get("sieg_frequencia", "diario")
         },
         "estatisticas": {
             "total_sieg": total_sieg,
