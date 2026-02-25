@@ -126,6 +126,7 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 - [x] ~~Painel de Monitoramento SIEG~~ (IMPLEMENTADO 25/02/2026)
 
 ### P1 (Alta Prioridade)
+- [x] ~~Centralizar configuração SIEG no cadastro da empresa~~ (CONCLUÍDO 25/02/2026)
 - [ ] Resolver bloqueio da API SIEG para download de XMLs (possivelmente IP Whitelisting)
 - [ ] Processamento incorreto de CFOPs de transferência
 - [ ] Totalizador por CST nos detalhamentos de créditos/débitos PIS/COFINS
