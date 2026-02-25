@@ -214,6 +214,11 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
     
     // === INSCRIÇÃO ESTADUAL ===
     ie_isento: false, // Flag para IE isento/não contribuinte
+    
+    // === INTEGRAÇÃO SIEG ===
+    sieg_ativo: false,
+    sieg_sync_automatico: false,
+    sieg_frequencia: 'diario',
   });
   
   // Estado para loading do SINTEGRA
