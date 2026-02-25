@@ -11729,47 +11729,13 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         faturamento_total = total_nfe_saida + total_nfce + total_nfse_prestados + total_cte_saida
     
     # ============================================================
-    # BUSCAR SALDO CREDOR ANTERIOR PARA ABATIMENTO
+    # BUSCAR SALDOS CREDORES ANTERIORES (função centralizada)
     # ============================================================
-    saldo_credor_anterior = {"pis": 0.0, "cofins": 0.0, "icms": 0.0, "ipi": 0.0}
-    try:
-        mes, ano = competencia.split('/')
-        mes_int = int(mes)
-        ano_int = int(ano)
-        if mes_int == 1:
-            comp_anterior = f"12/{ano_int - 1}"
-        else:
-            comp_anterior = f"{mes_int - 1:02d}/{ano_int}"
-        
-        # Verificar se é a competência inicial
-        competencia_inicial = company.get('competencia_saldo_inicial', '')
-        possui_saldo_credor = company.get('possui_saldo_credor', False)
-        
-        if competencia == competencia_inicial and possui_saldo_credor:
-            saldo_credor_anterior = {
-                "pis": company.get('saldo_credor_pis', 0) or 0,
-                "cofins": company.get('saldo_credor_cofins', 0) or 0,
-                "icms": company.get('saldo_credor_icms', 0) or 0,
-                "ipi": company.get('saldo_credor_ipi', 0) or 0
-            }
-        else:
-            saldo_anterior_db = await db.saldos_credores.find_one({
-                "company_id": company_id,
-                "competencia": comp_anterior
-            })
-            if saldo_anterior_db:
-                saldo_transportar = saldo_anterior_db.get('saldo_a_transportar', {})
-                saldo_credor_anterior = {
-                    "pis": saldo_transportar.get('pis', 0) or 0,
-                    "cofins": saldo_transportar.get('cofins', 0) or 0,
-                    "icms": saldo_transportar.get('icms', 0) or 0,
-                    "ipi": saldo_transportar.get('ipi', 0) or 0
-                }
-    except Exception as e:
-        logger.warning(f"DASHBOARD: Erro ao buscar saldo credor anterior: {e}")
+    saldo_credor_anterior = await buscar_saldos_credores_anteriores(company_id, competencia, company)
     
-    # Impostos a pagar (usando valores calculados pela função unificada)
-    # Aplicar saldo credor anterior
+    # ============================================================
+    # CALCULAR SALDOS COM ABATIMENTO DO CREDOR ANTERIOR
+    # ============================================================
     
     # ICMS: considerar saldo anterior
     icms_saldo_antes = debito_icms - credito_icms
@@ -11787,12 +11753,13 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         icms_recuperar = 0
         icms_situacao = "ZERADO"
     
-    # PIS/COFINS: considerar saldo anterior
+    # PIS: considerar saldo anterior
     pis_saldo_antes = debito_pis - credito_pis
     pis_saldo = pis_saldo_antes - saldo_credor_anterior['pis']
     pis_pagar = max(0, pis_saldo)
     pis_recuperar = abs(min(0, pis_saldo))
     
+    # COFINS: considerar saldo anterior
     cofins_saldo_antes = debito_cofins - credito_cofins
     cofins_saldo = cofins_saldo_antes - saldo_credor_anterior['cofins']
     cofins_pagar = max(0, cofins_saldo)
@@ -11800,8 +11767,8 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
     
     total_impostos_pagar = icms_pagar + pis_pagar + cofins_pagar
     
-    logger.info(f"DASHBOARD AGREGADO: ICMS Situação={icms_situacao}, A Pagar={icms_pagar}, A Recuperar={icms_recuperar}")
-    logger.info(f"DASHBOARD AGREGADO: Saldo anterior aplicado - PIS={saldo_credor_anterior['pis']}, COFINS={saldo_credor_anterior['cofins']}, ICMS={saldo_credor_anterior['icms']}")
+    logger.info(f"DASHBOARD AGREGADO: Saldos anteriores - PIS={saldo_credor_anterior['pis']:.2f}, COFINS={saldo_credor_anterior['cofins']:.2f}, ICMS={saldo_credor_anterior['icms']:.2f}")
+    logger.info(f"DASHBOARD AGREGADO: ICMS Situação={icms_situacao}, A Pagar={icms_pagar:.2f}, A Recuperar={icms_recuperar:.2f}")
     
     logger.info(f"DASHBOARD AGREGADO: Concluído - Faturamento={faturamento_total}, Entradas={total_entradas}")
     
