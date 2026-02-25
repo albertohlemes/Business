@@ -483,7 +483,8 @@ async def sync_from_sieg(
             tipo="entrada",
             xml_types=["nfe", "nfse"],
             take=50,  # Máximo permitido pela API SIEG
-            api_key=api_key
+            api_key=api_key,
+            baixar_todos=True  # Paginação automática para baixar TODOS
         )
         results["entrada"] = entrada
         results["totais"]["entrada"] = len(entrada.get("xmls", []))
