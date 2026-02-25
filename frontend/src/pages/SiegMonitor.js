@@ -875,6 +875,79 @@ const SiegMonitor = ({ user, onLogout }) => {
           </div>
         )}
 
+        {/* Modal de Configuração de Horário Global */}
+        {horarioModal && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setHorarioModal(false)}>
+            <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6 w-full max-w-md m-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-[#C8A951]/20 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-[#C8A951]" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white">Horário de Sincronização</h3>
+                  <p className="text-[#A1A1AA] text-sm">Configure o horário da importação automática</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="p-4 bg-[#1A1A1A] rounded-lg">
+                  <p className="text-white font-medium mb-3">Horário da Sincronização Diária</p>
+                  <p className="text-[#A1A1AA] text-sm mb-3">
+                    Todos os XMLs de todas as empresas serão importados neste horário
+                  </p>
+                  <input
+                    type="time"
+                    value={novoHorario}
+                    onChange={(e) => setNovoHorario(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white text-lg focus:border-[#C8A951]/50 focus:outline-none"
+                  />
+                </div>
+
+                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <p className="text-blue-400 text-sm">
+                    <strong>Dica:</strong> Configure para a madrugada (ex: 03:00) para que ao chegar pela manhã todos os documentos já estejam importados e classificados.
+                  </p>
+                </div>
+
+                {configHorarios && (
+                  <div className="p-4 bg-[#1A1A1A] rounded-lg">
+                    <p className="text-[#A1A1AA] text-sm mb-2">Horários calculados automaticamente:</p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-[#666]">Diário:</span>
+                        <span className="text-white ml-2">{configHorarios.horario_diario}</span>
+                      </div>
+                      <div>
+                        <span className="text-[#666]">12h:</span>
+                        <span className="text-white ml-2">{configHorarios.horarios_12h?.join(', ')}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-[#666]">6h:</span>
+                        <span className="text-white ml-2">{configHorarios.horarios_6h?.join(', ')}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setHorarioModal(false)}
+                  className="flex-1 px-4 py-2 bg-[#1A1A1A] text-white rounded-lg hover:bg-[#252525] transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveConfigHorarios}
+                  className="flex-1 px-4 py-2 bg-[#C8A951] text-black font-medium rounded-lg hover:bg-[#D4B962] transition-all"
+                >
+                  Salvar Horário
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {loading && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40">
             <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-6 flex items-center gap-4">
