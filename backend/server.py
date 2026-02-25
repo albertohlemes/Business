@@ -760,6 +760,11 @@ class Company(BaseModel):
     # Logo da empresa (base64 data URL)
     logo_url: Optional[str] = None
     
+    # === INTEGRAÇÃO SIEG ===
+    sieg_ativo: bool = False  # Se a integração SIEG está ativa para esta empresa
+    sieg_sync_automatico: bool = False  # Se a sincronização automática está ativa
+    sieg_frequencia: str = "diario"  # diario, 12h, 6h
+    
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CompanyCreate(BaseModel):
@@ -856,6 +861,10 @@ class CompanyCreate(BaseModel):
     logo_url: Optional[str] = None
     # Alertas de variação
     limite_alerta_variacao: int = 20  # Padrão 20%
+    # === INTEGRAÇÃO SIEG ===
+    sieg_ativo: bool = False
+    sieg_sync_automatico: bool = False
+    sieg_frequencia: str = "diario"
 
 class CompanyUpdate(BaseModel):
     """Modelo para atualização de empresa"""
@@ -950,6 +959,10 @@ class CompanyUpdate(BaseModel):
     logo_url: Optional[str] = None
     # Alertas de variação
     limite_alerta_variacao: Optional[int] = None  # 20 = 20%
+    # === INTEGRAÇÃO SIEG ===
+    sieg_ativo: Optional[bool] = None
+    sieg_sync_automatico: Optional[bool] = None
+    sieg_frequencia: Optional[str] = None
 
 
 # ============================================================
