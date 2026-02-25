@@ -299,6 +299,16 @@ const SiegMonitor = ({ user, onLogout }) => {
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 Atualizar
               </button>
+              
+              {/* Botão de configurar horário */}
+              <button
+                onClick={() => setHorarioModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#C8A951]/20 border border-[#C8A951]/30 text-[#C8A951] hover:bg-[#C8A951]/30 transition-all"
+                title="Configurar horário de sincronização"
+              >
+                <Clock className="w-4 h-4" />
+                {configHorarios?.horario_diario || '03:00'}
+              </button>
             </div>
           </div>
         </div>
