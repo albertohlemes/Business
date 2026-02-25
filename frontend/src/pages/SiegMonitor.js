@@ -269,34 +269,48 @@ const SiegMonitor = ({ user, onLogout }) => {
                   Integração SIEG
                 </h1>
                 <p className="text-[#A1A1AA] text-sm mt-1">
-                  Monitor de sincronização automática de XMLs
+                  {selectedCompany?.razao_social || 'Selecione uma empresa'}
+                  {selectedCompetencia && ` • ${selectedCompetencia}`}
                 </p>
               </div>
             </div>
             
-            {/* Status da API */}
+            {/* Status e Ações */}
             <div className="flex items-center gap-4">
               {siegStatus && (
                 <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A]">
-                  {siegStatus.status === 'ok' ? (
+                  {siegStatus.running ? (
                     <>
                       <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-emerald-400 text-sm">API Conectada</span>
+                      <span className="text-emerald-400 text-sm">Scheduler Ativo</span>
                     </>
                   ) : (
                     <>
                       <div className="w-2 h-2 rounded-full bg-amber-400" />
-                      <span className="text-amber-400 text-sm">
-                        {siegStatus.message || 'Verificando...'}
-                      </span>
+                      <span className="text-amber-400 text-sm">Scheduler Parado</span>
                     </>
                   )}
                 </div>
               )}
               
+              {selectedCompany && (
+                <button
+                  onClick={() => startSync(selectedCompany.id)}
+                  disabled={loading || syncInProgress}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#C8A951] text-black font-medium hover:bg-[#B8994A] transition-all disabled:opacity-50"
+                >
+                  {syncInProgress ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
+                  Sincronizar Agora
+                </button>
+              )}
+              
               <button
-                onClick={fetchPainelGeral}
-                disabled={loading}
+                onClick={() => selectedCompany && fetchPainelEmpresa(selectedCompany.id)}
+                disabled={loading || !selectedCompany}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-white hover:bg-[#252525] transition-all disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -306,7 +320,7 @@ const SiegMonitor = ({ user, onLogout }) => {
               {/* Botão de configurar horário */}
               <button
                 onClick={() => setHorarioModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#C8A951]/20 border border-[#C8A951]/30 text-[#C8A951] hover:bg-[#C8A951]/30 transition-all"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#A1A1AA] hover:bg-[#252525] transition-all"
                 title="Configurar horário de sincronização"
               >
                 <Clock className="w-4 h-4" />
@@ -316,16 +330,26 @@ const SiegMonitor = ({ user, onLogout }) => {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 bg-[#141414] border border-[#2A2A2A] rounded-lg p-2">
-          <TabButton id="overview" icon={Activity} label="Visão Geral" active={activeTab === 'overview'} />
-          <TabButton id="empresas" icon={Building2} label="Empresas" active={activeTab === 'empresas'} />
-          <TabButton id="historico" icon={History} label="Histórico" active={activeTab === 'historico'} />
-          <TabButton id="cancelados" icon={FileX} label="Cancelados" active={activeTab === 'cancelados'} />
-        </div>
+        {/* Verificar se tem empresa selecionada */}
+        {!selectedCompany ? (
+          <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-12 text-center">
+            <Building2 className="w-12 h-12 text-[#666] mx-auto mb-4" />
+            <p className="text-[#A1A1AA] text-lg mb-2">Nenhuma empresa selecionada</p>
+            <p className="text-[#666] text-sm">
+              Selecione uma empresa no topo da página para ver o status da integração SIEG
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Tabs */}
+            <div className="flex gap-2 bg-[#141414] border border-[#2A2A2A] rounded-lg p-2">
+              <TabButton id="overview" icon={Activity} label="Status" active={activeTab === 'overview'} />
+              <TabButton id="historico" icon={History} label="Histórico de Sincronizações" active={activeTab === 'historico'} />
+              <TabButton id="cancelados" icon={FileX} label="Notas Canceladas" active={activeTab === 'cancelados'} />
+            </div>
 
-        {/* Content based on active tab */}
-        {activeTab === 'overview' && (
+            {/* Content based on active tab */}
+            {activeTab === 'overview' && painelEmpresa && (
           <div className="space-y-6">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
