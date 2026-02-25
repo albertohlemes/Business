@@ -26802,7 +26802,74 @@ async def apurar_pis_cofins(
     
     # ============== SALVAR SALDO CREDOR PARA PRÓXIMA COMPETÊNCIA ==============
     # Se há saldo a transportar, salvar no banco para ser usado na próxima competência
-    if regime.upper() == 'LUCRO_REAL' and (pis_a_transportar > 0 or cofins_a_transportar > 0):
+    # Inclui PIS, COFINS, ICMS e IPI
+    
+    # Calcular ICMS a transportar (se houver saldo credor)
+    icms_a_transportar = 0.0
+    ipi_a_transportar = 0.0
+    
+    # Buscar dados de ICMS da competência
+    try:
+        # ICMS: Buscar créditos e débitos dos documentos
+        query_entrada = {
+            "company_id": company_id,
+            "competencia": competencia,
+            "tipo": "entrada"
+        }
+        query_entrada.update(get_filtro_notas_ativas())
+        docs_entrada = await db.xml_documents.find(query_entrada, {"produtos": 1}).to_list(15000)
+        
+        query_saida = {
+            "company_id": company_id,
+            "competencia": competencia,
+            "tipo": "saida"
+        }
+        query_saida.update(get_filtro_notas_ativas())
+        docs_saida = await db.xml_documents.find(query_saida, {"produtos": 1}).to_list(15000)
+        
+        icms_creditos = 0.0
+        ipi_creditos = 0.0
+        for doc in docs_entrada:
+            for prod in doc.get('produtos', []):
+                cfop = str(prod.get('cfop', ''))
+                # Não considerar créditos de transferência ou despesas
+                if is_cfop_transferencia(cfop):
+                    continue
+                cst_icms = str(prod.get('cst_icms', '') or prod.get('cst', ''))
+                # CSTs que dão direito a crédito de ICMS: 00, 20, 90
+                if cst_icms in ['00', '20', '90', '000', '020', '090'] or (cst_icms == '' and cfop[:2] in ['11', '12', '21', '22']):
+                    icms_creditos += float(prod.get('v_icms', 0) or 0)
+                # IPI creditável
+                ipi_creditos += float(prod.get('v_ipi', 0) or 0)
+        
+        icms_debitos = 0.0
+        ipi_debitos = 0.0
+        for doc in docs_saida:
+            for prod in doc.get('produtos', []):
+                cfop = str(prod.get('cfop', ''))
+                # Não considerar débitos de transferência
+                if is_cfop_transferencia(cfop):
+                    continue
+                icms_debitos += float(prod.get('v_icms', 0) or 0)
+                ipi_debitos += float(prod.get('v_ipi', 0) or 0)
+        
+        # Buscar saldo credor anterior de ICMS e IPI
+        icms_saldo_anterior = saldo_credor_anterior.get('icms', 0) or 0
+        ipi_saldo_anterior = saldo_credor_anterior.get('ipi', 0) or 0
+        
+        # Calcular saldo de ICMS e IPI
+        icms_saldo = icms_debitos - icms_creditos - icms_saldo_anterior
+        ipi_saldo = ipi_debitos - ipi_creditos - ipi_saldo_anterior
+        
+        # Se saldo negativo = crédito a transportar
+        icms_a_transportar = abs(min(0, icms_saldo))
+        ipi_a_transportar = abs(min(0, ipi_saldo))
+        
+    except Exception as e:
+        logger.warning(f"Erro ao calcular ICMS/IPI para transporte: {e}")
+    
+    # Salvar saldo se houver algo a transportar
+    if regime.upper() == 'LUCRO_REAL' and (pis_a_transportar > 0 or cofins_a_transportar > 0 or icms_a_transportar > 0 or ipi_a_transportar > 0):
         await db.saldos_credores.update_one(
             {"company_id": company_id, "competencia": competencia},
             {
@@ -26812,7 +26879,14 @@ async def apurar_pis_cofins(
                     "saldo_a_transportar": {
                         "pis": round(pis_a_transportar, 2),
                         "cofins": round(cofins_a_transportar, 2),
-                        "icms": 0  # ICMS é calculado separadamente
+                        "icms": round(icms_a_transportar, 2),
+                        "ipi": round(ipi_a_transportar, 2)
+                    },
+                    "detalhamento": {
+                        "pis": {"credito": round(pis_credito, 2), "debito": round(pis_debito, 2), "saldo_anterior": round(saldo_credor_anterior.get('pis', 0), 2)},
+                        "cofins": {"credito": round(cofins_credito, 2), "debito": round(cofins_debito, 2), "saldo_anterior": round(saldo_credor_anterior.get('cofins', 0), 2)},
+                        "icms": {"credito": round(icms_creditos, 2), "debito": round(icms_debitos, 2), "saldo_anterior": round(icms_saldo_anterior, 2)},
+                        "ipi": {"credito": round(ipi_creditos, 2), "debito": round(ipi_debitos, 2), "saldo_anterior": round(ipi_saldo_anterior, 2)}
                     },
                     "data_calculo": datetime.now(timezone.utc).isoformat()
                 }
