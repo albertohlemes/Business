@@ -3,9 +3,10 @@
 ## Visão Geral
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
-## Última Atualização: 19/02/2026
-- Correção do bug recorrente de CFOPs de transferência (5152, 5409, etc.) que apareciam em Alertas de CFOP
-- Adicionados testes unitários e de API para validação do fix
+## Última Atualização: 26/06/2026
+- **CORRIGIDO**: Transporte de saldos credores entre competências (ICMS, PIS, COFINS, IPI)
+- Endpoints Dashboard, Apuração ICMS, PIS/COFINS, RET, Reforma Tributária agora consideram saldo credor anterior
+- Saldos são salvos na collection `saldos_credores` e transportados automaticamente para o mês seguinte
 
 ## Stack Tecnológica
 - **Frontend**: React 18 + TailwindCSS + Lucide Icons
@@ -29,6 +30,7 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 - [x] **ISS**: Apuração para serviços
 - [x] **Impostos Retidos**: IRRF, CSRF, INSS, ISS
 - [x] **Simples Nacional**: Cálculo DAS
+- [x] **Transporte de Saldos Credores**: Saldos a recuperar são transportados para o próximo mês
 
 ### Análises
 - [x] Vilões e Oportunidades (análise de créditos perdidos)
@@ -66,6 +68,7 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 - `GET /api/pis-cofins/{company_id}` - Apuração PIS/COFINS
 - `GET /api/icms/{company_id}` - Apuração ICMS
 - `GET /api/inteligencia-tributaria/{company_id}` - Comparativo de regimes
+- `GET /api/saldo-credor/{company_id}/listar` - Histórico de saldos credores
 
 ### Documentos
 - `GET /api/documentos/{company_id}` - Listar documentos
@@ -75,6 +78,7 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 - **Email**: alberto.lemes@businessconta.com.br
 - **Senha**: @Ahl142536
 - **Empresa Matriz**: COMERCIAL RS LTDA (ID: d7f30ea1-9df3-4124-a561-12984ffff64b)
+- **Empresa Teste ANZEN**: ID: 24e47135-2657-47d5-a112-cd2c06357370
 - **Grupo**: Grupo Comercial RS (com 1 filial: TEKNOLINK SJC)
 
 ## Backlog
@@ -84,13 +88,16 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 - [x] ~~Markup (Vendas/Compras)~~
 - [x] ~~Impostos individualizados com percentuais~~
 - [x] ~~Saldos credores de PIS/COFINS exibidos corretamente~~
-- [x] ~~Bug de tela em branco na página PIS/COFINS (erro de indentação em calcular_pis_cofins_unificado)~~
-- [x] ~~Bug recorrente: CFOPs de transferência (5152, 5409, etc.) aparecendo em Alertas de CFOP~~ (CORRIGIDO 19/02/2026)
+- [x] ~~Bug de tela em branco na página PIS/COFINS~~
+- [x] ~~Bug recorrente: CFOPs de transferência aparecendo em Alertas~~ 
+- [x] ~~Transporte de saldos credores entre competências~~ (CORRIGIDO 26/06/2026)
 
 ### P1 (Alta Prioridade)
 - [ ] Totalizador por CST nos detalhamentos de créditos/débitos PIS/COFINS
 - [ ] Refatoração do server.py (extrair rotas para APIRouter separados)
-- [ ] Corrigir modal de seleção de empresa em páginas globais (sobrepõe UI) - Bug que o modal de seleção sobrepõe a interface em páginas que não o exigem (ex: /admin/grupos-empresariais)
+- [ ] Corrigir modal de seleção de empresa em páginas globais (sobrepõe UI)
+- [ ] Corrigir bugs de cálculo e agregação no menu "Grupo Consolidado"
+- [ ] Corrigir geração incorreta de natureza de operação no arquivo SPED para transferências
 
 ### P2 (Média Prioridade)
 - [ ] Pacote de instalação On-Premise com Docker
@@ -118,7 +125,9 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 ```
 
 ## Changelog
-- **18/02/2026**: Adicionado Markup (Vendas/Compras), impostos individualizados com badges CREDOR/DEVEDOR, e correção de saldos credores PIS/COFINS.
-- **18/02/2026**: Implementada página "Grupo Consolidado" com 6 abas (Indicadores, ICMS, PIS/COFINS, IRPJ/CSLL, RET, Reforma Tributária). Menu aparece apenas para empresas matriz.
-- **17/02/2026**: Corrigido bug no cálculo do Lucro Presumido hipotético (usava receita total em vez de tributável).
-- **16/02/2026**: Backend Matriz-Filial: exclusão de CFOPs de transferência dos cálculos de impostos.
+- **26/06/2026**: **CORREÇÃO CRÍTICA** - Transporte de saldos credores entre competências agora funciona corretamente em todos os endpoints (Dashboard, Apuração ICMS, PIS/COFINS, RET, Reforma Tributária). Saldos são salvos na collection `saldos_credores` e transportados para o mês seguinte.
+- **19/02/2026**: Bug de CFOPs de transferência corrigido
+- **18/02/2026**: Adicionado Markup, impostos individualizados com badges CREDOR/DEVEDOR
+- **18/02/2026**: Implementada página "Grupo Consolidado" com 6 abas
+- **17/02/2026**: Corrigido bug no cálculo do Lucro Presumido hipotético
+- **16/02/2026**: Backend Matriz-Filial: exclusão de CFOPs de transferência dos cálculos
