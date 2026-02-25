@@ -92,6 +92,9 @@ const Layout = ({ user, onLogout, children }) => {
     // Importação em Lote (disponível para todos)
     nav.push({ name: 'Importação em Lote', href: '/batch-import', icon: Download, testId: 'nav-batch-import' });
     
+    // Integração SIEG (disponível para todos)
+    nav.push({ name: 'Integração SIEG', href: '/sieg-monitor', icon: Cloud, testId: 'nav-sieg-monitor', badge: 'NOVO', badgeColor: 'emerald' });
+    
     // Se não tem empresa selecionada, mostra menu completo padrão
     if (!selectedCompany) {
       // 📝 AÇÕES
