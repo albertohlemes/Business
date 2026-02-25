@@ -27110,7 +27110,52 @@ async def apurar_pis_cofins(
     
     # SEMPRE salvar os saldos da competência (para histórico e rastreabilidade)
     # Isso permite que a próxima competência busque os saldos corretamente
+    # IMPORTANTE: Preservar ICMS se já salvo pelo endpoint de apuração ICMS
     try:
+        # Buscar registro existente para preservar valores de ICMS/IPI do endpoint de ICMS
+        doc_existente = await db.saldos_credores.find_one({
+            "company_id": company_id,
+            "competencia": competencia
+        })
+        
+        # Se já existe registro com ICMS calculado pelo endpoint de ICMS, preservar
+        saldo_a_transportar_icms_existente = 0
+        saldo_a_transportar_ipi_existente = 0
+        saldo_final_icms_existente = 0
+        saldo_final_ipi_existente = 0
+        detalhamento_icms_existente = {}
+        detalhamento_ipi_existente = {}
+        
+        if doc_existente:
+            saldo_transp = doc_existente.get('saldo_a_transportar', {})
+            saldo_final_ex = doc_existente.get('saldo_final', {})
+            detalhamento_ex = doc_existente.get('detalhamento', {})
+            
+            # Se tem data_calculo_icms, significa que foi calculado pelo endpoint de ICMS
+            if doc_existente.get('data_calculo_icms'):
+                saldo_a_transportar_icms_existente = saldo_transp.get('icms', 0)
+                saldo_final_icms_existente = saldo_final_ex.get('icms', 0)
+                detalhamento_icms_existente = detalhamento_ex.get('icms', {})
+                logger.info(f"APURACAO PIS/COFINS: Preservando ICMS existente (calculado por endpoint ICMS): {saldo_a_transportar_icms_existente}")
+            else:
+                # Usar o valor calculado aqui
+                saldo_a_transportar_icms_existente = icms_a_transportar
+                saldo_final_icms_existente = icms_saldo if 'icms_saldo' in dir() else 0
+                detalhamento_icms_existente = {"credito": round(icms_creditos, 2), "debito": round(icms_debitos, 2), "saldo_anterior": round(icms_saldo_anterior, 2)}
+            
+            # IPI
+            saldo_a_transportar_ipi_existente = saldo_transp.get('ipi', ipi_a_transportar)
+            saldo_final_ipi_existente = saldo_final_ex.get('ipi', ipi_saldo if 'ipi_saldo' in dir() else 0)
+            detalhamento_ipi_existente = detalhamento_ex.get('ipi', {"credito": round(ipi_creditos, 2), "debito": round(ipi_debitos, 2), "saldo_anterior": round(ipi_saldo_anterior, 2)})
+        else:
+            # Não existe registro, usar os valores calculados aqui
+            saldo_a_transportar_icms_existente = icms_a_transportar
+            saldo_a_transportar_ipi_existente = ipi_a_transportar
+            saldo_final_icms_existente = icms_saldo if 'icms_saldo' in dir() else 0
+            saldo_final_ipi_existente = ipi_saldo if 'ipi_saldo' in dir() else 0
+            detalhamento_icms_existente = {"credito": round(icms_creditos, 2), "debito": round(icms_debitos, 2), "saldo_anterior": round(icms_saldo_anterior, 2)}
+            detalhamento_ipi_existente = {"credito": round(ipi_creditos, 2), "debito": round(ipi_debitos, 2), "saldo_anterior": round(ipi_saldo_anterior, 2)}
+        
         await db.saldos_credores.update_one(
             {"company_id": company_id, "competencia": competencia},
             {
@@ -27121,27 +27166,27 @@ async def apurar_pis_cofins(
                     "saldo_a_transportar": {
                         "pis": round(pis_a_transportar, 2),
                         "cofins": round(cofins_a_transportar, 2),
-                        "icms": round(icms_a_transportar, 2),
-                        "ipi": round(ipi_a_transportar, 2)
+                        "icms": round(saldo_a_transportar_icms_existente, 2),
+                        "ipi": round(saldo_a_transportar_ipi_existente, 2)
                     },
                     "saldo_final": {
                         "pis": round(pis_saldo, 2),
                         "cofins": round(cofins_saldo, 2),
-                        "icms": round(icms_saldo, 2) if 'icms_saldo' in dir() else 0,
-                        "ipi": round(ipi_saldo, 2) if 'ipi_saldo' in dir() else 0
+                        "icms": round(saldo_final_icms_existente, 2),
+                        "ipi": round(saldo_final_ipi_existente, 2)
                     },
                     "detalhamento": {
                         "pis": {"credito": round(pis_credito, 2), "debito": round(pis_debito, 2), "saldo_anterior": round(saldo_credor_anterior.get('pis', 0), 2)},
                         "cofins": {"credito": round(cofins_credito, 2), "debito": round(cofins_debito, 2), "saldo_anterior": round(saldo_credor_anterior.get('cofins', 0), 2)},
-                        "icms": {"credito": round(icms_creditos, 2), "debito": round(icms_debitos, 2), "saldo_anterior": round(icms_saldo_anterior, 2)},
-                        "ipi": {"credito": round(ipi_creditos, 2), "debito": round(ipi_debitos, 2), "saldo_anterior": round(ipi_saldo_anterior, 2)}
+                        "icms": detalhamento_icms_existente if detalhamento_icms_existente else {"credito": round(icms_creditos, 2), "debito": round(icms_debitos, 2), "saldo_anterior": round(icms_saldo_anterior, 2)},
+                        "ipi": detalhamento_ipi_existente if detalhamento_ipi_existente else {"credito": round(ipi_creditos, 2), "debito": round(ipi_debitos, 2), "saldo_anterior": round(ipi_saldo_anterior, 2)}
                     },
-                    "data_calculo": datetime.now(timezone.utc).isoformat()
+                    "data_calculo_pis_cofins": datetime.now(timezone.utc).isoformat()
                 }
             },
             upsert=True
         )
-        logger.info(f"APURACAO PIS/COFINS: Saldos salvos para {company_id}/{competencia} - PIS={pis_a_transportar}, COFINS={cofins_a_transportar}, ICMS={icms_a_transportar}")
+        logger.info(f"APURACAO PIS/COFINS: Saldos salvos para {company_id}/{competencia} - PIS={pis_a_transportar}, COFINS={cofins_a_transportar}, ICMS (preservado)={saldo_a_transportar_icms_existente}")
     except Exception as e:
         logger.error(f"Erro ao salvar saldos credores: {e}")
     
