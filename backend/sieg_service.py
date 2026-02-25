@@ -40,7 +40,8 @@ def get_sieg_credentials() -> tuple:
 async def get_sieg_jwt_token() -> Optional[str]:
     """
     Obtém token JWT do SIEG usando OAuth2 Client Credentials.
-    Implementa cache para evitar requisições desnecessárias.
+    Endpoint: https://api.sieg.com/api/v1/create-jwt
+    Headers: clientId, secretKey
     """
     global _jwt_token_cache
     
@@ -55,101 +56,58 @@ async def get_sieg_jwt_token() -> Optional[str]:
         print("[SIEG] Credenciais OAuth2 não configuradas")
         return None
     
-    # Endpoints de autenticação possíveis do SIEG
-    auth_endpoints = [
-        f"{SIEG_API_BASE}/api/Token/Autenticar",
-        f"{SIEG_API_BASE}/Token/Autenticar",
-        f"{SIEG_API_BASE}/api/auth/token",
-        f"{SIEG_API_BASE}/connect/token",
-        f"{SIEG_API_BASE}/oauth/token",
-    ]
+    # Endpoint oficial do SIEG para criar JWT
+    token_url = f"{SIEG_API_BASE}/api/v1/create-jwt"
+    
+    # Headers conforme documentação SIEG
+    headers = {
+        "clientId": client_id,
+        "secretKey": client_secret,
+        "Content-Type": "application/json"
+    }
+    
+    print(f"[SIEG] Obtendo token JWT de {token_url}")
     
     async with httpx.AsyncClient(timeout=30.0) as client:
-        for endpoint in auth_endpoints:
-            # Tentar diferentes formatos de autenticação
+        try:
+            # POST para criar JWT com headers de autenticação
+            response = await client.post(
+                token_url,
+                headers=headers,
+                json={}  # Corpo vazio ou mínimo
+            )
             
-            # Formato 1: JSON com client_id e client_secret
-            try:
-                print(f"[SIEG] Tentando autenticação JSON em {endpoint}")
-                response = await client.post(
-                    endpoint,
-                    json={
-                        "client_id": client_id,
-                        "client_secret": client_secret,
-                        "grant_type": "client_credentials"
-                    },
-                    headers={"Content-Type": "application/json"}
+            print(f"[SIEG] Resposta: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                # O token pode vir em diferentes campos
+                token = (
+                    data.get("access_token") or 
+                    data.get("token") or 
+                    data.get("Token") or 
+                    data.get("accessToken") or
+                    data.get("jwt") or
+                    data.get("JWT") or
+                    (data if isinstance(data, str) else None)
                 )
                 
-                if response.status_code == 200:
-                    data = response.json()
-                    token = data.get("access_token") or data.get("token") or data.get("Token") or data.get("accessToken")
-                    expires_in = data.get("expires_in", 3600)
-                    if token:
-                        _jwt_token_cache["token"] = token
-                        _jwt_token_cache["expires_at"] = datetime.now() + timedelta(seconds=expires_in - 60)
-                        print(f"[SIEG] ✅ Token JWT obtido via {endpoint} (JSON)")
-                        return token
+                if token:
+                    # Cache por 55 minutos (tokens geralmente duram 1 hora)
+                    expires_in = data.get("expires_in", 3600) if isinstance(data, dict) else 3600
+                    _jwt_token_cache["token"] = token
+                    _jwt_token_cache["expires_at"] = datetime.now() + timedelta(seconds=expires_in - 60)
+                    print(f"[SIEG] ✅ Token JWT obtido com sucesso!")
+                    return token
                 else:
-                    print(f"[SIEG] {endpoint} (JSON) retornou {response.status_code}: {response.text[:200]}")
-            except Exception as e:
-                print(f"[SIEG] Erro em {endpoint} (JSON): {e}")
-            
-            # Formato 2: Form URL Encoded (OAuth2 padrão)
-            try:
-                print(f"[SIEG] Tentando autenticação Form em {endpoint}")
-                response = await client.post(
-                    endpoint,
-                    data={
-                        "client_id": client_id,
-                        "client_secret": client_secret,
-                        "grant_type": "client_credentials"
-                    },
-                    headers={"Content-Type": "application/x-www-form-urlencoded"}
-                )
+                    print(f"[SIEG] Token não encontrado na resposta: {data}")
+            else:
+                print(f"[SIEG] Erro {response.status_code}: {response.text[:500]}")
                 
-                if response.status_code == 200:
-                    data = response.json()
-                    token = data.get("access_token") or data.get("token") or data.get("Token")
-                    expires_in = data.get("expires_in", 3600)
-                    if token:
-                        _jwt_token_cache["token"] = token
-                        _jwt_token_cache["expires_at"] = datetime.now() + timedelta(seconds=expires_in - 60)
-                        print(f"[SIEG] ✅ Token JWT obtido via {endpoint} (Form)")
-                        return token
-                else:
-                    print(f"[SIEG] {endpoint} (Form) retornou {response.status_code}: {response.text[:200]}")
-            except Exception as e:
-                print(f"[SIEG] Erro em {endpoint} (Form): {e}")
-            
-            # Formato 3: Basic Auth no header
-            try:
-                print(f"[SIEG] Tentando autenticação Basic Auth em {endpoint}")
-                credentials = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
-                response = await client.post(
-                    endpoint,
-                    data={"grant_type": "client_credentials"},
-                    headers={
-                        "Content-Type": "application/x-www-form-urlencoded",
-                        "Authorization": f"Basic {credentials}"
-                    }
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    token = data.get("access_token") or data.get("token") or data.get("Token")
-                    expires_in = data.get("expires_in", 3600)
-                    if token:
-                        _jwt_token_cache["token"] = token
-                        _jwt_token_cache["expires_at"] = datetime.now() + timedelta(seconds=expires_in - 60)
-                        print(f"[SIEG] ✅ Token JWT obtido via {endpoint} (Basic)")
-                        return token
-                else:
-                    print(f"[SIEG] {endpoint} (Basic) retornou {response.status_code}: {response.text[:200]}")
-            except Exception as e:
-                print(f"[SIEG] Erro em {endpoint} (Basic): {e}")
+        except Exception as e:
+            print(f"[SIEG] Erro ao obter token: {e}")
     
-    print("[SIEG] ❌ Não foi possível obter token JWT em nenhum endpoint")
+    print("[SIEG] ❌ Não foi possível obter token JWT")
     return None
 
 
