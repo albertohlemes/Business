@@ -12450,11 +12450,50 @@ async def get_dashboard_stats(
         for serv in doc.get('servicos', []):
             total_iss += float(serv.get('valor_iss', 0) or 0)
     
-    # Impostos a pagar
-    icms_pagar = max(0, debito_icms - credito_icms)
-    pis_pagar = max(0, debito_pis - credito_pis)
-    cofins_pagar = max(0, debito_cofins - credito_cofins)
+    # ============================================================
+    # BUSCAR SALDOS CREDORES ANTERIORES (função centralizada)
+    # GARANTE CONSISTÊNCIA com versão agregada e outras telas
+    # ============================================================
+    saldo_credor_anterior = await buscar_saldos_credores_anteriores(company_id, competencia, company)
+    
+    logger.info(f"DASHBOARD (pequeno): Saldos anteriores - PIS={saldo_credor_anterior['pis']:.2f}, COFINS={saldo_credor_anterior['cofins']:.2f}, ICMS={saldo_credor_anterior['icms']:.2f}")
+    
+    # ============================================================
+    # CALCULAR SALDOS COM ABATIMENTO DO CREDOR ANTERIOR
+    # MESMA LÓGICA da versão agregada
+    # ============================================================
+    
+    # ICMS: considerar saldo anterior
+    icms_saldo_antes = debito_icms - credito_icms
+    icms_saldo = icms_saldo_antes - saldo_credor_anterior['icms']
+    if icms_saldo > 0:
+        icms_pagar = icms_saldo
+        icms_recuperar = 0
+        icms_situacao = "A_PAGAR"
+    elif icms_saldo < 0:
+        icms_pagar = 0
+        icms_recuperar = abs(icms_saldo)
+        icms_situacao = "A_RECUPERAR"
+    else:
+        icms_pagar = 0
+        icms_recuperar = 0
+        icms_situacao = "ZERADO"
+    
+    # PIS: considerar saldo anterior
+    pis_saldo_antes = debito_pis - credito_pis
+    pis_saldo = pis_saldo_antes - saldo_credor_anterior['pis']
+    pis_pagar = max(0, pis_saldo)
+    pis_recuperar = abs(min(0, pis_saldo))
+    
+    # COFINS: considerar saldo anterior
+    cofins_saldo_antes = debito_cofins - credito_cofins
+    cofins_saldo = cofins_saldo_antes - saldo_credor_anterior['cofins']
+    cofins_pagar = max(0, cofins_saldo)
+    cofins_recuperar = abs(min(0, cofins_saldo))
+    
     total_impostos_pagar = icms_pagar + pis_pagar + cofins_pagar + total_iss
+    
+    logger.info(f"DASHBOARD (pequeno): ICMS Situação={icms_situacao}, A Pagar={icms_pagar:.2f}, A Recuperar={icms_recuperar:.2f}")
     
     # Markup médio (entradas vs saídas)
     markup_percentual = 0
