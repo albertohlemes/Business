@@ -25100,8 +25100,14 @@ async def apurar_icms(
             "credito_presumido_icms": round(credito_presumido_icms, 2),
             "credito_presumido_percent": credito_presumido_percent if is_transportadora else 0,
             "is_transportadora": is_transportadora,
+            "saldo_credor_anterior": round(saldo_credor_anterior_icms, 2),
+            "competencia_anterior": comp_anterior,
+            "saldo_antes_anterior": round(saldo_antes_anterior, 2),
             "saldo": round(saldo, 2),
-            "situacao": "A_PAGAR" if saldo > 0 else "A_RECUPERAR" if saldo < 0 else "ZERADO"
+            "saldo_a_transportar": round(saldo_a_transportar, 2),
+            "situacao": "A_PAGAR" if saldo > 0 else "A_RECUPERAR" if saldo < 0 else "ZERADO",
+            "a_pagar": round(max(0, saldo), 2),
+            "a_recuperar": round(abs(min(0, saldo)), 2)
         },
         "icms_st": {
             "saidas": {
