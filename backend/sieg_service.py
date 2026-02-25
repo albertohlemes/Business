@@ -313,7 +313,9 @@ async def download_xmls_sieg(
     async with httpx.AsyncClient(timeout=60.0) as client:
         # Usar API Key diretamente no URL (funciona melhor)
         api_key = api_key or get_sieg_api_key()
-        base_url = f"{SIEG_API_BASE}/BaixarXmls?api_key={api_key}"
+        from urllib.parse import quote
+        api_key_encoded = quote(api_key, safe='')
+        base_url = f"{SIEG_API_BASE}/BaixarXmls?api_key={api_key_encoded}"
         
         for xml_type in xml_types:
             xml_type_code = XML_TYPES.get(xml_type.lower(), 1)
