@@ -30,8 +30,13 @@ _jwt_token_cache = {
 }
 
 
+def get_sieg_api_key() -> str:
+    """Obtém a API Key do SIEG (para endpoints legados)"""
+    return os.environ.get('SIEG_API_KEY', '')
+
+
 def get_sieg_credentials() -> tuple:
-    """Obtém as credenciais OAuth2 do SIEG"""
+    """Obtém as credenciais OAuth2 do SIEG (para JWT)"""
     client_id = os.environ.get('SIEG_CLIENT_ID', '')
     client_secret = os.environ.get('SIEG_CLIENT_SECRET', '')
     return client_id, client_secret
