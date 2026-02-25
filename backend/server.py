@@ -40701,6 +40701,9 @@ async def get_apuracao_reforma_tributaria(
         total_base_saida = resultado_pis_cofins['base_debito']
         total_base_entrada = resultado_pis_cofins['base_credito']
         
+        # Buscar saldo credor anterior para comparativo justo
+        saldo_anterior_reforma = await buscar_saldos_credores_anteriores(company_id, competencia, company)
+        
         # ICMS (manter cálculo separado pois tem lógica diferente)
         total_icms_entrada_calc = 0
         total_icms_saida_calc = 0
