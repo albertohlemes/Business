@@ -4,16 +4,20 @@
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
 ## Última Atualização: 25/02/2026
-- **RESOLVIDO**: Integração SIEG 100% funcional - download automático de XMLs funcionando
-- **NOVO**: Paginação automática - baixa TODOS os XMLs (não apenas 50)
-- **NOVO**: Processamento completo igual ao upload manual:
+- **CONCLUÍDO**: Centralização da Configuração SIEG - configuração movida para dentro da empresa
+- **CONCLUÍDO**: Integração SIEG 100% funcional - download automático de XMLs funcionando
+- **NOVO**: Campos SIEG (`sieg_ativo`, `sieg_sync_automatico`, `sieg_frequencia`) na empresa
+- **NOVO**: WizardEmpresa com seção de Integração SIEG no step 5 (Benefícios)
+- **NOVO**: Endpoint de migração `/api/sieg/migrate-config` para dados antigos
+- **NOVO**: Scheduler lê configuração diretamente da coleção `companies`
+- Paginação automática - baixa TODOS os XMLs (não apenas 50)
+- Processamento completo igual ao upload manual:
   - Classificação com IA/cache/regras
   - Detecção de devoluções (finNFe=4, CFOP devolução, NFe referenciada)
   - Verificação de cancelamentos
   - Marcação de notas desconsideradas
-- **NOVO**: Painel de Monitoramento SIEG (/sieg-monitor) com 4 abas
-- **NOVO**: Job agendado (APScheduler) para sincronização automática diária às 06:00
-- Autenticação com API Key SIEG (versão antiga - URL encoded) funcionando
+- Painel de Monitoramento SIEG (/sieg-monitor) com 4 abas
+- Job agendado (APScheduler) para sincronização automática diária às 03:00
 
 ## Stack Tecnológica
 - **Frontend**: React 18 + TailwindCSS + Lucide Icons
