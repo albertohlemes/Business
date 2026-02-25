@@ -846,6 +846,7 @@ class CompanyCreate(BaseModel):
     saldo_credor_icms: float = 0.0
     saldo_credor_pis: float = 0.0
     saldo_credor_cofins: float = 0.0
+    saldo_credor_ipi: float = 0.0
     competencia_saldo_inicial: Optional[str] = None
     # Presunção para serviços
     percentual_presuncao_servicos_irpj: float = 32.0
