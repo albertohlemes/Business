@@ -5,11 +5,15 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 
 ## Última Atualização: 25/02/2026
 - **RESOLVIDO**: Integração SIEG 100% funcional - download automático de XMLs funcionando
-- **NOVO**: Painel de Monitoramento da Integração SIEG implementado
+- **NOVO**: Paginação automática - baixa TODOS os XMLs (não apenas 50)
+- **NOVO**: Processamento completo igual ao upload manual:
+  - Classificação com IA/cache/regras
+  - Detecção de devoluções (finNFe=4, CFOP devolução, NFe referenciada)
+  - Verificação de cancelamentos
+  - Marcação de notas desconsideradas
+- **NOVO**: Painel de Monitoramento SIEG (/sieg-monitor) com 4 abas
 - **NOVO**: Job agendado (APScheduler) para sincronização automática diária às 06:00
-- **NOVO**: Página /sieg-monitor com 4 abas: Visão Geral, Empresas, Histórico, Cancelados
-- **NOVO**: Configuração de sync por empresa (ativo, automático, frequência, horário)
-- Autenticação com API Key SIEG (versão antiga) funcionando
+- Autenticação com API Key SIEG (versão antiga - URL encoded) funcionando
 
 ## Stack Tecnológica
 - **Frontend**: React 18 + TailwindCSS + Lucide Icons
