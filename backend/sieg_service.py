@@ -200,7 +200,10 @@ async def count_xmls_sieg(
     async with httpx.AsyncClient(timeout=60.0) as client:
         # Contar notas de entrada (CnpjDest)
         try:
-            url = f"{SIEG_API_BASE}/BaixarXmls?api_key={api_key}"
+            # URL encode a API Key para a requisição
+            from urllib.parse import quote
+            api_key_encoded = quote(api_key, safe='')
+            url = f"{SIEG_API_BASE}/BaixarXmls?api_key={api_key_encoded}"
             payload = {
                 "XmlType": 1,  # NF-e
                 "Take": 50,
