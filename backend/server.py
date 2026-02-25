@@ -7173,26 +7173,24 @@ async def sieg_configurar_empresa(
 ):
     """
     Configura sincronização SIEG para uma empresa
+    
+    ATUALIZADO: Salva configuração diretamente na empresa (coleção companies)
+    em vez da antiga coleção sieg_config
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    await db.sieg_config.update_one(
-        {"company_id": company_id},
-        {
-            "$set": {
-                "company_id": company_id,
-                "ativo": config.get("ativo", True),
-                "sync_automatico": config.get("sync_automatico", False),
-                "frequencia": config.get("frequencia", "diario"),  # diario, 12h, 6h, manual
-                "hora_sync": config.get("hora_sync", "06:00"),
-                "competencias_retroativas": config.get("competencias_retroativas", 3),
-                "atualizado_em": datetime.now(timezone.utc).isoformat(),
-                "atualizado_por": current_user.id
-            }
-        },
-        upsert=True
+    # ATUALIZADO: Atualizar campos SIEG diretamente na empresa
+    update_data = {
+        "sieg_ativo": config.get("ativo", True),
+        "sieg_sync_automatico": config.get("sync_automatico", False),
+        "sieg_frequencia": config.get("frequencia", "diario")
+    }
+    
+    await db.companies.update_one(
+        {"id": company_id},
+        {"$set": update_data}
     )
     
     return {"success": True, "message": "Configuração SIEG salva com sucesso"}
