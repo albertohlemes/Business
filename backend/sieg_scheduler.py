@@ -24,6 +24,14 @@ DB_NAME = os.environ.get('DB_NAME', 'test_database')
 _scheduler_db_client = None
 _scheduler_db = None
 
+# Configuração padrão de horários
+DEFAULT_CONFIG = {
+    "horario_diario": "03:00",  # Horário da sincronização diária
+    "horarios_12h": ["03:00", "15:00"],  # Horários para frequência 12h
+    "horarios_6h": ["03:00", "09:00", "15:00", "21:00"],  # Horários para frequência 6h
+    "ativo": True
+}
+
 def get_scheduler_db():
     """Obtém conexão com o banco de dados para o scheduler"""
     global _scheduler_db_client, _scheduler_db
@@ -31,6 +39,30 @@ def get_scheduler_db():
         _scheduler_db_client = AsyncIOMotorClient(MONGO_URL)
         _scheduler_db = _scheduler_db_client[DB_NAME]
     return _scheduler_db
+
+
+async def get_scheduler_config():
+    """Obtém configuração do scheduler do banco de dados"""
+    db = get_scheduler_db()
+    config = await db.sieg_scheduler_config.find_one({"_id": "global"})
+    if not config:
+        # Criar configuração padrão
+        config = {**DEFAULT_CONFIG, "_id": "global"}
+        await db.sieg_scheduler_config.insert_one(config)
+    return config
+
+
+async def save_scheduler_config(config: dict):
+    """Salva configuração do scheduler no banco de dados"""
+    db = get_scheduler_db()
+    config["_id"] = "global"
+    config["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.sieg_scheduler_config.update_one(
+        {"_id": "global"},
+        {"$set": config},
+        upsert=True
+    )
+    return config
 
 
 # Scheduler global
