@@ -25255,32 +25255,33 @@ async def apurar_icms(
     }
     
     # ============================================================
-    # SALVAR SALDO CREDOR ICMS PARA PRÓXIMA COMPETÊNCIA
+    # SEMPRE SALVAR SALDO ICMS PARA HISTÓRICO E TRANSPORTE
     # ============================================================
-    if saldo_a_transportar > 0:
-        try:
-            await db.saldos_credores.update_one(
-                {"company_id": company_id, "competencia": competencia},
-                {
-                    "$set": {
-                        "company_id": company_id,
-                        "competencia": competencia,
-                        "saldo_a_transportar.icms": round(saldo_a_transportar, 2),
-                        "detalhamento.icms": {
-                            "credito": round(credito_icms, 2),
-                            "debito": round(debito_icms, 2),
-                            "credito_presumido": round(credito_presumido_icms, 2),
-                            "saldo_anterior": round(saldo_credor_anterior_icms, 2),
-                            "saldo_final": round(saldo, 2)
-                        },
-                        "data_calculo": datetime.now(timezone.utc).isoformat()
-                    }
-                },
-                upsert=True
-            )
-            logger.info(f"APURACAO-ICMS: Saldo credor de R$ {saldo_a_transportar:.2f} salvo para transporte")
-        except Exception as e:
-            logger.error(f"APURACAO-ICMS: Erro ao salvar saldo credor: {e}")
+    try:
+        await db.saldos_credores.update_one(
+            {"company_id": company_id, "competencia": competencia},
+            {
+                "$set": {
+                    "company_id": company_id,
+                    "competencia": competencia,
+                    "saldo_a_transportar.icms": round(saldo_a_transportar, 2),
+                    "saldo_final.icms": round(saldo, 2),
+                    "detalhamento.icms": {
+                        "credito": round(credito_icms, 2),
+                        "debito": round(debito_icms, 2),
+                        "credito_presumido": round(credito_presumido_icms, 2),
+                        "saldo_anterior": round(saldo_credor_anterior_icms, 2),
+                        "saldo_antes_anterior": round(saldo_antes_anterior, 2),
+                        "saldo_final": round(saldo, 2)
+                    },
+                    "data_calculo": datetime.now(timezone.utc).isoformat()
+                }
+            },
+            upsert=True
+        )
+        logger.info(f"APURACAO-ICMS: Saldos salvos para {company_id}/{competencia} - Saldo={saldo:.2f}, A transportar={saldo_a_transportar:.2f}")
+    except Exception as e:
+        logger.error(f"APURACAO-ICMS: Erro ao salvar saldo credor: {e}")
 
 
 # ============================================================
