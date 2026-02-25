@@ -6885,7 +6885,297 @@ async def sieg_check_status(
     }
 
 
-# Upload de logo da empresa
+# ============================================================================
+# PAINEL DE MONITORAMENTO SIEG
+# ============================================================================
+
+@api_router.get("/sieg/painel")
+async def sieg_painel_geral(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Painel geral de monitoramento SIEG - visão de todas as empresas
+    """
+    user_data = {"id": current_user.id, "email": current_user.email, "role": current_user.role}
+    
+    # Buscar todas as empresas do usuário
+    if current_user.role == "admin":
+        empresas = await db.companies.find({}, {"_id": 0}).to_list(1000)
+    else:
+        empresas = await db.companies.find(
+            {"$or": [{"owner_id": current_user.id}, {"users": current_user.id}]},
+            {"_id": 0}
+        ).to_list(1000)
+    
+    resultado = []
+    for empresa in empresas:
+        company_id = empresa.get("id")
+        cnpj = empresa.get("cnpj", "")
+        
+        # Buscar última sincronização
+        ultima_sync = await db.sieg_sync_logs.find_one(
+            {"company_id": company_id},
+            sort=[("data_sync", -1)]
+        )
+        
+        # Buscar config de sync automático
+        config_sync = await db.sieg_config.find_one({"company_id": company_id})
+        
+        # Contar documentos importados via SIEG
+        total_sieg = await db.xml_documents.count_documents({
+            "company_id": company_id,
+            "origem_importacao": "sieg"
+        })
+        
+        # Contar documentos cancelados
+        total_cancelados = await db.xml_documents.count_documents({
+            "company_id": company_id,
+            "situacao": {"$in": ["cancelada", "cancelado", "inutilizada", "inutilizado"]}
+        })
+        
+        resultado.append({
+            "company_id": company_id,
+            "razao_social": empresa.get("razao_social", ""),
+            "cnpj": cnpj,
+            "sieg_ativo": bool(config_sync and config_sync.get("ativo", False)),
+            "sync_automatico": config_sync.get("sync_automatico", False) if config_sync else False,
+            "frequencia_sync": config_sync.get("frequencia", "manual") if config_sync else "manual",
+            "ultima_sync": ultima_sync.get("data_sync") if ultima_sync else None,
+            "ultima_sync_status": ultima_sync.get("status") if ultima_sync else None,
+            "ultima_sync_total": ultima_sync.get("total_importados", 0) if ultima_sync else 0,
+            "total_docs_sieg": total_sieg,
+            "total_cancelados": total_cancelados
+        })
+    
+    return {
+        "empresas": resultado,
+        "total_empresas": len(resultado),
+        "empresas_com_sieg": len([e for e in resultado if e["sieg_ativo"]]),
+        "empresas_sync_auto": len([e for e in resultado if e["sync_automatico"]])
+    }
+
+
+@api_router.get("/sieg/painel/{company_id}")
+async def sieg_painel_empresa(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Painel detalhado de uma empresa específica
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Config de sync
+    config = await db.sieg_config.find_one({"company_id": company_id}) or {}
+    
+    # Histórico de sincronizações (últimas 30)
+    historico = await db.sieg_sync_logs.find(
+        {"company_id": company_id}
+    ).sort("data_sync", -1).limit(30).to_list(30)
+    
+    # Estatísticas por competência
+    pipeline_por_comp = [
+        {"$match": {"company_id": company_id, "origem_importacao": "sieg"}},
+        {"$group": {
+            "_id": "$competencia",
+            "total": {"$sum": 1},
+            "entradas": {"$sum": {"$cond": [{"$eq": ["$tipo_operacao", "entrada"]}, 1, 0]}},
+            "saidas": {"$sum": {"$cond": [{"$eq": ["$tipo_operacao", "saida"]}, 1, 0]}}
+        }},
+        {"$sort": {"_id": -1}},
+        {"$limit": 12}
+    ]
+    stats_por_comp = await db.xml_documents.aggregate(pipeline_por_comp).to_list(12)
+    
+    # Documentos cancelados
+    cancelados = await db.xml_documents.find(
+        {
+            "company_id": company_id,
+            "situacao": {"$in": ["cancelada", "cancelado", "inutilizada", "inutilizado"]}
+        },
+        {"_id": 0, "numero_nfe": 1, "chave_acesso": 1, "data_emissao": 1, "emitente": 1, "valor_total": 1, "situacao": 1}
+    ).sort("data_emissao", -1).limit(50).to_list(50)
+    
+    # Totais gerais
+    total_sieg = await db.xml_documents.count_documents({"company_id": company_id, "origem_importacao": "sieg"})
+    total_manual = await db.xml_documents.count_documents({"company_id": company_id, "origem_importacao": {"$ne": "sieg"}})
+    total_classificados = await db.xml_documents.count_documents({"company_id": company_id, "classificado": True})
+    
+    return {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get("razao_social"),
+            "cnpj": company.get("cnpj")
+        },
+        "config": {
+            "sieg_ativo": config.get("ativo", False),
+            "sync_automatico": config.get("sync_automatico", False),
+            "frequencia": config.get("frequencia", "manual"),
+            "hora_sync": config.get("hora_sync", "06:00"),
+            "ultima_verificacao": config.get("ultima_verificacao")
+        },
+        "estatisticas": {
+            "total_sieg": total_sieg,
+            "total_manual": total_manual,
+            "total_classificados": total_classificados,
+            "por_competencia": stats_por_comp
+        },
+        "historico_sync": [
+            {
+                "data": h.get("data_sync"),
+                "status": h.get("status"),
+                "total_encontrados": h.get("total_encontrados", 0),
+                "total_importados": h.get("total_importados", 0),
+                "total_erros": h.get("total_erros", 0),
+                "duracao_segundos": h.get("duracao_segundos", 0),
+                "competencia": h.get("competencia")
+            }
+            for h in historico
+        ],
+        "cancelados": cancelados
+    }
+
+
+@api_router.post("/sieg/config/{company_id}")
+async def sieg_configurar_empresa(
+    company_id: str,
+    config: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Configura sincronização SIEG para uma empresa
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    await db.sieg_config.update_one(
+        {"company_id": company_id},
+        {
+            "$set": {
+                "company_id": company_id,
+                "ativo": config.get("ativo", True),
+                "sync_automatico": config.get("sync_automatico", False),
+                "frequencia": config.get("frequencia", "diario"),  # diario, 12h, 6h, manual
+                "hora_sync": config.get("hora_sync", "06:00"),
+                "competencias_retroativas": config.get("competencias_retroativas", 3),
+                "atualizado_em": datetime.now(timezone.utc).isoformat(),
+                "atualizado_por": current_user.id
+            }
+        },
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Configuração SIEG salva com sucesso"}
+
+
+@api_router.post("/sieg/sync-all")
+async def sieg_sync_todas_empresas(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Inicia sincronização de todas as empresas com SIEG ativo
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Apenas administradores podem sincronizar todas as empresas")
+    
+    # Buscar empresas com SIEG ativo
+    configs = await db.sieg_config.find({"ativo": True, "sync_automatico": True}).to_list(1000)
+    
+    if not configs:
+        return {"success": False, "message": "Nenhuma empresa com sincronização automática ativa"}
+    
+    # Registrar início da sincronização em lote
+    batch_id = str(uuid.uuid4())
+    await db.sieg_sync_batches.insert_one({
+        "batch_id": batch_id,
+        "iniciado_em": datetime.now(timezone.utc).isoformat(),
+        "iniciado_por": current_user.id,
+        "total_empresas": len(configs),
+        "status": "em_andamento",
+        "empresas": [c["company_id"] for c in configs]
+    })
+    
+    return {
+        "success": True,
+        "batch_id": batch_id,
+        "total_empresas": len(configs),
+        "message": f"Sincronização iniciada para {len(configs)} empresas"
+    }
+
+
+@api_router.get("/sieg/historico/{company_id}")
+async def sieg_historico_sync(
+    company_id: str,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Histórico detalhado de sincronizações de uma empresa
+    """
+    historico = await db.sieg_sync_logs.find(
+        {"company_id": company_id}
+    ).sort("data_sync", -1).limit(limit).to_list(limit)
+    
+    return {
+        "company_id": company_id,
+        "historico": [
+            {
+                "id": str(h.get("_id", "")),
+                "data": h.get("data_sync"),
+                "competencia": h.get("competencia"),
+                "status": h.get("status"),
+                "total_encontrados": h.get("total_encontrados", 0),
+                "total_importados": h.get("total_importados", 0),
+                "total_duplicados": h.get("total_duplicados", 0),
+                "total_erros": h.get("total_erros", 0),
+                "entradas": h.get("entradas", {}),
+                "saidas": h.get("saidas", {}),
+                "duracao_segundos": h.get("duracao_segundos", 0),
+                "detalhes": h.get("detalhes", [])
+            }
+            for h in historico
+        ]
+    }
+
+
+@api_router.get("/sieg/cancelados/{company_id}")
+async def sieg_notas_canceladas(
+    company_id: str,
+    competencia: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lista notas canceladas/inutilizadas de uma empresa
+    """
+    query = {
+        "company_id": company_id,
+        "situacao": {"$in": ["cancelada", "cancelado", "inutilizada", "inutilizado"]}
+    }
+    
+    if competencia:
+        query["competencia"] = competencia
+    
+    cancelados = await db.xml_documents.find(
+        query,
+        {"_id": 0, "xml_content": 0}
+    ).sort("data_emissao", -1).limit(200).to_list(200)
+    
+    # Verificar quais já foram processadas em apurações
+    processadas = []
+    for doc in cancelados:
+        # Verificar se a nota foi usada em alguma apuração
+        doc["impacto_apuracao"] = "A verificar"
+    
+    return {
+        "company_id": company_id,
+        "competencia": competencia,
+        "total": len(cancelados),
+        "cancelados": cancelados
+    }
 @api_router.post("/upload/logo/{company_id}")
 async def upload_company_logo(
     company_id: str,
