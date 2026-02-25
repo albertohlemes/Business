@@ -254,22 +254,33 @@ def start_scheduler():
         print("[SIEG-SCHEDULER] Scheduler já está rodando")
         return
     
-    # Job diário às 06:00
+    # Job diário às 03:00 da madrugada
+    # Assim quando chegar de manhã, todos os XMLs já estarão importados
     scheduler.add_job(
         job_sync_todas_empresas,
-        CronTrigger(hour=6, minute=0),
+        CronTrigger(hour=3, minute=0),
         id='sieg_daily_sync',
-        name='SIEG - Sincronização Diária',
+        name='SIEG - Sincronização Diária (03:00)',
         replace_existing=True
     )
     
     # Job a cada 12 horas (para empresas com frequência 12h)
-    # Este job verifica e executa apenas para empresas com essa config
+    # 03:00 e 15:00
     scheduler.add_job(
         job_sync_todas_empresas,
-        CronTrigger(hour='6,18', minute=0),
+        CronTrigger(hour='3,15', minute=0),
         id='sieg_12h_sync',
-        name='SIEG - Sincronização 12h',
+        name='SIEG - Sincronização 12h (03:00 e 15:00)',
+        replace_existing=True
+    )
+    
+    # Job a cada 6 horas (para empresas com frequência 6h)
+    # 03:00, 09:00, 15:00, 21:00
+    scheduler.add_job(
+        job_sync_todas_empresas,
+        CronTrigger(hour='3,9,15,21', minute=0),
+        id='sieg_6h_sync',
+        name='SIEG - Sincronização 6h',
         replace_existing=True
     )
     
