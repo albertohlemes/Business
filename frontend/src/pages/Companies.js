@@ -115,7 +115,11 @@ const Companies = ({ user, onLogout }) => {
     // Transportadora
     is_transportadora: false,
     tipo_transporte: 'carga',
-    credito_presumido_icms_percent: 20.0
+    credito_presumido_icms_percent: 20.0,
+    // Integração SIEG
+    sieg_ativo: false,
+    sieg_sync_automatico: false,
+    sieg_frequencia: 'diario'
   };
   
   const [formData, setFormData] = useState(emptyFormData);
