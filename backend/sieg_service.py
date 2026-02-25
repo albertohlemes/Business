@@ -266,7 +266,7 @@ async def count_xmls_sieg(
         
         try:
             response_saida = await client.post(
-                build_sieg_url("ContarXmls", api_key),
+                build_sieg_url("ContarXmls"),
                 headers=headers,
                 json=payload_saida
             )
