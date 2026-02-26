@@ -702,8 +702,8 @@ const Dashboard = ({ user, onLogout }) => {
                       </div>
                     )}
                     
-                    {/* ICMS-ST - Mostrar apenas se for contribuinte de ST */}
-                    {stats.empresa?.apura_icms_st && (
+                    {/* ICMS-ST - Mostrar se for contribuinte OU se houver valores */}
+                    {(stats.empresa?.apura_icms_st || stats.icms_st?.st_entradas > 0 || stats.icms_st?.st_saidas > 0) && (
                       <div className="bg-[#141414] rounded-lg p-4 border border-amber-500/30">
                         <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
                           ICMS-ST
@@ -728,7 +728,7 @@ const Dashboard = ({ user, onLogout }) => {
                       </div>
                     )}
                     
-                    {/* IPI - Mostrar apenas se houver valores OU empresa for indústria */}
+                    {/* IPI - Mostrar se houver valores OU se empresa for indústria */}
                     {(stats.ipi?.entradas > 0 || stats.ipi?.saidas > 0 || stats.empresa?.tipo_atividade === 'industria') && (
                       <div className="bg-[#141414] rounded-lg p-4 border border-purple-500/30">
                         <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
