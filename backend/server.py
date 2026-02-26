@@ -36213,9 +36213,11 @@ async def get_fechamento_mensal(
             "credito": round(icms_credito, 2),
             "saldo_anterior": round(saldo_credor_anterior['icms'], 2),
             "saldo": round(icms_saldo, 2),
-            "st": round(icms_st, 2) if apura_icms_st else 0,
-            "st_entradas": round(icms_st_entradas, 2) if apura_icms_st else 0,
-            "st_saidas": round(icms_st_saidas, 2) if apura_icms_st else 0,
+            # ICMS-ST - Sempre retornar valores, mesmo se apura_icms_st for False
+            # Isso permite que o frontend mostre quando houver valores nos documentos
+            "st": round(icms_st, 2),
+            "st_entradas": round(icms_st_entradas, 2),
+            "st_saidas": round(icms_st_saidas, 2),
             "a_pagar": round(max(icms_saldo, 0), 2),
             "a_recuperar": round(abs(min(icms_saldo, 0)), 2),
             "a_transportar": round(icms_a_transportar, 2)
