@@ -608,6 +608,7 @@ const SiegMonitor = ({ user, onLogout }) => {
                     <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Importados</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Devol.</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-[#A1A1AA] uppercase">Duração</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#2A2A2A]">
