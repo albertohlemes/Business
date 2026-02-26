@@ -2596,15 +2596,76 @@ const Documents = ({ user, onLogout }) => {
               </div>
             </div>
             
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#A1A1AA]" />
-              <input
-                type="text"
-                placeholder="Buscar por número, emitente, CNPJ..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white text-sm placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
-              />
+            <div className="relative w-full sm:w-80 flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#A1A1AA]" />
+                <input
+                  type="text"
+                  placeholder="Buscar por número, emitente, CNPJ..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter' && searchTerm.trim()) {
+                      // Buscar no backend quando pressionar Enter
+                      setLoading(true);
+                      try {
+                        const token = localStorage.getItem('token');
+                        const params = new URLSearchParams();
+                        params.append('company_id', ctxCompany.id);
+                        params.append('competencia', selectedCompetencia);
+                        params.append('search', searchTerm.trim());
+                        params.append('skip', 0);
+                        params.append('limit', 1000);
+                        
+                        if (operacao === 'entrada') {
+                          params.append('tipo_operacao', 'entrada');
+                        } else {
+                          params.append('tipo_operacao', 'saida');
+                        }
+                        
+                        const res = await axios.get(`${API}/xml/documents?${params.toString()}`, {
+                          headers: { Authorization: `Bearer ${token}` }
+                        });
+                        
+                        const responseData = res.data;
+                        let docs = responseData.documents || responseData || [];
+                        
+                        setDocuments(docs);
+                        setPagination({
+                          total: responseData.total || docs.length,
+                          skip: 0,
+                          limit: docs.length,
+                          hasMore: false
+                        });
+                        
+                        if (docs.length > 0) {
+                          toast.success(`${docs.length} documento(s) encontrado(s)`);
+                        } else {
+                          toast.info('Nenhum documento encontrado com esse termo');
+                        }
+                      } catch (err) {
+                        console.error('Erro na busca:', err);
+                        toast.error('Erro ao buscar documentos');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }
+                  }}
+                  className="w-full pl-10 pr-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white text-sm placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                />
+              </div>
+              {searchTerm && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    fetchDocuments(false); // Recarregar lista completa
+                  }}
+                  className="px-3 py-2 bg-[#2A2A2A] text-white rounded-lg hover:bg-[#3A3A3A] transition-colors"
+                  title="Limpar busca"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
 
