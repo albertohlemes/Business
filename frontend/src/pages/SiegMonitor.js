@@ -446,6 +446,70 @@ const SiegMonitor = ({ user, onLogout }) => {
               </div>
             </div>
             
+            {/* NOVO: Card de Cobertura de Importação SIEG */}
+            {painelEmpresa.estatisticas?.data_ultima_nf_importada && (
+              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-6">
+                <h3 className="text-white font-medium mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-[#C8A951]" />
+                  Cobertura de Importação SIEG
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-lg bg-[#1A1A1A]">
+                    <p className="text-[#A1A1AA] text-sm mb-1">Última NF Importada</p>
+                    <p className="text-white text-lg font-medium">
+                      NF {painelEmpresa.estatisticas?.numero_ultima_nf_importada || '-'}
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 rounded-lg bg-[#1A1A1A]">
+                    <p className="text-[#A1A1AA] text-sm mb-1">Data de Emissão</p>
+                    <p className="text-emerald-400 text-lg font-medium">
+                      {painelEmpresa.estatisticas?.data_ultima_nf_importada 
+                        ? new Date(painelEmpresa.estatisticas.data_ultima_nf_importada).toLocaleDateString('pt-BR')
+                        : '-'}
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 rounded-lg bg-[#1A1A1A]">
+                    <p className="text-[#A1A1AA] text-sm mb-1">Status da Cobertura</p>
+                    {(() => {
+                      const dataUltimaNF = painelEmpresa.estatisticas?.data_ultima_nf_importada;
+                      if (!dataUltimaNF) return <p className="text-[#666]">-</p>;
+                      
+                      const hoje = new Date();
+                      const ultimaNF = new Date(dataUltimaNF);
+                      const diasAtras = Math.floor((hoje - ultimaNF) / (1000 * 60 * 60 * 24));
+                      
+                      if (diasAtras <= 2) {
+                        return <p className="text-emerald-400 text-lg font-medium flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5" /> Atualizado
+                        </p>;
+                      } else if (diasAtras <= 7) {
+                        return <p className="text-amber-400 text-lg font-medium flex items-center gap-2">
+                          <AlertTriangle className="w-5 h-5" /> {diasAtras} dias atrás
+                        </p>;
+                      } else {
+                        return <p className="text-red-400 text-lg font-medium flex items-center gap-2">
+                          <XCircle className="w-5 h-5" /> {diasAtras} dias atrás
+                        </p>;
+                      }
+                    })()}
+                  </div>
+                </div>
+                
+                {/* Alerta de divergências pendentes */}
+                {painelEmpresa.estatisticas?.divergencias_pendentes > 0 && (
+                  <div className="mt-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <p className="text-amber-400 text-sm flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      {painelEmpresa.estatisticas.divergencias_pendentes} devolução(ões) com valor diferente aguardando análise no Wizard de Fechamento
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+            
             {/* Última Sincronização */}
             {painelEmpresa.historico_sync?.length > 0 && (
               <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-6">
