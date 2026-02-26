@@ -7427,13 +7427,15 @@ async def sieg_painel_empresa(
     ]
     stats_por_comp = await db.xml_documents.aggregate(pipeline_por_comp).to_list(12)
     
-    # Documentos cancelados
+    # Documentos cancelados - CORRIGIDO: usar mesmo critério do Wizard (cancelada: true)
     cancelados = await db.xml_documents.find(
         {
             "company_id": company_id,
-            "situacao": {"$in": ["cancelada", "cancelado", "inutilizada", "inutilizado"]}
+            "cancelada": True  # Critério correto do Wizard
         },
-        {"_id": 0, "numero_nfe": 1, "chave_acesso": 1, "data_emissao": 1, "emitente": 1, "valor_total": 1, "situacao": 1}
+        {"_id": 0, "numero_nfe": 1, "chave_acesso": 1, "chave_nfe": 1, "data_emissao": 1, 
+         "emitente": 1, "emitente_nome": 1, "valor_total": 1, "situacao": 1, "tipo": 1,
+         "data_cancelamento": 1, "cStat_cancelamento": 1, "xMotivo_cancelamento": 1}
     ).sort("data_emissao", -1).limit(50).to_list(50)
     
     # Totais gerais
