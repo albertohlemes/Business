@@ -1358,9 +1358,11 @@ async def buscar_saldos_credores_anteriores(company_id: str, competencia: str, c
     Busca saldos credores anteriores de TODOS os impostos (PIS, COFINS, ICMS, IPI).
     Retorna dict com os saldos a serem abatidos na competência atual.
     
-    Lógica:
+    Lógica MELHORADA:
     1. Se competência == competencia_saldo_inicial: usa saldos cadastrados na empresa
     2. Senão: busca saldo_a_transportar da competência anterior na collection saldos_credores
+    3. NOVO: Se não encontrar saldo anterior E competência_inicial é anterior à atual,
+       busca em cadeia até encontrar o último saldo disponível OU o inicial da empresa
     """
     saldos = {
         "pis": 0.0,
@@ -1420,7 +1422,41 @@ async def buscar_saldos_credores_anteriores(company_id: str, competencia: str, c
                 }
                 logger.info(f"SALDO CREDOR: Usando saldo da competência anterior ({comp_anterior}): {saldos}")
             else:
-                logger.info(f"SALDO CREDOR: Nenhum saldo encontrado para {comp_anterior}")
+                # NOVO: Se não encontrou na competência anterior, buscar em cadeia
+                # até encontrar o último saldo salvo ou o saldo inicial
+                logger.info(f"SALDO CREDOR: Nenhum saldo encontrado para {comp_anterior}, buscando em cadeia...")
+                
+                # Buscar o último saldo salvo (mais recente antes da competência atual)
+                ultimo_saldo = await db.saldos_credores.find_one(
+                    {"company_id": company_id},
+                    sort=[("competencia", -1)]  # Mais recente primeiro
+                )
+                
+                if ultimo_saldo:
+                    saldo_transportar = ultimo_saldo.get('saldo_a_transportar', {})
+                    saldos = {
+                        "pis": float(saldo_transportar.get('pis', 0) or 0),
+                        "cofins": float(saldo_transportar.get('cofins', 0) or 0),
+                        "icms": float(saldo_transportar.get('icms', 0) or 0),
+                        "ipi": float(saldo_transportar.get('ipi', 0) or 0),
+                        "origem": "ultimo_saldo_salvo",
+                        "competencia_origem": ultimo_saldo.get('competencia')
+                    }
+                    logger.info(f"SALDO CREDOR: Usando último saldo salvo ({ultimo_saldo.get('competencia')}): {saldos}")
+                elif possui_saldo_credor and competencia_inicial:
+                    # Se não há nenhum saldo salvo, usar o saldo inicial da empresa
+                    # (isso acontece quando é a primeira vez que abre uma competência após a inicial)
+                    saldos = {
+                        "pis": float(company.get('saldo_credor_pis', 0) or 0),
+                        "cofins": float(company.get('saldo_credor_cofins', 0) or 0),
+                        "icms": float(company.get('saldo_credor_icms', 0) or 0),
+                        "ipi": float(company.get('saldo_credor_ipi', 0) or 0),
+                        "origem": "saldo_inicial_fallback",
+                        "competencia_origem": competencia_inicial
+                    }
+                    logger.info(f"SALDO CREDOR: Usando saldo inicial como fallback: {saldos}")
+                else:
+                    logger.info(f"SALDO CREDOR: Nenhum saldo encontrado em lugar algum")
     except Exception as e:
         logger.warning(f"Erro ao buscar saldos credores anteriores para {company_id}/{competencia}: {e}")
     
