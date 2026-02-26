@@ -7053,17 +7053,49 @@ async def sieg_sync_execute(
             "ia": total_stats["from_ai"]
         }
         
+        # ============================================================
+        # SMART SYNC: Registrar log da sincronização
+        # ============================================================
+        sync_duration = int(time.time() - sync_start_time)
+        await registrar_sync_log(db, company_id, competencia, "sucesso", {
+            "modo": "incremental",
+            "total_encontrados": results["sieg_stats"]["entrada"] + results["sieg_stats"]["saida"],
+            "total_novos": results["smart_sync"]["notas_novas"],
+            "total_duplicados": results["smart_sync"]["notas_duplicadas"],
+            "total_importados": results["processados"]["entrada"] + results["processados"]["saida"],
+            "total_cancelamentos": results["smart_sync"]["cancelamentos_detectados"],
+            "total_devolucoes": results["smart_sync"]["devolucoes_detectadas"],
+            "total_erros": len(results["erros"]),
+            "duracao_segundos": sync_duration,
+            "detalhes": {
+                "classificados": results["classificados"]
+            }
+        })
+        
         progress["step"] = "Sincronização concluída!"
         progress["progress_percent"] = 100
         progress["status"] = "completed"
         progress["completed"] = True
         progress["results"] = results
         
-        print(f"[SIEG] Sincronização concluída: {results['processados']}")
+        logger.info(f"[SIEG] Sincronização concluída em {sync_duration}s: {results['processados']}")
         return results
         
     except Exception as e:
-        print(f"[SIEG] Erro na sincronização: {e}")
+        logger.error(f"[SIEG] Erro na sincronização: {e}")
+        
+        # Registrar log de erro
+        try:
+            sync_duration = int(time.time() - sync_start_time)
+            await registrar_sync_log(db, company_id, competencia, "erro", {
+                "modo": "incremental",
+                "total_erros": 1,
+                "duracao_segundos": sync_duration,
+                "detalhes": {"erro": str(e)}
+            })
+        except:
+            pass
+        
         progress["step"] = f"Erro: {str(e)}"
         progress["status"] = "error"
         progress["completed"] = True
