@@ -168,13 +168,21 @@ async def detectar_devolucoes_fornecedor(
     - Tem NFe referenciada (refNFe)
     - CFOP de devolução (1201, 1202, 2201, 2202, etc.)
     
+    IMPORTANTE: Inclui comparação de valores!
+    - Se valor igual: desconsiderar automaticamente
+    - Se valor diferente: marcar para análise do usuário
+    
     Returns:
         Lista de {
             "chave_devolucao": str,
             "chave_original": str,
-            "motivo": str
+            "motivo": str,
+            "valor_devolucao": float,
+            "valor_original": float,
+            "tem_divergencia_valor": bool
         }
     """
+    import re
     devolucoes = []
     
     cfops_devolucao = [
@@ -199,7 +207,6 @@ async def detectar_devolucoes_fornecedor(
             motivo = "finNFe=4 (Devolução)"
         
         # Verificar NFe referenciada
-        import re
         ref_match = re.search(r'<refNFe>(\d{44})</refNFe>', xml_content)
         if ref_match:
             chave_ref = ref_match.group(1)
@@ -223,50 +230,98 @@ async def detectar_devolucoes_fornecedor(
                 if chave_match:
                     chave_devolucao = chave_match.group(1)
                 
+                # Extrair valor da devolução do XML
+                valor_devolucao = 0.0
+                valor_match = re.search(r'<vNF>([0-9.]+)</vNF>', xml_content)
+                if valor_match:
+                    try:
+                        valor_devolucao = float(valor_match.group(1))
+                    except:
+                        valor_devolucao = 0.0
+                
+                valor_original = float(nota_original.get("valor_total", 0) or 0)
+                
+                # Verificar divergência de valores (tolerância de R$ 0.01)
+                tem_divergencia_valor = abs(valor_original - valor_devolucao) > 0.01
+                
                 devolucoes.append({
                     "chave_devolucao": chave_devolucao,
                     "chave_original": chave_ref,
                     "motivo": motivo,
                     "numero_original": nota_original.get("numero_nfe"),
-                    "valor_original": nota_original.get("valor_total")
+                    "valor_original": valor_original,
+                    "valor_devolucao": valor_devolucao,
+                    "tem_divergencia_valor": tem_divergencia_valor,
+                    "diferenca": round(valor_original - valor_devolucao, 2) if tem_divergencia_valor else 0
                 })
+                
+                if tem_divergencia_valor:
+                    logger.info(f"[SMART SYNC] DIVERGÊNCIA DE VALOR: Devolução {valor_devolucao:.2f} != Original {valor_original:.2f}")
     
     logger.info(f"[SMART SYNC] {len(devolucoes)} devoluções de fornecedor detectadas")
     return devolucoes
 
 
-async def marcar_notas_devolvidas(db, company_id: str, devolucoes: List[Dict]) -> int:
+async def marcar_notas_devolvidas(db, company_id: str, devolucoes: List[Dict]) -> Tuple[int, List[Dict]]:
     """
     Marca as notas originais como desconsideradas por devolução.
+    
+    IMPORTANTE: 
+    - Se valor igual: desconsiderar automaticamente
+    - Se valor diferente: NÃO desconsiderar, registrar para análise do usuário
+    
+    Returns:
+        (total_marcadas, divergencias_para_analise)
     """
     total_marcadas = 0
+    divergencias_para_analise = []
     
     for dev in devolucoes:
         chave_original = dev.get("chave_original")
         if not chave_original:
             continue
         
-        result = await db.xml_documents.update_one(
-            {
-                "company_id": company_id,
-                "chave_nfe": chave_original,
-                "desconsiderada_devolucao": {"$ne": True}  # Não re-marcar
-            },
-            {
-                "$set": {
-                    "desconsiderada_devolucao": True,
-                    "motivo_desconsideracao": f"Devolução de fornecedor: {dev.get('motivo')}",
-                    "nfe_vinculada_devolucao": dev.get("chave_devolucao"),
-                    "status_validacao": "desconsiderada"
-                }
-            }
-        )
+        tem_divergencia = dev.get("tem_divergencia_valor", False)
         
-        if result.modified_count > 0:
-            total_marcadas += 1
+        if tem_divergencia:
+            # VALORES DIFERENTES: NÃO desconsiderar automaticamente
+            # Registrar para análise no Wizard de Fechamento
+            divergencias_para_analise.append({
+                "tipo": "devolucao_divergente_sieg",
+                "chave_original": chave_original,
+                "chave_devolucao": dev.get("chave_devolucao"),
+                "numero_original": dev.get("numero_original"),
+                "valor_original": dev.get("valor_original"),
+                "valor_devolucao": dev.get("valor_devolucao"),
+                "diferenca": dev.get("diferenca"),
+                "motivo": f"ATENÇÃO: Valor da devolução ({dev.get('valor_devolucao', 0):.2f}) difere do original ({dev.get('valor_original', 0):.2f}). Requer análise.",
+                "requer_decisao_usuario": True,
+                "origem": "sieg"
+            })
+            logger.info(f"[SMART SYNC] Divergência de valor - NÃO desconsiderando automaticamente: {chave_original[:20]}...")
+        else:
+            # VALORES IGUAIS: Marcar como desconsiderada automaticamente
+            result = await db.xml_documents.update_one(
+                {
+                    "company_id": company_id,
+                    "chave_nfe": chave_original,
+                    "desconsiderada_devolucao": {"$ne": True}  # Não re-marcar
+                },
+                {
+                    "$set": {
+                        "desconsiderada_devolucao": True,
+                        "motivo_desconsideracao": f"Devolução de fornecedor (SIEG): {dev.get('motivo')}. Valor igual.",
+                        "nfe_vinculada_devolucao": dev.get("chave_devolucao"),
+                        "status_validacao": "desconsiderada"
+                    }
+                }
+            )
+            
+            if result.modified_count > 0:
+                total_marcadas += 1
     
-    logger.info(f"[SMART SYNC] {total_marcadas} notas marcadas como devolvidas")
-    return total_marcadas
+    logger.info(f"[SMART SYNC] {total_marcadas} notas marcadas como devolvidas, {len(divergencias_para_analise)} com divergência para análise")
+    return total_marcadas, divergencias_para_analise
 
 
 async def filtrar_xmls_novos(
