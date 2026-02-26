@@ -4,6 +4,22 @@
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
 ## Última Atualização: 26/02/2026
+- **CORRIGIDO**: Parser de NFS-e (Nota Fiscal de Serviço Eletrônica) para formato SIEG
+  - Problema: NFS-e importadas via SIEG estavam com dados em branco (número, emissor, valor)
+  - Causa: Estrutura XML do SIEG usa `NFSe > infNFSe` (formato Nacional/SERPRO) diferente do ABRASF
+  - Solução: Parser expandido para suportar múltiplas estruturas (Nacional, ABRASF, Betha, etc.)
+  - Campos extraídos: nNFSe, emit.xNome, emit.CNPJ, valores.vServPrest, dhProc, DPS.toma
+- **CORRIGIDO**: Botão "Sincronizar Agora" no menu SIEG não funcionava
+  - Problema: Endpoint esperava FormData, mas frontend enviava JSON
+  - Solução: Alterado `startSync()` para usar FormData com campo `competencia`
+- **MELHORADO**: Feedback visual durante sincronização SIEG
+  - Toast "Sincronização iniciada..." ao clicar
+  - Toast final com estatísticas: importados, duplicados, erros
+  - Spinner animado no botão durante processamento
+- **MELHORADO**: Resiliência do serviço SIEG a erros de rede
+  - Sistema de retry (até 3 tentativas) para erros 500+ e rate limit
+  - Aguarda e retenta em caso de rate limit (429)
+  - Continua com próximos tipos XML em caso de falha parcial
 - **CORRIGIDO**: Bug do transporte de saldos credores
   - Problema: Se não havia saldo salvo na competência anterior, não usava o saldo inicial
   - Solução: Busca em cadeia até encontrar último saldo salvo ou saldo inicial (fallback)
