@@ -8616,7 +8616,7 @@ async def sieg_resync_data_especifica(
     # Baixar XMLs da data específica (entrada e saída)
     for tipo in ["entrada", "saida"]:
         try:
-            # Usar a data específica como início e fim
+            # Usar a data específica como início E fim (baixar apenas 1 dia)
             sieg_result = await download_xmls_sieg(
                 cnpj=cnpj_limpo,
                 competencia=competencia,
@@ -8624,7 +8624,8 @@ async def sieg_resync_data_especifica(
                 xml_types=["nfe", "cte"],  # NFe e CTe
                 take=50,
                 baixar_todos=True,
-                data_inicio_override=data_especifica
+                data_inicio_override=data_especifica,
+                data_fim_override=data_especifica  # Mesmo dia - busca só esse dia
             )
             
             xmls = sieg_result.get("xmls", [])
