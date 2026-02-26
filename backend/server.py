@@ -12051,8 +12051,12 @@ async def list_documents(
     # Contar total para paginação
     total_count = await db.xml_documents.count_documents(query)
     
-    # Limitar o máximo de documentos por requisição para evitar travamentos
-    limit = min(limit, 500)  # Máximo 500 por página
+    # Limitar o máximo de documentos por requisição
+    # Se tem busca ou usuário explicitamente pediu mais, permitir até 10000
+    if search or limit > 500:
+        limit = min(limit, 10000)  # Máximo 10k quando busca ou carregar todos
+    else:
+        limit = min(limit, 500)  # Máximo 500 por página normal
     
     # Buscar documentos com paginação
     cursor = db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).skip(skip).limit(limit).sort("data_emissao", -1)
