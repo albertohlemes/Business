@@ -12554,6 +12554,7 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         total_devolucao_compras = icms_result.get('compras_liquidas', {}).get('devolucoes', 0)
         total_vendas_brutas = icms_result.get('vendas_liquidas', {}).get('brutas', 0)
         total_devolucao_vendas = icms_result.get('vendas_liquidas', {}).get('devolucoes', 0)
+        icms_st_data = icms_result.get('icms_st', {})
         
         logger.info(f"DASHBOARD (DO ICMS AGREGADO): ICMS Créd={credito_icms}, Déb={debito_icms}, Situação={situacao_icms}")
         
@@ -12572,6 +12573,7 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
         total_devolucao_compras = 0
         total_vendas_brutas = 0
         total_devolucao_vendas = 0
+        icms_st_data = {}
     
     # Processar resultados da agregação de totais
     qtd_nfe_entrada = 0
