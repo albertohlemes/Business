@@ -518,15 +518,7 @@ const SiegMonitor = ({ user, onLogout }) => {
                   </div>
                 </div>
                 
-                {/* Alerta de divergências pendentes */}
-                {painelEmpresa.estatisticas?.divergencias_pendentes > 0 && (
-                  <div className="mt-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-amber-400 text-sm flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4" />
-                      {painelEmpresa.estatisticas.divergencias_pendentes} devolução(ões) com valor diferente aguardando análise no Wizard de Fechamento
-                    </p>
-                  </div>
-                )}
+                {/* Nota: Devoluções são analisadas no Wizard de Fechamento por competência */}
               </div>
             )}
             
