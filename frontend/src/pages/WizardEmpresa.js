@@ -737,7 +737,13 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       }
       
       if (onComplete) {
-        onComplete();
+        // Só chamar onComplete (que navega para /companies) se for NOVA empresa
+        if (!companyId) {
+          onComplete();
+        } else {
+          // Se for edição, apenas mostrar sucesso - não fechar/navegar
+          toast.success('Alterações salvas com sucesso!');
+        }
       } else if (!companyId) {
         // Só navegar para /empresas se for NOVA empresa
         // Se for edição (companyId existe), não fecha - apenas mostra sucesso
