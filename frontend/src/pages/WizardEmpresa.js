@@ -156,8 +156,9 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
     equiparado_industria: false,
     apura_icms: false,
     apura_icms_st: false,
-    apura_pis_cofins: true,
+    apura_pis_cofins: false,  // Iniciar como false, será setado automaticamente baseado no regime
     apura_iss: false,
+    apura_ipi: false,
     
     // Flags de desconsiderar ICMS
     desconsiderar_icms_despesas: false,
