@@ -7450,13 +7450,48 @@ async def sieg_painel_empresa(
     data_ultima_nf_importada = ultima_nf_sieg.get("data_emissao") if ultima_nf_sieg else None
     numero_ultima_nf_importada = ultima_nf_sieg.get("numero_nfe") if ultima_nf_sieg else None
     
-    # Buscar divergências de devolução pendentes de análise
-    divergencias_pendentes = await db.xml_documents.count_documents({
-        "company_id": company_id,
-        "origem_importacao": "sieg",
-        "desconsiderada_devolucao": {"$ne": True},
-        "nfe_referenciada": {"$exists": True, "$ne": ""}
-    })
+    # CORRIGIDO: Buscar divergências de devolução usando MESMOS critérios do Wizard
+    # Uma devolução de terceiro é quando:
+    # - finNFe = 4 (finalidade devolução) OU
+    # - CFOP de devolução (1201, 1202, 2201, 2202, etc.) com refNFe
+    # E ainda NÃO foi desconsiderada
+    
+    # CFOPs de devolução de terceiros (CFOPs de entrada que indicam devolução)
+    cfops_devolucao_terceiros = [
+        '1201', '1202', '1203', '1204', '1410', '1411', '1503', '1504',
+        '2201', '2202', '2203', '2204', '2410', '2411', '2503', '2504'
+    ]
+    
+    # Pipeline para contar devoluções de terceiros pendentes (mesma lógica do Wizard)
+    pipeline_devolucoes = [
+        {
+            "$match": {
+                "company_id": company_id,
+                "tipo": "entrada",
+                "desconsiderada_devolucao": {"$ne": True},
+                "$or": [
+                    # Critério 1: finNFe = 4 (finalidade devolução)
+                    {"finalidade_nfe": "4"},
+                    {"finNFe": "4"},
+                    # Critério 2: CFOP de devolução E tem NFe referenciada
+                    {
+                        "$and": [
+                            {"produtos.cfop": {"$in": cfops_devolucao_terceiros}},
+                            {"$or": [
+                                {"nfe_referenciada": {"$exists": True, "$ne": ""}},
+                                {"ref_nfe": {"$exists": True, "$ne": ""}},
+                                {"produtos.nfe_ref": {"$exists": True, "$ne": ""}}
+                            ]}
+                        ]
+                    }
+                ]
+            }
+        },
+        {"$count": "total"}
+    ]
+    
+    result_devolucoes = await db.xml_documents.aggregate(pipeline_devolucoes).to_list(1)
+    divergencias_pendentes = result_devolucoes[0]["total"] if result_devolucoes else 0
     
     # ATUALIZADO: Ler config diretamente da empresa
     return {
