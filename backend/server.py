@@ -7854,6 +7854,53 @@ async def sieg_check_status(
     }
 
 
+@api_router.get("/sieg/verificar-cnpj/{company_id}")
+async def sieg_verificar_cnpj(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Verifica se o CNPJ da empresa está cadastrado e autorizado no cofre SIEG.
+    Retorna informações detalhadas sobre o status da integração.
+    """
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    cnpj = company.get('cnpj', '')
+    if not cnpj:
+        return {
+            "success": False,
+            "empresa": company.get('razao_social', ''),
+            "cnpj": None,
+            "status": "sem_cnpj",
+            "mensagem": "A empresa não possui CNPJ cadastrado. Configure o CNPJ para habilitar a integração SIEG."
+        }
+    
+    # Verificar status no SIEG
+    resultado = await verificar_cnpj_sieg(cnpj)
+    
+    return {
+        "success": resultado["autorizado"],
+        "empresa": company.get('razao_social', ''),
+        "cnpj": cnpj,
+        "cnpj_limpo": resultado["cnpj"],
+        "cadastrado": resultado["cadastrado"],
+        "autorizado": resultado["autorizado"],
+        "status": "autorizado" if resultado["autorizado"] else resultado.get("erro", "nao_autorizado"),
+        "mensagem": resultado["mensagem"],
+        "instrucoes": None if resultado["autorizado"] else (
+            "Para resolver este problema:\n"
+            "1. Acesse o painel do SIEG (https://app.sieg.com)\n"
+            "2. Vá em Cofre Digital > Gerenciar CNPJs\n"
+            "3. Adicione o CNPJ da empresa ao cofre\n"
+            "4. Aguarde alguns minutos para a sincronização\n"
+            "5. Tente novamente a sincronização"
+        )
+    }
+
+
 # ============================================================================
 # PAINEL DE MONITORAMENTO SIEG
 # ============================================================================
