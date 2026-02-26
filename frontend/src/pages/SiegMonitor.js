@@ -172,10 +172,11 @@ const SiegMonitor = ({ user, onLogout }) => {
 
   // Iniciar sincronização manual
   const startSync = async (companyId) => {
-    if (!selectedCompetencia) {
-      toast.error('Selecione uma competência para sincronizar');
-      return;
-    }
+    // Determinar a competência a usar (selecionada ou atual)
+    const competenciaToUse = selectedCompetencia || (() => {
+      const now = new Date();
+      return `${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+    })();
     
     setSyncInProgress(true);
     toast.info('🔄 Sincronização iniciada... Isso pode levar alguns minutos.', { duration: 5000 });
@@ -183,9 +184,9 @@ const SiegMonitor = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('token');
       
-      // CORRIGIDO: Usar FormData como esperado pelo endpoint
+      // Usar FormData como esperado pelo endpoint
       const formData = new FormData();
-      formData.append('competencia', selectedCompetencia);
+      formData.append('competencia', competenciaToUse);
       
       const response = await axios.post(
         `${API}/sieg/sync/${companyId}`,
@@ -210,6 +211,7 @@ const SiegMonitor = ({ user, onLogout }) => {
       }
       
       // Recarregar dados após sync
+      await fetchPainelGeral();
       if (selectedCompany) {
         await fetchPainelEmpresa(selectedCompany.id);
       }
