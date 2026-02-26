@@ -14077,58 +14077,24 @@ async def get_dashboard_stats(
             if gera_debito_hipotetico and valor_prod > 0:
                 base_debito_pis_cofins_real += valor_prod
     
-    # Para Lucro Real, usar alíquotas corretas e verificar divergências
-    divergencias_pis_cofins = []
+    # ============================================================
+    # USAR FUNÇÃO UNIFICADA PARA PIS/COFINS
+    # Garante 100% consistência com página de PIS/COFINS
+    # CORRIGIDO: Versão "pequena" agora usa a mesma função que a versão agregada
+    # ============================================================
+    logger.info(f"DASHBOARD (pequeno): Chamando calcular_pis_cofins_unificado para consistência...")
+    pis_cofins_result = await calcular_pis_cofins_unificado(company_id, competencia, company)
     
-    if regime_tributario == 'lucro_real':
-        # CRÉDITO: Calcular com alíquotas do Lucro Real sobre a base de crédito
-        credito_pis = base_credito_pis_cofins_real * ALIQ_PIS_LUCRO_REAL
-        credito_cofins = base_credito_pis_cofins_real * ALIQ_COFINS_LUCRO_REAL
-        
-        # DÉBITO: Calcular com alíquotas do Lucro Real (não usar XML)
-        debito_pis = total_base_pis_cofins * ALIQ_PIS_LUCRO_REAL
-        debito_cofins = total_base_pis_cofins * ALIQ_COFINS_LUCRO_REAL
-        
-        # Verificar divergências entre calculado e XML
-        tolerancia = 0.01  # 1% de tolerância para arredondamentos
-        
-        if total_base_pis_cofins > 0:
-            # Divergência PIS (comparar calculado vs XML)
-            if debito_pis_xml > 0:
-                diferenca_pis = abs(debito_pis - debito_pis_xml)
-                perc_diferenca_pis = (diferenca_pis / debito_pis) if debito_pis > 0 else 0
-                if perc_diferenca_pis > tolerancia:
-                    aliq_xml_pis = (debito_pis_xml / total_base_pis_cofins) * 100 if total_base_pis_cofins > 0 else 0
-                    divergencias_pis_cofins.append({
-                        "imposto": "PIS",
-                        "aliquota_esperada": "1.65%",
-                        "aliquota_xml": f"{aliq_xml_pis:.2f}%",
-                        "valor_esperado": round(debito_pis, 2),
-                        "valor_xml": round(debito_pis_xml, 2),
-                        "diferenca": round(debito_pis - debito_pis_xml, 2)
-                    })
-            
-            # Divergência COFINS (comparar calculado vs XML)
-            if debito_cofins_xml > 0:
-                diferenca_cofins = abs(debito_cofins - debito_cofins_xml)
-                perc_diferenca_cofins = (diferenca_cofins / debito_cofins) if debito_cofins > 0 else 0
-                if perc_diferenca_cofins > tolerancia:
-                    aliq_xml_cofins = (debito_cofins_xml / total_base_pis_cofins) * 100 if total_base_pis_cofins > 0 else 0
-                    divergencias_pis_cofins.append({
-                        "imposto": "COFINS",
-                        "aliquota_esperada": "7.6%",
-                        "aliquota_xml": f"{aliq_xml_cofins:.2f}%",
-                        "valor_esperado": round(debito_cofins, 2),
-                        "valor_xml": round(debito_cofins_xml, 2),
-                        "diferenca": round(debito_cofins - debito_cofins_xml, 2)
-                    })
-    else:
-        # Lucro Presumido - calcular com alíquotas cumulativas
-        # No Lucro Presumido não há crédito de PIS/COFINS
-        debito_pis = total_base_pis_cofins * ALIQ_PIS_LUCRO_PRESUMIDO
-        debito_cofins = total_base_pis_cofins * ALIQ_COFINS_LUCRO_PRESUMIDO
-        credito_pis = 0  # Lucro Presumido não tem crédito
-        credito_cofins = 0  # Lucro Presumido não tem crédito
+    credito_pis = pis_cofins_result.get('pis_creditos', 0)
+    credito_cofins = pis_cofins_result.get('cofins_creditos', 0)
+    debito_pis = pis_cofins_result.get('pis_debitos', 0)
+    debito_cofins = pis_cofins_result.get('cofins_debitos', 0)
+    
+    logger.info(f"DASHBOARD (pequeno) PIS/COFINS (UNIFICADO): Crédito PIS={credito_pis:.2f}, COFINS={credito_cofins:.2f}")
+    logger.info(f"DASHBOARD (pequeno) PIS/COFINS (UNIFICADO): Débito PIS={debito_pis:.2f}, COFINS={debito_cofins:.2f}")
+    
+    # Para análise comparativa, manter os valores calculados manualmente
+    divergencias_pis_cofins = []
     
     # ISS (serviços)
     total_iss = 0
