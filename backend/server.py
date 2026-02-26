@@ -3628,6 +3628,33 @@ def parse_xml_nfse(xml_content: str) -> Dict[str, Any]:
         nfse = None
         
         # ============================================================
+        # SIEG / Betha / Variações comuns: NFSe na raiz sem InfNfse
+        # ============================================================
+        if not nfse:
+            nfse_wrapper = data.get('NFSe', {}) or data.get('Nfse', {}) or data.get('nfse', {})
+            if nfse_wrapper and isinstance(nfse_wrapper, dict):
+                # LOG: Ver o que tem dentro do wrapper
+                inner_keys = list(nfse_wrapper.keys()) if isinstance(nfse_wrapper, dict) else []
+                logger.info(f"[NFSE PARSER] Keys dentro de NFSe: {inner_keys}")
+                
+                # Se tem InfNfse, usar
+                if nfse_wrapper.get('InfNfse'):
+                    nfse = nfse_wrapper.get('InfNfse')
+                # Se tem dados diretamente (PrestadorServico, Servico, Numero, etc)
+                elif nfse_wrapper.get('PrestadorServico') or nfse_wrapper.get('Servico') or nfse_wrapper.get('Numero'):
+                    nfse = nfse_wrapper
+                # Se tem nfse aninhado (NFSe > nfse > InfNfse)
+                elif nfse_wrapper.get('nfse'):
+                    inner_nfse = nfse_wrapper.get('nfse')
+                    if isinstance(inner_nfse, dict):
+                        nfse = inner_nfse.get('InfNfse', inner_nfse)
+                # Se tem Nfse aninhado (NFSe > Nfse > InfNfse)
+                elif nfse_wrapper.get('Nfse'):
+                    inner_nfse = nfse_wrapper.get('Nfse')
+                    if isinstance(inner_nfse, dict):
+                        nfse = inner_nfse.get('InfNfse', inner_nfse)
+        
+        # ============================================================
         # ABRASF 2.0+ - Estrutura mais comum
         # ============================================================
         if not nfse:
