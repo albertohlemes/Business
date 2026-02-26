@@ -7931,12 +7931,15 @@ async def sieg_painel_geral(
 @api_router.get("/sieg/painel/{company_id}")
 async def sieg_painel_empresa(
     company_id: str,
+    competencia: str = None,
     current_user: User = Depends(get_current_user)
 ):
     """
     Painel detalhado de uma empresa específica
     
-    ATUALIZADO: Lê configuração dos campos sieg_* diretamente da empresa
+    ATUALIZADO: 
+    - Estatísticas filtradas por competência selecionada
+    - Histórico com campos id e tem_relatorio
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
@@ -7962,20 +7965,30 @@ async def sieg_painel_empresa(
     stats_por_comp = await db.xml_documents.aggregate(pipeline_por_comp).to_list(12)
     
     # Documentos cancelados - CORRIGIDO: usar mesmo critério do Wizard (cancelada: true)
+    cancelados_filter = {"company_id": company_id, "cancelada": True}
+    if competencia:
+        cancelados_filter["competencia"] = competencia
+    
     cancelados = await db.xml_documents.find(
-        {
-            "company_id": company_id,
-            "cancelada": True  # Critério correto do Wizard
-        },
+        cancelados_filter,
         {"_id": 0, "numero_nfe": 1, "chave_acesso": 1, "chave_nfe": 1, "data_emissao": 1, 
          "emitente": 1, "emitente_nome": 1, "valor_total": 1, "situacao": 1, "tipo": 1,
          "data_cancelamento": 1, "cStat_cancelamento": 1, "xMotivo_cancelamento": 1}
     ).sort("data_emissao", -1).limit(50).to_list(50)
     
-    # Totais gerais
-    total_sieg = await db.xml_documents.count_documents({"company_id": company_id, "origem_importacao": "sieg"})
-    total_manual = await db.xml_documents.count_documents({"company_id": company_id, "origem_importacao": {"$ne": "sieg"}})
-    total_classificados = await db.xml_documents.count_documents({"company_id": company_id, "classificado": True})
+    # CORRIGIDO: Estatísticas filtradas por competência selecionada
+    base_filter = {"company_id": company_id}
+    if competencia:
+        base_filter["competencia"] = competencia
+    
+    # Totais da competência (ou gerais se não houver competência)
+    sieg_filter = {**base_filter, "origem_importacao": "sieg"}
+    manual_filter = {**base_filter, "origem_importacao": {"$ne": "sieg"}}
+    classificados_filter = {**base_filter, "classificado": True}
+    
+    total_sieg = await db.xml_documents.count_documents(sieg_filter)
+    total_manual = await db.xml_documents.count_documents(manual_filter)
+    total_classificados = await db.xml_documents.count_documents(classificados_filter)
     
     # NOVO: Buscar data da última NF importada via SIEG (para orientar o usuário)
     ultima_nf_sieg = await db.xml_documents.find_one(
@@ -8010,10 +8023,12 @@ async def sieg_painel_empresa(
             "por_competencia": stats_por_comp,
             "data_ultima_nf_importada": data_ultima_nf_importada,
             "numero_ultima_nf_importada": numero_ultima_nf_importada,
-            "divergencias_pendentes": divergencias_pendentes
+            "divergencias_pendentes": divergencias_pendentes,
+            "competencia_filtrada": competencia  # NOVO: Indicar se está filtrado
         },
         "historico_sync": [
             {
+                "id": str(h.get("_id", "")),  # CORRIGIDO: Incluir ID para buscar relatório
                 "data_sync": h.get("data_sync"),
                 "data": h.get("data_sync"),  # Compatibilidade
                 "status": h.get("status"),
@@ -8025,7 +8040,8 @@ async def sieg_painel_empresa(
                 "total_devolucoes": h.get("total_devolucoes", 0),
                 "total_erros": h.get("total_erros", 0),
                 "duracao_segundos": h.get("duracao_segundos", 0),
-                "competencia": h.get("competencia")
+                "competencia": h.get("competencia"),
+                "tem_relatorio": bool(h.get("relatorio_detalhado"))  # CORRIGIDO: Incluir flag de relatório
             }
             for h in historico
         ],
