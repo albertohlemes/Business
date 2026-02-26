@@ -189,6 +189,35 @@ const SiegMonitor = ({ user, onLogout }) => {
     }
   };
 
+  // NOVO: Buscar relatório detalhado de uma sincronização
+  const fetchRelatorio = async (syncId) => {
+    if (!selectedEmpresa?.company_id || !syncId) return;
+    
+    setRelatorioLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/sieg/relatorio-sync/${selectedEmpresa.company_id}/${syncId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setRelatorioData(response.data);
+    } catch (err) {
+      console.error('Erro ao buscar relatório:', err);
+      setRelatorioData(null);
+    } finally {
+      setRelatorioLoading(false);
+    }
+  };
+  
+  // Efeito para buscar relatório quando modal abre
+  useEffect(() => {
+    if (relatorioModal.open && relatorioModal.syncId) {
+      fetchRelatorio(relatorioModal.syncId);
+    } else {
+      setRelatorioData(null);
+    }
+  }, [relatorioModal.open, relatorioModal.syncId]);
+
   // Formatar data
   const formatDate = (dateString) => {
     if (!dateString) return '-';
