@@ -255,6 +255,33 @@ const FechamentoMensal = ({ user, onLogout }) => {
                 </div>
               </div>
 
+              {/* ICMS-ST - apenas para contribuintes de ST */}
+              {data.empresa?.apura_icms_st && (data.icms?.st > 0 || data.icms?.st_entradas > 0 || data.icms?.st_saidas > 0) && (
+                <div className="bg-[#141414] rounded-xl p-5 border border-amber-500/30">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Calculator className="w-5 h-5 text-amber-400" />
+                      ICMS-ST
+                      <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">Substituto</span>
+                    </h3>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-emerald-400">Pago nas Entradas</span>
+                      <span className="text-emerald-400 font-medium">{formatCurrency(data.icms?.st_entradas)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-red-400">Destacado nas Saídas</span>
+                      <span className="text-red-400 font-medium">{formatCurrency(data.icms?.st_saidas || data.icms?.st)}</span>
+                    </div>
+                    <div className="border-t border-[#2A2A2A] pt-2 flex justify-between font-semibold">
+                      <span className="text-amber-400">A Recolher</span>
+                      <span className="text-amber-400">{formatCurrency(data.icms?.st || data.icms?.st_saidas)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* PIS */}
               <div className="bg-[#141414] rounded-xl p-5 border border-[#2A2A2A]">
                 <div className="flex items-center justify-between mb-4">
