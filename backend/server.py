@@ -1387,7 +1387,7 @@ async def buscar_saldos_credores_anteriores(company_id: str, competencia: str, c
         logger.info(f"SALDO CREDOR: Buscando para {company_id}, competência atual={competencia}, anterior={comp_anterior}")
         
         # Verificar se é a competência inicial da empresa
-        competencia_inicial = company.get('competencia_saldo_inicial', '')
+        competencia_inicial = company.get('competencia_saldo_inicial', '') or company.get('competencia_inicial', '')
         possui_saldo_credor = company.get('possui_saldo_credor', False)
         
         logger.info(f"SALDO CREDOR: competencia_inicial={competencia_inicial}, possui_saldo_credor={possui_saldo_credor}")
@@ -26107,7 +26107,7 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
             comp_anterior = f"{mes_int - 1:02d}/{ano_int}"
         
         # Verificar se é a competência inicial da empresa
-        competencia_inicial = company.get('competencia_saldo_inicial', '')
+        competencia_inicial = company.get('competencia_saldo_inicial', '') or company.get('competencia_inicial', '')
         possui_saldo_credor = company.get('possui_saldo_credor', False)
         
         if competencia == competencia_inicial and possui_saldo_credor:
@@ -26792,7 +26792,7 @@ async def apurar_icms(
             comp_anterior = f"{mes_int - 1:02d}/{ano_int}"
         
         # Verificar se é a competência inicial da empresa
-        competencia_inicial = company.get('competencia_saldo_inicial', '')
+        competencia_inicial = company.get('competencia_saldo_inicial', '') or company.get('competencia_inicial', '')
         possui_saldo_credor = company.get('possui_saldo_credor', False)
         
         if competencia == competencia_inicial and possui_saldo_credor:
@@ -28534,7 +28534,7 @@ async def apurar_pis_cofins(
         comp_anterior = None
     
     # Verificar se é a competência inicial (usa saldo cadastrado na empresa)
-    competencia_inicial = company.get('competencia_saldo_inicial', '') or company.get('competencia_inicial', '')
+    competencia_inicial = company.get('competencia_saldo_inicial', '') or company.get('competencia_inicial', '') or company.get('competencia_inicial', '')
     possui_saldo_credor = company.get('possui_saldo_credor', False)
     
     # CORRIGIDO: Usar função centralizada para buscar saldo credor anterior
@@ -33407,7 +33407,7 @@ async def get_saldo_credor(
     })
     
     # Saldos iniciais (da primeira competência)
-    competencia_inicial = company.get('competencia_saldo_inicial', '')
+    competencia_inicial = company.get('competencia_saldo_inicial', '') or company.get('competencia_inicial', '')
     if competencia == competencia_inicial:
         # Usar saldos iniciais cadastrados na empresa
         saldo_inicial_icms = company.get('saldo_credor_icms', 0) if company.get('possui_saldo_credor', False) else 0
