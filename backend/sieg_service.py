@@ -370,10 +370,14 @@ async def download_xmls_sieg(
     take: int = 50,
     skip: int = 0,
     api_key: str = None,
-    baixar_todos: bool = True  # Se True, faz paginação automática para baixar todos os XMLs
+    baixar_todos: bool = True,  # Se True, faz paginação automática para baixar todos os XMLs
+    data_inicio_override: str = None  # Formato YYYY-MM-DD, para sync incremental
 ) -> Dict[str, Any]:
     """
     Baixa XMLs do SIEG para o CNPJ e competência especificados
+    
+    Args:
+        data_inicio_override: Se fornecido, usa essa data como início (para sync incremental)
     
     Returns:
         Dict com "xmls" (lista de XMLs em string), "total", "downloaded"
@@ -384,6 +388,14 @@ async def download_xmls_sieg(
     # Obter datas da competência
     data_inicio, data_fim = get_competencia_dates(competencia)
     
+    # Se tem override de data início, usar ela
+    if data_inicio_override:
+        try:
+            data_inicio = datetime.strptime(data_inicio_override, "%Y-%m-%d")
+            print(f"[SIEG] Usando data início override: {data_inicio_override}")
+        except:
+            pass
+    
     # Tipos de XML para baixar (default: NFe)
     if not xml_types:
         xml_types = ["nfe"]
@@ -392,7 +404,9 @@ async def download_xmls_sieg(
     stats = {
         "total_encontrados": 0,
         "total_baixados": 0,
-        "por_tipo": {}
+        "por_tipo": {},
+        "data_inicio": data_inicio.strftime("%Y-%m-%d"),
+        "data_fim": data_fim.strftime("%Y-%m-%d")
     }
     
     async with httpx.AsyncClient(timeout=120.0) as client:  # Timeout maior para paginação
