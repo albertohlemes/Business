@@ -371,13 +371,15 @@ async def download_xmls_sieg(
     skip: int = 0,
     api_key: str = None,
     baixar_todos: bool = True,  # Se True, faz paginação automática para baixar todos os XMLs
-    data_inicio_override: str = None  # Formato YYYY-MM-DD, para sync incremental
+    data_inicio_override: str = None,  # Formato YYYY-MM-DD, para sync incremental
+    data_fim_override: str = None  # Formato YYYY-MM-DD, para buscar dia específico
 ) -> Dict[str, Any]:
     """
     Baixa XMLs do SIEG para o CNPJ e competência especificados
     
     Args:
         data_inicio_override: Se fornecido, usa essa data como início (para sync incremental)
+        data_fim_override: Se fornecido, usa essa data como fim (para buscar dia específico)
     
     Returns:
         Dict com "xmls" (lista de XMLs em string), "total", "downloaded"
@@ -393,6 +395,14 @@ async def download_xmls_sieg(
         try:
             data_inicio = datetime.strptime(data_inicio_override, "%Y-%m-%d")
             print(f"[SIEG] Usando data início override: {data_inicio_override}")
+        except:
+            pass
+    
+    # Se tem override de data fim, usar ela (para buscar dia específico)
+    if data_fim_override:
+        try:
+            data_fim = datetime.strptime(data_fim_override, "%Y-%m-%d")
+            print(f"[SIEG] Usando data fim override: {data_fim_override}")
         except:
             pass
     
