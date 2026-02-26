@@ -17,6 +17,10 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
   - Solução: Adicionado filtro `emitente_cnpj` para considerar apenas notas onde empresa é emitente
 - **CORRIGIDO**: Texto "(SUA VENDA)" alterado para "NOTA REFERENCIADA"
   - O texto anterior causava confusão, fazendo parecer que a NF de saída estava sendo excluída
+- **CORRIGIDO**: Apuração ICMS agora usa saldo credor inicial do cadastro
+  - Problema: Menu ICMS/Apuração não considerava o saldo credor informado no cadastro da empresa
+  - Causa: Código duplicado que não usava a função centralizada `buscar_saldos_credores_anteriores`
+  - Solução: Ambas versões (normal e agregada) agora usam a função centralizada
 - **NOVO**: Verificação proativa de CNPJ no SIEG
   - Endpoint `GET /api/sieg/verificar-cnpj/{company_id}` verifica se CNPJ está autorizado no cofre
   - Validação antes de iniciar sincronização com mensagem de erro clara
