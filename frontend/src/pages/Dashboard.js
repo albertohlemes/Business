@@ -702,6 +702,32 @@ const Dashboard = ({ user, onLogout }) => {
                       </div>
                     )}
                     
+                    {/* ICMS-ST - Mostrar apenas se for contribuinte de ST */}
+                    {stats.empresa?.apura_icms_st && (stats.icms_st?.st > 0 || stats.icms_st?.st_entradas > 0 || stats.icms_st?.st_saidas > 0) && (
+                      <div className="bg-[#141414] rounded-lg p-4 border border-amber-500/30">
+                        <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                          ICMS-ST
+                          <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">Substituto</span>
+                        </h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-emerald-400">Pago nas Entradas:</span>
+                            <span className="font-medium text-emerald-400">{formatCurrency(stats.icms_st?.st_entradas || 0)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-red-400">Destacado nas Saídas:</span>
+                            <span className="font-medium text-red-400">{formatCurrency(stats.icms_st?.st_saidas || 0)}</span>
+                          </div>
+                          <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+                            <span className="text-[#A1A1AA]">A Recolher:</span>
+                            <span className="text-amber-400">
+                              {formatCurrency(stats.icms_st?.st || stats.icms_st?.st_saidas || 0)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     {/* PIS */}
                     <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
                       <h4 className="font-semibold text-white mb-3">PIS</h4>
