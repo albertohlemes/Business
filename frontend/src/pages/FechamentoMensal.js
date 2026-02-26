@@ -312,7 +312,7 @@ const FechamentoMensal = ({ user, onLogout }) => {
                   </div>
                   {data.pis?.saldo_anterior > 0 && (
                     <div className="flex justify-between text-emerald-400">
-                      <span>(-) Saldo Anterior</span>
+                      <span>(+) Saldo Credor Ant.</span>
                       <span>{formatCurrency(data.pis?.saldo_anterior)}</span>
                     </div>
                   )}
