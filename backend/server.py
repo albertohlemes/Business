@@ -3637,9 +3637,15 @@ def parse_xml_nfse(xml_content: str) -> Dict[str, Any]:
                 inner_keys = list(nfse_wrapper.keys()) if isinstance(nfse_wrapper, dict) else []
                 logger.info(f"[NFSE PARSER] Keys dentro de NFSe: {inner_keys}")
                 
-                # Se tem InfNfse, usar
-                if nfse_wrapper.get('InfNfse'):
-                    nfse = nfse_wrapper.get('InfNfse')
+                # Se tem InfNfse (qualquer variação de case)
+                inf_nfse = (
+                    nfse_wrapper.get('InfNfse') or 
+                    nfse_wrapper.get('infNFSe') or 
+                    nfse_wrapper.get('infNfse') or 
+                    nfse_wrapper.get('INFNFSE')
+                )
+                if inf_nfse:
+                    nfse = inf_nfse
                 # Se tem dados diretamente (PrestadorServico, Servico, Numero, etc)
                 elif nfse_wrapper.get('PrestadorServico') or nfse_wrapper.get('Servico') or nfse_wrapper.get('Numero'):
                     nfse = nfse_wrapper
@@ -3647,12 +3653,12 @@ def parse_xml_nfse(xml_content: str) -> Dict[str, Any]:
                 elif nfse_wrapper.get('nfse'):
                     inner_nfse = nfse_wrapper.get('nfse')
                     if isinstance(inner_nfse, dict):
-                        nfse = inner_nfse.get('InfNfse', inner_nfse)
+                        nfse = inner_nfse.get('InfNfse') or inner_nfse.get('infNFSe') or inner_nfse
                 # Se tem Nfse aninhado (NFSe > Nfse > InfNfse)
                 elif nfse_wrapper.get('Nfse'):
                     inner_nfse = nfse_wrapper.get('Nfse')
                     if isinstance(inner_nfse, dict):
-                        nfse = inner_nfse.get('InfNfse', inner_nfse)
+                        nfse = inner_nfse.get('InfNfse') or inner_nfse.get('infNFSe') or inner_nfse
         
         # ============================================================
         # ABRASF 2.0+ - Estrutura mais comum
