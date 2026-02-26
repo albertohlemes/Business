@@ -6550,10 +6550,31 @@ async def sieg_sync_execute(
         "classificados": {"cache": 0, "regras": 0, "ia": 0},
         "erros": [],
         "duplicados": [],
-        "relatorio_conversoes": []
+        "relatorio_conversoes": [],
+        "smart_sync": {
+            "modo": "incremental",
+            "cancelamentos_detectados": 0,
+            "devolucoes_detectadas": 0,
+            "notas_novas": 0,
+            "notas_duplicadas": 0
+        }
     }
     
+    import time
+    sync_start_time = time.time()
+    
     try:
+        # ============================================================
+        # SMART SYNC: Preparação para sincronização inteligente
+        # ============================================================
+        progress["status"] = "preparing"
+        progress["step"] = "Preparando sincronização inteligente..."
+        progress["progress_percent"] = 2
+        
+        # Buscar chaves já importadas para filtrar duplicados rapidamente
+        chaves_ja_importadas = await get_chaves_ja_importadas(db, company_id, competencia)
+        logger.info(f"[SMART SYNC] {len(chaves_ja_importadas)} chaves já importadas para {company_id}/{competencia}")
+        
         # STEP 1: Baixar XMLs do SIEG
         progress["status"] = "downloading"
         progress["step"] = "Baixando XMLs do SIEG..."
@@ -6569,14 +6590,84 @@ async def sieg_sync_execute(
         results["sieg_stats"]["saida"] = len(saida_xmls)
         
         if total_xmls == 0:
+            # Mesmo sem XMLs novos, verificar cancelamentos
+            progress["step"] = "Verificando cancelamentos..."
+            await verificar_e_processar_cancelamentos_sieg(db, company_id, competencia)
+            
             progress["step"] = "Nenhum XML encontrado no SIEG"
             progress["progress_percent"] = 100
             progress["status"] = "completed"
             progress["completed"] = True
             progress["results"] = results
+            
+            # Registrar log
+            sync_duration = int(time.time() - sync_start_time)
+            await registrar_sync_log(db, company_id, competencia, "sucesso", {
+                "modo": "incremental",
+                "total_encontrados": 0,
+                "total_novos": 0,
+                "total_importados": 0,
+                "duracao_segundos": sync_duration
+            })
+            
             return results
         
-        progress["step"] = f"Encontrados {total_xmls} XMLs ({len(entrada_xmls)} entradas, {len(saida_xmls)} saídas)"
+        # ============================================================
+        # SMART SYNC: Filtrar XMLs já importados
+        # ============================================================
+        progress["step"] = "Filtrando XMLs já importados..."
+        progress["progress_percent"] = 8
+        
+        entrada_xmls_novos, duplicados_entrada = await filtrar_xmls_novos(entrada_xmls, chaves_ja_importadas)
+        saida_xmls_novos, duplicados_saida = await filtrar_xmls_novos(saida_xmls, chaves_ja_importadas)
+        
+        total_novos = len(entrada_xmls_novos) + len(saida_xmls_novos)
+        total_duplicados = duplicados_entrada + duplicados_saida
+        
+        results["smart_sync"]["notas_novas"] = total_novos
+        results["smart_sync"]["notas_duplicadas"] = total_duplicados
+        
+        logger.info(f"[SMART SYNC] {total_novos} novos, {total_duplicados} duplicados filtrados")
+        
+        # ============================================================
+        # SMART SYNC: Detectar devoluções de fornecedor
+        # ============================================================
+        progress["step"] = "Verificando devoluções de fornecedor..."
+        progress["progress_percent"] = 9
+        
+        devolucoes = await detectar_devolucoes_fornecedor(db, company_id, entrada_xmls_novos)
+        if devolucoes:
+            notas_marcadas = await marcar_notas_devolvidas(db, company_id, devolucoes)
+            results["smart_sync"]["devolucoes_detectadas"] = len(devolucoes)
+            logger.info(f"[SMART SYNC] {notas_marcadas} notas marcadas como devolvidas")
+        
+        # Usar XMLs filtrados para processamento
+        entrada_xmls = entrada_xmls_novos
+        saida_xmls = saida_xmls_novos
+        total_xmls = total_novos
+        
+        if total_xmls == 0:
+            progress["step"] = f"Todos os {total_duplicados} XMLs já foram importados anteriormente"
+            progress["progress_percent"] = 100
+            progress["status"] = "completed"
+            progress["completed"] = True
+            progress["results"] = results
+            
+            # Registrar log
+            sync_duration = int(time.time() - sync_start_time)
+            await registrar_sync_log(db, company_id, competencia, "sucesso", {
+                "modo": "incremental",
+                "total_encontrados": duplicados_entrada + duplicados_saida,
+                "total_novos": 0,
+                "total_duplicados": total_duplicados,
+                "total_importados": 0,
+                "total_devolucoes": len(devolucoes) if devolucoes else 0,
+                "duracao_segundos": sync_duration
+            })
+            
+            return results
+        
+        progress["step"] = f"Processando {total_novos} XMLs novos ({total_duplicados} duplicados ignorados)"
         progress["progress_percent"] = 10
         
         # ============================================================
