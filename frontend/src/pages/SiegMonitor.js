@@ -45,6 +45,39 @@ const SiegMonitor = ({ user, onLogout }) => {
   const [relatorioModal, setRelatorioModal] = useState({ open: false, syncId: null, item: null });
   const [relatorioData, setRelatorioData] = useState(null);
   const [relatorioLoading, setRelatorioLoading] = useState(false);
+  
+  // NOVO: Estado para verificação de CNPJ no SIEG
+  const [cnpjStatus, setCnpjStatus] = useState(null);
+  const [verificandoCnpj, setVerificandoCnpj] = useState(false);
+
+  // Verificar status do CNPJ no SIEG
+  const verificarCnpjSieg = useCallback(async (companyId) => {
+    if (!companyId) return;
+    
+    setVerificandoCnpj(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/sieg/verificar-cnpj/${companyId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCnpjStatus(response.data);
+      
+      if (!response.data.success) {
+        toast.warning(
+          <div className="space-y-1">
+            <p className="font-semibold">⚠️ CNPJ não autorizado no SIEG</p>
+            <p className="text-sm">{response.data.mensagem}</p>
+          </div>,
+          { duration: 10000 }
+        );
+      }
+    } catch (err) {
+      console.error('Erro ao verificar CNPJ:', err);
+      setCnpjStatus(null);
+    } finally {
+      setVerificandoCnpj(false);
+    }
+  }, []);
 
   // Buscar dados do painel geral
   const fetchPainelGeral = useCallback(async () => {
