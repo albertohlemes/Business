@@ -7186,12 +7186,51 @@ async def sieg_sync_execute(
         chaves_ja_importadas = await get_chaves_ja_importadas(db, company_id, competencia)
         logger.info(f"[SMART SYNC] {len(chaves_ja_importadas)} chaves já importadas para {company_id}/{competencia}")
         
-        # STEP 1: Baixar XMLs do SIEG
+        # ============================================================
+        # SYNC INCREMENTAL: Verificar data da última nota para começar a partir dela
+        # ============================================================
+        data_inicio_incremental = None
+        ultima_nota_entrada = await db.xml_documents.find_one(
+            {"company_id": company_id, "competencia": competencia, "tipo": "entrada"},
+            {"data_emissao": 1, "_id": 0},
+            sort=[("data_emissao", -1)]
+        )
+        ultima_nota_saida = await db.xml_documents.find_one(
+            {"company_id": company_id, "competencia": competencia, "tipo": "saida"},
+            {"data_emissao": 1, "_id": 0},
+            sort=[("data_emissao", -1)]
+        )
+        
+        # Usar a mais antiga entre entrada e saída como ponto de início
+        datas_ultimas = []
+        if ultima_nota_entrada and ultima_nota_entrada.get('data_emissao'):
+            try:
+                dt = ultima_nota_entrada['data_emissao']
+                if isinstance(dt, str):
+                    dt = dt[:10]  # Pegar apenas YYYY-MM-DD
+                datas_ultimas.append(dt)
+            except:
+                pass
+        if ultima_nota_saida and ultima_nota_saida.get('data_emissao'):
+            try:
+                dt = ultima_nota_saida['data_emissao']
+                if isinstance(dt, str):
+                    dt = dt[:10]  # Pegar apenas YYYY-MM-DD
+                datas_ultimas.append(dt)
+            except:
+                pass
+        
+        if datas_ultimas:
+            # Usar a data mais antiga para garantir que não perca nenhuma nota
+            data_inicio_incremental = min(datas_ultimas)
+            logger.info(f"[SYNC INCREMENTAL] Última nota encontrada: {data_inicio_incremental}. Baixando a partir dessa data.")
+        
+        # STEP 1: Baixar XMLs do SIEG (com sync incremental se disponível)
         progress["status"] = "downloading"
         progress["step"] = "Baixando XMLs do SIEG..."
         progress["progress_percent"] = 5
         
-        sieg_result = await sync_from_sieg(cnpj, competencia)
+        sieg_result = await sync_from_sieg(cnpj, competencia, data_inicio_override=data_inicio_incremental)
         
         entrada_xmls = sieg_result.get("entrada", {}).get("xmls", [])
         saida_xmls = sieg_result.get("saida", {}).get("xmls", [])
