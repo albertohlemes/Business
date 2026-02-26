@@ -7085,6 +7085,18 @@ async def sieg_sync_execute(
                 await db.xml_documents.insert_one(doc)
                 results["processados"]["entrada"] += 1
                 
+                # Adicionar ao relatório detalhado
+                results["documentos_importados"].append({
+                    "numero_nfe": doc.get("numero_nfe"),
+                    "chave_nfe": doc.get("chave_nfe", doc.get("chave_acesso")),
+                    "tipo": "entrada",
+                    "emitente_nome": doc.get("emitente", {}).get("nome") if isinstance(doc.get("emitente"), dict) else doc.get("emitente_nome", ""),
+                    "valor_total": doc.get("valor_total", 0),
+                    "data_emissao": doc.get("data_emissao"),
+                    "categoria_classificada": doc.get("categoria_classificada", "N/A"),
+                    "origem_classificacao": "cache" if total_stats.get("from_cache") else ("regra" if total_stats.get("from_rules") else "ia")
+                })
+                
             except Exception as e:
                 results["erros"].append(f"Entrada {idx + 1}: {str(e)}")
         
