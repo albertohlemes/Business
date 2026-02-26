@@ -7657,10 +7657,66 @@ async def sieg_historico_sync(
                 "entradas": h.get("entradas", {}),
                 "saidas": h.get("saidas", {}),
                 "duracao_segundos": h.get("duracao_segundos", 0),
-                "detalhes": h.get("detalhes", {})
+                "detalhes": h.get("detalhes", {}),
+                "tem_relatorio": bool(h.get("relatorio_detalhado"))
             }
             for h in historico
         ]
+    }
+
+
+@api_router.get("/sieg/relatorio-sync/{company_id}/{sync_id}")
+async def sieg_relatorio_sync(
+    company_id: str,
+    sync_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna o relatório detalhado de uma sincronização específica.
+    Semelhante ao relatório de importação manual.
+    """
+    from bson import ObjectId
+    
+    try:
+        log = await db.sieg_sync_logs.find_one({
+            "_id": ObjectId(sync_id),
+            "company_id": company_id
+        })
+    except Exception as e:
+        logger.error(f"Erro ao buscar log SIEG: {e}")
+        log = None
+    
+    if not log:
+        raise HTTPException(status_code=404, detail="Sincronização não encontrada")
+    
+    relatorio = log.get("relatorio_detalhado", {})
+    
+    return {
+        "sync_id": sync_id,
+        "company_id": company_id,
+        "data_sync": log.get("data_sync"),
+        "competencia": log.get("competencia"),
+        "status": log.get("status"),
+        "modo": log.get("modo", "full"),
+        "resumo": {
+            "total_encontrados": log.get("total_encontrados", 0),
+            "total_novos": log.get("total_novos", 0),
+            "total_duplicados": log.get("total_duplicados", 0),
+            "total_importados": log.get("total_importados", 0),
+            "total_cancelamentos": log.get("total_cancelamentos", 0),
+            "total_devolucoes": log.get("total_devolucoes", 0),
+            "total_erros": log.get("total_erros", 0),
+            "duracao_segundos": log.get("duracao_segundos", 0)
+        },
+        "entradas": log.get("entradas", {}),
+        "saidas": log.get("saidas", {}),
+        "relatorio": relatorio,
+        "notas_importadas": relatorio.get("notas_importadas", []),
+        "notas_duplicadas": relatorio.get("notas_duplicadas", []),
+        "notas_canceladas": relatorio.get("notas_canceladas", []),
+        "devolucoes_detectadas": relatorio.get("devolucoes_detectadas", []),
+        "conversoes_cfop": relatorio.get("conversoes_cfop", []),
+        "erros": relatorio.get("erros", [])
     }
 
 
