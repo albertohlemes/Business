@@ -14727,15 +14727,23 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
     
     logger.info(f"APURACAO-PIS-COFINS UNIFICADO: Base crédito={base_credito:.2f}, Base débito={base_debito:.2f}")
     logger.info(f"APURACAO-PIS-COFINS UNIFICADO: Crédito PIS={credito_pis:.2f}, Débito PIS={debito_pis:.2f}")
+    logger.info(f"APURACAO-PIS-COFINS UNIFICADO: Saldo PIS={saldo_pis:.2f}, Saldo COFINS={saldo_cofins:.2f}")
     logger.info(f"APURACAO-PIS-COFINS UNIFICADO: Alíq zero entrada={base_aliq_zero_entrada:.2f}, saída={base_aliq_zero_saida:.2f}")
     
     # Converter por_cfop para lista
     por_cfop_lista = [{"cfop": k, **v} for k, v in sorted(por_cfop.items())]
     
-    # Calcular valores para recuperar
+    # Calcular valores para recuperar/pagar (considerando saldo anterior)
+    pis_a_pagar = max(0, saldo_pis)
     pis_a_recuperar = abs(min(0, saldo_pis))
+    cofins_a_pagar = max(0, saldo_cofins)
     cofins_a_recuperar = abs(min(0, saldo_cofins))
+    total_a_pagar = pis_a_pagar + cofins_a_pagar
     total_a_recuperar = pis_a_recuperar + cofins_a_recuperar
+    
+    # Saldo a transportar para próximo período (se houver crédito excedente)
+    saldo_transportar_pis = pis_a_recuperar
+    saldo_transportar_cofins = cofins_a_recuperar
     
     return {
         "empresa": {
@@ -14751,22 +14759,42 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
             "credito_cofins": round(credito_cofins, 2),
             "debito_pis": round(debito_pis, 2),
             "debito_cofins": round(debito_cofins, 2),
+            # Saldo do período (sem considerar anterior)
+            "saldo_periodo_pis": round(saldo_periodo_pis, 2),
+            "saldo_periodo_cofins": round(saldo_periodo_cofins, 2),
+            # Saldo anterior (do cadastro ou competência anterior)
+            "saldo_anterior_pis": round(saldo_anterior_pis, 2),
+            "saldo_anterior_cofins": round(saldo_anterior_cofins, 2),
+            # Saldo final (considerando anterior)
             "saldo_pis": round(saldo_pis, 2),
             "saldo_cofins": round(saldo_cofins, 2),
+            # Valores a pagar/recuperar
+            "pis_a_pagar": round(pis_a_pagar, 2),
             "pis_a_recuperar": round(pis_a_recuperar, 2),
+            "cofins_a_pagar": round(cofins_a_pagar, 2),
             "cofins_a_recuperar": round(cofins_a_recuperar, 2),
-            "total_a_pagar": round(max(0, saldo_pis) + max(0, saldo_cofins), 2),
+            "total_a_pagar": round(total_a_pagar, 2),
             "total_a_recuperar": round(total_a_recuperar, 2),
+            # Saldo a transportar para próximo período
+            "saldo_transportar_pis": round(saldo_transportar_pis, 2),
+            "saldo_transportar_cofins": round(saldo_transportar_cofins, 2),
+            # Valores do XML (para comparação)
             "valor_pis_xml": round(valor_pis_xml_total, 2),
             "valor_cofins_xml": round(valor_cofins_xml_total, 2),
             "aliquota_zero_excluida_entrada": round(base_aliq_zero_entrada, 2),
             "aliquota_zero_excluida_saida": round(base_aliq_zero_saida, 2)
         },
+        "saldo_credor_anterior": {
+            "pis": round(saldo_anterior_pis, 2),
+            "cofins": round(saldo_anterior_cofins, 2),
+            "total": round(saldo_anterior_pis + saldo_anterior_cofins, 2)
+        },
         "por_cfop": por_cfop_lista[:50],
         "alertas": [
             {"tipo": "INFO", "mensagem": f"Apuração unificada: {total_docs} documentos processados com lógica consistente"},
             {"tipo": "INFO", "mensagem": f"Excluídos R$ {base_aliq_zero_saida:,.2f} de saídas com alíquota zero/monofásico"},
-            {"tipo": "INFO", "mensagem": f"Excluídos R$ {base_aliq_zero_entrada:,.2f} de entradas com alíquota zero/monofásico"}
+            {"tipo": "INFO", "mensagem": f"Excluídos R$ {base_aliq_zero_entrada:,.2f} de entradas com alíquota zero/monofásico"},
+            {"tipo": "INFO", "mensagem": f"Saldo credor anterior: PIS R$ {saldo_anterior_pis:,.2f} + COFINS R$ {saldo_anterior_cofins:,.2f}"}
         ],
         "total_documentos": total_docs,
         "otimizado": True
