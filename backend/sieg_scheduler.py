@@ -329,12 +329,14 @@ def start_scheduler():
 
 async def update_scheduler_jobs():
     """
-    Atualiza os jobs do scheduler com base na configuração do banco
+    Atualiza os jobs do scheduler com base na configuração do banco.
+    MELHORADO: Se o horário configurado ainda não passou hoje, executa hoje.
+    Se já passou, executa amanhã.
     """
     config = await get_scheduler_config()
     
     # Remover jobs existentes
-    for job_id in ['sieg_daily_sync', 'sieg_12h_sync', 'sieg_6h_sync']:
+    for job_id in ['sieg_daily_sync', 'sieg_12h_sync', 'sieg_6h_sync', 'sieg_today_sync']:
         try:
             scheduler.remove_job(job_id)
         except:
@@ -343,6 +345,36 @@ async def update_scheduler_jobs():
     # Job diário
     horario_diario = config.get("horario_diario", "03:00")
     hora, minuto = map(int, horario_diario.split(":"))
+    
+    # Verificar se o horário já passou hoje
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+    # Converter para horário local (Brasília UTC-3)
+    now_local = now - timedelta(hours=3)
+    hora_atual = now_local.hour
+    minuto_atual = now_local.minute
+    
+    # Se o horário configurado ainda não passou hoje
+    if hora > hora_atual or (hora == hora_atual and minuto > minuto_atual):
+        # Calcular próxima execução para hoje
+        from apscheduler.triggers.date import DateTrigger
+        proximo = now_local.replace(hour=hora, minute=minuto, second=0, microsecond=0)
+        proximo_utc = proximo + timedelta(hours=3)
+        
+        print(f"[SIEG-SCHEDULER] Horário {horario_diario} ainda não passou hoje. Agendando para hoje às {horario_diario}")
+        
+        # Agendar execução única para hoje
+        scheduler.add_job(
+            job_sync_todas_empresas,
+            DateTrigger(run_date=proximo_utc),
+            id='sieg_today_sync',
+            name=f'SIEG - Sincronização Hoje ({horario_diario})',
+            replace_existing=True
+        )
+    else:
+        print(f"[SIEG-SCHEDULER] Horário {horario_diario} já passou hoje. Próxima execução amanhã.")
+    
+    # Sempre configurar o job diário recorrente (CronTrigger para os próximos dias)
     scheduler.add_job(
         job_sync_todas_empresas,
         CronTrigger(hour=hora, minute=minuto),
