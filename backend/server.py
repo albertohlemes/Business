@@ -14705,8 +14705,20 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
     debito_pis = float(totais['debitos']['pis'])
     debito_cofins = float(totais['debitos']['cofins'])
     
-    saldo_pis = debito_pis - credito_pis
-    saldo_cofins = debito_cofins - credito_cofins
+    # BUSCAR SALDO CREDOR ANTERIOR (do cadastro da empresa ou competência anterior)
+    saldo_credor_anterior = await buscar_saldos_credores_anteriores(company_id, competencia, company)
+    saldo_anterior_pis = saldo_credor_anterior.get('pis', 0)
+    saldo_anterior_cofins = saldo_credor_anterior.get('cofins', 0)
+    
+    logger.info(f"APURACAO-PIS-COFINS: Saldo anterior PIS={saldo_anterior_pis:.2f}, COFINS={saldo_anterior_cofins:.2f}")
+    
+    # Saldo do período (sem considerar saldo anterior)
+    saldo_periodo_pis = debito_pis - credito_pis
+    saldo_periodo_cofins = debito_cofins - credito_cofins
+    
+    # Saldo FINAL considerando saldo anterior
+    saldo_pis = debito_pis - credito_pis - saldo_anterior_pis
+    saldo_cofins = debito_cofins - credito_cofins - saldo_anterior_cofins
     
     base_credito = float(totais['creditos']['base'])
     base_debito = float(totais['debitos']['base'])
