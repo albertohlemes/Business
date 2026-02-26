@@ -13657,6 +13657,12 @@ async def get_dashboard_stats(
     credito_pis_xml = 0  # Valor do XML (para comparação)
     credito_cofins_xml = 0  # Valor do XML (para comparação)
     
+    # IPI e ICMS-ST separados
+    ipi_entradas = 0  # IPI nas entradas (crédito)
+    ipi_saidas = 0    # IPI nas saídas (débito)
+    icms_st_entradas = 0  # ICMS-ST nas entradas
+    icms_st_saidas = 0    # ICMS-ST nas saídas
+    
     # Base de crédito para PIS/COFINS no Lucro Real (produtos que geram direito a crédito)
     # Considera a classificação do produto (categoria, NCM, CST, CFOP)
     base_credito_pis_cofins_real = 0  # Base para calcular crédito hipotético
