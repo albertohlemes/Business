@@ -35140,8 +35140,9 @@ async def get_notas_ausentes(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Detecta notas fiscais de saída ausentes (gaps na sequência numérica).
-    Analisa todos os modelos de documentos de saída (NF-e, NFC-e, CT-e, NFS-e).
+    Detecta notas fiscais ausentes (gaps na sequência numérica).
+    Analisa TODAS as notas emitidas pela empresa (saída E entrada emitidas).
+    A sequência numérica é única independente do tipo de operação.
     Retorna lista de números faltantes por modelo e série.
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
