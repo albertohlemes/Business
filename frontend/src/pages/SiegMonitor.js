@@ -939,6 +939,199 @@ const SiegMonitor = ({ user, onLogout }) => {
             </div>
           </div>
         )}
+
+        {/* Modal de Relatório Detalhado */}
+        {relatorioModal.open && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Header do Modal */}
+              <div className="p-4 border-b border-[#2A2A2A] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-6 h-6 text-purple-400" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Relatório de Importação</h3>
+                    <p className="text-sm text-[#A1A1AA]">
+                      {relatorioModal.item?.competencia || 'N/A'} - {formatDate(relatorioModal.item?.data_sync)}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setRelatorioModal({ open: false, syncId: null, item: null })}
+                  className="p-2 text-[#A1A1AA] hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              {/* Conteúdo do Modal */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {relatorioLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 text-[#C8A951] animate-spin" />
+                  </div>
+                ) : relatorioData ? (
+                  <>
+                    {/* Resumo */}
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="bg-[#1A1A1A] rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-white">{relatorioData.resumo?.total_encontrados || 0}</p>
+                        <p className="text-xs text-[#A1A1AA]">Encontrados</p>
+                      </div>
+                      <div className="bg-[#1A1A1A] rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-emerald-400">{relatorioData.resumo?.total_importados || 0}</p>
+                        <p className="text-xs text-[#A1A1AA]">Importados</p>
+                      </div>
+                      <div className="bg-[#1A1A1A] rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-yellow-400">{relatorioData.resumo?.total_duplicados || 0}</p>
+                        <p className="text-xs text-[#A1A1AA]">Duplicados</p>
+                      </div>
+                      <div className="bg-[#1A1A1A] rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-red-400">{relatorioData.resumo?.total_erros || 0}</p>
+                        <p className="text-xs text-[#A1A1AA]">Erros</p>
+                      </div>
+                    </div>
+                    
+                    {/* Entradas vs Saídas */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+                        <h4 className="text-emerald-400 font-medium mb-2 flex items-center gap-2">
+                          <ArrowDownCircle className="w-4 h-4" />
+                          Entradas
+                        </h4>
+                        <p className="text-white text-2xl font-bold">{relatorioData.entradas?.importados || 0}</p>
+                        <p className="text-[#A1A1AA] text-sm">de {relatorioData.entradas?.encontrados || 0} encontrados</p>
+                      </div>
+                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                        <h4 className="text-blue-400 font-medium mb-2 flex items-center gap-2">
+                          <ArrowUpCircle className="w-4 h-4" />
+                          Saídas
+                        </h4>
+                        <p className="text-white text-2xl font-bold">{relatorioData.saidas?.importados || 0}</p>
+                        <p className="text-[#A1A1AA] text-sm">de {relatorioData.saidas?.encontrados || 0} encontrados</p>
+                      </div>
+                    </div>
+                    
+                    {/* Notas Importadas */}
+                    {relatorioData.notas_importadas && relatorioData.notas_importadas.length > 0 && (
+                      <div className="bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
+                        <div className="p-3 border-b border-[#2A2A2A]">
+                          <h4 className="text-white font-medium flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-emerald-400" />
+                            Notas Importadas ({relatorioData.notas_importadas.length})
+                          </h4>
+                        </div>
+                        <div className="max-h-60 overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-[#141414] sticky top-0">
+                              <tr>
+                                <th className="px-3 py-2 text-left text-xs text-[#A1A1AA]">NF</th>
+                                <th className="px-3 py-2 text-left text-xs text-[#A1A1AA]">Tipo</th>
+                                <th className="px-3 py-2 text-left text-xs text-[#A1A1AA]">Emitente/Dest.</th>
+                                <th className="px-3 py-2 text-right text-xs text-[#A1A1AA]">Valor</th>
+                                <th className="px-3 py-2 text-center text-xs text-[#A1A1AA]">Classificação</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {relatorioData.notas_importadas.slice(0, 50).map((nota, idx) => (
+                                <tr key={idx} className="border-t border-[#2A2A2A]">
+                                  <td className="px-3 py-2 text-white">{nota.numero_nfe}</td>
+                                  <td className="px-3 py-2">
+                                    <span className={`px-2 py-0.5 rounded text-xs ${
+                                      nota.tipo === 'entrada' 
+                                        ? 'bg-emerald-500/20 text-emerald-400' 
+                                        : 'bg-blue-500/20 text-blue-400'
+                                    }`}>
+                                      {nota.tipo}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2 text-[#A1A1AA] truncate max-w-[200px]">
+                                    {nota.emitente_nome || nota.destinatario || '-'}
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-white">
+                                    {nota.valor_total?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                  </td>
+                                  <td className="px-3 py-2 text-center">
+                                    <span className={`px-2 py-0.5 rounded text-xs ${
+                                      nota.origem_classificacao === 'cache' ? 'bg-purple-500/20 text-purple-400' :
+                                      nota.origem_classificacao === 'regra' ? 'bg-blue-500/20 text-blue-400' :
+                                      nota.origem_classificacao === 'ia' ? 'bg-amber-500/20 text-amber-400' :
+                                      'bg-[#2A2A2A] text-[#A1A1AA]'
+                                    }`}>
+                                      {nota.origem_classificacao || 'N/A'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {relatorioData.notas_importadas.length > 50 && (
+                            <div className="p-3 text-center text-[#A1A1AA] text-sm border-t border-[#2A2A2A]">
+                              + {relatorioData.notas_importadas.length - 50} notas não exibidas
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Resumo de Classificação */}
+                    {relatorioData.relatorio?.resumo_classificacao && (
+                      <div className="bg-[#1A1A1A] rounded-lg p-4 border border-[#2A2A2A]">
+                        <h4 className="text-white font-medium mb-3">Resumo de Classificação</h4>
+                        <div className="grid grid-cols-4 gap-3">
+                          <div className="text-center">
+                            <p className="text-lg font-bold text-white">{relatorioData.relatorio.resumo_classificacao.total || 0}</p>
+                            <p className="text-xs text-[#A1A1AA]">Total</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-lg font-bold text-purple-400">{relatorioData.relatorio.resumo_classificacao.from_cache || 0}</p>
+                            <p className="text-xs text-[#A1A1AA]">Cache</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-lg font-bold text-blue-400">{relatorioData.relatorio.resumo_classificacao.from_rules || 0}</p>
+                            <p className="text-xs text-[#A1A1AA]">Regras</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-lg font-bold text-amber-400">{relatorioData.relatorio.resumo_classificacao.from_ai || 0}</p>
+                            <p className="text-xs text-[#A1A1AA]">IA</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Erros */}
+                    {relatorioData.erros && relatorioData.erros.length > 0 && (
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                        <h4 className="text-red-400 font-medium mb-2 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4" />
+                          Erros ({relatorioData.erros.length})
+                        </h4>
+                        <ul className="space-y-1 text-sm text-red-300">
+                          {relatorioData.erros.slice(0, 10).map((erro, idx) => (
+                            <li key={idx}>• {erro}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12 text-[#A1A1AA]">
+                    Relatório não disponível para esta sincronização
+                  </div>
+                )}
+              </div>
+              
+              {/* Footer do Modal */}
+              <div className="p-4 border-t border-[#2A2A2A] flex justify-end">
+                <button
+                  onClick={() => setRelatorioModal({ open: false, syncId: null, item: null })}
+                  className="px-4 py-2 bg-[#2A2A2A] text-white rounded-lg hover:bg-[#3A3A3A] transition-all"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
