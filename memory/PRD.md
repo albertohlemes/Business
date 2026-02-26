@@ -4,13 +4,20 @@
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
 ## Última Atualização: 26/02/2026
-- **NOVO**: Sincronização Inteligente SIEG (Smart Sync)
+- **APRIMORADO**: Sincronização Inteligente SIEG (Smart Sync) - Validação de Devoluções com Valor
+  - Comparação de valores: se devolução tem valor igual à NF original, desconsiderar automaticamente
+  - Se valor diferente: NÃO desconsiderar, registrar para análise do usuário no Wizard
+  - Novo card "Cobertura de Importação SIEG" no painel mostrando:
+    - Data da última NF importada (para orientar o usuário)
+    - Número da última NF
+    - Status da cobertura (Atualizado / X dias atrás)
+    - Alerta de divergências de devolução pendentes de análise
   - Modo incremental: só processa XMLs novos (duplicados são ignorados)
   - Filtragem por chave NFe: evita reprocessar documentos já importados
   - Detecção de devoluções de fornecedor (finNFe=4, refNFe)
   - Verificação de cancelamentos posteriores
   - Logs detalhados: encontrados, novos, duplicados, importados, devoluções
-- **NOVO**: Qualquer usuário pode configurar horário de sincronização
+- **CONCLUÍDO**: Qualquer usuário pode configurar horário de sincronização
 - **CONCLUÍDO**: Centralização da Configuração SIEG - configuração movida para dentro da empresa
 - **CONCLUÍDO**: Integração SIEG 100% funcional - download automático de XMLs funcionando
 - Campos SIEG (`sieg_ativo`, `sieg_sync_automatico`, `sieg_frequencia`) na empresa
