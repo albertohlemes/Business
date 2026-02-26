@@ -525,21 +525,38 @@ const SiegMonitor = ({ user, onLogout }) => {
                     <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Data</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Competência</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-[#A1A1AA] uppercase">Status</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Modo</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Encontrados</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Novos</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Duplicados</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Importados</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Erros</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-[#A1A1AA] uppercase">Devol.</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-[#A1A1AA] uppercase">Duração</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#2A2A2A]">
                   {(painelEmpresa?.historico_sync || []).map((item, idx) => (
                     <tr key={idx} className="hover:bg-[#1A1A1A] transition-colors">
-                      <td className="px-4 py-3 text-white text-sm">{item.data ? new Date(item.data).toLocaleString('pt-BR') : '-'}</td>
+                      <td className="px-4 py-3 text-white text-sm">
+                        {item.data_sync ? new Date(item.data_sync).toLocaleString('pt-BR') : 
+                         item.data ? new Date(item.data).toLocaleString('pt-BR') : '-'}
+                      </td>
                       <td className="px-4 py-3 text-white text-sm">{item.competencia || '-'}</td>
                       <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          item.modo === 'incremental' 
+                            ? 'bg-blue-500/20 text-blue-400' 
+                            : 'bg-purple-500/20 text-purple-400'
+                        }`}>
+                          {item.modo === 'incremental' ? 'Incremental' : 'Full'}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-center text-white">{item.total_encontrados || 0}</td>
-                      <td className="px-4 py-3 text-center text-emerald-400">{item.total_importados || 0}</td>
-                      <td className="px-4 py-3 text-center text-red-400">{item.total_erros || 0}</td>
+                      <td className="px-4 py-3 text-center text-emerald-400">{item.total_novos || 0}</td>
+                      <td className="px-4 py-3 text-center text-yellow-400">{item.total_duplicados || 0}</td>
+                      <td className="px-4 py-3 text-center text-emerald-400 font-medium">{item.total_importados || 0}</td>
+                      <td className="px-4 py-3 text-center text-orange-400">{item.total_devolucoes || 0}</td>
                       <td className="px-4 py-3 text-right text-[#A1A1AA] text-sm">
                         {item.duracao_segundos ? `${item.duracao_segundos}s` : '-'}
                       </td>
@@ -547,6 +564,21 @@ const SiegMonitor = ({ user, onLogout }) => {
                   ))}
                 </tbody>
               </table>
+              
+              {/* Legenda */}
+              <div className="px-4 py-3 bg-[#1A1A1A] border-t border-[#2A2A2A]">
+                <div className="flex flex-wrap gap-4 text-xs text-[#A1A1AA]">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded bg-blue-400"></span> Incremental: Só busca docs novos
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded bg-yellow-400"></span> Duplicados: XMLs já importados (ignorados)
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded bg-orange-400"></span> Devoluções: Notas anuladas por devolução de fornecedor
+                  </span>
+                </div>
+              </div>
               
               {(!painelEmpresa?.historico_sync || painelEmpresa.historico_sync.length === 0) && (
                 <div className="p-8 text-center text-[#A1A1AA]">
