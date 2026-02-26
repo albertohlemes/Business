@@ -7450,40 +7450,10 @@ async def sieg_painel_empresa(
     data_ultima_nf_importada = ultima_nf_sieg.get("data_emissao") if ultima_nf_sieg else None
     numero_ultima_nf_importada = ultima_nf_sieg.get("numero_nfe") if ultima_nf_sieg else None
     
-    # CORRIGIDO: Buscar divergências de devolução usando MESMOS critérios do Wizard Step 2
-    # O Wizard busca notas de ENTRADA onde o TERCEIRO emitiu nota com CFOP de ENTRADA original
-    # E que ainda NÃO foram desconsideradas
-    
-    # Buscar CNPJ da empresa
-    cnpj_empresa = (company.get('cnpj', '') or '').replace('.', '').replace('/', '').replace('-', '')
-    
-    # Buscar notas de entrada que NÃO foram desconsideradas
-    notas_entrada_pendentes = await db.xml_documents.find({
-        "company_id": company_id,
-        "tipo": "entrada",
-        "desconsiderada_devolucao": {"$ne": True}
-    }, {"_id": 0, "emitente_cnpj": 1, "produtos.cfop_original_emissor": 1, 
-        "produtos.cfop_original": 1, "produtos.cfop": 1}).to_list(None)
-    
-    # Filtrar usando mesmos critérios do Wizard:
-    # 1. CNPJ do emitente diferente da empresa (é terceiro)
-    # 2. CFOP original do emissor começa com 1, 2 ou 3 (entrada)
-    divergencias_pendentes = 0
-    for nota in notas_entrada_pendentes:
-        cnpj_emit = (nota.get('emitente_cnpj', '') or '').replace('.', '').replace('/', '').replace('-', '')
-        
-        # É terceiro?
-        if not cnpj_emit or cnpj_emit == cnpj_empresa:
-            continue
-        
-        # Verificar se CFOP original do emissor é de entrada
-        produtos = nota.get('produtos', [])
-        for prod in produtos:
-            cfop_original = prod.get('cfop_original_emissor') or prod.get('cfop_original') or prod.get('cfop', '')
-            cfop_original = str(cfop_original)
-            if cfop_original and cfop_original[0] in ['1', '2', '3']:
-                divergencias_pendentes += 1
-                break  # Contar nota apenas uma vez
+    # NOTA: Divergências de devolução são calculadas POR COMPETÊNCIA no Wizard de Fechamento
+    # Não faz sentido mostrar um total global aqui, pois pode confundir o usuário
+    # O usuário deve consultar o Wizard de Fechamento para ver devoluções pendentes por competência
+    divergencias_pendentes = 0  # Removido para evitar confusão
     
     # ATUALIZADO: Ler config diretamente da empresa
     return {
