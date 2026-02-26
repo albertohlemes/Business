@@ -296,16 +296,19 @@ def start_scheduler():
         except:
             hora, minuto = 3, 0
         
-        # Job diário com horário do banco
+        # Job diário com horário do banco (usando timezone de Brasília)
+        from pytz import timezone
+        tz_brasilia = timezone('America/Sao_Paulo')
+        
         scheduler.add_job(
             job_sync_todas_empresas,
-            CronTrigger(hour=hora, minute=minuto),
+            CronTrigger(hour=hora, minute=minuto, timezone=tz_brasilia),
             id='sieg_daily_sync',
             name=f'SIEG - Sincronização Diária ({horario_diario})',
             replace_existing=True
         )
         
-        print(f"[SIEG-SCHEDULER] Scheduler iniciado com horário: {horario_diario}")
+        print(f"[SIEG-SCHEDULER] Scheduler iniciado com horário: {horario_diario} (Brasília)")
         print("[SIEG-SCHEDULER] Jobs agendados:")
         for job in scheduler.get_jobs():
             print(f"  - {job.name}: {job.trigger}")
