@@ -8,6 +8,15 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
   - Problema: Dashboard mostrava valores diferentes da página PIS/COFINS e Fechamento Mensal
   - Causa: Versão "pequena" do Dashboard (<=500 docs) usava cálculo manual próprio, diferente da versão agregada
   - Solução: Ambas as versões agora usam `calcular_pis_cofins_unificado()` para 100% de consistência
+- **CORRIGIDO**: CFOP de operações especiais mantido original
+  - Problema: CFOP 1921 (retorno vasilhame) estava sendo convertido para 1102
+  - Causa: CFOPs de entrada especiais (19xx) não estavam na lista de operações distintas
+  - Solução: Adicionados CFOPs 1910-1949 e 2910-2949 à lista; código não converte mais o CFOP
+- **CORRIGIDO**: Relatório de NFs Ausentes agora considera apenas saídas da empresa
+  - Problema: Relatório mostrava gaps de notas de entrada emitidas pela empresa (falsos positivos)
+  - Solução: Adicionado filtro `emitente_cnpj` para considerar apenas notas onde empresa é emitente
+- **CORRIGIDO**: Texto "(SUA VENDA)" alterado para "NOTA REFERENCIADA"
+  - O texto anterior causava confusão, fazendo parecer que a NF de saída estava sendo excluída
 - **NOVO**: Verificação proativa de CNPJ no SIEG
   - Endpoint `GET /api/sieg/verificar-cnpj/{company_id}` verifica se CNPJ está autorizado no cofre
   - Validação antes de iniciar sincronização com mensagem de erro clara
