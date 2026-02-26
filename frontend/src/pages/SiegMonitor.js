@@ -222,7 +222,23 @@ const SiegMonitor = ({ user, onLogout }) => {
       }
     } catch (err) {
       console.error('Erro ao sincronizar:', err);
-      toast.error('❌ Erro ao sincronizar: ' + (err.response?.data?.detail || err.message));
+      
+      // Tratar erro específico de CNPJ não cadastrado no SIEG
+      const errorDetail = err.response?.data?.detail;
+      if (errorDetail?.code === 'CNPJ_NAO_CADASTRADO_SIEG') {
+        toast.error(
+          <div className="space-y-2">
+            <p className="font-semibold">❌ CNPJ não cadastrado no SIEG</p>
+            <p className="text-sm">{errorDetail.message}</p>
+            <p className="text-xs text-yellow-300 whitespace-pre-line">{errorDetail.instrucoes}</p>
+          </div>,
+          { duration: 15000 }
+        );
+      } else if (typeof errorDetail === 'object' && errorDetail?.message) {
+        toast.error(`❌ ${errorDetail.message}`);
+      } else {
+        toast.error('❌ Erro ao sincronizar: ' + (errorDetail || err.message));
+      }
     } finally {
       setSyncInProgress(false);
     }
