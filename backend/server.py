@@ -35170,19 +35170,15 @@ async def get_notas_ausentes(
     if tipo_atividade in ['servicos', 'mista']:
         modelos_saida.append({'codigo': 'nfse', 'nome': 'NFS-e (Serviços)', 'modelo_db': ['nfse']})
     
-    # Query base para buscar notas de saída EMITIDAS pela empresa
-    # IMPORTANTE: Considerar apenas notas onde:
-    # 1. A empresa é a emitente (emitente_cnpj = CNPJ da empresa)
-    # 2. É uma operação de saída comercial (não entradas emitidas pela empresa)
+    # Query base para buscar TODAS as notas EMITIDAS pela empresa
+    # IMPORTANTE: Considerar todas as notas onde a empresa é a emitente (emitente_cnpj = CNPJ da empresa)
+    # A sequência numérica é única e inclui tanto notas de SAÍDA quanto notas de ENTRADA
+    # emitidas pela própria empresa (ex: devoluções de compra, retornos, transferências)
     cnpj_empresa = ''.join(filter(str.isdigit, company.get('cnpj', '')))
     
     base_query = {
         "company_id": company_id,
-        "emitente_cnpj": cnpj_empresa,  # Empresa é a emitente
-        "$or": [
-            {"tipo": "saida"},
-            {"tipo_operacao": "saida"}
-        ]
+        "emitente_cnpj": cnpj_empresa  # Empresa é a emitente (inclui entradas e saídas emitidas)
     }
     base_query.update(get_filtro_notas_ativas())
     
