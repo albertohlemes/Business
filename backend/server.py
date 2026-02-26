@@ -6694,10 +6694,13 @@ async def sieg_sync_execute(
         progress["progress_percent"] = 9
         
         devolucoes = await detectar_devolucoes_fornecedor(db, company_id, entrada_xmls_novos)
+        divergencias_devolucao = []
         if devolucoes:
-            notas_marcadas = await marcar_notas_devolvidas(db, company_id, devolucoes)
+            notas_marcadas, divergencias_devolucao = await marcar_notas_devolvidas(db, company_id, devolucoes)
             results["smart_sync"]["devolucoes_detectadas"] = len(devolucoes)
-            logger.info(f"[SMART SYNC] {notas_marcadas} notas marcadas como devolvidas")
+            results["smart_sync"]["devolucoes_divergentes"] = len(divergencias_devolucao)
+            results["smart_sync"]["divergencias_para_analise"] = divergencias_devolucao
+            logger.info(f"[SMART SYNC] {notas_marcadas} notas marcadas como devolvidas, {len(divergencias_devolucao)} com divergência")
         
         # Usar XMLs filtrados para processamento
         entrada_xmls = entrada_xmls_novos
