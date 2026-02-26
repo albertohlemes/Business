@@ -7039,8 +7039,17 @@ async def sieg_sync_init(
     if not cnpj:
         raise HTTPException(status_code=400, detail="CNPJ da empresa não configurado")
     
+    # Log para debug
+    cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+    logger.info(f"[SIEG SYNC] Empresa: {company.get('razao_social', 'N/A')}")
+    logger.info(f"[SIEG SYNC] CNPJ original: {cnpj}")
+    logger.info(f"[SIEG SYNC] CNPJ limpo: {cnpj_limpo}")
+    logger.info(f"[SIEG SYNC] Competência: {competencia}")
+    
     # Verificar se o CNPJ está cadastrado no SIEG antes de iniciar
     verificacao = await verificar_cnpj_sieg(cnpj)
+    logger.info(f"[SIEG SYNC] Verificação SIEG: autorizado={verificacao['autorizado']}, mensagem={verificacao['mensagem']}")
+    
     if not verificacao["autorizado"]:
         raise HTTPException(
             status_code=400, 
@@ -7055,6 +7064,7 @@ async def sieg_sync_init(
                     "4. Aguarde alguns minutos e tente novamente"
                 ),
                 "cnpj": cnpj,
+                "cnpj_limpo": cnpj_limpo,
                 "erro_sieg": verificacao.get("mensagem", "")
             }
         )
