@@ -26934,6 +26934,7 @@ async def apurar_icms(
     
     # ============================================================
     # BUSCAR SALDO CREDOR ICMS DO MÊS ANTERIOR
+    # CORRIGIDO: Usar função centralizada para consistência com PIS/COFINS
     # ============================================================
     saldo_credor_anterior_icms = 0.0
     comp_anterior = ""
@@ -26946,23 +26947,10 @@ async def apurar_icms(
         else:
             comp_anterior = f"{mes_int - 1:02d}/{ano_int}"
         
-        # Verificar se é a competência inicial da empresa
-        competencia_inicial = company.get('competencia_saldo_inicial', '') or company.get('competencia_inicial', '')
-        possui_saldo_credor = company.get('possui_saldo_credor', False)
-        
-        if competencia == competencia_inicial and possui_saldo_credor:
-            # Usar saldo inicial cadastrado na empresa
-            saldo_credor_anterior_icms = float(company.get('saldo_credor_icms', 0) or 0)
-            logger.info(f"APURACAO-ICMS: Usando saldo credor inicial da empresa: R$ {saldo_credor_anterior_icms:.2f}")
-        else:
-            # Buscar saldo transportado da competência anterior
-            saldo_ant_db = await db.saldos_credores.find_one({
-                "company_id": company_id,
-                "competencia": comp_anterior
-            })
-            if saldo_ant_db:
-                saldo_credor_anterior_icms = float(saldo_ant_db.get('saldo_a_transportar', {}).get('icms', 0) or 0)
-                logger.info(f"APURACAO-ICMS: Saldo credor anterior ({comp_anterior}): R$ {saldo_credor_anterior_icms:.2f}")
+        # USAR FUNÇÃO CENTRALIZADA (mesma lógica do PIS/COFINS)
+        saldos_anteriores = await buscar_saldos_credores_anteriores(company_id, competencia, company)
+        saldo_credor_anterior_icms = float(saldos_anteriores.get('icms', 0) or 0)
+        logger.info(f"APURACAO-ICMS: Saldo credor anterior (via função centralizada): R$ {saldo_credor_anterior_icms:.2f} - Origem: {saldos_anteriores.get('origem', 'N/A')}")
     except Exception as e:
         logger.warning(f"APURACAO-ICMS: Erro ao buscar saldo credor anterior: {e}")
     
