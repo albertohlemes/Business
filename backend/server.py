@@ -8557,6 +8557,137 @@ async def sieg_run_sync_now(
     return {"success": True, "message": "Sincronização iniciada em background"}
 
 
+@api_router.post("/sieg/resync-data/{company_id}")
+async def sieg_resync_data_especifica(
+    company_id: str,
+    data_especifica: str = Form(...),  # Formato: YYYY-MM-DD
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Resincroniza notas de uma data específica do SIEG.
+    Útil para reimportar notas que foram puladas durante a sincronização normal.
+    
+    A sincronização normal usa modo incremental (a partir da última nota).
+    Este endpoint força o download de TODAS as notas de uma data específica.
+    """
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    cnpj = company.get('cnpj', '')
+    if not cnpj:
+        raise HTTPException(status_code=400, detail="Empresa sem CNPJ cadastrado")
+    
+    # Validar data
+    try:
+        data_obj = datetime.strptime(data_especifica, "%Y-%m-%d")
+        competencia = f"{data_obj.month:02d}/{data_obj.year}"
+    except:
+        raise HTTPException(status_code=400, detail="Data inválida. Use formato YYYY-MM-DD (ex: 2026-02-12)")
+    
+    # Importar função de download
+    from sieg_service import download_xmls_sieg
+    
+    cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
+    
+    results = {
+        "data_especifica": data_especifica,
+        "competencia": competencia,
+        "empresa": company.get('razao_social', ''),
+        "entrada": {"baixados": 0, "novos": 0, "duplicados": 0, "erros": []},
+        "saida": {"baixados": 0, "novos": 0, "duplicados": 0, "erros": []},
+        "notas_importadas": []
+    }
+    
+    # Buscar chaves já importadas
+    chaves_existentes = set()
+    async for doc in db.xml_documents.find(
+        {"company_id": company_id, "competencia": competencia},
+        {"chave_nfe": 1, "_id": 0}
+    ):
+        if doc.get("chave_nfe"):
+            chaves_existentes.add(doc["chave_nfe"])
+    
+    # Baixar XMLs da data específica (entrada e saída)
+    for tipo in ["entrada", "saida"]:
+        try:
+            # Usar a data específica como início e fim
+            sieg_result = await download_xmls_sieg(
+                cnpj=cnpj_limpo,
+                competencia=competencia,
+                tipo=tipo,
+                xml_types=["nfe", "cte"],  # NFe e CTe
+                take=50,
+                baixar_todos=True,
+                data_inicio_override=data_especifica
+            )
+            
+            xmls = sieg_result.get("xmls", [])
+            results[tipo]["baixados"] = len(xmls)
+            
+            # Processar cada XML
+            for xml_data in xmls:
+                try:
+                    xml_content = xml_data.get("xml", "")
+                    if not xml_content:
+                        continue
+                    
+                    # Parsear XML
+                    doc_info = await parse_xml_sieg(xml_content, company_id, competencia, tipo)
+                    
+                    if not doc_info:
+                        continue
+                    
+                    chave = doc_info.get("chave_nfe", "")
+                    numero = doc_info.get("numero_nfe", "")
+                    data_emissao = doc_info.get("data_emissao", "")
+                    
+                    # Filtrar apenas notas da data específica
+                    if data_emissao and data_especifica not in data_emissao:
+                        continue
+                    
+                    # Verificar se já existe
+                    if chave in chaves_existentes:
+                        results[tipo]["duplicados"] += 1
+                        continue
+                    
+                    # Classificar a nota
+                    doc_info = await classificar_documento_importado(
+                        doc_info, company, regime_tributario, db
+                    )
+                    
+                    # Inserir no banco
+                    await db.xml_documents.insert_one(doc_info)
+                    chaves_existentes.add(chave)
+                    
+                    results[tipo]["novos"] += 1
+                    results["notas_importadas"].append({
+                        "numero": numero,
+                        "tipo": tipo,
+                        "data_emissao": data_emissao,
+                        "chave": chave
+                    })
+                    
+                except Exception as e:
+                    results[tipo]["erros"].append(str(e)[:100])
+                    
+        except Exception as e:
+            results[tipo]["erros"].append(f"Erro ao baixar do SIEG: {str(e)[:100]}")
+    
+    total_novos = results["entrada"]["novos"] + results["saida"]["novos"]
+    
+    return {
+        "success": True,
+        "message": f"Resincronização da data {data_especifica} concluída. {total_novos} notas novas importadas.",
+        "results": results
+    }
+
+
 @api_router.get("/sieg/config-horarios")
 async def sieg_get_config_horarios(
     current_user: User = Depends(get_current_user)
