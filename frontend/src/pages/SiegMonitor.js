@@ -174,9 +174,13 @@ const SiegMonitor = ({ user, onLogout }) => {
     setSyncInProgress(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`${API}/sieg/sync/${companyId}?competencia=${selectedCompetencia}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // CORRIGIDO: Enviar competencia no body, não no query string
+      await axios.post(
+        `${API}/sieg/sync/${companyId}`,
+        { competencia: selectedCompetencia },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Sincronização concluída!');
       // Recarregar dados após sync
       await fetchPainelGeral();
       if (selectedEmpresa && selectedEmpresa.company_id === companyId) {
@@ -184,6 +188,7 @@ const SiegMonitor = ({ user, onLogout }) => {
       }
     } catch (err) {
       console.error('Erro ao sincronizar:', err);
+      toast.error('Erro ao sincronizar: ' + (err.response?.data?.detail || err.message));
     } finally {
       setSyncInProgress(false);
     }
