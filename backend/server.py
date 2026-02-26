@@ -8637,15 +8637,23 @@ async def sieg_resync_data_especifica(
                     if not xml_content:
                         continue
                     
-                    # Parsear XML
-                    doc_info = await parse_xml_sieg(xml_content, company_id, competencia, tipo)
+                    # Detectar tipo e parsear
+                    xml_type = detect_xml_type(xml_content)
+                    if xml_type == 'nfse':
+                        parsed_data = parse_xml_nfse(xml_content)
+                    elif xml_type == 'nfce':
+                        parsed_data = parse_xml_nfce(xml_content)
+                    elif xml_type == 'cte':
+                        parsed_data = parse_xml_cte(xml_content)
+                    else:
+                        parsed_data = parse_xml_nfe(xml_content)
                     
-                    if not doc_info:
+                    if not parsed_data:
                         continue
                     
-                    chave = doc_info.get("chave_nfe", "")
-                    numero = doc_info.get("numero_nfe", "")
-                    data_emissao = doc_info.get("data_emissao", "")
+                    chave = parsed_data.get("chave_nfe", "")
+                    numero = parsed_data.get("numero_nfe", "")
+                    data_emissao = parsed_data.get("data_emissao", "")
                     
                     # Filtrar apenas notas da data específica
                     if data_emissao and data_especifica not in data_emissao:
@@ -8656,21 +8664,52 @@ async def sieg_resync_data_especifica(
                         results[tipo]["duplicados"] += 1
                         continue
                     
-                    # Classificar a nota
-                    doc_info = await classificar_documento_importado(
-                        doc_info, company, regime_tributario, db
-                    )
+                    # Preparar documento para salvar
+                    doc_id = str(uuid.uuid4())
+                    doc_to_save = {
+                        "id": doc_id,
+                        "company_id": company_id,
+                        "competencia": competencia,
+                        "tipo": tipo,
+                        "modelo": xml_type if xml_type != 'nfe' else 'nfe',
+                        "xml_content": xml_content,
+                        "origem": "sieg",
+                        "origem_importacao": "resync_manual",
+                        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+                        "uploaded_by": current_user.id
+                    }
+                    doc_to_save.update(parsed_data)
+                    
+                    # Aplicar CST em produtos
+                    for product in doc_to_save.get('produtos', []):
+                        cfop = product.get('cfop', '')
+                        ncm = product.get('ncm', '')
+                        regra_ncm = buscar_regra_pis_cofins(ncm)
+                        cst_info = calcular_cst_pis_cofins(
+                            ncm=ncm,
+                            cfop=cfop,
+                            tipo_operacao=tipo,
+                            cst_xml=product.get('cst_pis_xml', product.get('cst_pis', '')),
+                            regime=regime_tributario,
+                            regra_pis_cofins=regra_ncm
+                        )
+                        product.update({
+                            'cst_pis_calculado': cst_info['cst_calculado'],
+                            'cst_cofins_calculado': cst_info['cst_calculado'],
+                            'cst_pis': cst_info['cst_calculado'],
+                            'cst_cofins': cst_info['cst_calculado']
+                        })
                     
                     # Inserir no banco
-                    await db.xml_documents.insert_one(doc_info)
+                    await db.xml_documents.insert_one(doc_to_save)
                     chaves_existentes.add(chave)
                     
                     results[tipo]["novos"] += 1
                     results["notas_importadas"].append({
                         "numero": numero,
                         "tipo": tipo,
-                        "data_emissao": data_emissao,
-                        "chave": chave
+                        "data_emissao": data_emissao[:10] if data_emissao else "",
+                        "chave": chave[-10:] if chave else ""
                     })
                     
                 except Exception as e:
