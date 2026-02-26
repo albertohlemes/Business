@@ -578,11 +578,16 @@ async def download_xmls_sieg(
 async def sync_from_sieg(
     cnpj: str,
     competencia: str,
-    api_key: str = None
+    api_key: str = None,
+    data_inicio_override: str = None  # Permite especificar data de início para sync incremental
 ) -> Dict[str, Any]:
     """
     Sincroniza XMLs de entrada e saída do SIEG
     Retorna todos os XMLs encontrados para processamento posterior
+    
+    Args:
+        data_inicio_override: Se fornecido, usa essa data como início ao invés do primeiro dia do mês.
+                             Útil para sincronização incremental.
     """
     results = {
         "entrada": {"xmls": [], "stats": {}},
@@ -599,7 +604,8 @@ async def sync_from_sieg(
             xml_types=["nfe", "cte", "nfse"],  # Incluir CT-e nas entradas
             take=50,  # Máximo permitido pela API SIEG
             api_key=api_key,
-            baixar_todos=True  # Paginação automática para baixar TODOS
+            baixar_todos=True,  # Paginação automática para baixar TODOS
+            data_inicio_override=data_inicio_override
         )
         results["entrada"] = entrada
         results["totais"]["entrada"] = len(entrada.get("xmls", []))
@@ -616,7 +622,8 @@ async def sync_from_sieg(
             xml_types=["nfe", "nfce", "cte", "nfse"],  # Incluir CT-e nas saídas
             take=50,  # Máximo permitido pela API SIEG
             api_key=api_key,
-            baixar_todos=True  # Paginação automática para baixar TODOS
+            baixar_todos=True,  # Paginação automática para baixar TODOS
+            data_inicio_override=data_inicio_override
         )
         results["saida"] = saida
         results["totais"]["saida"] = len(saida.get("xmls", []))
