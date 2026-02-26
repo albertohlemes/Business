@@ -3609,31 +3609,152 @@ def parse_xml_cte(xml_content: str) -> Dict[str, Any]:
 
 
 def parse_xml_nfse(xml_content: str) -> Dict[str, Any]:
-    """Parser para NFS-e (Nota Fiscal de Serviço Eletrônica)"""
+    """
+    Parser para NFS-e (Nota Fiscal de Serviço Eletrônica)
+    Suporta múltiplas estruturas de municípios brasileiros
+    """
     try:
-        data = xmltodict.parse(xml_content)
+        # Remover BOM e namespaces para facilitar parsing
+        xml_clean = xml_content
+        if xml_clean.startswith('\ufeff'):
+            xml_clean = xml_clean[1:]
         
-        # Tentar diferentes estruturas de NFS-e (varia por município)
-        # Padrão ABRASF
+        data = xmltodict.parse(xml_clean, process_namespaces=False)
+        
+        # DEBUG: Log da estrutura raiz
+        root_keys = list(data.keys()) if isinstance(data, dict) else []
+        logger.info(f"[NFSE PARSER] Estrutura raiz do XML: {root_keys}")
+        
         nfse = None
-        compnfse = data.get('CompNfse', {})
-        if compnfse:
-            nfse = compnfse.get('Nfse', {}).get('InfNfse', {})
         
+        # ============================================================
+        # ABRASF 2.0+ - Estrutura mais comum
+        # ============================================================
+        if not nfse:
+            compnfse = data.get('CompNfse', {}) or data.get('compNfse', {})
+            if compnfse:
+                nfse = compnfse.get('Nfse', {}).get('InfNfse', {})
+                if not nfse:
+                    nfse = compnfse.get('nfse', {}).get('InfNfse', {})
+        
+        # ============================================================
+        # ABRASF 1.0 / ISS Digital
+        # ============================================================
         if not nfse:
             nfse = data.get('Nfse', {}).get('InfNfse', {})
         if not nfse:
-            nfse = data.get('ConsultarNfseResposta', {}).get('ListaNfse', {}).get('CompNfse', {}).get('Nfse', {}).get('InfNfse', {})
-        if not nfse:
-            # Tentar formato simplificado
-            nfse = data.get('nfse', {}) or data
+            nfse = data.get('nfse', {}).get('InfNfse', {})
         
+        # ============================================================
+        # ConsultarNfseResposta (retorno de consulta)
+        # ============================================================
         if not nfse:
-            raise ValueError("Estrutura de XML NFS-e inválida")
+            consulta = data.get('ConsultarNfseResposta', {}) or data.get('consultarNfseResposta', {})
+            if consulta:
+                lista = consulta.get('ListaNfse', {}) or consulta.get('listaNfse', {})
+                if lista:
+                    comp = lista.get('CompNfse', {}) or lista.get('compNfse', {})
+                    if comp:
+                        if isinstance(comp, list):
+                            comp = comp[0]  # Pegar primeira nota
+                        nfse = comp.get('Nfse', {}).get('InfNfse', {})
         
-        return _parse_single_nfse(nfse)
+        # ============================================================
+        # EnviarLoteRpsResposta / GerarNfseResposta
+        # ============================================================
+        if not nfse:
+            for wrapper_key in ['EnviarLoteRpsResposta', 'GerarNfseResposta', 'enviarLoteRpsResposta']:
+                if wrapper_key in data:
+                    lista = data[wrapper_key].get('ListaNfse', {})
+                    if lista:
+                        comp = lista.get('CompNfse', {})
+                        if isinstance(comp, list):
+                            comp = comp[0]
+                        elif comp:
+                            nfse = comp.get('Nfse', {}).get('InfNfse', {})
+                        break
+        
+        # ============================================================
+        # BETHA / Publica / IPM - InfNfse diretamente na raiz
+        # ============================================================
+        if not nfse:
+            nfse = data.get('InfNfse', {}) or data.get('infNfse', {})
+        
+        # ============================================================
+        # XML com tcCompNfse (Tecnos)
+        # ============================================================
+        if not nfse:
+            for key in data.keys():
+                if 'tcCompNfse' in key or 'Tccompnfse' in key:
+                    tc = data[key]
+                    if isinstance(tc, dict):
+                        nfse = tc.get('Nfse', {}).get('InfNfse', {}) or tc.get('tcNfse', {}).get('InfNfse', {})
+                    break
+        
+        # ============================================================
+        # Formato flat - nfse é a raiz
+        # ============================================================
+        if not nfse:
+            # Verificar se os campos estão diretamente na raiz
+            if data.get('Numero') or data.get('numero') or data.get('NumeroNfse'):
+                nfse = data
+            elif list(data.keys()) == ['nfse']:
+                nfse = data['nfse']
+            elif list(data.keys()) == ['Nfse']:
+                nfse = data['Nfse']
+        
+        # ============================================================
+        # Último recurso: usar o próprio data
+        # ============================================================
+        if not nfse or (isinstance(nfse, dict) and not nfse):
+            logger.warning(f"[NFSE PARSER] Estrutura não reconhecida. Tentando usar data diretamente. Keys: {root_keys}")
+            # Procurar InfNfse recursivamente
+            nfse = _find_infnfse_recursive(data) or data
+        
+        if not nfse or (isinstance(nfse, dict) and len(nfse) == 0):
+            raise ValueError(f"Estrutura de XML NFS-e inválida. Keys encontradas: {root_keys}")
+        
+        result = _parse_single_nfse(nfse)
+        
+        # Validar que campos essenciais foram extraídos
+        if not result.get('numero_nfe') and not result.get('emitente_nome'):
+            logger.warning(f"[NFSE PARSER] Campos essenciais vazios. Estrutura nfse keys: {list(nfse.keys()) if isinstance(nfse, dict) else 'not dict'}")
+        
+        return result
     except Exception as e:
+        logger.error(f"[NFSE PARSER] Erro ao processar XML: {str(e)}")
         raise ValueError(f"Erro ao processar XML NFS-e: {str(e)}")
+
+
+def _find_infnfse_recursive(data: dict, depth: int = 0) -> Optional[Dict]:
+    """Busca recursiva por InfNfse na estrutura do XML"""
+    if depth > 5:  # Limite de profundidade
+        return None
+    
+    if not isinstance(data, dict):
+        return None
+    
+    # Verificar se este nível tem InfNfse
+    for key in ['InfNfse', 'infNfse', 'inf_nfse']:
+        if key in data and data[key]:
+            return data[key]
+    
+    # Verificar se tem campos típicos de NFS-e
+    if data.get('Numero') or data.get('numero') or data.get('PrestadorServico') or data.get('Servico'):
+        return data
+    
+    # Buscar recursivamente em sub-elementos
+    for key, value in data.items():
+        if isinstance(value, dict):
+            result = _find_infnfse_recursive(value, depth + 1)
+            if result:
+                return result
+        elif isinstance(value, list) and value and isinstance(value[0], dict):
+            result = _find_infnfse_recursive(value[0], depth + 1)
+            if result:
+                return result
+    
+    return None
 
 
 def _parse_single_nfse(nfse: Dict[str, Any]) -> Dict[str, Any]:
