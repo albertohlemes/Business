@@ -3969,15 +3969,19 @@ def _parse_single_nfse(nfse: Dict[str, Any]) -> Dict[str, Any]:
     }]
     
     # Determinar retenções - ISS retido significa que o tomador reteve o ISS
-    iss_foi_retido = valores.get('IssRetido', '2') == '1'
+    iss_foi_retido = get_field(valores, 'IssRetido', 'issRetido') == '1'
     valor_iss_retido = valor_iss if iss_foi_retido else 0
     
     # Outras retenções (PIS, COFINS, IR, CSLL, INSS)
-    pis_retido = float(valores.get('ValorPis', 0) or 0)
-    cofins_retido = float(valores.get('ValorCofins', 0) or 0)
-    ir_retido = float(valores.get('ValorIr', 0) or 0)
-    csll_retido = float(valores.get('ValorCsll', 0) or 0)
-    inss_retido = float(valores.get('ValorInss', 0) or 0)
+    pis_retido = safe_float(get_field(valores, 'ValorPis', 'valorPis') or 0)
+    cofins_retido = safe_float(get_field(valores, 'ValorCofins', 'valorCofins') or 0)
+    ir_retido = safe_float(get_field(valores, 'ValorIr', 'valorIr') or 0)
+    csll_retido = safe_float(get_field(valores, 'ValorCsll', 'valorCsll') or 0)
+    inss_retido = safe_float(get_field(valores, 'ValorInss', 'valorInss') or 0)
+    
+    # Log para debug se campos essenciais estão vazios
+    if not numero and not nome_prestador:
+        logger.warning(f"[NFSE PARSER] Campos vazios - numero: '{numero}', prestador: '{nome_prestador}', valor: {valor_servicos}")
     
     return {
         'modelo': 'nfse',
