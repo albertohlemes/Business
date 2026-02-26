@@ -26250,6 +26250,7 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
     saldo_antes_anterior = debito_icms - credito_icms
     
     # ============== BUSCAR SALDO CREDOR ANTERIOR ==============
+    # CORRIGIDO: Usar função centralizada para consistência
     saldo_credor_anterior_icms = 0.0
     comp_anterior = ""
     try:
@@ -26261,19 +26262,10 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
         else:
             comp_anterior = f"{mes_int - 1:02d}/{ano_int}"
         
-        # Verificar se é a competência inicial da empresa
-        competencia_inicial = company.get('competencia_saldo_inicial', '') or company.get('competencia_inicial', '')
-        possui_saldo_credor = company.get('possui_saldo_credor', False)
-        
-        if competencia == competencia_inicial and possui_saldo_credor:
-            saldo_credor_anterior_icms = float(company.get('saldo_credor_icms', 0) or 0)
-        else:
-            saldo_ant_db = await db.saldos_credores.find_one({
-                "company_id": company_id,
-                "competencia": comp_anterior
-            })
-            if saldo_ant_db:
-                saldo_credor_anterior_icms = float(saldo_ant_db.get('saldo_a_transportar', {}).get('icms', 0) or 0)
+        # USAR FUNÇÃO CENTRALIZADA (mesma lógica do PIS/COFINS)
+        saldos_anteriores = await buscar_saldos_credores_anteriores(company_id, competencia, company)
+        saldo_credor_anterior_icms = float(saldos_anteriores.get('icms', 0) or 0)
+        logger.info(f"ICMS AGREGADO: Saldo credor anterior: R$ {saldo_credor_anterior_icms:.2f} - Origem: {saldos_anteriores.get('origem', 'N/A')}")
     except Exception as e:
         logger.warning(f"ICMS AGREGADO: Erro ao buscar saldo credor anterior: {e}")
     
