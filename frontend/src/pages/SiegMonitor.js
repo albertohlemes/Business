@@ -67,14 +67,17 @@ const SiegMonitor = ({ user, onLogout }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
+      // CORRIGIDO: Passar competência para filtrar estatísticas
+      const competenciaParam = selectedCompetencia ? `?competencia=${encodeURIComponent(selectedCompetencia)}` : '';
+      
       const [painelRes, historicoRes, canceladosRes] = await Promise.all([
-        axios.get(`${API}/sieg/painel/${companyId}`, {
+        axios.get(`${API}/sieg/painel/${companyId}${competenciaParam}`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
         axios.get(`${API}/sieg/historico/${companyId}`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get(`${API}/sieg/cancelados/${companyId}`, {
+        axios.get(`${API}/sieg/cancelados/${companyId}${competenciaParam}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
@@ -82,12 +85,14 @@ const SiegMonitor = ({ user, onLogout }) => {
       setPainelEmpresa(painelRes.data);
       setHistorico(historicoRes.data.historico || []);
       setCancelados(canceladosRes.data.cancelados || []);
+      // Atualizar empresa selecionada para o modal de relatório
+      setSelectedEmpresa(painelRes.data);
     } catch (err) {
       console.error('Erro ao carregar dados da empresa:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedCompetencia]);
 
   // Verificar status da integração SIEG
   const fetchSiegStatus = useCallback(async () => {
