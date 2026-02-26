@@ -1450,14 +1450,15 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                 )}
                 
                 {/* SALDO CREDOR DO PERÍODO ANTERIOR - SÓ APARECE QUANDO EXISTE */}
+                {/* NOTA: O saldo credor anterior é SOMADO ao saldo atual (é crédito acumulado) */}
                 {dados.apuracao?.saldo_credor_anterior > 0 && (
                   <>
-                    <Minus className="w-6 h-6 text-[#666]" />
+                    <Plus className="w-6 h-6 text-blue-400" />
                     <div className="text-center p-4 bg-blue-500/10 rounded-lg border border-blue-500/30 min-w-[180px]">
                       <p className="text-blue-400 text-2xl font-bold">{formatCurrency(dados.apuracao?.saldo_credor_anterior)}</p>
                       <p className="text-[#A1A1AA] text-sm">Saldo Credor Anterior</p>
                       <p className="text-xs text-blue-300 mt-1">
-                        {dados.apuracao?.competencia_anterior ? `Ref: ${dados.apuracao.competencia_anterior}` : 'Período anterior'}
+                        {dados.apuracao?.competencia_anterior ? `Ref: ${dados.apuracao.competencia_anterior}` : 'Crédito acumulado'}
                       </p>
                     </div>
                   </>
