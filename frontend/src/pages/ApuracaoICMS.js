@@ -7,7 +7,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, FileText,
   ChevronDown, ChevronUp, Download, RefreshCw, 
   Building2, Package, Hash, BarChart3, ArrowRight,
-  ArrowLeftRight, Minus, Truck, Settings, Save, Loader2,
+  ArrowLeftRight, Minus, Plus, Truck, Settings, Save, Loader2,
   Star, X, FileSpreadsheet, FileDown
 } from 'lucide-react';
 
