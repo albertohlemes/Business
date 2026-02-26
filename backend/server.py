@@ -7602,12 +7602,10 @@ async def sieg_set_config_horarios(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Atualiza horário da sincronização diária SIEG (admin only)
+    Atualiza horário da sincronização diária SIEG.
+    Qualquer usuário autenticado pode configurar o horário.
     Formato: HH:MM (ex: 03:00, 04:30, 02:00)
     """
-    if current_user.role not in ["admin", "super_admin"]:
-        raise HTTPException(status_code=403, detail="Apenas administradores podem alterar configurações")
-    
     # Validar formato do horário
     try:
         hora, minuto = map(int, horario_diario.split(":"))
