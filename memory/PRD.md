@@ -177,6 +177,11 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 ```
 
 ## Changelog
+- **26/02/2026**: **APRIMORAMENTO SIEG** - Validação de devoluções com comparação de valores implementada:
+  - Se devolução tem valor igual à NF original: desconsiderar automaticamente
+  - Se valor diferente: NÃO desconsiderar, registrar para análise do usuário
+  - Novo card "Cobertura de Importação SIEG" no painel com data da última NF importada
+  - Alerta de divergências de devolução pendentes de análise
 - **25/02/2026**: **CENTRALIZAÇÃO SIEG CONCLUÍDA** - Configuração SIEG movida para dentro da empresa. Campos `sieg_ativo`, `sieg_sync_automatico`, `sieg_frequencia` adicionados aos modelos Pydantic. Scheduler refatorado para ler da coleção `companies`. Endpoint de migração criado. WizardEmpresa atualizado com seção SIEG.
 - **25/02/2026**: **NOVO** - Painel de Monitoramento da Integração SIEG implementado. Inclui página /sieg-monitor com 4 abas (Visão Geral, Empresas, Histórico, Cancelados), job agendado via APScheduler para sync diário às 03:00, configuração de sync por empresa, e autenticação OAuth2/JWT com a API do SIEG.
 - **26/06/2026**: **CORREÇÃO CRÍTICA** - Transporte de saldos credores entre competências agora funciona corretamente em todos os endpoints (Dashboard, Apuração ICMS, PIS/COFINS, RET, Reforma Tributária). Saldos são salvos na collection `saldos_credores` e transportados para o mês seguinte.
