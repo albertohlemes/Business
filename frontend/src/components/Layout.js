@@ -108,7 +108,7 @@ const Layout = ({ user, onLogout, children }) => {
       nav.push({ type: 'separator', label: 'Impostos' });
       nav.push({ name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' });
       nav.push({ name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' });
-      nav.push({ name: 'ICMS ST', href: '/apuracao-icms-st', icon: Calculator, testId: 'nav-apuracao-icms-st' });
+      // ICMS ST removido - já está disponível como aba no menu ICMS para contribuintes de ST
       nav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
       nav.push({ name: 'DIFAL', href: '/difal', icon: ArrowLeftRight, testId: 'nav-difal' });
       nav.push({ name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' });
