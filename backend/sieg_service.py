@@ -319,6 +319,8 @@ async def download_xmls_sieg(
             xml_type_code = XML_TYPES.get(xml_type.lower(), 1)
             current_skip = skip
             type_total = 0
+            retry_count = 0
+            max_retries = 3  # Máximo de tentativas em caso de erro
             
             while True:  # Loop de paginação
                 # Configurar filtro baseado no tipo (entrada/saída)
