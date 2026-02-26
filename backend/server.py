@@ -11315,7 +11315,10 @@ async def list_documents(
             '57': 'cte',
             'nfe': 'nfe',
             'nfce': 'nfce',
-            'cte': 'cte'
+            'cte': 'cte',
+            'nfse': 'nfse',
+            'nfse_tomado': 'nfse',  # NFS-e Tomados usa mesmo modelo 'nfse'
+            'nfse_prestado': 'nfse'  # NFS-e Prestados usa mesmo modelo 'nfse'
         }
         modelo_db = modelo_map.get(modelo, modelo)
         query['modelo'] = modelo_db
