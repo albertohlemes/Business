@@ -13865,6 +13865,12 @@ async def get_dashboard_stats(
             debito_pis_xml += float(prod.get('v_pis', 0) or 0)
             debito_cofins_xml += float(prod.get('v_cofins', 0) or 0)
             
+            # IPI nas saídas (débito)
+            ipi_saidas += float(prod.get('v_ipi', 0) or 0)
+            
+            # ICMS-ST nas saídas
+            icms_st_saidas += float(prod.get('v_icms_st', 0) or 0)
+            
             valor_prod = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
             ncm = prod.get('ncm', '')
             cfop = str(prod.get('cfop', ''))
