@@ -7473,23 +7473,20 @@ async def sieg_sync_execute(
                     else:
                         produtos_para_classificar_final.append(product)
                 
-                # Processar operações distintas - marcar para revisão
+                # Processar operações distintas - marcar para revisão mas MANTER CFOP ORIGINAL
                 for product, cfop_original in produtos_operacao_distinta:
-                    cfop_convertido = cfop_original
-                    # Converter de saída para entrada
-                    if cfop_original.startswith('5'):
-                        cfop_convertido = '1' + cfop_original[1:]
-                    elif cfop_original.startswith('6'):
-                        cfop_convertido = '2' + cfop_original[1:]
+                    # CORRIGIDO: Manter o CFOP original - NÃO converter
+                    # O CFOP de operações especiais deve ser preservado exatamente como veio no XML
+                    cfop_final = cfop_original
                     
-                    product['cfop'] = cfop_convertido
+                    product['cfop'] = cfop_final  # Manter o CFOP original
                     product['cfop_original'] = cfop_original
-                    product['pendente_revisao_cfop'] = True
+                    product['pendente_revisao_cfop'] = False  # Não precisa revisão, está correto
                     product['natureza_operacao_original'] = CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]
                     product['categoria_classificada'] = 'operacao_distinta'
-                    product['justificativa_ia'] = f"CFOP de operação distinta ({CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]}) - Requer revisão"
+                    product['justificativa_ia'] = f"Operação especial: {CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]} - CFOP mantido"
                     
-                    logger.info(f"[SIEG] Operação distinta: CFOP {cfop_original} → {cfop_convertido} (pendente revisão)")
+                    logger.info(f"[SIEG] Operação distinta mantida: CFOP {cfop_original} ({CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]})")
                 
                 if produtos_para_classificar_final:
                     file_conversions = []
