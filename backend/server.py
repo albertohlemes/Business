@@ -11966,6 +11966,7 @@ async def list_documents(
     tipo_operacao: Optional[str] = None,
     modelo: Optional[str] = None,
     status: Optional[str] = None,  # 'ativa', 'cancelada' ou None para todas
+    search: Optional[str] = None,  # Busca por número, CNPJ, emitente ou chave
     skip: int = 0,  # Paginação: quantos pular
     limit: int = 100,  # Paginação: máximo por página (padrão 100)
     current_user: User = Depends(get_current_user)
@@ -11984,6 +11985,29 @@ async def list_documents(
     
     if competencia:
         query['competencia'] = competencia
+    
+    # NOVO: Busca por termo (número, CNPJ, emitente, chave)
+    if search and search.strip():
+        search_term = search.strip()
+        # Se for só números, pode ser número da NF ou CNPJ
+        if search_term.isdigit():
+            query['$or'] = [
+                {'numero_nfe': search_term},
+                {'numero_nfe': {'$regex': f'^{search_term}', '$options': 'i'}},
+                {'emitente_cnpj': {'$regex': search_term}},
+                {'destinatario_cnpj': {'$regex': search_term}},
+                {'chave_nfe': {'$regex': search_term}}
+            ]
+        else:
+            # Busca textual por nome de emitente ou chave
+            query['$or'] = [
+                {'emitente_nome': {'$regex': search_term, '$options': 'i'}},
+                {'emitente_cnpj': {'$regex': search_term}},
+                {'destinatario_nome': {'$regex': search_term, '$options': 'i'}},
+                {'destinatario_cnpj': {'$regex': search_term}},
+                {'chave_nfe': {'$regex': search_term}},
+                {'numero_nfe': {'$regex': search_term}}
+            ]
     
     # Filtrar por modelo do documento (converter código numérico para texto se necessário)
     if modelo:
