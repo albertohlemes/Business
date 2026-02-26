@@ -30,7 +30,7 @@ from emergentintegrations.llm.chat import LlmChat, UserMessage
 import json
 
 # SIEG Integration
-from sieg_service import count_xmls_sieg, download_xmls_sieg, sync_from_sieg
+from sieg_service import count_xmls_sieg, download_xmls_sieg, sync_from_sieg, verificar_cnpj_sieg
 from sieg_scheduler import start_scheduler, stop_scheduler, get_scheduler_status, run_sync_now, get_scheduler_config, save_scheduler_config, update_scheduler_jobs
 
 # SIEG Smart Sync (sincronização inteligente)
