@@ -7,7 +7,7 @@ import {
   Building2, FileText, Calendar, Clock, Settings, Play,
   ChevronRight, ChevronDown, Download, Activity, TrendingUp,
   FileX, Loader2, Search, Filter, Info, Zap, CheckCircle,
-  AlertCircle, ArrowRight, History
+  AlertCircle, ArrowRight, History, ArrowDownCircle, ArrowUpCircle, X
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
