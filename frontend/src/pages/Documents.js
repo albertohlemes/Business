@@ -7,7 +7,7 @@ import {
   FileDown, Upload, ArrowLeft, ArrowDownCircle, ArrowUpCircle, Zap, 
   Truck, Building2, Wifi, RefreshCw, Plus, FolderOpen, DollarSign, Cloud,
   Filter, CheckCircle, Ban, Receipt, Loader2, Clock, Calendar, FileArchive,
-  Sparkles
+  Sparkles, ArrowRight
 } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
