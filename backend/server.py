@@ -7492,7 +7492,7 @@ async def sieg_historico_sync(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Histórico detalhado de sincronizações de uma empresa
+    Histórico detalhado de sincronizações de uma empresa (Smart Sync)
     """
     historico = await db.sieg_sync_logs.find(
         {"company_id": company_id}
@@ -7503,17 +7503,22 @@ async def sieg_historico_sync(
         "historico": [
             {
                 "id": str(h.get("_id", "")),
-                "data": h.get("data_sync"),
+                "data_sync": h.get("data_sync"),
+                "data": h.get("data_sync"),  # Compatibilidade
                 "competencia": h.get("competencia"),
                 "status": h.get("status"),
+                "modo": h.get("modo", "full"),  # "incremental" ou "full"
                 "total_encontrados": h.get("total_encontrados", 0),
-                "total_importados": h.get("total_importados", 0),
+                "total_novos": h.get("total_novos", 0),
                 "total_duplicados": h.get("total_duplicados", 0),
+                "total_importados": h.get("total_importados", 0),
+                "total_cancelamentos": h.get("total_cancelamentos", 0),
+                "total_devolucoes": h.get("total_devolucoes", 0),
                 "total_erros": h.get("total_erros", 0),
                 "entradas": h.get("entradas", {}),
                 "saidas": h.get("saidas", {}),
                 "duracao_segundos": h.get("duracao_segundos", 0),
-                "detalhes": h.get("detalhes", [])
+                "detalhes": h.get("detalhes", {})
             }
             for h in historico
         ]
