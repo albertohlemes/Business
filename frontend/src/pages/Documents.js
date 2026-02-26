@@ -2925,31 +2925,106 @@ const Documents = ({ user, onLogout }) => {
                 </table>
               </div>
               
-              {/* Informação de paginação e botão carregar mais */}
-              <div className="px-4 py-3 border-t border-[#2A2A2A] flex items-center justify-between">
+              {/* Informação de paginação e botões de controle */}
+              <div className="px-4 py-3 border-t border-[#2A2A2A] flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-[#A1A1AA]">
                   Exibindo <span className="text-white font-medium">{documents.length}</span> de{' '}
                   <span className="text-white font-medium">{pagination.total.toLocaleString()}</span> documentos
                 </p>
-                {pagination.hasMore && (
-                  <button
-                    onClick={() => fetchDocuments(true)}
-                    disabled={loadingMore}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#C8A951] text-black rounded-lg font-medium hover:bg-[#B09240] transition-colors disabled:opacity-50"
-                  >
-                    {loadingMore ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Carregando...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4" />
-                        Carregar mais ({Math.min(100, pagination.total - documents.length)})
-                      </>
-                    )}
-                  </button>
-                )}
+                
+                <div className="flex items-center gap-2">
+                  {/* Botão Carregar Todos */}
+                  {pagination.hasMore && documents.length < pagination.total && (
+                    <button
+                      onClick={async () => {
+                        setLoadingMore(true);
+                        try {
+                          const token = localStorage.getItem('token');
+                          const params = new URLSearchParams();
+                          params.append('company_id', ctxCompany.id);
+                          params.append('competencia', selectedCompetencia);
+                          params.append('skip', 0);
+                          params.append('limit', 10000); // Carregar até 10k de uma vez
+                          
+                          if (operacao === 'entrada') {
+                            params.append('tipo_operacao', 'entrada');
+                          } else {
+                            params.append('tipo_operacao', 'saida');
+                          }
+                          
+                          const tipoConfig = CATEGORIAS[operacao]?.tipos.find(t => t.id === tipoDoc);
+                          if (tipoConfig && tipoConfig.modelo !== 'outros') {
+                            params.append('modelo', tipoConfig.modelo);
+                          }
+                          
+                          if (filterStatus !== 'todas') {
+                            params.append('status', filterStatus === 'canceladas' ? 'cancelada' : 'ativa');
+                          }
+                          
+                          const res = await axios.get(`${API}/xml/documents?${params.toString()}`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          
+                          const responseData = res.data;
+                          let docs = responseData.documents || responseData || [];
+                          
+                          if (tipoDoc === 'outros') {
+                            docs = docs.filter(d => !['55', '65', '57'].includes(d.modelo));
+                          }
+                          
+                          setDocuments(docs);
+                          setPagination({
+                            total: responseData.total || docs.length,
+                            skip: 0,
+                            limit: docs.length,
+                            hasMore: false
+                          });
+                          toast.success(`${docs.length.toLocaleString()} documentos carregados!`);
+                        } catch (err) {
+                          console.error('Erro ao carregar todos:', err);
+                          toast.error('Erro ao carregar todos os documentos');
+                        } finally {
+                          setLoadingMore(false);
+                        }
+                      }}
+                      disabled={loadingMore}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-500 transition-colors disabled:opacity-50"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Carregando...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Carregar Todos ({(pagination.total - documents.length).toLocaleString()})
+                        </>
+                      )}
+                    </button>
+                  )}
+                  
+                  {/* Botão Carregar Mais (+100) */}
+                  {pagination.hasMore && (
+                    <button
+                      onClick={() => fetchDocuments(true)}
+                      disabled={loadingMore}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#C8A951] text-black rounded-lg font-medium hover:bg-[#B09240] transition-colors disabled:opacity-50"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Carregando...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          +100
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
