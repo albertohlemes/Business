@@ -3644,8 +3644,10 @@ def parse_xml_nfse(xml_content: str) -> Dict[str, Any]:
                     nfse_wrapper.get('infNfse') or 
                     nfse_wrapper.get('INFNFSE')
                 )
+                logger.info(f"[NFSE PARSER] inf_nfse encontrado: {bool(inf_nfse)}, keys do infNFSe: {list(inf_nfse.keys())[:10] if isinstance(inf_nfse, dict) else 'N/A'}")
                 if inf_nfse:
                     nfse = inf_nfse
+                    logger.info(f"[NFSE PARSER] Usando infNFSe como nfse. Keys: {list(nfse.keys()) if isinstance(nfse, dict) else 'N/A'}")
                 # Se tem dados diretamente (PrestadorServico, Servico, Numero, etc)
                 elif nfse_wrapper.get('PrestadorServico') or nfse_wrapper.get('Servico') or nfse_wrapper.get('Numero'):
                     nfse = nfse_wrapper
