@@ -229,7 +229,11 @@ const Layout = ({ user, onLogout, children }) => {
     nav.push({ name: 'Evolução Fiscal', href: '/analise-horizontal', icon: TrendingUp, testId: 'nav-analise-horizontal' });
     nav.push({ name: 'Vilões e Oportunidades', href: '/viloes-oportunidades', icon: AlertTriangle, testId: 'nav-viloes-oportunidades' });
     nav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
-    nav.push({ name: 'Grupos Empresariais', href: '/grupos-empresariais', icon: Building2, testId: 'nav-grupos-empresariais' });
+    
+    // Grupos Empresariais - apenas para empresas matriz
+    if (isMatriz) {
+      nav.push({ name: 'Grupos Empresariais', href: '/grupos-empresariais', icon: Building2, testId: 'nav-grupos-empresariais' });
+    }
     
     // ═══════════════════════════════════════════════════════════
     // 📤 EXPORTAÇÕES E FECHAMENTO
