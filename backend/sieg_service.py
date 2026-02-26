@@ -525,9 +525,10 @@ async def download_xmls_sieg(
                         # 404 = Nenhum arquivo encontrado (não é erro)
                         break
                     elif response.status_code == 429:
-                        # Rate limit - esperar e tentar novamente
-                        print(f"[SIEG] Rate limit atingido. Aguardando 5 segundos...")
-                        await asyncio.sleep(5)
+                        # Rate limit - esperar mais tempo antes de tentar novamente
+                        wait_time = 15 * (retry_count + 1)  # Aumenta com cada retry
+                        print(f"[SIEG] Rate limit atingido. Aguardando {wait_time} segundos...")
+                        await asyncio.sleep(wait_time)
                         retry_count += 1
                         if retry_count >= max_retries:
                             print(f"[SIEG] Máximo de retries atingido para {xml_type}")
