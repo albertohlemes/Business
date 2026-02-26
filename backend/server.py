@@ -35407,7 +35407,8 @@ async def get_fechamento_mensal(
     # Calcular ICMS (com saldo credor anterior)
     icms_debito = 0
     icms_credito = 0
-    icms_st = 0
+    icms_st_entradas = 0  # ICMS-ST pago nas entradas (a recuperar/compensar)
+    icms_st_saidas = 0    # ICMS-ST destacado nas saídas (a recolher)
     
     for doc in saidas:
         for prod in doc.get('produtos', []):
@@ -35415,17 +35416,22 @@ async def get_fechamento_mensal(
             # Não considerar débitos de transferência
             if not is_cfop_transferencia(cfop):
                 icms_debito += float(prod.get('v_icms', 0) or 0)
-            icms_st += float(prod.get('v_icms_st', 0) or 0)
+            icms_st_saidas += float(prod.get('v_icms_st', 0) or 0)
     
     for doc in entradas:
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
+            # Somar ICMS-ST das entradas (para contribuinte substituto)
+            icms_st_entradas += float(prod.get('v_icms_st', 0) or 0)
             # Não considerar créditos de transferência
             if is_cfop_transferencia(cfop):
                 continue
             # Verificar se CFOP dá direito a crédito (excluir despesas e ST)
             if cfop and cfop[0] in ['1', '2', '3'] and cfop not in ['1556', '2556', '1403', '2403', '1409', '2409', '1407', '2407']:
                 icms_credito += float(prod.get('v_icms', 0) or 0)
+    
+    # ICMS-ST total
+    icms_st = icms_st_saidas  # Valor destacado nas vendas (a recolher pelo substituto)
     
     # Saldo ICMS considerando credor anterior
     icms_saldo_antes_anterior = icms_debito - icms_credito
