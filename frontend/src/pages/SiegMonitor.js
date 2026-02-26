@@ -636,6 +636,16 @@ const SiegMonitor = ({ user, onLogout }) => {
                       <td className="px-4 py-3 text-right text-[#A1A1AA] text-sm">
                         {item.duracao_segundos ? `${item.duracao_segundos}s` : '-'}
                       </td>
+                      <td className="px-4 py-3 text-center">
+                        {item.tem_relatorio && (
+                          <button
+                            onClick={() => setRelatorioModal({ open: true, syncId: item.id, item })}
+                            className="px-2 py-1 text-xs text-purple-400 bg-purple-500/10 border border-purple-500/30 rounded hover:bg-purple-500/20 transition-all"
+                          >
+                            Ver Relatório
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
