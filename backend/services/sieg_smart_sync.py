@@ -236,7 +236,7 @@ async def detectar_devolucoes_fornecedor(
                 if valor_match:
                     try:
                         valor_devolucao = float(valor_match.group(1))
-                    except:
+                    except (ValueError, TypeError):
                         valor_devolucao = 0.0
                 
                 valor_original = float(nota_original.get("valor_total", 0) or 0)
