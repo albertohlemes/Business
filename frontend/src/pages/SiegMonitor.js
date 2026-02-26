@@ -499,6 +499,52 @@ const SiegMonitor = ({ user, onLogout }) => {
             {/* Content based on active tab */}
             {activeTab === 'overview' && painelEmpresa && (
           <div className="space-y-6">
+            {/* NOVO: Alerta de CNPJ não cadastrado no SIEG */}
+            {cnpjStatus && !cnpjStatus.success && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-red-500/20 rounded-full">
+                    <AlertTriangle className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-red-400 font-semibold text-lg mb-2">
+                      CNPJ não cadastrado no cofre SIEG
+                    </h3>
+                    <p className="text-red-300/80 mb-3">
+                      {cnpjStatus.mensagem}
+                    </p>
+                    <div className="bg-[#1A1A1A] rounded-lg p-4 mb-4">
+                      <p className="text-sm text-[#A1A1AA] mb-2">Para resolver:</p>
+                      <ol className="text-sm text-[#A1A1AA] space-y-1 list-decimal list-inside">
+                        <li>Acesse o painel do SIEG (<a href="https://app.sieg.com" target="_blank" rel="noopener noreferrer" className="text-[#C8A951] hover:underline">app.sieg.com</a>)</li>
+                        <li>Vá em <strong>Cofre Digital → Gerenciar CNPJs</strong></li>
+                        <li>Adicione o CNPJ <code className="bg-[#2A2A2A] px-2 py-0.5 rounded">{cnpjStatus.cnpj}</code> ao cofre</li>
+                        <li>Aguarde alguns minutos para a sincronização</li>
+                        <li>Clique no botão abaixo para verificar novamente</li>
+                      </ol>
+                    </div>
+                    <button
+                      onClick={() => verificarCnpjSieg(selectedCompany?.id)}
+                      disabled={verificandoCnpj}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#C8A951] text-black rounded-lg hover:bg-[#D4B85D] transition-colors disabled:opacity-50"
+                    >
+                      {verificandoCnpj ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Verificando...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4" />
+                          Verificar Novamente
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Status da Integração */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Card de Configuração */}
