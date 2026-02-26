@@ -1402,7 +1402,19 @@ async def buscar_saldos_credores_anteriores(company_id: str, competencia: str, c
                 "origem": "cadastro_empresa",
                 "competencia_origem": competencia_inicial
             }
-            logger.info(f"SALDO CREDOR: Usando saldo inicial da empresa: {saldos}")
+            logger.info(f"SALDO CREDOR: Usando saldo inicial da empresa (competencia == inicial): {saldos}")
+        elif comp_anterior == competencia_inicial and possui_saldo_credor:
+            # CORREÇÃO: Se a competência ANTERIOR é a inicial, usar os saldos cadastrados
+            # Ex: competencia=01/2026, comp_anterior=12/2025, competencia_inicial=12/2025
+            saldos = {
+                "pis": float(company.get('saldo_credor_pis', 0) or 0),
+                "cofins": float(company.get('saldo_credor_cofins', 0) or 0),
+                "icms": float(company.get('saldo_credor_icms', 0) or 0),
+                "ipi": float(company.get('saldo_credor_ipi', 0) or 0),
+                "origem": "cadastro_empresa",
+                "competencia_origem": competencia_inicial
+            }
+            logger.info(f"SALDO CREDOR: Usando saldo inicial da empresa (comp_anterior == inicial): {saldos}")
         else:
             # Buscar saldo transportado da competência anterior
             saldo_anterior_db = await db.saldos_credores.find_one({
