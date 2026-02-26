@@ -504,7 +504,7 @@ const SiegMonitor = ({ user, onLogout }) => {
               <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-6">
                 <h3 className="text-white font-medium mb-4 flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-[#C8A951]" />
-                  Estatísticas
+                  Estatísticas {selectedCompetencia && <span className="text-sm text-[#A1A1AA] font-normal">({selectedCompetencia})</span>}
                 </h3>
                 
                 <div className="grid grid-cols-2 gap-4">
