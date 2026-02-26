@@ -114,7 +114,7 @@ const SiegMonitor = ({ user, onLogout }) => {
     }
     fetchSiegStatus();
     fetchConfigHorarios();
-  }, [selectedCompany, fetchSiegStatus]);
+  }, [selectedCompany, selectedCompetencia, fetchSiegStatus, fetchPainelEmpresa]);
 
   useEffect(() => {
     if (selectedEmpresa) {
