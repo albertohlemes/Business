@@ -185,11 +185,15 @@ async def verificar_cnpj_sieg(
     # Limpar CNPJ
     cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
     
+    print(f"[SIEG VERIFICAR] CNPJ original: {cnpj}")
+    print(f"[SIEG VERIFICAR] CNPJ limpo: {cnpj_limpo}")
+    
     # Usar API Key diretamente
     api_key = api_key or get_sieg_api_key()
     
     result = {
         "cnpj": cnpj_limpo,
+        "cnpj_original": cnpj,
         "cadastrado": False,
         "autorizado": False,
         "erro": None,
