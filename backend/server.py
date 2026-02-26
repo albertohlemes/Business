@@ -6746,6 +6746,7 @@ async def sieg_sync_execute(
                 doc = xml_doc.model_dump()
                 doc['uploaded_at'] = doc['uploaded_at'].isoformat()
                 doc['origem'] = 'sieg'
+                doc['origem_importacao'] = 'sieg'  # Campo usado para contagem de docs via SIEG
                 
                 # ============================================================
                 # VERIFICAR SE É DEVOLUÇÃO DO FORNECEDOR
