@@ -435,13 +435,38 @@ async def download_xmls_sieg(
                     elif response.status_code == 404:
                         # 404 = Nenhum arquivo encontrado (não é erro)
                         break
+                    elif response.status_code == 429:
+                        # Rate limit - esperar e tentar novamente
+                        print(f"[SIEG] Rate limit atingido. Aguardando 5 segundos...")
+                        await asyncio.sleep(5)
+                        retry_count += 1
+                        if retry_count >= max_retries:
+                            print(f"[SIEG] Máximo de retries atingido para {xml_type}")
+                            break
+                        continue
+                    elif response.status_code >= 500:
+                        # Erro do servidor - tentar novamente
+                        print(f"[SIEG] Erro do servidor ({response.status_code}). Aguardando 3 segundos...")
+                        await asyncio.sleep(3)
+                        retry_count += 1
+                        if retry_count >= max_retries:
+                            print(f"[SIEG] Máximo de retries atingido para {xml_type}")
+                            break
+                        continue
                     else:
                         print(f"[SIEG] Erro na requisição: {response.status_code} - {response.text[:200]}")
+                        # Continuar com próximo tipo em vez de parar completamente
                         break
                         
                 except Exception as e:
                     print(f"[SIEG] Exceção ao baixar {xml_type}: {e}")
-                    break
+                    retry_count += 1
+                    if retry_count >= max_retries:
+                        print(f"[SIEG] Máximo de retries atingido para {xml_type} após exceção")
+                        break
+                    # Esperar e tentar novamente
+                    await asyncio.sleep(2)
+                    continue
                 
                 # Se não está paginando, sair do loop
                 if not baixar_todos:
