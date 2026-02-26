@@ -4,6 +4,10 @@
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
 ## Última Atualização: 26/02/2026 (Sessão 3)
+- **CORRIGIDO CRÍTICO**: Bug que impedia download de saídas do SIEG
+  - Problema: Sincronização trazia apenas entradas, não trazia saídas
+  - Causa: Faltava `import asyncio` no arquivo `sieg_service.py`
+  - Solução: Adicionado import correto; agora baixa entradas E saídas
 - **CORRIGIDO**: Bug crítico de valores PIS/COFINS no Dashboard
   - Problema: Dashboard mostrava valores diferentes da página PIS/COFINS e Fechamento Mensal
   - Causa: Versão "pequena" do Dashboard (<=500 docs) usava cálculo manual próprio, diferente da versão agregada
