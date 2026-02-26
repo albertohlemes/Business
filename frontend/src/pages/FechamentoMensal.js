@@ -255,8 +255,8 @@ const FechamentoMensal = ({ user, onLogout }) => {
                 </div>
               </div>
 
-              {/* ICMS-ST - apenas para contribuintes de ST */}
-              {data.empresa?.apura_icms_st && (data.icms?.st > 0 || data.icms?.st_entradas > 0 || data.icms?.st_saidas > 0) && (
+              {/* ICMS-ST - Mostrar se for contribuinte de ST OU se houver valores */}
+              {(data.empresa?.apura_icms_st || data.icms?.st > 0 || data.icms?.st_entradas > 0 || data.icms?.st_saidas > 0) && (
                 <div className="bg-[#141414] rounded-xl p-5 border border-amber-500/30">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
