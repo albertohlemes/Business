@@ -4,6 +4,14 @@
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
 ## Última Atualização: 26/02/2026
+- **CORRIGIDO**: Bug do transporte de saldos credores
+  - Problema: Se não havia saldo salvo na competência anterior, não usava o saldo inicial
+  - Solução: Busca em cadeia até encontrar último saldo salvo ou saldo inicial (fallback)
+- **CORRIGIDO**: Scheduler SIEG agora carrega horário do banco ao iniciar
+  - Problema: Servidor sempre iniciava com 03:00 hardcoded
+  - Solução: `start_scheduler()` lê configuração do MongoDB antes de criar o job
+- **MELHORADO**: Cálculo ICMS-ST separado (entradas vs saídas) para contribuintes substitutos
+- **MELHORADO**: UI do card SIEG na página de Documentos (banner simplificado + botão sync)
 - **APRIMORADO**: Sincronização Inteligente SIEG (Smart Sync) - Validação de Devoluções com Valor
   - Comparação de valores: se devolução tem valor igual à NF original, desconsiderar automaticamente
   - Se valor diferente: NÃO desconsiderar, registrar para análise do usuário no Wizard
