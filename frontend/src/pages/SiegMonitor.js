@@ -330,6 +330,26 @@ const SiegMonitor = ({ user, onLogout }) => {
           </div>
         </div>
 
+        {/* Banner de Sincronização em Progresso */}
+        {syncInProgress && (
+          <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-white font-medium">Sincronização em andamento...</h4>
+                <p className="text-purple-300 text-sm">
+                  Baixando XMLs do cofre SIEG. Isso pode levar alguns minutos dependendo da quantidade de documentos.
+                </p>
+              </div>
+              <div className="text-purple-400 animate-pulse">
+                <Activity className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Verificar se tem empresa selecionada */}
         {!selectedCompany ? (
           <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-12 text-center">
