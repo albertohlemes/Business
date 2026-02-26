@@ -3,13 +3,20 @@
 ## Visão Geral
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
-## Última Atualização: 25/02/2026
+## Última Atualização: 26/02/2026
+- **NOVO**: Sincronização Inteligente SIEG (Smart Sync)
+  - Modo incremental: só processa XMLs novos (duplicados são ignorados)
+  - Filtragem por chave NFe: evita reprocessar documentos já importados
+  - Detecção de devoluções de fornecedor (finNFe=4, refNFe)
+  - Verificação de cancelamentos posteriores
+  - Logs detalhados: encontrados, novos, duplicados, importados, devoluções
+- **NOVO**: Qualquer usuário pode configurar horário de sincronização
 - **CONCLUÍDO**: Centralização da Configuração SIEG - configuração movida para dentro da empresa
 - **CONCLUÍDO**: Integração SIEG 100% funcional - download automático de XMLs funcionando
-- **NOVO**: Campos SIEG (`sieg_ativo`, `sieg_sync_automatico`, `sieg_frequencia`) na empresa
-- **NOVO**: WizardEmpresa com seção de Integração SIEG no step 5 (Benefícios)
-- **NOVO**: Endpoint de migração `/api/sieg/migrate-config` para dados antigos
-- **NOVO**: Scheduler lê configuração diretamente da coleção `companies`
+- Campos SIEG (`sieg_ativo`, `sieg_sync_automatico`, `sieg_frequencia`) na empresa
+- WizardEmpresa com seção de Integração SIEG no step 5 (Benefícios)
+- Endpoint de migração `/api/sieg/migrate-config` para dados antigos
+- Scheduler lê configuração diretamente da coleção `companies`
 - Paginação automática - baixa TODOS os XMLs (não apenas 50)
 - Processamento completo igual ao upload manual:
   - Classificação com IA/cache/regras
@@ -17,7 +24,7 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
   - Verificação de cancelamentos
   - Marcação de notas desconsideradas
 - Painel de Monitoramento SIEG (/sieg-monitor) com 4 abas
-- Job agendado (APScheduler) para sincronização automática diária às 03:00
+- Job agendado (APScheduler) para sincronização automática diária
 
 ## Stack Tecnológica
 - **Frontend**: React 18 + TailwindCSS + Lucide Icons
