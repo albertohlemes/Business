@@ -7931,6 +7931,75 @@ async def sieg_verificar_cnpj(
     }
 
 
+@api_router.get("/sieg/diagnostico/{company_id}")
+async def sieg_diagnostico(
+    company_id: str,
+    competencia: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Diagnóstico completo da integração SIEG para uma empresa.
+    Útil para identificar problemas de configuração.
+    """
+    from sieg_service import get_sieg_api_key, count_xmls_sieg
+    
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    cnpj = company.get('cnpj', '')
+    cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+    
+    # Competência padrão
+    if not competencia:
+        from datetime import datetime
+        now = datetime.now()
+        competencia = f"{now.month:02d}/{now.year}"
+    
+    # Verificar API Key
+    api_key = get_sieg_api_key()
+    api_key_configurada = bool(api_key)
+    
+    # Verificar CNPJ no SIEG
+    verificacao = await verificar_cnpj_sieg(cnpj) if cnpj else {"autorizado": False, "mensagem": "CNPJ não configurado"}
+    
+    # Contar XMLs disponíveis
+    contagem = None
+    if verificacao.get("autorizado"):
+        try:
+            contagem = await count_xmls_sieg(cnpj, competencia)
+        except Exception as e:
+            contagem = {"erro": str(e)}
+    
+    return {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj_cadastrado": cnpj,
+            "cnpj_limpo": cnpj_limpo,
+            "cnpj_tamanho": len(cnpj_limpo)
+        },
+        "competencia": competencia,
+        "api_sieg": {
+            "api_key_configurada": api_key_configurada,
+            "api_key_preview": api_key[:10] + "..." if api_key else None
+        },
+        "verificacao_cnpj": {
+            "autorizado": verificacao.get("autorizado", False),
+            "cadastrado": verificacao.get("cadastrado", False),
+            "mensagem": verificacao.get("mensagem", ""),
+            "erro": verificacao.get("erro")
+        },
+        "contagem_xmls": contagem,
+        "recomendacoes": [] if verificacao.get("autorizado") else [
+            "O CNPJ não está autorizado no cofre SIEG",
+            f"CNPJ a verificar no SIEG: {cnpj_limpo}",
+            "Acesse https://app.sieg.com e verifique se este CNPJ está cadastrado no cofre"
+        ]
+    }
+
+
 # ============================================================================
 # PAINEL DE MONITORAMENTO SIEG
 # ============================================================================
