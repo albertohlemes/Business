@@ -595,7 +595,7 @@ async def sync_from_sieg(
             cnpj=cnpj,
             competencia=competencia,
             tipo="entrada",
-            xml_types=["nfe", "nfse"],
+            xml_types=["nfe", "cte", "nfse"],  # Incluir CT-e nas entradas
             take=50,  # Máximo permitido pela API SIEG
             api_key=api_key,
             baixar_todos=True  # Paginação automática para baixar TODOS
@@ -612,7 +612,7 @@ async def sync_from_sieg(
             cnpj=cnpj,
             competencia=competencia,
             tipo="saida",
-            xml_types=["nfe", "nfce", "nfse"],
+            xml_types=["nfe", "nfce", "cte", "nfse"],  # Incluir CT-e nas saídas
             take=50,  # Máximo permitido pela API SIEG
             api_key=api_key,
             baixar_todos=True  # Paginação automática para baixar TODOS
