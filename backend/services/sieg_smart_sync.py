@@ -368,6 +368,7 @@ async def registrar_sync_log(
 ) -> str:
     """
     Registra o log da sincronização no banco.
+    ATUALIZADO: Inclui relatório detalhado igual ao upload manual.
     """
     import uuid
     
@@ -386,7 +387,24 @@ async def registrar_sync_log(
         "total_devolucoes": stats.get("total_devolucoes", 0),
         "total_erros": stats.get("total_erros", 0),
         "duracao_segundos": stats.get("duracao_segundos", 0),
-        "detalhes": stats.get("detalhes", {})
+        "detalhes": stats.get("detalhes", {}),
+        "entradas": stats.get("entradas", {}),
+        "saidas": stats.get("saidas", {}),
+        # Relatório detalhado igual ao upload manual
+        "relatorio_detalhado": {
+            "notas_importadas": stats.get("notas_importadas", []),
+            "notas_duplicadas": stats.get("notas_duplicadas", []),
+            "notas_canceladas": stats.get("notas_canceladas", []),
+            "devolucoes_detectadas": stats.get("devolucoes_detectadas", []),
+            "conversoes_cfop": stats.get("conversoes_cfop", []),
+            "erros": stats.get("erros", []),
+            "resumo_classificacao": stats.get("resumo_classificacao", {
+                "total": 0,
+                "from_cache": 0,
+                "from_rules": 0,
+                "from_ai": 0
+            })
+        }
     }
     
     await db.sieg_sync_logs.insert_one(log_entry)
