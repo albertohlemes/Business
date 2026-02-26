@@ -677,9 +677,10 @@ const Dashboard = ({ user, onLogout }) => {
                             <span className="font-medium text-red-400">{formatCurrency(stats.debitos?.icms)}</span>
                           </div>
                           {/* SALDO CREDOR ANTERIOR - SÓ APARECE QUANDO EXISTE */}
+                          {/* NOTA: Saldo credor anterior é SOMADO aos créditos (é crédito acumulado) */}
                           {stats.saldo_credor_anterior?.icms > 0 && (
                             <div className="flex justify-between text-sm bg-blue-500/10 -mx-2 px-2 py-1 rounded">
-                              <span className="text-blue-400">(-) Saldo Anterior:</span>
+                              <span className="text-blue-400">(+) Saldo Credor Ant.:</span>
                               <span className="font-medium text-blue-400">{formatCurrency(stats.saldo_credor_anterior.icms)}</span>
                             </div>
                           )}
