@@ -3795,7 +3795,10 @@ def _find_infnfse_recursive(data: dict, depth: int = 0) -> Optional[Dict]:
 def _parse_single_nfse(nfse: Dict[str, Any]) -> Dict[str, Any]:
     """
     Parser interno para uma única NFS-e
-    Suporta múltiplas variações de estrutura usadas por diferentes municípios
+    Suporta múltiplas variações de estrutura:
+    - ABRASF 1.0/2.0 (PrestadorServico, TomadorServico)
+    - NFS-e Nacional/SERPRO (emit, dest, DPS)
+    - Betha, ISS Digital, e outras variações
     """
     
     # Helper para buscar campos com variações de case
@@ -3807,8 +3810,9 @@ def _parse_single_nfse(nfse: Dict[str, Any]) -> Dict[str, Any]:
             if key in obj and obj[key]:
                 return obj[key]
             # Tentar lowercase
-            if key.lower() in obj and obj[key.lower()]:
-                return obj[key.lower()]
+            lower_key = key.lower()
+            if lower_key in obj and obj[lower_key]:
+                return obj[lower_key]
             # Tentar capitalize
             cap = key[0].upper() + key[1:] if key else key
             if cap in obj and obj[cap]:
@@ -3825,19 +3829,194 @@ def _parse_single_nfse(nfse: Dict[str, Any]) -> Dict[str, Any]:
             return default
     
     # ============================================================
-    # DADOS DO PRESTADOR (quem emitiu)
+    # DETECTAR FORMATO: NFS-e Nacional (SERPRO) ou ABRASF
     # ============================================================
-    prestador = (
-        get_field(nfse, 'PrestadorServico', 'Prestador', 'prestadorServico', 'prestador') or
-        get_field(nfse, 'DadosPrestador', 'dadosPrestador') or
-        {}
-    )
-    if not isinstance(prestador, dict):
-        prestador = {}
+    is_nfse_nacional = bool(nfse.get('emit') or nfse.get('nNFSe') or nfse.get('DPS'))
     
-    id_prestador = get_field(prestador, 'IdentificacaoPrestador', 'identificacaoPrestador', 'Identificacao') or {}
-    if not isinstance(id_prestador, dict):
-        id_prestador = {}
+    if is_nfse_nacional:
+        return _parse_nfse_nacional(nfse, get_field, safe_float)
+    else:
+        return _parse_nfse_abrasf(nfse, get_field, safe_float)
+
+
+def _parse_nfse_nacional(nfse: Dict[str, Any], get_field, safe_float) -> Dict[str, Any]:
+    """
+    Parser para NFS-e Nacional (padrão SERPRO/Receita Federal)
+    Campos: emit, nNFSe, dhProc, valores, DPS, etc.
+    """
+    # ============================================================
+    # EMITENTE (prestador do serviço)
+    # ============================================================
+    emit = get_field(nfse, 'emit') or {}
+    if not isinstance(emit, dict):
+        emit = {}
+    
+    cnpj_prestador = get_field(emit, 'CNPJ', 'cnpj', 'Cnpj') or ''
+    nome_prestador = get_field(emit, 'xNome', 'nome', 'xRazao', 'razaoSocial') or ''
+    
+    # Endereço do emitente
+    end_emit = get_field(emit, 'enderEmit', 'endereco', 'end') or {}
+    prestador_endereco = {
+        'logradouro': get_field(end_emit, 'xLgr', 'logradouro', 'Endereco'),
+        'numero': get_field(end_emit, 'nro', 'numero'),
+        'complemento': get_field(end_emit, 'xCpl', 'complemento'),
+        'bairro': get_field(end_emit, 'xBairro', 'bairro'),
+        'cidade': get_field(end_emit, 'xMun', 'cidade'),
+        'cod_municipio': get_field(end_emit, 'cMun', 'codigoMunicipio'),
+        'uf': get_field(end_emit, 'UF', 'uf'),
+        'cep': get_field(end_emit, 'CEP', 'cep'),
+        'pais': 'BRASIL',
+        'cod_pais': '1058',
+        'telefone': get_field(emit, 'fone', 'telefone')
+    }
+    
+    # ============================================================
+    # TOMADOR/DESTINATÁRIO (cliente)
+    # ============================================================
+    # Em NFS-e Nacional, o DPS (Declaração de Prestação de Serviço) contém dados do tomador
+    dps = get_field(nfse, 'DPS') or {}
+    if not isinstance(dps, dict):
+        dps = {}
+    
+    toma = get_field(dps, 'toma', 'tomador') or {}
+    if not isinstance(toma, dict):
+        toma = {}
+    
+    cnpj_tomador = get_field(toma, 'CNPJ', 'cnpj', 'Cnpj', 'CPF', 'cpf') or ''
+    nome_tomador = get_field(toma, 'xNome', 'nome', 'razaoSocial') or 'CONSUMIDOR'
+    
+    # Endereço do tomador
+    end_toma = get_field(toma, 'enderToma', 'endereco', 'end') or {}
+    tomador_endereco = {
+        'logradouro': get_field(end_toma, 'xLgr', 'logradouro', 'Endereco'),
+        'numero': get_field(end_toma, 'nro', 'numero'),
+        'complemento': get_field(end_toma, 'xCpl', 'complemento'),
+        'bairro': get_field(end_toma, 'xBairro', 'bairro'),
+        'cidade': get_field(end_toma, 'xMun', 'cidade'),
+        'cod_municipio': get_field(end_toma, 'cMun', 'codigoMunicipio'),
+        'uf': get_field(end_toma, 'UF', 'uf'),
+        'cep': get_field(end_toma, 'CEP', 'cep'),
+        'pais': 'BRASIL',
+        'cod_pais': '1058',
+        'telefone': ''
+    }
+    
+    # ============================================================
+    # VALORES
+    # ============================================================
+    valores = get_field(nfse, 'valores') or {}
+    if not isinstance(valores, dict):
+        valores = {}
+    
+    # Valores também podem estar no DPS
+    valores_dps = get_field(dps, 'valores', 'servico') or {}
+    if not isinstance(valores_dps, dict):
+        valores_dps = {}
+    
+    # Combinar valores
+    valor_servicos = safe_float(
+        get_field(valores, 'vServPrest', 'vServ', 'vLiq', 'ValorServicos') or
+        get_field(valores_dps, 'vServPrest', 'vServ', 'vLiq') or
+        get_field(nfse, 'vServPrest', 'vLiq') or
+        0
+    )
+    valor_iss = safe_float(
+        get_field(valores, 'vISSQN', 'vISS', 'valorISS') or
+        get_field(valores_dps, 'vISSQN', 'vISS') or
+        0
+    )
+    aliq_iss = safe_float(
+        get_field(valores, 'pAliqISS', 'pISS', 'aliqISS', 'aliquota') or
+        get_field(valores_dps, 'pAliqISS', 'pISS') or
+        0
+    )
+    
+    # ============================================================
+    # NÚMERO E DATA
+    # ============================================================
+    numero = get_field(nfse, 'nNFSe', 'nDFSe', 'numero', 'Numero') or ''
+    data_emissao = get_field(nfse, 'dhProc', 'dhEmi', 'DataEmissao', 'dataEmissao') or ''
+    codigo_verificacao = get_field(nfse, '@Id', 'chNFSe', 'chave', 'CodigoVerificacao') or ''
+    competencia = get_field(nfse, 'dhCompet', 'competencia', 'Competencia') or ''
+    
+    # ============================================================
+    # SERVIÇO
+    # ============================================================
+    serv = get_field(dps, 'serv', 'servico') or {}
+    if not isinstance(serv, dict):
+        serv = {}
+    
+    discriminacao = get_field(serv, 'xDescServ', 'descricao', 'Discriminacao') or 'Serviço'
+    codigo_servico = get_field(serv, 'cServ', 'codServico', 'ItemListaServico') or ''
+    cnae = get_field(serv, 'CNAE', 'cnae', 'CodigoCnae') or ''
+    
+    servicos = [{
+        'codigo': str(codigo_servico),
+        'cnae': str(cnae),
+        'descricao': discriminacao[:200] if discriminacao else 'Serviço',
+        'valor_total': valor_servicos,
+        'cfop': '5933',
+        'aliq_iss': aliq_iss,
+        'valor_iss': valor_iss,
+        'v_pis': safe_float(get_field(valores, 'vPIS', 'valorPis') or 0),
+        'v_cofins': safe_float(get_field(valores, 'vCOFINS', 'valorCofins') or 0),
+        'v_inss': safe_float(get_field(valores, 'vINSS', 'valorInss') or 0),
+        'v_ir': safe_float(get_field(valores, 'vIR', 'valorIr') or 0),
+        'v_csll': safe_float(get_field(valores, 'vCSLL', 'valorCsll') or 0),
+        'base_calculo': safe_float(get_field(valores, 'vBC', 'baseCalculo') or valor_servicos),
+        'iss_retido': get_field(valores, 'indISSRet', 'issRetido') == '1'
+    }]
+    
+    # ============================================================
+    # RETENÇÕES
+    # ============================================================
+    iss_foi_retido = get_field(valores, 'indISSRet', 'IssRetido') == '1'
+    valor_iss_retido = valor_iss if iss_foi_retido else 0
+    pis_retido = safe_float(get_field(valores, 'vPIS', 'ValorPis') or 0)
+    cofins_retido = safe_float(get_field(valores, 'vCOFINS', 'ValorCofins') or 0)
+    ir_retido = safe_float(get_field(valores, 'vIR', 'ValorIr') or 0)
+    csll_retido = safe_float(get_field(valores, 'vCSLL', 'ValorCsll') or 0)
+    inss_retido = safe_float(get_field(valores, 'vINSS', 'ValorInss') or 0)
+    
+    # Log para debug
+    if not numero or not nome_prestador:
+        logger.warning(f"[NFSE NACIONAL] Campos ainda vazios - numero: '{numero}', prestador: '{nome_prestador}', valor: {valor_servicos}")
+    
+    return {
+        'modelo': 'nfse',
+        'chave_nfe': str(codigo_verificacao) or str(uuid.uuid4())[:20],
+        'numero_nfe': str(numero),
+        'serie': '1',
+        'data_emissao': str(data_emissao),
+        'competencia_nfse': str(competencia),
+        'emitente_cnpj': str(cnpj_prestador),
+        'emitente_nome': str(nome_prestador),
+        'emitente_ie': '',
+        'emitente_uf': prestador_endereco.get('uf', ''),
+        'emitente_endereco': prestador_endereco,
+        'destinatario_cnpj': str(cnpj_tomador),
+        'destinatario_nome': str(nome_tomador),
+        'destinatario_ie': '',
+        'destinatario_uf': tomador_endereco.get('uf', ''),
+        'destinatario_endereco': tomador_endereco,
+        'valor_total': valor_servicos,
+        'valor_servicos': valor_servicos,
+        'valor_iss': valor_iss,
+        'iss_retido_flag': iss_foi_retido,
+        'iss_retido': valor_iss_retido,
+        'pis_retido': pis_retido,
+        'cofins_retido': cofins_retido,
+        'ir_retido': ir_retido,
+        'csll_retido': csll_retido,
+        'inss_retido': inss_retido,
+        'total_retencoes': valor_iss_retido + pis_retido + cofins_retido + ir_retido + csll_retido + inss_retido,
+        'produtos': [],
+        'servicos': servicos
+    }
+
+
+def _parse_nfse_abrasf(nfse: Dict[str, Any], get_field, safe_float) -> Dict[str, Any]:
+    """Parser para NFS-e padrão ABRASF (estrutura original)"""
     
     # CNPJ do prestador - múltiplas variações
     cnpj_prestador = (
