@@ -6656,7 +6656,9 @@ async def sieg_sync_execute(
         "classificados": {"cache": 0, "regras": 0, "ia": 0},
         "erros": [],
         "duplicados": [],
+        "cancelados": [],
         "relatorio_conversoes": [],
+        "documentos_importados": [],  # Lista de documentos importados para o relatório
         "smart_sync": {
             "modo": "incremental",
             "cancelamentos_detectados": 0,
