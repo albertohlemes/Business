@@ -28534,35 +28534,20 @@ async def apurar_pis_cofins(
         comp_anterior = None
     
     # Verificar se é a competência inicial (usa saldo cadastrado na empresa)
-    competencia_inicial = company.get('competencia_saldo_inicial', '')
+    competencia_inicial = company.get('competencia_saldo_inicial', '') or company.get('competencia_inicial', '')
     possui_saldo_credor = company.get('possui_saldo_credor', False)
     
-    if competencia == competencia_inicial and possui_saldo_credor:
-        # Usar saldo inicial cadastrado na empresa
-        saldo_credor_anterior = {
-            "pis": company.get('saldo_credor_pis', 0) or 0,
-            "cofins": company.get('saldo_credor_cofins', 0) or 0,
-            "icms": company.get('saldo_credor_icms', 0) or 0,
-            "ipi": company.get('saldo_credor_ipi', 0) or 0,
-            "origem": "cadastro",
-            "competencia_origem": competencia_inicial
-        }
-    elif comp_anterior:
-        # Buscar saldo transportado da competência anterior
-        saldo_anterior_db = await db.saldos_credores.find_one({
-            "company_id": company_id,
-            "competencia": comp_anterior
-        })
-        if saldo_anterior_db:
-            saldo_transportar = saldo_anterior_db.get('saldo_a_transportar', {})
-            saldo_credor_anterior = {
-                "pis": saldo_transportar.get('pis', 0) or 0,
-                "cofins": saldo_transportar.get('cofins', 0) or 0,
-                "icms": saldo_transportar.get('icms', 0) or 0,
-                "ipi": saldo_transportar.get('ipi', 0) or 0,
-                "origem": "competencia_anterior",
-                "competencia_origem": comp_anterior
-            }
+    # CORRIGIDO: Usar função centralizada para buscar saldo credor anterior
+    # Esta função já lida corretamente com:
+    # - Saldo da competência anterior (se existir)
+    # - Saldo inicial do cadastro (se não houver competência anterior ou se for primeira apuração)
+    saldo_credor_anterior = await buscar_saldos_credores_anteriores(company_id, competencia, company)
+    
+    logger.info(f"[PIS/COFINS APURACAO] Saldo credor anterior obtido: PIS={saldo_credor_anterior.get('pis', 0):.2f}, COFINS={saldo_credor_anterior.get('cofins', 0):.2f}")
+    
+    # Adicionar origem para exibição no frontend
+    saldo_credor_anterior['origem'] = saldo_credor_anterior.get('origem', 'cadastro')
+    saldo_credor_anterior['competencia_origem'] = saldo_credor_anterior.get('competencia_origem', competencia_inicial)
     
     # Lucro Real
     pis_credito = resultado_unificado['pis_creditos']
