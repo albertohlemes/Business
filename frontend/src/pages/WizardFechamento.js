@@ -574,7 +574,7 @@ const WizardFechamento = ({ user, onLogout }) => {
                           
                           {/* Coluna 2: Nota original referenciada */}
                           <div className="pl-2">
-                            <p className="text-xs text-emerald-400 font-medium mb-1">NOTA ORIGINAL (SUA VENDA)</p>
+                            <p className="text-xs text-emerald-400 font-medium mb-1">NOTA REFERENCIADA</p>
                             {nota.nota_original_encontrada && nota.nota_original ? (
                               <div>
                                 <p className="text-white font-bold">NF {nota.nota_original.numero_nfe}</p>
