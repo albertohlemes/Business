@@ -6896,7 +6896,7 @@ async def sieg_sync_execute(
                     file_conversions = []
                     
                     classifications, stats = await classify_products_with_cache(
-                        produtos_para_classificar, 
+                        produtos_para_classificar_final, 
                         company_id, 
                         company, 
                         emitente_uf
@@ -6907,11 +6907,11 @@ async def sieg_sync_execute(
                     total_stats["from_ai"] += stats.get("from_ai", 0)
                     total_stats["total"] += stats.get("total", 0)
                     
-                    for p_idx, product in enumerate(produtos_para_classificar):
+                    for p_idx, product in enumerate(produtos_para_classificar_final):
                         p_id = str(p_idx)
                         if p_id in classifications:
                             result_class = classifications[p_id]
-                            cfop_original = product.get('cfop', '')
+                            cfop_original = product.get('cfop_original_emissor', product.get('cfop', ''))
                             cfop_novo = result_class['cfop']
                             
                             product['cfop_original'] = cfop_original
@@ -6932,7 +6932,7 @@ async def sieg_sync_execute(
                             })
                         else:
                             # FALLBACK: Classificação padrão como REVENDA
-                            cfop_original = product.get('cfop', '')
+                            cfop_original = product.get('cfop_original_emissor', product.get('cfop', ''))
                             cst = product.get('cst', '')
                             is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
                             cfop_prefix = '1'  # Upload padrão estadual
