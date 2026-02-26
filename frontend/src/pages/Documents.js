@@ -1500,79 +1500,83 @@ const Documents = ({ user, onLogout }) => {
             </p>
           </div>
 
-          {/* Sincronização SIEG */}
+          {/* Banner SIEG Simplificado - Status + Sincronização Rápida */}
           <div className="max-w-2xl mx-auto">
-            <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-xl p-5">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <Cloud className="w-6 h-6 text-purple-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-semibold flex items-center gap-2">
-                      SIEG Soluções
-                      {siegStatus?.count && (
-                        <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded text-xs">
-                          {(siegStatus.count.entrada?.total || 0) + (siegStatus.count.saida?.total || 0)} novos
-                        </span>
-                      )}
-                    </h3>
-                    <p className="text-[#A1A1AA] text-sm">Importar XMLs automaticamente do cofre SIEG</p>
-                  </div>
+            <div className="bg-[#141414] border border-[#27272A] rounded-xl p-4 flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                  <Cloud className="w-5 h-5 text-purple-400" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleCheckSieg}
-                    disabled={siegSyncing}
-                    className="px-4 py-2 text-sm text-purple-300 bg-purple-500/10 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 disabled:opacity-50 transition-all flex items-center gap-2"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${siegSyncing ? 'animate-spin' : ''}`} />
-                    Verificar
-                  </button>
-                  <button
-                    onClick={handleSyncSieg}
-                    disabled={siegSyncing || !siegStatus?.count}
-                    className="px-4 py-2 text-sm text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-all flex items-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Sincronizar
-                  </button>
-                </div>
-              </div>
-              
-              {/* Progress bar durante sincronização */}
-              {siegSyncing && siegProgress?.step && (
-                <div className="mt-4 pt-4 border-t border-purple-500/20">
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-purple-300">{siegProgress.step}</span>
-                    <span className="text-[#A1A1AA]">{siegProgress.percent}%</span>
-                  </div>
-                  <div className="h-2 bg-purple-500/20 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-purple-500 transition-all duration-300"
-                      style={{ width: `${siegProgress.percent}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-              
-              {/* Resultado da sincronização */}
-              {siegResult && (
-                <div className={`mt-4 pt-4 border-t border-purple-500/20 text-sm ${siegResult.error ? 'text-red-400' : 'text-emerald-400'}`}>
-                  {siegResult.error ? (
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4" />
-                      {siegResult.error}
-                    </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-white font-medium">SIEG</span>
+                  <span className="text-[#A1A1AA] text-sm">|</span>
+                  {siegStatus?.status === 'conectado' ? (
+                    <span className="text-emerald-400 text-sm flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+                      Conectado
+                    </span>
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4" />
-                      Sincronização concluída! {siegResult.entrada?.importados || 0} entradas e {siegResult.saida?.importados || 0} saídas importadas.
-                    </div>
+                    <span className="text-amber-400 text-sm flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                      Verificar conexão
+                    </span>
+                  )}
+                  {siegStatus?.count && (siegStatus.count.entrada?.total || 0) + (siegStatus.count.saida?.total || 0) > 0 && (
+                    <>
+                      <span className="text-[#A1A1AA] text-sm">|</span>
+                      <span className="text-purple-300 text-sm">
+                        {(siegStatus.count.entrada?.total || 0) + (siegStatus.count.saida?.total || 0)} novos disponíveis
+                      </span>
+                    </>
                   )}
                 </div>
-              )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSyncSieg}
+                  disabled={siegSyncing}
+                  className="px-4 py-2 text-sm text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-all flex items-center gap-2"
+                  data-testid="btn-sync-sieg-rapido"
+                >
+                  {siegSyncing ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      {siegProgress?.percent || 0}%
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Sincronizar
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => navigate('/sieg-monitor')}
+                  className="px-3 py-2 text-sm text-[#A1A1AA] hover:text-white bg-[#1A1A1A] rounded-lg hover:bg-[#242424] transition-all flex items-center gap-2"
+                  data-testid="btn-ir-painel-sieg"
+                >
+                  Painel SIEG
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
+            
+            {/* Resultado da sincronização (compacto) */}
+            {siegResult && !siegSyncing && (
+              <div className={`mt-2 text-sm px-4 py-2 rounded-lg ${siegResult.error ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                {siegResult.error ? (
+                  <span className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    {siegResult.error}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    {siegResult.entrada?.importados || 0} entradas e {siegResult.saida?.importados || 0} saídas importadas
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Botão Histórico de Importações */}
