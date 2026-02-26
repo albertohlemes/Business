@@ -172,24 +172,50 @@ const SiegMonitor = ({ user, onLogout }) => {
 
   // Iniciar sincronização manual
   const startSync = async (companyId) => {
+    if (!selectedCompetencia) {
+      toast.error('Selecione uma competência para sincronizar');
+      return;
+    }
+    
     setSyncInProgress(true);
+    toast.info('🔄 Sincronização iniciada... Isso pode levar alguns minutos.', { duration: 5000 });
+    
     try {
       const token = localStorage.getItem('token');
-      // CORRIGIDO: Enviar competencia no body, não no query string
-      await axios.post(
+      
+      // CORRIGIDO: Usar FormData como esperado pelo endpoint
+      const formData = new FormData();
+      formData.append('competencia', selectedCompetencia);
+      
+      const response = await axios.post(
         `${API}/sieg/sync/${companyId}`,
-        { competencia: selectedCompetencia },
+        formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success('Sincronização concluída!');
+      
+      // Extrair estatísticas do resultado
+      const result = response.data;
+      const totalImportados = result.total_importados || 0;
+      const totalDuplicados = result.total_duplicados || 0;
+      const totalErros = result.total_erros || 0;
+      
+      if (totalErros > 0) {
+        toast.warning(`⚠️ Sincronização parcial: ${totalImportados} importados, ${totalDuplicados} já existiam, ${totalErros} erros`, { duration: 8000 });
+      } else if (totalImportados > 0) {
+        toast.success(`✅ Sincronização concluída! ${totalImportados} documentos importados, ${totalDuplicados} já existiam.`, { duration: 6000 });
+      } else if (totalDuplicados > 0) {
+        toast.info(`ℹ️ Todos os ${totalDuplicados} documentos já existiam no sistema.`, { duration: 5000 });
+      } else {
+        toast.info('ℹ️ Nenhum documento novo encontrado no SIEG.', { duration: 5000 });
+      }
+      
       // Recarregar dados após sync
-      await fetchPainelGeral();
-      if (selectedEmpresa && selectedEmpresa.company_id === companyId) {
-        await fetchPainelEmpresa(companyId);
+      if (selectedCompany) {
+        await fetchPainelEmpresa(selectedCompany.id);
       }
     } catch (err) {
       console.error('Erro ao sincronizar:', err);
-      toast.error('Erro ao sincronizar: ' + (err.response?.data?.detail || err.message));
+      toast.error('❌ Erro ao sincronizar: ' + (err.response?.data?.detail || err.message));
     } finally {
       setSyncInProgress(false);
     }
