@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.fiscal_constants import CFOPS_TRANSFERENCIA, is_cfop_transferencia
 
 # Get base URL from environment
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://smart-sync-preview.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://xml-parser-nfse.preview.emergentagent.com')
 
 
 class TestIsOfopTransferencia:

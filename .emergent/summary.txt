@@ -1,122 +1,88 @@
 <analysis>**original_problem_statement:**
-O usuário iniciou com uma solicitação para revisar o sistema de validação fiscal e corrigir bugs críticos, principalmente relacionados ao transporte de saldos credores de impostos. O foco mudou para a integração com o serviço de terceiros SIEG para automação da busca de documentos fiscais (XMLs).
+O usuário iniciou com uma solicitação para revisar o sistema de validação fiscal e corrigir bugs críticos. O foco rapidamente se moveu para a melhoria da integração com o serviço de terceiros SIEG, para automação da busca de documentos fiscais (XMLs), e a correção de uma cascata de bugs de lógica fiscal e usabilidade reportados ao longo da sessão.
 
 Requisitos mais recentes adicionados nesta sessão:
-1.  **Correção de Bugs SIEG**: Corrigir um erro que impedia usuários  de salvar o horário de sincronização e um bug que fazia com que documentos importados pelo SIEG não fossem exibidos corretamente no painel.
-2.  **Implementação de Smart Sync para SIEG**:
-    *   **Sincronização Incremental**: O sistema deve buscar apenas documentos emitidos após a data da última sincronização bem-sucedida, ignorando duplicados.
-    *   **Verificação de Status**: O sistema deve verificar o status (ex: cancelamento) de documentos que já foram importados anteriormente.
-    *   **Detecção de Devoluções**: Identificar notas fiscais de devolução que anulam operações anteriores.
-    *   **Permissão de Configuração**: Permitir que qualquer perfil de usuário possa configurar o horário da sincronização automática.
-3.  **Resolução de Bug de Deploy na Plataforma (BLOQUEADO)**: O usuário está completamente bloqueado por um bug na plataforma de deploy que o impede de atualizar sua aplicação em produção.
+1.  **Correção da Análise de NFS-e (Nota Fiscal de Serviço)**: Documentos de serviço (NFS-e) importados via SIEG estão sendo salvos com dados em branco (número, emissor, data, valor), indicando uma falha no parser do XML.
+2.  **Correção do Botão de Sincronização SIEG**: O botão Sincronizar na página dedicada da Integração SIEG não está funcionando.
+3.  **Feedback de Sincronização SIEG**: O usuário não tem um feedback claro de quando uma sincronização manual está em progresso ou quando foi concluída.
+4.  **Lógica do Agendador SIEG**: O agendador de sincronização deve ser mais inteligente. Se o usuário define um horário que ainda não passou no dia atual, a tarefa deve ser executada hoje. Se o horário já passou, deve ser agendada para o dia seguinte.
+5.  **Correção do Saldo Credor de PIS/COFINS**: O saldo credor inicial não está sendo transportado corretamente para os períodos de apuração subsequentes.
+6.  **Cálculo e Exibição de ICMS-ST**: O valor do ICMS-ST não está sendo calculado corretamente nem exibido no Dashboard principal e na tela de Fechamento.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-A aplicação possui uma integração SIEG totalmente funcional e aprimorada com uma lógica de Smart Sync. O backend agora realiza sincronizações incrementais, buscando apenas novos documentos desde a última execução, filtrando duplicados e registrando logs detalhados (modo, novos, duplicados, cancelados) na coleção . O endpoint para configurar o horário da sincronização foi corrigido para permitir que qualquer tipo de usuário faça a alteração. O frontend () foi atualizado para exibir um histórico detalhado das sincronizações, mostrando os resultados da lógica inteligente. Dois bugs críticos foram corrigidos: a falha ao salvar o horário de sincronização e a contagem incorreta de documentos importados via SIEG no painel.
-
-No entanto, o usuário continua bloqueado por um bug da plataforma Emergent que o impede de fazer deploy das novas funcionalidades para o ambiente de produção.
+A aplicação possui uma integração SIEG funcional, mas com bugs pendentes. A lógica Smart Sync (sincronização incremental) e o log detalhado estão implementados. Foram realizadas diversas correções críticas de lógica fiscal e UI nesta sessão: o transporte de saldo credor de PIS/COFINS foi parcialmente corrigido; o cálculo e exibição de ICMS-ST foram implementados; o menu de navegação foi limpo (removido ICMS ST); e a UI de configuração de empresa e do painel SIEG foi melhorada. A lógica do agendador SIEG foi corrigida para carregar a configuração do banco de dados na inicialização e para agendar tarefas de forma mais inteligente no mesmo dia. Um relatório detalhado por sincronização foi adicionado ao painel SIEG. No entanto, a importação de NFS-e está quebrada, e a experiência do usuário durante a sincronização manual precisa de melhorias.
 
 **Last working item**:
--   **Last item agent was working**: O agente finalizou a implementação da funcionalidade Smart Sync para a integração SIEG, incluindo a lógica de backend, a atualização do frontend para exibir o histórico detalhado e a remoção da restrição de perfil para configurar o horário.
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: Y
--   **Which testing method agent to use?**: O agente confirmou o funcionamento com  e análise de logs. Para verificação, o próximo agente pode usar  para acionar a API de sincronização e consultar os logs do backend e a coleção  no banco de dados para confirmar que a lógica incremental está funcionando.
+-   **Last item agent was working**: O agente estava no meio da resolução de um conjunto de 4 problemas levantados pelo usuário. Ele identificou que a análise de XMLs de NFS-e do SIEG está falhando, fazendo com que os documentos sejam salvos com campos vazios. Ele também corrigiu o botão Sincronizar no painel SIEG e aprimorou a lógica do agendador de sincronização.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: Y (Para a correção do botão de sincronização e da lógica do agendador) / N (Para a correção da análise de NFS-e)
+-   **Which testing method agent to use?**: backend testing agent. O próximo agente deve focar em consertar o parser de NFS-e em . Será necessário inspecionar a estrutura de um XML de NFS-e real obtido via SIEG e ajustar a lógica de extração de dados. Após a correção, testar o fluxo completo: acionar a sincronização via  e verificar no banco de dados MongoDB ( collection) se os campos (, , , ) estão preenchidos corretamente para os documentos de serviço.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: O usuário não consegue fazer deploy (P0 - BLOCKER)
--   **Issue 2**: Processamento incorreto de CFOPs de transferência (P0 - CRITICAL RECURRING)
--   **Issue 3**: Bugs de cálculo e agregação no menu Grupo Consolidado (P1)
--   **Issue 4**: Geração incorreta de natureza de operação no arquivo SPED para transferências (P1)
--   **Issue 5**: Modal de seleção de empresa sobrepõe a UI (P2)
+-   **Issue 1**: NFS-e (notas de serviço) importadas via SIEG estão com todos os dados em branco (P0 - CRITICAL)
+-   **Issue 2**: Falta de feedback claro para o usuário durante a sincronização manual do SIEG (P1)
+-   **Issue 3**: O usuário não consegue fazer deploy para produção (P0 - PLATFORM BLOCKER)
+-   **Issue 4**: Processamento incorreto de CFOPs de transferência (P0 - CRITICAL RECURRING)
+-   **Issue 5**: Bugs de cálculo e agregação no menu Grupo Consolidado (P1)
+-   **Issue 6**: Geração incorreta de natureza de operação no arquivo SPED para transferências (P1)
+-   **Issue 7**: Modal de seleção de empresa sobrepõe a UI (P2)
 
 **Issues Detail**:
--   **Issue 1: O usuário não consegue fazer deploy**
-    -   **Attempted fixes**: O agente confirmou repetidamente, inclusive consultando o subagente de suporte, que o erro Créditos insuficientes para uma operação de Replace Deployment (que deveria ser gratuita) é um bug da plataforma Emergent. O agente instruiu o usuário a contatar o suporte da plataforma com um template de mensagem. O problema persiste e está fora do controle do agente de código.
+-   **Issue 1: NFS-e (notas de serviço) importadas via SIEG estão com todos os dados em branco**
+    -   **Attempted fixes**: O agente identificou que a contagem de documentos está correta, mas a lógica de parsing do XML para NFS-e em  está falhando, resultando em documentos salvos com campos vazios. A correção não foi implementada.
     -   **Next debug checklist**:
-        1.  **NÃO TENTE RESOLVER COM CÓDIGO.** Reafirme ao usuário que este é um bug da plataforma e que apenas o suporte da Emergent pode resolver.
-        2.  Oriente o usuário a seguir as instruções dadas anteriormente para contatar o suporte via Discord ou e-mail.
-        3.  Explique que, enquanto o bug da plataforma não for corrigido, nenhum novo código poderá ir para produção.
-    -   **Why fix this issue and what will be achieved with the fix?**: É o bloqueador absoluto do projeto. Sem a correção, o usuário não pode utilizar nenhuma das funcionalidades desenvolvidas.
+        1.  Inspecionar a estrutura de um XML de NFS-e (nota de serviço) para entender os campos e namespaces.
+        2.  Localizar a lógica de processamento de documentos SIEG em .
+        3.  Implementar ou corrigir o parser específico para NFS-e, garantindo a extração correta dos campos: , , , , , etc.
+        4.  Garantir que os novos documentos sejam salvos corretamente no MongoDB.
+    -   **Why fix this issue and what will be achieved with the fix?**: É uma funcionalidade central da integração SIEG. Sem isso, todas as notas de serviço são importadas de forma inútil, sem dados.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: none
+
+-   **Issue 2: Falta de feedback claro para o usuário durante a sincronização manual do SIEG**
+    -   **Attempted fixes**: O agente notou que a UI em  já possui um estado  e um banner, mas reconheceu a necessidade de uma indicação mais explícita.
+    -   **Next debug checklist**:
+        1.  Em , ao iniciar a sincronização (), exibir um indicador de progresso mais proeminente (ex: um spinner, um toast Sincronização iniciada...).
+        2.  Ao final da sincronização (sucesso ou erro), mostrar uma notificação clara para o usuário (ex: um toast da biblioteca  com o resultado Sincronização concluída! X notas importadas.).
+        3.  Considerar desabilitar o botão Sincronizar enquanto uma sincronização já estiver em andamento.
+    -   **Why fix this issue and what will be achieved with the fix?**: Melhora drasticamente a experiência do usuário, fornecendo clareza sobre o status de uma operação que pode ser demorada.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on other issue**: none
+
+-   **Issue 3: O usuário não consegue fazer deploy para produção**
+    -   **Attempted fixes**: Confirmado que é um bug da plataforma Emergent (Créditos insuficientes para uma operação gratuita). O agente instruiu o usuário a contatar o suporte.
+    -   **Next debug checklist**:
+        1.  **NÃO TENTE RESOLVER COM CÓDIGO.** Reafirmar ao usuário que este é um bug da plataforma e que apenas o suporte da Emergent pode resolver.
+    -   **Why fix this issue and what will be achieved with the fix?**: É o bloqueador absoluto do projeto. Sem a correção, nenhuma das novas funcionalidades pode ser usada em produção.
     -   **Status**: BLOCKED
     -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: N/A (problema de plataforma)
+    -   **Should Test frontend/backend/both after fix?**: N/A
     -   **Blocked on other issue**: Bloqueado por uma ação externa do suporte da Emergent.
 
--   **Issue 2: Processamento incorreto de CFOPs de transferência**
+-   **Issue 4: Processamento incorreto de CFOPs de transferência**
     -   **Attempted fixes**: Nenhuma nesta sessão. É um bug antigo e crítico.
     -   **Next debug checklist**:
-        1.  Replicar o problema criando um teste automatizado em ============================= test session starts ==============================
-platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
-rootdir: /app
-plugins: anyio-4.12.1
-collected 658 items / 1 error
-
-==================================== ERRORS ====================================
-__________________ ERROR collecting test_ai_classification.py __________________
-import file mismatch:
-imported module 'test_ai_classification' has this __file__ attribute:
-  /app/backend/tests/test_ai_classification.py
-which is not the same as the test file we want to collect:
-  /app/test_ai_classification.py
-HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules
-=============================== warnings summary ===============================
-../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
-  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
-    import multipart
-
-../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
-  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
-    from crypt import crypt as _crypt
-
-backend/server.py:44399
-  /app/backend/server.py:44399: DeprecationWarning: 
-          on_event is deprecated, use lifespan event handlers instead.
-  
-          Read more about it in the
-          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-          
-    @app.on_event("shutdown")
-
-../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
-../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
-  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
-          on_event is deprecated, use lifespan event handlers instead.
-  
-          Read more about it in the
-          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-          
-    return self.router.on_event(event_type)
-
-backend/server.py:44405
-  /app/backend/server.py:44405: DeprecationWarning: 
-          on_event is deprecated, use lifespan event handlers instead.
-  
-          Read more about it in the
-          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-          
-    @app.on_event("startup")
-
--- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=========================== short test summary info ============================
-ERROR test_ai_classification.py
-!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-========================= 6 warnings, 1 error in 4.69s ========================= ().
-        2.  O teste deve simular o processamento de um XML de entrada com um CFOP de transferência (ex: 5152).
-        3.  Verificar se, na lógica de processamento em , o documento é ajustado para o CFOP de entrada correto (ex: 1152), com o CST apropriado e sem gerar créditos fiscais indevidos.
-        4.  Corrigir a lógica de mapeamento de CFOP em .
+        1.  Analisar a lógica de mapeamento de CFOPs em  durante a importação de documentos.
+        2.  Verificar se, para um CFOP de transferência (ex: 5152), o sistema ajusta para o CFOP de entrada correspondente (ex: 1152) e aplica as regras fiscais corretas (sem crédito de imposto).
     -   **Why fix this issue and what will be achieved with the fix?**: Corrigirá a corrupção de dados na apuração fiscal, que é uma função central do sistema.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: none
 
 **In progress Task List**:
 -   Nenhum.
 
 **Upcoming and Future Tasks**
--   **(P0)** Resolver o bug de **processamento de CFOPs de transferência** (Issue 2).
--   **(P1)** Resolver os bugs pendentes: Grupo Consolidado (Issue 3), Geração de SPED (Issue 4), e o Modal de UI sobreposto (Issue 5).
+-   **(P0)** Resolver o bug de **processamento de CFOPs de transferência** (Issue 4).
+-   **(P1)** Resolver os bugs pendentes: Grupo Consolidado (Issue 5), Geração de SPED (Issue 6), e o Modal de UI sobreposto (Issue 7).
 -   **(P1)** Refatorar : Extrair as rotas e lógicas do SIEG para módulos dedicados (, ).
 -   **(P1)** Implementar um totalizador por CST nos detalhamentos de PIS/COFINS.
 -   **(P2)** Criar um pacote de instalação On-Premise com Docker.
@@ -144,8 +110,8 @@ HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test
   /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
     from crypt import crypt as _crypt
 
-backend/server.py:44399
-  /app/backend/server.py:44399: DeprecationWarning: 
+backend/server.py:44664
+  /app/backend/server.py:44664: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -163,8 +129,8 @@ backend/server.py:44399
           
     return self.router.on_event(event_type)
 
-backend/server.py:44405
-  /app/backend/server.py:44405: DeprecationWarning: 
+backend/server.py:44670
+  /app/backend/server.py:44670: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -176,20 +142,23 @@ backend/server.py:44405
 =========================== short test summary info ============================
 ERROR test_ai_classification.py
 !!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-========================= 6 warnings, 1 error in 4.19s ========================= mais abrangente.
+========================= 6 warnings, 1 error in 4.47s ========================= mais abrangente.
 
 **Completed work in this session**
--   **Bug da Configuração de Horário (RESOLVIDO)**: Corrigido o endpoint  em  para permitir que usuários  (e qualquer outro usuário) possam salvar o horário de sincronização do SIEG.
--   **Bug da Contagem de Documentos SIEG (RESOLVIDO)**: Corrigida a lógica de importação em  para usar o campo , garantindo que os documentos importados sejam corretamente exibidos no painel. Foi executado um script de migração para corrigir os documentos existentes.
--   **Implementação do Smart Sync SIEG (CONCLUÍDO)**:
-    -   Criado o novo serviço  com a lógica para sincronização incremental.
-    -   A lógica principal em  foi atualizada para usar este serviço, filtrar duplicados e registrar logs detalhados.
--   **Melhora na UI do Histórico SIEG (CONCLUÍDO)**: A página  e o endpoint  foram atualizados para exibir um histórico detalhado das sincronizações, mostrando o modo, documentos novos, duplicados, e duração.
+-   **Correção de Bugs do Agendador SIEG**: Corrigido o bug que fazia o agendador reverter para um horário padrão na reinicialização e aprimorada a lógica para executar a sincronização no mesmo dia, se aplicável.
+-   **Correção do Saldo Credor PIS/COFINS**: Ajustada a lógica em  para transportar corretamente o saldo credor inicial da empresa para os períodos de apuração subsequentes.
+-   **Implementação do Cálculo de ICMS-ST**: Adicionada a lógica para calcular o ICMS-ST de notas de entrada e exibido o resultado em cards no Dashboard () e na tela de Fechamento ().
+-   **Melhorias de UI/UX**:
+    - Removido o item de menu redundante ICMS ST de .
+    - Substituído o card SIEG na página  por um banner mais discreto.
+    - Corrigido o bug no  que fechava o modal ao salvar em modo de edição.
+    - Corrigido o bug em  que habilitava PIS/COFINS por padrão para empresas do Simples Nacional.
+-   **Correção da Contagem de NFS-e**: Ajustado o  em  para que as notas de serviço (NFS-e) fossem listadas corretamente na tela de documentos.
+-   **Relatório Detalhado de Sincronização SIEG**: Implementado um novo endpoint e UI em  para exibir um relatório detalhado de cada sincronização.
+-   **Consistência de Lógica Fiscal**: Alinhada a lógica de detecção de notas canceladas e devoluções entre o painel SIEG e o Wizard de Fechamento para garantir consistência.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: Bugs de cálculo e agregação no menu Grupo Consolidado.
--   **Issue 2**: Geração incorreta de natureza de operação no arquivo SPED para transferências.
--   **Issue 3**: Modal de seleção de empresa sobrepõe a UI ao navegar para o painel SIEG.
+-   Estão listados na seção .
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: A arquitetura monolítica do .
@@ -200,58 +169,62 @@ ERROR test_ai_classification.py
 
 
 **Key Technical Concepts**
--   Sincronização de Dados Incremental
--   Processamento de Tarefas em Background (APScheduler)
--   Logging Detalhado de Processos
--   Refatoração de API e UI (FastAPI, React)
--   Manipulação de Dados em Banco (MongoDB/Pymongo)
--   Depuração de Problemas de Plataforma vs. Código
+-   Processamento de XML (lxml, defusedxml)
+-   FastAPI Background Tasks & APScheduler
+-   React State Management (Hooks, Context API)
+-   MongoDB (Pymongo)
+-   Debugging de lógica fiscal complexa e inconsistências de dados
+-   Comunicação API Backend-Frontend (Axios)
 
 **key DB schema**
--   **companies**: 
--   **sieg_scheduler_config**: 
--   **sieg_logs**:  (ATUALIZADO)
--   **documents**:  (ATUALIZADO)
+-   **documents**: O modelo para NFS-e () precisa ter seus campos populados corretamente durante a importação SIEG.
+-   **sieg_logs**: Contém o novo campo  com os documentos de uma sincronização.
+-   **companies**: Utiliza / e  para cálculo de impostos.
 
 **All files of reference**
--    (Principal arquivo modificado)
--    (Principal arquivo modificado)
--    (Novo arquivo criado)
--    (Atualizado)
+-   
+-   
+-   
+-   
+-   
+-   
+-   
 
 **Areas that need refactoring**:
--   ** (CRÍTICO)**: O arquivo continua a crescer, tornando-se cada vez mais difícil de manter. A extração das rotas e serviços SIEG é uma prioridade alta.
+-   ** (CRÍTICO)**: O arquivo atingiu um tamanho insustentável. A extração de rotas (especialmente SIEG, Fechamento, Dashboard) para seus próprios módulos é a principal dívida técnica do projeto. A lógica de cálculo de impostos está duplicada e precisa ser centralizada.
 
 **key api endpoints**
--   : Restrição de  removida.
--   : Endpoint atualizado para retornar o histórico detalhado da sincronização.
--   : Agora aciona a lógica de Smart Sync.
+-   : Utilizado para iniciar a sincronização.
+-   : (NOVO) Busca o relatório detalhado de uma sincronização.
+-   : Retorna dados para a apuração fiscal.
+-   : Retorna dados para o dashboard principal.
+-   : Endpoint de listagem de documentos.
 
 **Critical Info for New Agent**
--   **FOCO IMEDIATO E ABSOLUTO**: O usuário está **bloqueado** pelo bug de deploy da plataforma Emergent. **NÃO TENTE** consertar isso com código. Sua primeira ação deve ser reafirmar ao usuário que este é um problema externo e que ele precisa contatar o suporte da plataforma. Não inicie nenhuma tarefa de codificação até que o usuário confirme que o problema de deploy foi resolvido pelo suporte.
--   **PRÓXIMA PRIORIDADE DE CÓDIGO**: Assim que o bloqueio de deploy for resolvido, a prioridade máxima é corrigir o bug recorrente e crítico do **processamento de CFOPs de transferência** (Issue 2).
--   **TAREFAS CONCLUÍDAS**: A implementação do Smart Sync do SIEG e a correção dos bugs relacionados estão **100% concluídas** e foram testadas pelo agente anterior no ambiente de preview. Não revisite este trabalho, apenas aguarde a verificação do usuário.
+-   **FOCO IMEDIATO**: O usuário está aguardando a correção dos 4 problemas da sua última mensagem. A prioridade máxima é consertar a **análise de NFS-e (Issue 1)**, que está quebrando uma parte vital da importação. Em seguida, melhore o **feedback de sincronização (Issue 2)**.
+-   **BLOQUEIO DE PLATAFORMA**: O usuário está **bloqueado** para fazer deploy em produção devido a um bug da plataforma Emergent. **NÃO TENTE** consertar com código. Apenas reforce que ele deve contatar o suporte da plataforma.
+-   **PRÓXIMA PRIORIDADE DE CÓDIGO**: Após resolver as solicitações imediatas do usuário, a próxima tarefa de codificação deve ser o bug crítico e recorrente do **processamento de CFOPs de transferência (Issue 4)**.
 
 **documents and test reports created in this job**
--    (Atualizado)
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Informa que o deploy ainda pede créditos (BUG da plataforma).
-2.  **User**: Muda de assunto e reporta que a integração SIEG não trouxe nenhuma nota fiscal e que está com erro ao tentar mudar o horário da sincronização.
-3.  **Agent**: Inicia a investigação dos dois novos bugs do SIEG.
-4.  **Agent**: Corrige o bug do salvamento do horário e o bug da contagem de documentos (campo  vs ).
-5.  **Agent**: Confirma que as correções funcionam e a UI mostra 528 Docs via SIEG.
-6.  **User**: Solicita uma nova feature: tornar a integração SIEG inteligente (sincronização incremental, verificação de cancelamentos/devoluções, etc.) e permitir que qualquer usuário configure o horário.
-7.  **Agent**: Inicia a implementação da feature Smart Sync.
-8.  **Agent**: Cria um novo serviço  e integra a lógica no .
-9.  **Agent**: Atualiza o frontend em  para mostrar o histórico detalhado do Smart Sync.
-10. **Agent**: Testa e confirma que a sincronização inteligente está funcionando corretamente, identificando duplicados e registrando logs detalhados.
+1.  **User (msg 582)**: Reporta 4 problemas: 1) NFS-e importadas via SIEG estão com dados vazios; 2) Botão Sincronizar no menu SIEG não funciona; 3) Falta feedback de progresso na sincronização; 4) Lógica do agendador precisa ser mais inteligente. (Status: IN PROGRESS)
+2.  **User (msg 527)**: Reporta 4 problemas: 1) Empresas Simples Nacional com PIS/COFINS habilitado; 2) Wizard de empresa fecha ao salvar; 3) Horário padrão do SIEG; 4) Contagem de NFS-e mostra 44, mas a lista está vazia. (Status: RESOLVED)
+3.  **User (msg 414)**: Reporta que notas canceladas não aparecem no menu SIEG e solicita um relatório de importação para cada sincronização. (Status: RESOLVED)
+4.  **User (msg 381)**: Reporta que a contagem de devoluções no painel SIEG (19) está diferente do wizard (1). (Status: RESOLVED)
+5.  **User (msg 302)**: Reporta que o saldo credor não funciona na primeira apuração, pede indicador de progresso no SIEG, e pede para remover o menu ICMS ST e adicionar um card de ICMS-ST no dashboard/fechamento. (Status: RESOLVED)
+6.  **User (msg 259)**: Reporta problemas com saldo credor, falta de progresso no SIEG, e problemas com ICMS-ST (menu em branco, valor não aparece no dashboard). (Status: PARTIALLY RESOLVED, levou a mais investigações)
+7.  **User (msg 200)**: Concorda com a mudança na UI do card SIEG e reporta que a mudança de horário da sincronização não surtiu efeito. (Status: RESOLVED)
+8.  **User (msg 198)**: Questiona a redundância do card roxo do SIEG na página de documentos. (Status: RESOLVED)
+9.  **User (msg 26)**: Confirma o plano de ação do agente e pede para garantir que a lógica de validação de devoluções com valor diferente também seja aplicada ao fluxo SIEG. (Status: RESOLVED)
+10. **User (msg 5)**: Define os requisitos para uma integração SIEG perfeita, incluindo importação completa, tratamento de cancelamentos/devoluções, alertas de CFOP, e exibição da data da última nota importada. (Status: ONGOING)
 
 **Project Health Check:**
--   **Broken**: O fluxo de deploy do ambiente de preview para produção. O usuário está totalmente bloqueado por um bug de cobrança da plataforma Emergent, tornando impossível publicar as atualizações.
+-   **Broken**: O fluxo de deploy do ambiente de preview para produção. O usuário está totalmente bloqueado por um bug da plataforma Emergent.
 
 **3rd Party Integrations**
--   **SIEG**: Integração estável, funcional e agora com lógica de sincronização inteligente.
+-   **SIEG**: Integração de automação fiscal, atualmente com um bug crítico na análise de XML de NFS-e.
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO
@@ -265,4 +238,4 @@ ERROR test_ai_classification.py
 -   **CNPJ ANZEN**: 
 
 **What agent forgot to execute**
--   O agente não esqueceu tarefas. Ele priorizou corretamente os novos bugs e a solicitação de feature do usuário (Smart Sync) em vez do backlog pré-existente (como o bug dos CFOPs), que só poderia ser abordado após resolver os problemas mais urgentes levantados pelo usuário.</analysis>
+-   O agente priorizou corretamente os bugs e features reportados pelo usuário durante a sessão, adiando a resolução de dívidas técnicas mais antigas (como a refatoração do ) e bugs preexistentes (como o dos CFOPs de transferência). Esta foi uma decisão razoável para manter o progresso alinhado às necessidades imediatas do usuário.</analysis>
