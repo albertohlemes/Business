@@ -738,9 +738,12 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       
       if (onComplete) {
         onComplete();
-      } else {
+      } else if (!companyId) {
+        // Só navegar para /empresas se for NOVA empresa
+        // Se for edição (companyId existe), não fecha - apenas mostra sucesso
         navigate('/empresas');
       }
+      // Se for edição (companyId existe), NÃO fecha o wizard, apenas mostra sucesso
     } catch (error) {
       console.error('Erro ao salvar empresa:', error);
       toast.error(error.response?.data?.detail || 'Erro ao salvar empresa');
