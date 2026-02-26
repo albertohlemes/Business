@@ -378,9 +378,13 @@ async def update_scheduler_jobs():
         print(f"[SIEG-SCHEDULER] Horário {horario_diario} já passou hoje. Próxima execução amanhã.")
     
     # Sempre configurar o job diário recorrente (CronTrigger para os próximos dias)
+    # Usando timezone de Brasília para horário correto
+    from pytz import timezone
+    tz_brasilia = timezone('America/Sao_Paulo')
+    
     scheduler.add_job(
         job_sync_todas_empresas,
-        CronTrigger(hour=hora, minute=minuto),
+        CronTrigger(hour=hora, minute=minuto, timezone=tz_brasilia),
         id='sieg_daily_sync',
         name=f'SIEG - Sincronização Diária ({horario_diario})',
         replace_existing=True
@@ -391,7 +395,7 @@ async def update_scheduler_jobs():
     horas_12h = [int(h.split(":")[0]) for h in horarios_12h]
     scheduler.add_job(
         job_sync_todas_empresas,
-        CronTrigger(hour=','.join(map(str, horas_12h)), minute=0),
+        CronTrigger(hour=','.join(map(str, horas_12h)), minute=0, timezone=tz_brasilia),
         id='sieg_12h_sync',
         name=f'SIEG - Sincronização 12h ({", ".join(horarios_12h)})',
         replace_existing=True
@@ -402,7 +406,7 @@ async def update_scheduler_jobs():
     horas_6h = [int(h.split(":")[0]) for h in horarios_6h]
     scheduler.add_job(
         job_sync_todas_empresas,
-        CronTrigger(hour=','.join(map(str, horas_6h)), minute=0),
+        CronTrigger(hour=','.join(map(str, horas_6h)), minute=0, timezone=tz_brasilia),
         id='sieg_6h_sync',
         name=f'SIEG - Sincronização 6h',
         replace_existing=True
