@@ -6835,7 +6835,64 @@ async def sieg_sync_execute(
                     if cfop_original and not product.get('cfop_original_emissor'):
                         product['cfop_original_emissor'] = cfop_original
                 
-                if produtos_para_classificar:
+                # CFOPs de operações distintas que precisam revisão do usuário
+                CFOPS_OPERACOES_DISTINTAS_SIEG = {
+                    '5910': 'Bonificação/Doação',
+                    '5911': 'Amostra Grátis',
+                    '5912': 'Demonstração',
+                    '5913': 'Locação de Bens',
+                    '5914': 'Consignação',
+                    '5915': 'Retorno de Consignação',
+                    '5916': 'Retorno de Locação',
+                    '5917': 'Conserto/Reparo',
+                    '5918': 'Devolução de Conserto',
+                    '5919': 'Industrialização por Encomenda',
+                    '5920': 'Remessa para Armazém',
+                    '5949': 'Outras Saídas',
+                    '6910': 'Bonificação/Doação',
+                    '6911': 'Amostra Grátis',
+                    '6912': 'Demonstração',
+                    '6913': 'Locação de Bens',
+                    '6914': 'Consignação',
+                    '6915': 'Retorno de Consignação',
+                    '6916': 'Retorno de Locação',
+                    '6917': 'Conserto/Reparo',
+                    '6918': 'Devolução de Conserto',
+                    '6919': 'Industrialização por Encomenda',
+                    '6920': 'Remessa para Armazém',
+                    '6949': 'Outras Saídas',
+                }
+                
+                # Separar produtos para operação distinta
+                produtos_operacao_distinta = []
+                produtos_para_classificar_final = []
+                
+                for product in produtos_para_classificar:
+                    cfop_original = product.get('cfop_original_emissor', product.get('cfop', ''))
+                    if cfop_original in CFOPS_OPERACOES_DISTINTAS_SIEG:
+                        produtos_operacao_distinta.append((product, cfop_original))
+                    else:
+                        produtos_para_classificar_final.append(product)
+                
+                # Processar operações distintas - marcar para revisão
+                for product, cfop_original in produtos_operacao_distinta:
+                    cfop_convertido = cfop_original
+                    # Converter de saída para entrada
+                    if cfop_original.startswith('5'):
+                        cfop_convertido = '1' + cfop_original[1:]
+                    elif cfop_original.startswith('6'):
+                        cfop_convertido = '2' + cfop_original[1:]
+                    
+                    product['cfop'] = cfop_convertido
+                    product['cfop_original'] = cfop_original
+                    product['pendente_revisao_cfop'] = True
+                    product['natureza_operacao_original'] = CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]
+                    product['categoria_classificada'] = 'operacao_distinta'
+                    product['justificativa_ia'] = f"CFOP de operação distinta ({CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]}) - Requer revisão"
+                    
+                    logger.info(f"[SIEG] Operação distinta: CFOP {cfop_original} → {cfop_convertido} (pendente revisão)")
+                
+                if produtos_para_classificar_final:
                     file_conversions = []
                     
                     classifications, stats = await classify_products_with_cache(
