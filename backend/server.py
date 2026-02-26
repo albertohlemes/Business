@@ -33,6 +33,18 @@ import json
 from sieg_service import count_xmls_sieg, download_xmls_sieg, sync_from_sieg
 from sieg_scheduler import start_scheduler, stop_scheduler, get_scheduler_status, run_sync_now, get_scheduler_config, save_scheduler_config, update_scheduler_jobs
 
+# SIEG Smart Sync (sincronização inteligente)
+from services.sieg_smart_sync import (
+    get_data_corte_sync,
+    get_chaves_ja_importadas,
+    verificar_cancelamentos_posteriores,
+    processar_cancelamentos,
+    detectar_devolucoes_fornecedor,
+    marcar_notas_devolvidas,
+    filtrar_xmls_novos,
+    registrar_sync_log
+)
+
 # Document AI Service
 from services.document_ai import validate_xml_type, extract_nfse_from_file, extract_outros_docs_from_file, extract_fatura_recibo_from_file, get_mime_type
 
