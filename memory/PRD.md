@@ -3,7 +3,21 @@
 ## Visão Geral
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
-## Última Atualização: 26/02/2026 (Sessão 2)
+## Última Atualização: 26/02/2026 (Sessão 3)
+- **CORRIGIDO**: Bug crítico de valores PIS/COFINS no Dashboard
+  - Problema: Dashboard mostrava valores diferentes da página PIS/COFINS e Fechamento Mensal
+  - Causa: Versão "pequena" do Dashboard (<=500 docs) usava cálculo manual próprio, diferente da versão agregada
+  - Solução: Ambas as versões agora usam `calcular_pis_cofins_unificado()` para 100% de consistência
+- **NOVO**: Verificação proativa de CNPJ no SIEG
+  - Endpoint `GET /api/sieg/verificar-cnpj/{company_id}` verifica se CNPJ está autorizado no cofre
+  - Validação antes de iniciar sincronização com mensagem de erro clara
+  - Card de alerta na UI do SIEG Monitor quando CNPJ não está cadastrado
+  - Instruções passo-a-passo para resolver o problema
+- **NOVO**: Endpoint de diagnóstico SIEG
+  - `GET /api/sieg/diagnostico/{company_id}` retorna status completo da integração
+  - Útil para debug de problemas de sincronização
+
+## Sessão 2 - 26/02/2026
 - **CORRIGIDO**: Estatísticas SIEG filtradas por competência selecionada
   - Problema: Totais (Docs SIEG, Docs Manuais) mostravam valores globais, não do mês
   - Solução: Endpoint `/sieg/painel/{company_id}` agora aceita `?competencia=` e filtra
