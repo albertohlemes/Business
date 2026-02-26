@@ -7329,6 +7329,23 @@ async def sieg_painel_empresa(
     total_manual = await db.xml_documents.count_documents({"company_id": company_id, "origem_importacao": {"$ne": "sieg"}})
     total_classificados = await db.xml_documents.count_documents({"company_id": company_id, "classificado": True})
     
+    # NOVO: Buscar data da última NF importada via SIEG (para orientar o usuário)
+    ultima_nf_sieg = await db.xml_documents.find_one(
+        {"company_id": company_id, "origem_importacao": "sieg"},
+        {"data_emissao": 1, "numero_nfe": 1, "_id": 0},
+        sort=[("data_emissao", -1)]
+    )
+    data_ultima_nf_importada = ultima_nf_sieg.get("data_emissao") if ultima_nf_sieg else None
+    numero_ultima_nf_importada = ultima_nf_sieg.get("numero_nfe") if ultima_nf_sieg else None
+    
+    # Buscar divergências de devolução pendentes de análise
+    divergencias_pendentes = await db.xml_documents.count_documents({
+        "company_id": company_id,
+        "origem_importacao": "sieg",
+        "desconsiderada_devolucao": {"$ne": True},
+        "nfe_referenciada": {"$exists": True, "$ne": ""}
+    })
+    
     # ATUALIZADO: Ler config diretamente da empresa
     return {
         "empresa": {
@@ -7345,7 +7362,10 @@ async def sieg_painel_empresa(
             "total_sieg": total_sieg,
             "total_manual": total_manual,
             "total_classificados": total_classificados,
-            "por_competencia": stats_por_comp
+            "por_competencia": stats_por_comp,
+            "data_ultima_nf_importada": data_ultima_nf_importada,
+            "numero_ultima_nf_importada": numero_ultima_nf_importada,
+            "divergencias_pendentes": divergencias_pendentes
         },
         "historico_sync": [
             {
