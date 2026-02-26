@@ -7039,6 +7039,26 @@ async def sieg_sync_init(
     if not cnpj:
         raise HTTPException(status_code=400, detail="CNPJ da empresa não configurado")
     
+    # Verificar se o CNPJ está cadastrado no SIEG antes de iniciar
+    verificacao = await verificar_cnpj_sieg(cnpj)
+    if not verificacao["autorizado"]:
+        raise HTTPException(
+            status_code=400, 
+            detail={
+                "code": "CNPJ_NAO_CADASTRADO_SIEG",
+                "message": f"O CNPJ {cnpj} não está cadastrado no cofre SIEG.",
+                "instrucoes": (
+                    "Para resolver:\n"
+                    "1. Acesse o painel do SIEG (https://app.sieg.com)\n"
+                    "2. Vá em Cofre Digital > Gerenciar CNPJs\n"
+                    "3. Adicione este CNPJ ao cofre associado à sua API Key\n"
+                    "4. Aguarde alguns minutos e tente novamente"
+                ),
+                "cnpj": cnpj,
+                "erro_sieg": verificacao.get("mensagem", "")
+            }
+        )
+    
     sync_id = str(uuid.uuid4())
     sieg_progress_store[sync_id] = {
         "status": "initialized",
