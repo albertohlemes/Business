@@ -230,13 +230,18 @@ const SiegMonitor = ({ user, onLogout }) => {
 
   // NOVO: Buscar relatório detalhado de uma sincronização
   const fetchRelatorio = async (syncId) => {
-    if (!selectedEmpresa?.company_id || !syncId) return;
+    // CORRIGIDO: Usar selectedCompany do contexto ou painelEmpresa
+    const companyId = selectedCompany?.id || painelEmpresa?.empresa?.id;
+    if (!companyId || !syncId) {
+      console.error('Falta company_id ou syncId para buscar relatório');
+      return;
+    }
     
     setRelatorioLoading(true);
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `${API}/sieg/relatorio-sync/${selectedEmpresa.company_id}/${syncId}`,
+        `${API}/sieg/relatorio-sync/${companyId}/${syncId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setRelatorioData(response.data);
