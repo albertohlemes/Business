@@ -7450,48 +7450,40 @@ async def sieg_painel_empresa(
     data_ultima_nf_importada = ultima_nf_sieg.get("data_emissao") if ultima_nf_sieg else None
     numero_ultima_nf_importada = ultima_nf_sieg.get("numero_nfe") if ultima_nf_sieg else None
     
-    # CORRIGIDO: Buscar divergências de devolução usando MESMOS critérios do Wizard
-    # Uma devolução de terceiro é quando:
-    # - finNFe = 4 (finalidade devolução) OU
-    # - CFOP de devolução (1201, 1202, 2201, 2202, etc.) com refNFe
-    # E ainda NÃO foi desconsiderada
+    # CORRIGIDO: Buscar divergências de devolução usando MESMOS critérios do Wizard Step 2
+    # O Wizard busca notas de ENTRADA onde o TERCEIRO emitiu nota com CFOP de ENTRADA original
+    # E que ainda NÃO foram desconsideradas
     
-    # CFOPs de devolução de terceiros (CFOPs de entrada que indicam devolução)
-    cfops_devolucao_terceiros = [
-        '1201', '1202', '1203', '1204', '1410', '1411', '1503', '1504',
-        '2201', '2202', '2203', '2204', '2410', '2411', '2503', '2504'
-    ]
+    # Buscar CNPJ da empresa
+    cnpj_empresa = (company.get('cnpj', '') or '').replace('.', '').replace('/', '').replace('-', '')
     
-    # Pipeline para contar devoluções de terceiros pendentes (mesma lógica do Wizard)
-    pipeline_devolucoes = [
-        {
-            "$match": {
-                "company_id": company_id,
-                "tipo": "entrada",
-                "desconsiderada_devolucao": {"$ne": True},
-                "$or": [
-                    # Critério 1: finNFe = 4 (finalidade devolução)
-                    {"finalidade_nfe": "4"},
-                    {"finNFe": "4"},
-                    # Critério 2: CFOP de devolução E tem NFe referenciada
-                    {
-                        "$and": [
-                            {"produtos.cfop": {"$in": cfops_devolucao_terceiros}},
-                            {"$or": [
-                                {"nfe_referenciada": {"$exists": True, "$ne": ""}},
-                                {"ref_nfe": {"$exists": True, "$ne": ""}},
-                                {"produtos.nfe_ref": {"$exists": True, "$ne": ""}}
-                            ]}
-                        ]
-                    }
-                ]
-            }
-        },
-        {"$count": "total"}
-    ]
+    # Buscar notas de entrada que NÃO foram desconsideradas
+    notas_entrada_pendentes = await db.xml_documents.find({
+        "company_id": company_id,
+        "tipo": "entrada",
+        "desconsiderada_devolucao": {"$ne": True}
+    }, {"_id": 0, "emitente_cnpj": 1, "produtos.cfop_original_emissor": 1, 
+        "produtos.cfop_original": 1, "produtos.cfop": 1}).to_list(None)
     
-    result_devolucoes = await db.xml_documents.aggregate(pipeline_devolucoes).to_list(1)
-    divergencias_pendentes = result_devolucoes[0]["total"] if result_devolucoes else 0
+    # Filtrar usando mesmos critérios do Wizard:
+    # 1. CNPJ do emitente diferente da empresa (é terceiro)
+    # 2. CFOP original do emissor começa com 1, 2 ou 3 (entrada)
+    divergencias_pendentes = 0
+    for nota in notas_entrada_pendentes:
+        cnpj_emit = (nota.get('emitente_cnpj', '') or '').replace('.', '').replace('/', '').replace('-', '')
+        
+        # É terceiro?
+        if not cnpj_emit or cnpj_emit == cnpj_empresa:
+            continue
+        
+        # Verificar se CFOP original do emissor é de entrada
+        produtos = nota.get('produtos', [])
+        for prod in produtos:
+            cfop_original = prod.get('cfop_original_emissor') or prod.get('cfop_original') or prod.get('cfop', '')
+            cfop_original = str(cfop_original)
+            if cfop_original and cfop_original[0] in ['1', '2', '3']:
+                divergencias_pendentes += 1
+                break  # Contar nota apenas uma vez
     
     # ATUALIZADO: Ler config diretamente da empresa
     return {
