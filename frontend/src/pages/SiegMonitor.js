@@ -39,6 +39,11 @@ const SiegMonitor = ({ user, onLogout }) => {
   const [configHorarios, setConfigHorarios] = useState(null);
   const [horarioModal, setHorarioModal] = useState(false);
   const [novoHorario, setNovoHorario] = useState('03:00');
+  
+  // NOVO: Modal de relatório detalhado
+  const [relatorioModal, setRelatorioModal] = useState({ open: false, syncId: null, item: null });
+  const [relatorioData, setRelatorioData] = useState(null);
+  const [relatorioLoading, setRelatorioLoading] = useState(false);
 
   // Buscar dados do painel geral
   const fetchPainelGeral = useCallback(async () => {
