@@ -14275,6 +14275,20 @@ async def get_dashboard_stats(
             "iss": round(total_iss, 2),
             "total": round(total_impostos_pagar, 2)
         },
+        # IPI (Imposto sobre Produtos Industrializados)
+        "ipi": {
+            "entradas": round(ipi_entradas, 2),
+            "saidas": round(ipi_saidas, 2),
+            "saldo": round(ipi_saidas - ipi_entradas, 2),  # Débito - Crédito
+            "a_pagar": round(max(0, ipi_saidas - ipi_entradas), 2),
+            "a_recuperar": round(max(0, ipi_entradas - ipi_saidas), 2)
+        },
+        # ICMS-ST (Substituição Tributária)
+        "icms_st": {
+            "st_entradas": round(icms_st_entradas, 2),
+            "st_saidas": round(icms_st_saidas, 2),
+            "st": round(icms_st_saidas, 2)  # Compatibilidade
+        },
         "saldo_credor_anterior": {
             "pis": round(saldo_credor_anterior['pis'], 2),
             "cofins": round(saldo_credor_anterior['cofins'], 2),
