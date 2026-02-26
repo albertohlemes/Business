@@ -4018,6 +4018,21 @@ def _parse_nfse_nacional(nfse: Dict[str, Any], get_field, safe_float) -> Dict[st
 def _parse_nfse_abrasf(nfse: Dict[str, Any], get_field, safe_float) -> Dict[str, Any]:
     """Parser para NFS-e padrão ABRASF (estrutura original)"""
     
+    # ============================================================
+    # DADOS DO PRESTADOR (quem emitiu)
+    # ============================================================
+    prestador = (
+        get_field(nfse, 'PrestadorServico', 'Prestador', 'prestadorServico', 'prestador') or
+        get_field(nfse, 'DadosPrestador', 'dadosPrestador') or
+        {}
+    )
+    if not isinstance(prestador, dict):
+        prestador = {}
+    
+    id_prestador = get_field(prestador, 'IdentificacaoPrestador', 'identificacaoPrestador', 'Identificacao') or {}
+    if not isinstance(id_prestador, dict):
+        id_prestador = {}
+    
     # CNPJ do prestador - múltiplas variações
     cnpj_prestador = (
         get_field(id_prestador, 'Cnpj', 'cnpj', 'CpfCnpj', 'CNPJ') or
