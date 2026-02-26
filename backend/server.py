@@ -13758,6 +13758,14 @@ async def get_dashboard_stats(
             else:
                 credito_icms += v_icms
             
+            # IPI nas entradas (crédito)
+            v_ipi = float(prod.get('v_ipi', 0) or 0)
+            ipi_entradas += v_ipi
+            
+            # ICMS-ST nas entradas
+            v_icms_st = float(prod.get('v_icms_st', 0) or 0)
+            icms_st_entradas += v_icms_st
+            
             # PIS e COFINS - CALCULAR baseado na base de crédito (Lucro Real)
             # O XML pode ter valores incorretos - usar base e alíquotas padrão
             v_pis_xml = float(prod.get('v_pis', 0) or 0)
