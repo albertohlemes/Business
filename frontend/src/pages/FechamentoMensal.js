@@ -341,6 +341,12 @@ const FechamentoMensal = ({ user, onLogout }) => {
                     <span className="text-[#A1A1AA]">Crédito</span>
                     <span className="text-white">{formatCurrency(data.cofins?.credito)}</span>
                   </div>
+                  {data.cofins?.saldo_anterior > 0 && (
+                    <div className="flex justify-between text-emerald-400">
+                      <span>(-) Saldo Anterior</span>
+                      <span>{formatCurrency(data.cofins?.saldo_anterior)}</span>
+                    </div>
+                  )}
                   <div className="border-t border-[#2A2A2A] pt-2 flex justify-between font-semibold">
                     <span className="text-[#A1A1AA]">Saldo</span>
                     <span className={data.cofins?.saldo >= 0 ? 'text-red-400' : 'text-green-400'}>
