@@ -7671,11 +7671,12 @@ async def sieg_notas_canceladas(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Lista notas canceladas/inutilizadas de uma empresa
+    Lista notas canceladas de uma empresa.
+    CORRIGIDO: Usar mesmo critério do Wizard (cancelada: true)
     """
     query = {
         "company_id": company_id,
-        "situacao": {"$in": ["cancelada", "cancelado", "inutilizada", "inutilizado"]}
+        "cancelada": True  # Critério correto do Wizard
     }
     
     if competencia:
@@ -7683,13 +7684,12 @@ async def sieg_notas_canceladas(
     
     cancelados = await db.xml_documents.find(
         query,
-        {"_id": 0, "xml_content": 0}
+        {"_id": 0, "xml_content": 0, "produtos": 0}
     ).sort("data_emissao", -1).limit(200).to_list(200)
     
-    # Verificar quais já foram processadas em apurações
-    processadas = []
+    # Adicionar informação de origem (SIEG ou manual)
     for doc in cancelados:
-        # Verificar se a nota foi usada em alguma apuração
+        doc["origem"] = "SIEG" if doc.get("origem_importacao") == "sieg" else "Manual"
         doc["impacto_apuracao"] = "A verificar"
     
     return {
