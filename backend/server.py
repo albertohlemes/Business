@@ -6445,6 +6445,64 @@ async def execute_reimport_task(task_id: str, company_id: str, competencia: str)
         progress["completed"] = True
 
 
+async def verificar_e_processar_cancelamentos_sieg(db, company_id: str, competencia: str) -> int:
+    """
+    Verifica e processa cancelamentos de notas já importadas.
+    Chamado mesmo quando não há novos XMLs para garantir que cancelamentos sejam aplicados.
+    """
+    try:
+        # Buscar eventos de cancelamento não processados
+        eventos = await db.eventos_cancelamento.find({
+            "processado": {"$ne": True}
+        }).to_list(length=10000)
+        
+        if not eventos:
+            return 0
+        
+        total_processados = 0
+        for evento in eventos:
+            chave_nfe = evento.get("chave_nfe")
+            if not chave_nfe:
+                continue
+            
+            # Verificar se a nota pertence a esta empresa/competência
+            nota = await db.xml_documents.find_one({
+                "company_id": company_id,
+                "competencia": competencia,
+                "chave_nfe": chave_nfe,
+                "cancelada": {"$ne": True}
+            })
+            
+            if nota:
+                await db.xml_documents.update_one(
+                    {"_id": nota["_id"]},
+                    {
+                        "$set": {
+                            "cancelada": True,
+                            "data_cancelamento": evento.get("data_cancelamento", datetime.now(timezone.utc).isoformat()),
+                            "justificativa_cancelamento": evento.get("justificativa", "Cancelamento detectado via SIEG"),
+                            "protocolo_cancelamento": evento.get("protocolo", ""),
+                            "status_validacao": "cancelada"
+                        }
+                    }
+                )
+                
+                await db.eventos_cancelamento.update_one(
+                    {"_id": evento["_id"]},
+                    {"$set": {"processado": True}}
+                )
+                
+                total_processados += 1
+        
+        if total_processados > 0:
+            logger.info(f"[SIEG] {total_processados} notas marcadas como canceladas para {company_id}/{competencia}")
+        
+        return total_processados
+    except Exception as e:
+        logger.error(f"[SIEG] Erro ao processar cancelamentos: {e}")
+        return 0
+
+
 @api_router.post("/sieg/sync-init/{company_id}")
 async def sieg_sync_init(
     company_id: str,
