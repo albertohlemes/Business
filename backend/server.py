@@ -12811,7 +12811,7 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
             "perc_pis_vendas": round((pis_pagar / vendas_liquidas * 100) if vendas_liquidas > 0 else 0, 2),
             "perc_cofins_vendas": round((cofins_pagar / vendas_liquidas * 100) if vendas_liquidas > 0 else 0, 2)
         },
-        "icms_st": icms_result.get('icms_st', {}) if 'icms_result' in dir() else {},
+        "icms_st": icms_st_data,
         "analise_comparativa": None,
         "simples": None,
         "_modo_agregado": True,
