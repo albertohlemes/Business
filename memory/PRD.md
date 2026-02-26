@@ -3,7 +3,32 @@
 ## Visão Geral
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
-## Última Atualização: 26/02/2026 (Sessão 3)
+## Última Atualização: 26/02/2026 (Sessão 4)
+
+### Correções e Melhorias - Sessão 4
+- **CORRIGIDO CRÍTICO**: Filtro de NFs Ausentes não considerava notas de entrada emitidas pela empresa
+  - Problema: Notas de entrada emitidas pela própria empresa (devoluções, retornos - CFOP 1xxx, 2xxx) não eram consideradas na sequência numérica
+  - Impacto: Total Ausentes era 494 quando deveria ser 470 (24 notas a mais incorretamente)
+  - Solução: Removido filtro `$or: [{tipo: saida}]` e agora busca todas notas onde `emitente_cnpj = CNPJ da empresa`
+  - Resultado: Total Emitidas passou de 3.636 para 3.660, Total Ausentes de 494 para 470
+  
+- **INVESTIGADO**: NF 377217 não existe no SIEG (nota provavelmente inutilizada/rejeitada)
+  - Verificado: NF 377216 emitida às 19:40:45, NF 377218 emitida às 19:40:48 (apenas 3 segundos)
+  - A NF 377217 deveria ter sido emitida entre esses horários mas não existe
+  - Conclusão: Número foi inutilizado ou a nota foi rejeitada na emissão
+  - A nota está corretamente marcada como "ausente" no relatório
+
+- **NOVO**: Endpoint de resincronização por data específica
+  - `POST /api/sieg/resync-data/{company_id}` - permite reimportar notas de uma data específica
+  - Útil para corrigir falhas pontuais de sincronização sem reprocessar o mês inteiro
+  - Parâmetro: `data_especifica` (formato YYYY-MM-DD)
+  - Baixa apenas notas daquele dia específico, evitando rate limits
+
+- **MELHORADO**: Serviço SIEG com suporte a `data_fim_override`
+  - Permite buscar notas de um período específico (não só a partir de uma data)
+  - Usado pelo endpoint de resync para buscar apenas 1 dia
+
+## Sessão 3 - 26/02/2026
 - **CORRIGIDO CRÍTICO**: Bug que impedia download de saídas do SIEG
   - Problema: Sincronização trazia apenas entradas, não trazia saídas
   - Causa: Faltava `import asyncio` no arquivo `sieg_service.py`
