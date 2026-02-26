@@ -174,6 +174,88 @@ def get_competencia_dates(competencia: str) -> tuple:
         raise ValueError(f"Competência inválida: {competencia}. Use formato MM/AAAA")
 
 
+async def verificar_cnpj_sieg(
+    cnpj: str,
+    api_key: str = None
+) -> Dict[str, Any]:
+    """
+    Verifica se um CNPJ está cadastrado e autorizado no cofre SIEG.
+    Retorna informações sobre o status do CNPJ.
+    """
+    # Limpar CNPJ
+    cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+    
+    # Usar API Key diretamente
+    api_key = api_key or get_sieg_api_key()
+    
+    result = {
+        "cnpj": cnpj_limpo,
+        "cadastrado": False,
+        "autorizado": False,
+        "erro": None,
+        "mensagem": ""
+    }
+    
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            from urllib.parse import quote
+            api_key_encoded = quote(api_key, safe='')
+            url = f"{SIEG_API_BASE}/BaixarXmls?api_key={api_key_encoded}"
+            
+            # Fazer uma consulta simples para verificar se o CNPJ está autorizado
+            # Usamos uma data futura para não retornar dados, apenas verificar permissão
+            payload = {
+                "XmlType": 1,
+                "Take": 1,
+                "Skip": 0,
+                "DataEmissaoInicio": "2099-01-01",
+                "DataEmissaoFim": "2099-01-31",
+                "CnpjDest": cnpj_limpo
+            }
+            
+            response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+            
+            if response.status_code == 200:
+                # CNPJ autorizado
+                result["cadastrado"] = True
+                result["autorizado"] = True
+                result["mensagem"] = "CNPJ autorizado no cofre SIEG"
+            elif response.status_code == 400:
+                # Verificar se é erro de CNPJ não cadastrado
+                try:
+                    error_data = json.loads(response.text)
+                    if isinstance(error_data, list):
+                        error_msg = str(error_data)
+                    else:
+                        error_msg = str(error_data)
+                    
+                    if "inválido" in error_msg.lower() or "invalid" in error_msg.lower():
+                        result["cadastrado"] = False
+                        result["autorizado"] = False
+                        result["erro"] = "CNPJ_NAO_CADASTRADO"
+                        result["mensagem"] = "Este CNPJ não está cadastrado no cofre SIEG. Verifique se o CNPJ foi adicionado corretamente no painel do SIEG."
+                    else:
+                        result["erro"] = "ERRO_DESCONHECIDO"
+                        result["mensagem"] = f"Erro na verificação: {error_msg}"
+                except:
+                    result["erro"] = "ERRO_PARSE"
+                    result["mensagem"] = f"Erro ao verificar CNPJ: {response.text[:200]}"
+            elif response.status_code == 404:
+                # 404 também pode indicar sucesso (sem documentos, mas CNPJ válido)
+                result["cadastrado"] = True
+                result["autorizado"] = True
+                result["mensagem"] = "CNPJ autorizado no cofre SIEG (sem documentos no período)"
+            else:
+                result["erro"] = f"HTTP_{response.status_code}"
+                result["mensagem"] = f"Erro HTTP {response.status_code}: {response.text[:200]}"
+                
+        except Exception as e:
+            result["erro"] = "EXCEPTION"
+            result["mensagem"] = f"Erro ao conectar com SIEG: {str(e)}"
+    
+    return result
+
+
 async def count_xmls_sieg(
     cnpj: str,
     competencia: str,
