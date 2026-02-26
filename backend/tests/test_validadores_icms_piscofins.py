@@ -18,7 +18,7 @@ import time
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://xml-parser-nfse.preview.emergentagent.com"
+    BASE_URL = "https://tax-automation-core.preview.emergentagent.com"
 
 # Test credentials
 TEST_EMAIL = "alberto.lemes@businessconta.com.br"
