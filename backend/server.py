@@ -7230,6 +7230,21 @@ async def sieg_sync_execute(
         # SMART SYNC: Registrar log da sincronização
         # ============================================================
         sync_duration = int(time.time() - sync_start_time)
+        
+        # Preparar relatório detalhado igual ao upload manual
+        notas_importadas = []
+        for doc in results.get("documentos_importados", []):
+            notas_importadas.append({
+                "numero_nfe": doc.get("numero_nfe"),
+                "chave": doc.get("chave_nfe", doc.get("chave_acesso")),
+                "tipo": doc.get("tipo"),
+                "emitente": doc.get("emitente_nome", doc.get("emitente")),
+                "valor": doc.get("valor_total", 0),
+                "data_emissao": doc.get("data_emissao"),
+                "categoria": doc.get("categoria_classificada", "N/A"),
+                "origem_classificacao": doc.get("origem_classificacao", "N/A")
+            })
+        
         await registrar_sync_log(db, company_id, competencia, "sucesso", {
             "modo": "incremental",
             "total_encontrados": results["sieg_stats"]["entrada"] + results["sieg_stats"]["saida"],
@@ -7240,6 +7255,26 @@ async def sieg_sync_execute(
             "total_devolucoes": results["smart_sync"]["devolucoes_detectadas"],
             "total_erros": len(results["erros"]),
             "duracao_segundos": sync_duration,
+            "entradas": {
+                "encontrados": results["sieg_stats"]["entrada"],
+                "importados": results["processados"]["entrada"]
+            },
+            "saidas": {
+                "encontrados": results["sieg_stats"]["saida"],
+                "importados": results["processados"]["saida"]
+            },
+            "notas_importadas": notas_importadas,
+            "notas_duplicadas": results.get("duplicados", []),
+            "notas_canceladas": results.get("cancelados", []),
+            "devolucoes_detectadas": results["smart_sync"].get("divergencias_para_analise", []),
+            "conversoes_cfop": results.get("relatorio_conversoes", []),
+            "erros": results.get("erros", []),
+            "resumo_classificacao": {
+                "total": results["classificados"]["cache"] + results["classificados"]["regras"] + results["classificados"]["ia"],
+                "from_cache": results["classificados"]["cache"],
+                "from_rules": results["classificados"]["regras"],
+                "from_ai": results["classificados"]["ia"]
+            },
             "detalhes": {
                 "classificados": results["classificados"]
             }
