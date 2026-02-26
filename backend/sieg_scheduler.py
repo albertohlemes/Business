@@ -286,21 +286,45 @@ def start_scheduler():
         print("[SIEG-SCHEDULER] Scheduler já está rodando")
         return
     
-    # Usar configuração padrão ao iniciar (será atualizada depois)
-    # Job diário às 03:00 da madrugada
-    scheduler.add_job(
-        job_sync_todas_empresas,
-        CronTrigger(hour=3, minute=0),
-        id='sieg_daily_sync',
-        name='SIEG - Sincronização Diária',
-        replace_existing=True
-    )
+    # Carregar configuração do banco de dados
+    async def load_config_and_start():
+        config = await get_scheduler_config()
+        horario_diario = config.get("horario_diario", "03:00")
+        
+        try:
+            hora, minuto = map(int, horario_diario.split(":"))
+        except:
+            hora, minuto = 3, 0
+        
+        # Job diário com horário do banco
+        scheduler.add_job(
+            job_sync_todas_empresas,
+            CronTrigger(hour=hora, minute=minuto),
+            id='sieg_daily_sync',
+            name=f'SIEG - Sincronização Diária ({horario_diario})',
+            replace_existing=True
+        )
+        
+        print(f"[SIEG-SCHEDULER] Scheduler iniciado com horário: {horario_diario}")
+        print("[SIEG-SCHEDULER] Jobs agendados:")
+        for job in scheduler.get_jobs():
+            print(f"  - {job.name}: {job.trigger}")
     
     scheduler.start()
+    
+    # Executar carregamento da config de forma assíncrona
+    import asyncio
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.ensure_future(load_config_and_start())
+        else:
+            loop.run_until_complete(load_config_and_start())
+    except RuntimeError:
+        # Criar novo loop se necessário
+        asyncio.run(load_config_and_start())
+    
     print("[SIEG-SCHEDULER] Scheduler iniciado com sucesso")
-    print("[SIEG-SCHEDULER] Jobs agendados:")
-    for job in scheduler.get_jobs():
-        print(f"  - {job.name}: {job.trigger}")
 
 
 async def update_scheduler_jobs():
