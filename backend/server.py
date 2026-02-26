@@ -7346,10 +7346,15 @@ async def sieg_painel_empresa(
         },
         "historico_sync": [
             {
-                "data": h.get("data_sync"),
+                "data_sync": h.get("data_sync"),
+                "data": h.get("data_sync"),  # Compatibilidade
                 "status": h.get("status"),
+                "modo": h.get("modo", "full"),
                 "total_encontrados": h.get("total_encontrados", 0),
+                "total_novos": h.get("total_novos", 0),
+                "total_duplicados": h.get("total_duplicados", 0),
                 "total_importados": h.get("total_importados", 0),
+                "total_devolucoes": h.get("total_devolucoes", 0),
                 "total_erros": h.get("total_erros", 0),
                 "duracao_segundos": h.get("duracao_segundos", 0),
                 "competencia": h.get("competencia")
