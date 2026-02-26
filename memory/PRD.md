@@ -3,7 +3,18 @@
 ## Visão Geral
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
-## Última Atualização: 26/02/2026
+## Última Atualização: 26/02/2026 (Sessão 2)
+- **CORRIGIDO**: Estatísticas SIEG filtradas por competência selecionada
+  - Problema: Totais (Docs SIEG, Docs Manuais) mostravam valores globais, não do mês
+  - Solução: Endpoint `/sieg/painel/{company_id}` agora aceita `?competencia=` e filtra
+- **CORRIGIDO**: Histórico SIEG com botão "Ver Relatório" funcional
+  - Problema: Coluna "Ações" não mostrava botão pois faltava `id` e `tem_relatorio`
+  - Solução: Backend agora retorna esses campos no histórico
+- **MELHORADO**: Relatório detalhado de cada sincronização
+  - Endpoint `/sieg/relatorio-sync/{company_id}/{sync_id}` retorna notas importadas
+  - Exibe: número NF, emitente, valor, data, categoria classificada
+
+## Sessão 1 - 26/02/2026
 - **CORRIGIDO**: Parser de NFS-e (Nota Fiscal de Serviço Eletrônica) para formato SIEG
   - Problema: NFS-e importadas via SIEG estavam com dados em branco (número, emissor, valor)
   - Causa: Estrutura XML do SIEG usa `NFSe > infNFSe` (formato Nacional/SERPRO) diferente do ABRASF
@@ -20,19 +31,13 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
   - Sistema de retry (até 3 tentativas) para erros 500+ e rate limit
   - Aguarda e retenta em caso de rate limit (429)
   - Continua com próximos tipos XML em caso de falha parcial
+- **CORRIGIDO**: Scheduler SIEG carrega horário do banco ao iniciar e agenda inteligentemente
+  - Se horário configurado ainda não passou hoje → executa hoje
+  - Se já passou → executa amanhã
 - **CORRIGIDO**: Bug do transporte de saldos credores
-  - Problema: Se não havia saldo salvo na competência anterior, não usava o saldo inicial
-  - Solução: Busca em cadeia até encontrar último saldo salvo ou saldo inicial (fallback)
-- **CORRIGIDO**: Scheduler SIEG agora carrega horário do banco ao iniciar
-  - Problema: Servidor sempre iniciava com 03:00 hardcoded
-  - Solução: `start_scheduler()` lê configuração do MongoDB antes de criar o job
 - **MELHORADO**: Cálculo ICMS-ST separado (entradas vs saídas) para contribuintes substitutos
 - **MELHORADO**: UI do card SIEG na página de Documentos (banner simplificado + botão sync)
 - **APRIMORADO**: Sincronização Inteligente SIEG (Smart Sync) - Validação de Devoluções com Valor
-  - Comparação de valores: se devolução tem valor igual à NF original, desconsiderar automaticamente
-  - Se valor diferente: NÃO desconsiderar, registrar para análise do usuário no Wizard
-  - Novo card "Cobertura de Importação SIEG" no painel mostrando:
-    - Data da última NF importada (para orientar o usuário)
     - Número da última NF
     - Status da cobertura (Atualizado / X dias atrás)
     - Alerta de divergências de devolução pendentes de análise
