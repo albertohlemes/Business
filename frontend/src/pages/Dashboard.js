@@ -703,7 +703,7 @@ const Dashboard = ({ user, onLogout }) => {
                     )}
                     
                     {/* ICMS-ST - Mostrar apenas se for contribuinte de ST */}
-                    {stats.empresa?.apura_icms_st && (stats.icms_st?.st > 0 || stats.icms_st?.st_entradas > 0 || stats.icms_st?.st_saidas > 0) && (
+                    {stats.empresa?.apura_icms_st && (
                       <div className="bg-[#141414] rounded-lg p-4 border border-amber-500/30">
                         <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
                           ICMS-ST
@@ -722,6 +722,34 @@ const Dashboard = ({ user, onLogout }) => {
                             <span className="text-[#A1A1AA]">A Recolher:</span>
                             <span className="text-amber-400">
                               {formatCurrency(stats.icms_st?.st || stats.icms_st?.st_saidas || 0)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* IPI - Mostrar apenas se houver valores OU empresa for indústria */}
+                    {(stats.ipi?.entradas > 0 || stats.ipi?.saidas > 0 || stats.empresa?.tipo_atividade === 'industria') && (
+                      <div className="bg-[#141414] rounded-lg p-4 border border-purple-500/30">
+                        <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                          IPI
+                          <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded">Industrial</span>
+                        </h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-emerald-400">Crédito (Entradas):</span>
+                            <span className="font-medium text-emerald-400">{formatCurrency(stats.ipi?.entradas || 0)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-red-400">Débito (Saídas):</span>
+                            <span className="font-medium text-red-400">{formatCurrency(stats.ipi?.saidas || 0)}</span>
+                          </div>
+                          <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+                            <span className="text-[#A1A1AA]">
+                              {stats.ipi?.a_recuperar > 0 ? 'A Recuperar:' : 'A Pagar:'}
+                            </span>
+                            <span className={stats.ipi?.a_recuperar > 0 ? 'text-purple-400' : 'text-red-400'}>
+                              {formatCurrency(stats.ipi?.a_recuperar > 0 ? stats.ipi.a_recuperar : (stats.ipi?.a_pagar || 0))}
                             </span>
                           </div>
                         </div>
