@@ -3758,95 +3758,214 @@ def _find_infnfse_recursive(data: dict, depth: int = 0) -> Optional[Dict]:
 
 
 def _parse_single_nfse(nfse: Dict[str, Any]) -> Dict[str, Any]:
-    """Parser interno para uma única NFS-e"""
-    # Dados do prestador (quem emitiu)
-    prestador = nfse.get('PrestadorServico', {}) or nfse.get('Prestador', {})
-    id_prestador = prestador.get('IdentificacaoPrestador', {})
-    cnpj_prestador = id_prestador.get('Cnpj', '') or prestador.get('Cnpj', '')
-    nome_prestador = prestador.get('RazaoSocial', '') or prestador.get('NomeFantasia', '')
+    """
+    Parser interno para uma única NFS-e
+    Suporta múltiplas variações de estrutura usadas por diferentes municípios
+    """
+    
+    # Helper para buscar campos com variações de case
+    def get_field(obj: dict, *keys, default=''):
+        if not isinstance(obj, dict):
+            return default
+        for key in keys:
+            # Tentar key exata
+            if key in obj and obj[key]:
+                return obj[key]
+            # Tentar lowercase
+            if key.lower() in obj and obj[key.lower()]:
+                return obj[key.lower()]
+            # Tentar capitalize
+            cap = key[0].upper() + key[1:] if key else key
+            if cap in obj and obj[cap]:
+                return obj[cap]
+        return default
+    
+    # Helper para converter para float de forma segura
+    def safe_float(val, default=0.0):
+        if val is None or val == '':
+            return default
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return default
+    
+    # ============================================================
+    # DADOS DO PRESTADOR (quem emitiu)
+    # ============================================================
+    prestador = (
+        get_field(nfse, 'PrestadorServico', 'Prestador', 'prestadorServico', 'prestador') or
+        get_field(nfse, 'DadosPrestador', 'dadosPrestador') or
+        {}
+    )
+    if not isinstance(prestador, dict):
+        prestador = {}
+    
+    id_prestador = get_field(prestador, 'IdentificacaoPrestador', 'identificacaoPrestador', 'Identificacao') or {}
+    if not isinstance(id_prestador, dict):
+        id_prestador = {}
+    
+    # CNPJ do prestador - múltiplas variações
+    cnpj_prestador = (
+        get_field(id_prestador, 'Cnpj', 'cnpj', 'CpfCnpj', 'CNPJ') or
+        get_field(prestador, 'Cnpj', 'cnpj', 'CpfCnpj', 'CNPJ') or
+        get_field(nfse, 'CnpjPrestador', 'cnpjPrestador') or
+        ''
+    )
+    # CpfCnpj pode ser dict
+    if isinstance(cnpj_prestador, dict):
+        cnpj_prestador = cnpj_prestador.get('Cnpj', '') or cnpj_prestador.get('cnpj', '') or ''
+    
+    # Nome do prestador
+    nome_prestador = (
+        get_field(prestador, 'RazaoSocial', 'razaoSocial', 'NomeFantasia', 'nomeFantasia', 'Nome', 'nome') or
+        get_field(nfse, 'RazaoSocialPrestador', 'NomePrestador') or
+        ''
+    )
     
     # Endereço do prestador
-    endereco_prestador_data = prestador.get('Endereco', {})
+    endereco_prestador_data = get_field(prestador, 'Endereco', 'endereco', 'EnderecoPrestador') or {}
+    if not isinstance(endereco_prestador_data, dict):
+        endereco_prestador_data = {}
     prestador_endereco = {
-        'logradouro': endereco_prestador_data.get('Endereco', '') or endereco_prestador_data.get('Logradouro', ''),
-        'numero': endereco_prestador_data.get('Numero', ''),
-        'complemento': endereco_prestador_data.get('Complemento', ''),
-        'bairro': endereco_prestador_data.get('Bairro', ''),
-        'cidade': endereco_prestador_data.get('Cidade', '') or endereco_prestador_data.get('xMun', ''),
-        'cod_municipio': endereco_prestador_data.get('CodigoMunicipio', ''),
-        'uf': endereco_prestador_data.get('Uf', ''),
-        'cep': endereco_prestador_data.get('Cep', ''),
+        'logradouro': get_field(endereco_prestador_data, 'Endereco', 'Logradouro', 'endereco', 'logradouro'),
+        'numero': get_field(endereco_prestador_data, 'Numero', 'numero'),
+        'complemento': get_field(endereco_prestador_data, 'Complemento', 'complemento'),
+        'bairro': get_field(endereco_prestador_data, 'Bairro', 'bairro'),
+        'cidade': get_field(endereco_prestador_data, 'Cidade', 'cidade', 'xMun', 'Municipio'),
+        'cod_municipio': get_field(endereco_prestador_data, 'CodigoMunicipio', 'codigoMunicipio', 'CodMunicipio'),
+        'uf': get_field(endereco_prestador_data, 'Uf', 'uf', 'UF', 'Estado'),
+        'cep': get_field(endereco_prestador_data, 'Cep', 'cep', 'CEP'),
         'pais': 'BRASIL',
         'cod_pais': '1058',
-        'telefone': (prestador.get('Contato') or {}).get('Telefone', '') or ''
+        'telefone': get_field(get_field(prestador, 'Contato', 'contato') or {}, 'Telefone', 'telefone')
     }
     
-    # Dados do tomador (cliente)
-    tomador = nfse.get('TomadorServico', {}) or nfse.get('Tomador', {}) or {}
-    id_tomador = tomador.get('IdentificacaoTomador', {}) or {}
-    cpf_cnpj_tomador = id_tomador.get('CpfCnpj', {})
-    # CpfCnpj pode ser dict, string vazia ou None
+    # ============================================================
+    # DADOS DO TOMADOR (cliente)
+    # ============================================================
+    tomador = (
+        get_field(nfse, 'TomadorServico', 'Tomador', 'tomadorServico', 'tomador') or
+        get_field(nfse, 'DadosTomador', 'dadosTomador') or
+        {}
+    )
+    if not isinstance(tomador, dict):
+        tomador = {}
+    
+    id_tomador = get_field(tomador, 'IdentificacaoTomador', 'identificacaoTomador', 'Identificacao') or {}
+    if not isinstance(id_tomador, dict):
+        id_tomador = {}
+    
+    # CNPJ/CPF do tomador
+    cpf_cnpj_tomador = get_field(id_tomador, 'CpfCnpj', 'cpfCnpj', 'Cnpj', 'Cpf')
     if isinstance(cpf_cnpj_tomador, dict):
-        cnpj_tomador = cpf_cnpj_tomador.get('Cnpj', '') or cpf_cnpj_tomador.get('Cpf', '') or ''
+        cnpj_tomador = cpf_cnpj_tomador.get('Cnpj', '') or cpf_cnpj_tomador.get('Cpf', '') or cpf_cnpj_tomador.get('cnpj', '') or ''
     else:
         cnpj_tomador = str(cpf_cnpj_tomador) if cpf_cnpj_tomador else ''
-    # Fallback para campos diretos
+    
     if not cnpj_tomador:
-        cnpj_tomador = tomador.get('Cnpj', '') or tomador.get('Cpf', '') or ''
-    nome_tomador = tomador.get('RazaoSocial', '') or tomador.get('NomeFantasia', '') or 'CONSUMIDOR'
+        cnpj_tomador = get_field(tomador, 'Cnpj', 'cnpj', 'Cpf', 'cpf', 'CpfCnpj') or ''
+        if isinstance(cnpj_tomador, dict):
+            cnpj_tomador = cnpj_tomador.get('Cnpj', '') or cnpj_tomador.get('Cpf', '') or ''
+    
+    # Nome do tomador
+    nome_tomador = (
+        get_field(tomador, 'RazaoSocial', 'razaoSocial', 'NomeFantasia', 'nomeFantasia', 'Nome', 'nome') or
+        get_field(nfse, 'RazaoSocialTomador', 'NomeTomador') or
+        'CONSUMIDOR'
+    )
     
     # Endereço do tomador
-    endereco_tomador_data = tomador.get('Endereco', {}) or {}
+    endereco_tomador_data = get_field(tomador, 'Endereco', 'endereco', 'EnderecoTomador') or {}
+    if not isinstance(endereco_tomador_data, dict):
+        endereco_tomador_data = {}
     tomador_endereco = {
-        'logradouro': endereco_tomador_data.get('Endereco', '') or endereco_tomador_data.get('Logradouro', ''),
-        'numero': endereco_tomador_data.get('Numero', ''),
-        'complemento': endereco_tomador_data.get('Complemento', ''),
-        'bairro': endereco_tomador_data.get('Bairro', ''),
-        'cidade': endereco_tomador_data.get('Cidade', '') or endereco_tomador_data.get('xMun', ''),
-        'cod_municipio': endereco_tomador_data.get('CodigoMunicipio', ''),
-        'uf': endereco_tomador_data.get('Uf', ''),
-        'cep': endereco_tomador_data.get('Cep', ''),
+        'logradouro': get_field(endereco_tomador_data, 'Endereco', 'Logradouro', 'endereco', 'logradouro'),
+        'numero': get_field(endereco_tomador_data, 'Numero', 'numero'),
+        'complemento': get_field(endereco_tomador_data, 'Complemento', 'complemento'),
+        'bairro': get_field(endereco_tomador_data, 'Bairro', 'bairro'),
+        'cidade': get_field(endereco_tomador_data, 'Cidade', 'cidade', 'xMun', 'Municipio'),
+        'cod_municipio': get_field(endereco_tomador_data, 'CodigoMunicipio', 'codigoMunicipio', 'CodMunicipio'),
+        'uf': get_field(endereco_tomador_data, 'Uf', 'uf', 'UF', 'Estado'),
+        'cep': get_field(endereco_tomador_data, 'Cep', 'cep', 'CEP'),
         'pais': 'BRASIL',
         'cod_pais': '1058',
-        'telefone': (tomador.get('Contato') or {}).get('Telefone', '') or ''
+        'telefone': get_field(get_field(tomador, 'Contato', 'contato') or {}, 'Telefone', 'telefone')
     }
     
-    # Dados do serviço
-    servico = nfse.get('Servico', {}) or (nfse.get('DeclaracaoPrestacaoServico') or {}).get('Servico', {}) or {}
-    valores = servico.get('Valores', {}) or {}
+    # ============================================================
+    # DADOS DO SERVIÇO
+    # ============================================================
+    servico = (
+        get_field(nfse, 'Servico', 'servico', 'InfDeclaracaoPrestacaoServico') or
+        get_field(get_field(nfse, 'DeclaracaoPrestacaoServico', 'declaracaoPrestacaoServico') or {}, 'Servico', 'servico') or
+        {}
+    )
+    if not isinstance(servico, dict):
+        servico = {}
     
-    valor_servicos = float(valores.get('ValorServicos', 0) or servico.get('ValorServicos', 0) or 0)
-    valor_iss = float(valores.get('ValorIss', 0) or 0)
-    aliq_iss = float(valores.get('Aliquota', 0) or 0)
+    valores = get_field(servico, 'Valores', 'valores', 'ValoresNfse') or {}
+    if not isinstance(valores, dict):
+        valores = {}
     
-    # Número e data
-    numero = nfse.get('Numero', '') or nfse.get('IdentificacaoNfse', {}).get('Numero', '')
-    data_emissao = nfse.get('DataEmissao', '') or nfse.get('DataEmissaoNfse', '')
-    codigo_verificacao = nfse.get('CodigoVerificacao', '')
+    # Valor do serviço - múltiplas fontes
+    valor_servicos = safe_float(
+        get_field(valores, 'ValorServicos', 'valorServicos', 'ValorLiquidoNfse') or
+        get_field(servico, 'ValorServicos', 'valorServicos', 'Valor') or
+        get_field(nfse, 'ValorServicos', 'valorServicos', 'ValorNfse', 'Valor') or
+        0
+    )
+    valor_iss = safe_float(get_field(valores, 'ValorIss', 'valorIss', 'ValorISS') or 0)
+    aliq_iss = safe_float(get_field(valores, 'Aliquota', 'aliquota', 'AliquotaISS') or 0)
+    
+    # ============================================================
+    # NÚMERO E DATA
+    # ============================================================
+    numero = (
+        get_field(nfse, 'Numero', 'numero', 'NumeroNfse', 'numeroNfse', 'NumeroDaNota') or
+        get_field(get_field(nfse, 'IdentificacaoNfse', 'identificacaoNfse') or {}, 'Numero', 'numero') or
+        ''
+    )
+    
+    data_emissao = (
+        get_field(nfse, 'DataEmissao', 'dataEmissao', 'DataEmissaoNfse', 'DataHoraEmissao', 'DtEmissao') or
+        ''
+    )
+    
+    codigo_verificacao = (
+        get_field(nfse, 'CodigoVerificacao', 'codigoVerificacao', 'CodVerificacao', 'ChaveNFSe') or
+        get_field(get_field(nfse, 'IdentificacaoNfse', 'identificacaoNfse') or {}, 'CodigoVerificacao', 'codigoVerificacao') or
+        ''
+    )
     
     # Competência (para determinar mês/ano)
-    competencia = nfse.get('Competencia', '')
+    competencia = get_field(nfse, 'Competencia', 'competencia', 'DataCompetencia') or ''
     
-    # Discriminação do serviço
-    discriminacao = servico.get('Discriminacao', '') or ''
-    codigo_servico = servico.get('ItemListaServico', '') or servico.get('CodigoTributacaoMunicipio', '')
-    cnae = servico.get('CodigoCnae', '')
+    # ============================================================
+    # DISCRIMINAÇÃO DO SERVIÇO
+    # ============================================================
+    discriminacao = get_field(servico, 'Discriminacao', 'discriminacao', 'DescricaoServico', 'Descricao') or ''
+    codigo_servico = (
+        get_field(servico, 'ItemListaServico', 'itemListaServico', 'CodigoServico') or
+        get_field(servico, 'CodigoTributacaoMunicipio', 'codigoTributacaoMunicipio') or
+        ''
+    )
+    cnae = get_field(servico, 'CodigoCnae', 'codigoCnae', 'Cnae') or ''
     
     servicos = [{
-        'codigo': codigo_servico,
-        'cnae': cnae,
+        'codigo': str(codigo_servico),
+        'cnae': str(cnae),
         'descricao': discriminacao[:200] if discriminacao else 'Serviço',
         'valor_total': valor_servicos,
         'cfop': '5933',  # CFOP padrão para prestação de serviços (SPED)
         'aliq_iss': aliq_iss,
         'valor_iss': valor_iss,
-        'v_pis': float(valores.get('ValorPis', 0) or 0),
-        'v_cofins': float(valores.get('ValorCofins', 0) or 0),
-        'v_inss': float(valores.get('ValorInss', 0) or 0),
-        'v_ir': float(valores.get('ValorIr', 0) or 0),
-        'v_csll': float(valores.get('ValorCsll', 0) or 0),
-        'base_calculo': float(valores.get('BaseCalculo', 0) or 0),
-        'iss_retido': valores.get('IssRetido', '2') == '1'  # 1=Sim, 2=Não
+        'v_pis': safe_float(get_field(valores, 'ValorPis', 'valorPis') or 0),
+        'v_cofins': safe_float(get_field(valores, 'ValorCofins', 'valorCofins') or 0),
+        'v_inss': safe_float(get_field(valores, 'ValorInss', 'valorInss') or 0),
+        'v_ir': safe_float(get_field(valores, 'ValorIr', 'valorIr') or 0),
+        'v_csll': safe_float(get_field(valores, 'ValorCsll', 'valorCsll') or 0),
+        'base_calculo': safe_float(get_field(valores, 'BaseCalculo', 'baseCalculo') or 0),
+        'iss_retido': get_field(valores, 'IssRetido', 'issRetido') == '1'  # 1=Sim, 2=Não
     }]
     
     # Determinar retenções - ISS retido significa que o tomador reteve o ISS
