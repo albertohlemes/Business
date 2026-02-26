@@ -6828,6 +6828,13 @@ async def sieg_sync_execute(
                 produtos_para_classificar = parsed_data.get('produtos', [])
                 emitente_uf = parsed_data.get('emitente_uf', '')
                 
+                # IMPORTANTE: Preservar cfop_original_emissor ANTES da classificação
+                # Isso é necessário para os alertas de CFOP e detectar operações distintas
+                for product in produtos_para_classificar:
+                    cfop_original = product.get('cfop', '')
+                    if cfop_original and not product.get('cfop_original_emissor'):
+                        product['cfop_original_emissor'] = cfop_original
+                
                 if produtos_para_classificar:
                     file_conversions = []
                     
