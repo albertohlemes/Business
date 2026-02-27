@@ -3,7 +3,62 @@
 ## Visão Geral
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
-## Última Atualização: 27/02/2026 (Sessão 5)
+## Última Atualização: 27/02/2026 (Sessão 6)
+
+### Correções e Melhorias - Sessão 6 (27/02/2026)
+
+**INVESTIGAÇÃO: Bug de Importação Silenciosa do SIEG**
+
+**Problema reportado:**
+- Empresa "DI PIETRA PORCELANATOS" mostrava importação SIEG bem-sucedida, mas nenhum documento era salvo no banco
+- A API SIEG retornava 12 XMLs, mas a contagem de documentos no banco era zero
+
+**Melhorias implementadas na lógica de filtro:**
+
+1. **Função `filtrar_xmls_novos()` aprimorada** (`sieg_smart_sync.py`):
+   - Adicionado logging detalhado para diagnóstico
+   - Adicionado suporte a formato alternativo de chave NFe (`<infNFe Id="NFe...">`)
+   - Adicionado contador de XMLs sem chave detectável
+   - XMLs vazios são agora logados e ignorados corretamente
+
+2. **Função `get_chaves_ja_importadas()` aprimorada** (`sieg_smart_sync.py`):
+   - Adicionada busca por campo alternativo `chave_acesso`
+   - Adicionado diagnóstico quando existem documentos mas nenhuma chave é encontrada
+   - Logging detalhado do total de documentos vs chaves encontradas
+
+3. **Verificação de duplicatas melhorada** (`server.py`):
+   - Verificação de duplicata agora só ocorre se `chave_nfe` não estiver vazia
+   - Para documentos sem chave, verificação alternativa por `numero_nfe` + `emitente_cnpj`/`destinatario_cnpj`
+   - Logging detalhado dos primeiros documentos processados para diagnóstico
+
+4. **Novo endpoint de diagnóstico** (`GET /api/sieg/debug-import/{company_id}`):
+   - Simula o processo de importação SEM salvar dados
+   - Retorna análise detalhada de cada etapa:
+     - Chaves já importadas
+     - XMLs baixados do SIEG
+     - Análise de entradas (com_chave, sem_chave, duplicados, novos)
+     - Análise de saídas
+     - Diagnóstico final com causa provável
+
+**Status:** O bug não pode ser reproduzido no ambiente de preview pois a empresa "DI PIETRA" não está cadastrada. As melhorias de logging e diagnóstico permitirão identificar a causa raiz quando o problema ocorrer novamente.
+
+---
+
+### Feature: Colunas "Serviço" e "Retenções" em NFS-e (Sessão 5)
+
+**Status:** Implementado, aguardando verificação com dados reais
+
+**Implementação:**
+- Frontend: `/app/frontend/src/pages/Documents.js` (linhas 2839-2954)
+  - Coluna "Serviço" mostra `doc.servicos?.[0]?.descricao` ou `doc.discriminacao_servico`
+  - Coluna "Retenções" mostra `doc.total_retencoes` formatado como moeda
+  - Ambas colunas visíveis apenas nas abas `servicos_tomados` e `servicos_prestados`
+  
+- Backend: `/app/backend/server.py` (linhas 12580-12596)
+  - Calcula `total_retencoes` somando: ISS, PIS, COFINS, CSLL, IR, INSS, outras retenções
+  - Extrai `discriminacao_servico` do array de serviços se não existir
+
+---
 
 ### Correções e Melhorias - Sessão 5 (27/02/2026)
 
