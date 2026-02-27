@@ -19656,7 +19656,10 @@ async def alertas_cfop_agrupado_por_cfop(
                     'produto_descricao': prod.get('descricao', ''),
                     'ncm': prod.get('ncm', ''),
                     'valor': prod.get('valor_total', 0),
-                    'cfop_original_emissor': cfop_original
+                    'cfop_original_emissor': cfop_original,
+                    # CST ICMS para identificar ST ou tributado
+                    'cst_icms': prod.get('cst_icms', prod.get('cst', '')),
+                    'cst_icms_descricao': _get_descricao_cst_icms(prod.get('cst_icms', prod.get('cst', '')))
                 })
                 total_pendentes += 1
     
