@@ -20761,7 +20761,9 @@ async def get_classification_suggestions_v2(
                     'doc_id': doc['id'],
                     'numero_nfe': doc.get('numero_nfe', ''),
                     'nf': doc.get('numero_nfe', ''),
-                    'produto_idx': produto_idx
+                    'produto_idx': produto_idx,
+                    'cst_icms': prod.get('cst_icms', prod.get('cst', '')),
+                    'cst_icms_descricao': _get_descricao_cst_icms(prod.get('cst_icms', prod.get('cst', '')))
                 })
                 grupo['classificacao_automatica'] = True
                 grupo['fonte_classificacao'] = historico['fonte']
