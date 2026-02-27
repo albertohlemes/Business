@@ -7562,6 +7562,9 @@ async def sieg_sync_execute(
                         produtos_para_classificar_final.append(product)
                 
                 # Processar operações distintas - CONVERTER CFOP de saída para entrada
+                # E GERAR ALERTA para revisão do usuário
+                file_alertas_cfop = []  # Alertas de CFOP para este arquivo
+                
                 for product, cfop_original in produtos_operacao_distinta:
                     # CORRIGIDO: CFOPs de saída (5xxx/6xxx) devem ser convertidos para entrada (1xxx/2xxx)
                     # quando a nota é recebida como entrada (terceiro enviou para nós)
@@ -7583,10 +7586,35 @@ async def sieg_sync_execute(
                         product['cfop_original'] = cfop_original
                         logger.info(f"[SIEG] Operação distinta MANTIDA: CFOP {cfop_original} ({CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]})")
                     
-                    product['pendente_revisao_cfop'] = False  # Não precisa revisão
+                    # GERAR ALERTA para revisão do usuário
+                    product['pendente_revisao_cfop'] = True  # Precisa revisão do usuário
                     product['natureza_operacao_original'] = CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]
                     product['categoria_classificada'] = 'operacao_distinta'
-                    product['justificativa_ia'] = f"Operação especial: {CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]} - CFOP {'convertido' if primeiro_digito in ['5', '6'] else 'mantido'}"
+                    product['justificativa_ia'] = f"Operação especial: {CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]} - CFOP {'convertido' if primeiro_digito in ['5', '6'] else 'mantido'} - PENDENTE REVISÃO"
+                    
+                    # Adicionar ao alerta
+                    file_alertas_cfop.append({
+                        'produto': product.get('descricao', ''),
+                        'codigo': product.get('codigo', ''),
+                        'ncm': product.get('ncm', ''),
+                        'cst_icms': product.get('cst_icms', product.get('cst', '')),
+                        'cfop_emissor': cfop_original,
+                        'cfop_convertido': cfop_convertido,
+                        'descricao_cfop': CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original],
+                        'valor': product.get('valor_total', 0),
+                        'acao_tomada': f'Convertido para {cfop_convertido} (pendente revisão)',
+                        'categoria': 'operacao_distinta'
+                    })
+                
+                # Adicionar alertas ao resultado
+                if file_alertas_cfop:
+                    results["alertas_cfop"].append({
+                        "nfe": parsed_data.get('numero_nfe', ''),
+                        "emitente": parsed_data.get('emitente_nome', ''),
+                        "chave": parsed_data.get('chave_nfe', '')[-10:] if parsed_data.get('chave_nfe') else '',
+                        "qtd_produtos": len(file_alertas_cfop),
+                        "alertas": file_alertas_cfop
+                    })
                 
                 if produtos_para_classificar_final:
                     file_conversions = []
