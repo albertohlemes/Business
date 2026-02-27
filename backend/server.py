@@ -35145,7 +35145,14 @@ async def preview_nfse_for_cancellation(
                 for idx, nfse in enumerate(lista_nfse):
                     cnpj_emitente = nfse.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
                     
+                    # Log para debug
+                    if idx == 0:
+                        print(f"[PREVIEW DEBUG] CNPJ empresa: {cnpj_empresa}")
+                        print(f"[PREVIEW DEBUG] CNPJ emitente: {cnpj_emitente}")
+                        print(f"[PREVIEW DEBUG] Match: {cnpj_emitente == cnpj_empresa}")
+                    
                     # Só incluir se pertencer à empresa
+                    if cnpj_emitente == cnpj_empresa:
                     if cnpj_emitente == cnpj_empresa:
                         # Verificar se já existe no banco
                         existing = await db.xml_documents.find_one({
