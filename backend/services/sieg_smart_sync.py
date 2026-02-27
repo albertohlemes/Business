@@ -336,9 +336,16 @@ async def filtrar_xmls_novos(
     """
     xmls_novos = []
     duplicados = 0
+    sem_chave = 0
+    
+    logger.info(f"[SMART SYNC] Iniciando filtro: {len(xmls)} XMLs recebidos, {len(chaves_ja_importadas)} chaves já importadas")
     
     for xml_info in xmls:
         xml_content = xml_info.get("xml", "")
+        
+        if not xml_content:
+            logger.warning(f"[SMART SYNC] XML vazio encontrado, ignorando")
+            continue
         
         # Extrair chave do XML
         import re
@@ -347,15 +354,27 @@ async def filtrar_xmls_novos(
             # Tentar formato alternativo
             chave_match = re.search(r'Id="NFe(\d{44})"', xml_content)
         
+        if not chave_match:
+            # Tentar mais formatos (infNFe Id)
+            chave_match = re.search(r'<infNFe[^>]*Id="NFe(\d{44})"', xml_content)
+        
         if chave_match:
             chave = chave_match.group(1)
             if chave in chaves_ja_importadas:
                 duplicados += 1
+                logger.debug(f"[SMART SYNC] XML duplicado: chave {chave[:20]}...")
                 continue
+            else:
+                logger.debug(f"[SMART SYNC] XML novo: chave {chave[:20]}...")
+        else:
+            # XML sem chave - ainda assim adiciona para processamento
+            # O parse posterior pode extrair a chave
+            sem_chave += 1
+            logger.warning(f"[SMART SYNC] XML sem chave NFe detectável (tamanho: {len(xml_content)} chars). Adicionando para processamento.")
         
         xmls_novos.append(xml_info)
     
-    logger.info(f"[SMART SYNC] {len(xmls_novos)} novos, {duplicados} duplicados ignorados")
+    logger.info(f"[SMART SYNC] Resultado filtro: {len(xmls_novos)} novos, {duplicados} duplicados, {sem_chave} sem chave")
     return xmls_novos, duplicados
 
 
