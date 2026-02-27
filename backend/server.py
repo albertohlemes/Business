@@ -17732,9 +17732,9 @@ async def relatorio_divergencias_entrada(
 ):
     """
     Gera relatório de divergências nas ENTRADAS:
-    - Produtos com CFOPs que dão direito a crédito devem ter CST 50 (com crédito)
-    - Produtos monofásicos devem ter CST 04 (mesmo nas entradas)
-    - Produtos alíquota zero devem ter CST 73
+    - Produtos com CFOPs que dão direito a crédito devem ter CST "50" (com crédito)
+    - Produtos monofásicos devem ter CST "04" (mesmo nas entradas)
+    - Produtos alíquota zero devem ter CST "73"
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
