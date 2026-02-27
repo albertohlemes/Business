@@ -360,6 +360,13 @@ export const UploadProvider = ({ children }) => {
             }
           } catch (err) {
             clearTimeout(timeoutId);
+            
+            // Ignorar erros de postMessage que não afetam o upload real
+            if (err.message && err.message.includes('postMessage')) {
+              console.warn('Aviso: Erro de postMessage ignorado (não afeta o upload):', err.message);
+              continue; // Continuar com o próximo lote
+            }
+            
             if (err.name === 'AbortError') {
               throw new Error('Timeout: o servidor demorou muito para responder. Tente novamente ou use uploads menores.');
             }
