@@ -7167,6 +7167,7 @@ async def sieg_sync_execute(
         "duplicados": [],
         "cancelados": [],
         "relatorio_conversoes": [],
+        "alertas_cfop": [],  # Alertas de CFOPs de operações distintas para revisão
         "documentos_importados": [],  # Lista de documentos importados para o relatório
         "smart_sync": {
             "modo": "incremental",
