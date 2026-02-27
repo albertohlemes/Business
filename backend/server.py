@@ -23149,38 +23149,38 @@ Competência: {competencia}
 ===============================================================
                     MÉTRICAS PRINCIPAIS
 ===============================================================
-• FATURAMENTO (Saídas): R$ {resumo['valor_saidas']:,.2f}
-• COMPRAS (Entradas): R$ {resumo['valor_entradas']:,.2f}
-• Margem Bruta Aparente: {margem_bruta:.1f}%
-• Carga Tributária Efetiva: {carga_tributaria_efetiva:.1f}% sobre vendas
+- FATURAMENTO (Saídas): R$ {resumo['valor_saidas']:,.2f}
+- COMPRAS (Entradas): R$ {resumo['valor_entradas']:,.2f}
+- Margem Bruta Aparente: {margem_bruta:.1f}%
+- Carga Tributária Efetiva: {carga_tributaria_efetiva:.1f}% sobre vendas
 
 ===============================================================
                     APURAÇÃO ICMS
 ===============================================================
-• Débito ICMS (vendas): R$ {resumo['debito_icms']:,.2f}
-• Crédito ICMS (compras): R$ {resumo['credito_icms']:,.2f}
-• SALDO: R$ {resumo['saldo_icms']:,.2f} {'A PAGAR' if resumo['saldo_icms'] > 0 else 'CREDOR'}
-• Aproveitamento de Créditos: {aproveitamento_creditos:.1f}%
+- Débito ICMS (vendas): R$ {resumo['debito_icms']:,.2f}
+- Crédito ICMS (compras): R$ {resumo['credito_icms']:,.2f}
+- SALDO: R$ {resumo['saldo_icms']:,.2f} {'A PAGAR' if resumo['saldo_icms'] > 0 else 'CREDOR'}
+- Aproveitamento de Créditos: {aproveitamento_creditos:.1f}%
 
 ===============================================================
                     COMPRAS INTERESTADUAIS
 ===============================================================
-• % do total de compras: {pct_interestadual:.1f}%
-• Valor: R$ {total_interestadual:,.2f}
-• Origem principal: {compras_interestaduais[0]['_id'] if compras_interestaduais else 'N/A'} (R$ {compras_interestaduais[0]['valor']:,.2f} if compras_interestaduais else 0)
-• ⚠️ ALERTA DIFAL: Compras de fora do estado geram diferencial de alíquota
+- % do total de compras: {pct_interestadual:.1f}%
+- Valor: R$ {total_interestadual:,.2f}
+- Origem principal: {compras_interestaduais[0]['_id'] if compras_interestaduais else 'N/A'} (R$ {compras_interestaduais[0]['valor']:,.2f} if compras_interestaduais else 0)
+- ⚠️ ALERTA DIFAL: Compras de fora do estado geram diferencial de alíquota
 
 ===============================================================
                     TOP 5 FORNECEDORES
 ===============================================================
-{chr(10).join([f"• {f['_id']['nome'][:40]} - R$ {f['valor']:,.2f}" for f in top_fornecedores])}
+{chr(10).join([f"- {f['_id']['nome'][:40]} - R$ {f['valor']:,.2f}" for f in top_fornecedores])}
 
 ===============================================================
                     VILÕES TRIBUTÁRIOS
 ===============================================================
 Total identificados: {resumo['total_viloes']}
 Impacto negativo: R$ {resumo['impacto_viloes']:,.2f}
-{chr(10).join([f"• {v.get('descricao', 'N/A')[:50]} | Impacto: R$ {v.get('impacto', 0):,.2f}" for v in viloes[:5]])}
+{chr(10).join([f"- {v.get('descricao', 'N/A')[:50]} | Impacto: R$ {v.get('impacto', 0):,.2f}" for v in viloes[:5]])}
 
 ===============================================================
                     SUA ANÁLISE (SEJA DIRETO)
