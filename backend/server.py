@@ -1764,7 +1764,7 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                             totais['creditos_cofins'] += cofins
                             totais['base_credito'] += valor_base
                         
-                else:  # saída
+                elif is_cfop_saida:  # saída
                     # ============================================================
                     # VERIFICAR SE GERA DÉBITO (baseado na categoria E no CFOP)
                     # ============================================================
