@@ -20622,14 +20622,16 @@ async def get_classification_suggestions_v2(
     produtos_novos = defaultdict(lambda: {
         'codigo': '', 'descricao': '', 'ncm': '', 'cfop_atual': '',
         'categoria_atual': 'pendente', 'quantidade': 0, 'valor_total': 0,
-        'ocorrencias': [], 'classificado': False, 'is_novo': True
+        'ocorrencias': [], 'classificado': False, 'is_novo': True,
+        'cst_icms': '', 'cst_icms_descricao': ''  # CST ICMS para identificar ST
     })
     
     produtos_ja_classificados = defaultdict(lambda: {
         'codigo': '', 'descricao': '', 'ncm': '', 'cfop_atual': '',
         'categoria_atual': '', 'quantidade': 0, 'valor_total': 0,
         'ocorrencias': [], 'classificado': True, 'is_novo': False,
-        'classificacao_automatica': False, 'fonte_classificacao': ''
+        'classificacao_automatica': False, 'fonte_classificacao': '',
+        'cst_icms': '', 'cst_icms_descricao': ''  # CST ICMS para identificar ST
     })
     
     docs_para_atualizar = []  # Documentos que precisam ter classificação aplicada automaticamente
