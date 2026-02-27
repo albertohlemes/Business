@@ -7,6 +7,42 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 
 ### Correções e Melhorias - Sessão 6 (27/02/2026)
 
+**BUG CRÍTICO CORRIGIDO: Benefício Fiscal ICMS de Restaurante não aplicado na versão agregada**
+
+**Problema identificado:**
+- Empresas com benefício fiscal de restaurante/bar (onde NENHUM produto gera crédito ICMS) ainda mostravam créditos indevidos
+- O bug ocorria APENAS quando a empresa tinha mais de 500 documentos
+- A função `_get_icms_aggregated` (otimizada para grandes volumes) não aplicava a regra de benefício fiscal
+
+**Causa raiz:**
+Na função `_get_icms_aggregated` (linha 26924), o código verificava apenas:
+```python
+is_desconsiderado = (is_despesa and desconsiderar_despesas) or (is_st and desconsiderar_st)
+```
+Faltava a verificação: `or beneficio_zera_tudo`
+
+**Solução aplicada:**
+1. Adicionada verificação de `beneficio_zera_tudo` para tipos de benefício `restaurante`, `bar`, `lanchonete`
+2. Adicionada verificação para lista de produtos contendo "TODOS"
+3. Quando ativo, TODO o ICMS de entrada é desconsiderado (zerado)
+4. Adicionada variável `icms_beneficio_desc` para rastrear separadamente o valor desconsiderado por benefício
+5. Atualizado o retorno `desconsiderados.beneficio_fiscal` para mostrar:
+   - `valor_icms`: valor total desconsiderado
+   - `tipo_beneficio`: tipo do benefício (restaurante, bar, etc.)
+   - `motivo`: descrição do motivo da exclusão
+6. Atualizado `flags` para incluir `beneficio_fiscal_icms`, `tipo_beneficio_fiscal`, `beneficio_zera_tudo`
+
+**Arquivos modificados:**
+- `/app/backend/server.py` - função `_get_icms_aggregated` (linhas 26924-27330)
+
+**Resultado esperado:**
+- Empresa MAC (M & A DE MORAES RESTAURANTE) com competência 02/2026 deve mostrar:
+  - Crédito ICMS: R$ 0,00
+  - Desconsiderados > Benefício Fiscal: valor total de ICMS das entradas
+  - Flags > beneficio_zera_tudo: true
+
+---
+
 **INVESTIGAÇÃO: Bug de Importação Silenciosa do SIEG**
 
 **Problema reportado:**
