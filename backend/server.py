@@ -2265,7 +2265,7 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
                 entradas_cfop_cst[chave]['valor_cofins'] += valor_cofins
                 entradas_cfop_cst[chave]['qtd'] += 1
                 
-            else:  # saída
+            elif is_cfop_saida:  # saída
                 categoria_sem_debito = any(cat in categoria for cat in CATEGORIAS_SEM_DEBITO) if categoria else False
                 cfop_sem_debito = cfop in CFOPS_SEM_DEBITO_LOCAL
                 
