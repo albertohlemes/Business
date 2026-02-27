@@ -3634,6 +3634,22 @@ def parse_xml_nfse(xml_content: str) -> Dict[str, Any]:
         nfse = None
         
         # ============================================================
+        # GINFES com namespaces (ns2:NFSE, ns3:...) - Layout MAC/Suzano
+        # ============================================================
+        if not nfse:
+            ginfes_root = data.get('ns2:NFSE', {})
+            if ginfes_root:
+                nfse_list = ginfes_root.get('ns2:Nfse', [])
+                # Se for lista, pegar primeira NFS-e
+                if isinstance(nfse_list, list):
+                    if nfse_list:
+                        nfse = _normalize_ginfes_namespaces(nfse_list[0])
+                        logger.info(f"[NFSE PARSER] Layout GINFES detectado com {len(nfse_list)} notas. Usando primeira.")
+                elif nfse_list:
+                    nfse = _normalize_ginfes_namespaces(nfse_list)
+                    logger.info(f"[NFSE PARSER] Layout GINFES detectado (nota única)")
+        
+        # ============================================================
         # SIEG / Betha / Variações comuns: NFSe na raiz sem InfNfse
         # ============================================================
         if not nfse:
