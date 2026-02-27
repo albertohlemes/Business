@@ -9246,7 +9246,7 @@ async def upload_company_logo(
 ):
     """
     Upload de logo da empresa. Retorna URL da imagem e salva na empresa.
-    Aceita PNG, JPG, JPEG, WEBP. Máximo 2MB.
+    Aceita PNG, JPG, JPEG, WEBP. Tamanho máximo: 2 megabytes.
     """
     # Verificar acesso à empresa
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
