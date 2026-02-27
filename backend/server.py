@@ -9643,9 +9643,15 @@ async def upload_xml_batch(
             
             # Verificar se é uma lista de NFS-e (múltiplas notas em um único arquivo)
             if is_lista_nfse(xml_str):
-                # Processar lista de NFS-e
-                lista_nfse = parse_xml_lista_nfse(xml_str)
-                print(f"Arquivo com {len(lista_nfse)} NFS-e detectado")
+                # Verificar qual parser usar baseado no formato
+                if 'ns2:NFSE' in xml_str or 'ns2:Nfse' in xml_str:
+                    # Formato GINFES com namespaces
+                    lista_nfse = parse_xml_lista_ginfes(xml_str)
+                    print(f"Arquivo GINFES com {len(lista_nfse)} NFS-e detectado")
+                else:
+                    # Formato ABRASF padrão
+                    lista_nfse = parse_xml_lista_nfse(xml_str)
+                    print(f"Arquivo ABRASF com {len(lista_nfse)} NFS-e detectado")
                 
                 for idx, parsed_data in enumerate(lista_nfse):
                     try:
