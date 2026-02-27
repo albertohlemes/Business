@@ -43,6 +43,32 @@ Faltava a verificação: `or beneficio_zera_tudo`
 
 ---
 
+**NOVO: Suporte ao Layout GINFES para NFS-e**
+
+**Estrutura do XML:**
+- Root: `<ns2:NFSE>` com múltiplas `<ns2:Nfse>`
+- Namespaces: `ns2` (xmldsig), `ns3` (GINFES tipos)
+- Campos com prefixo `ns3:` (ex: `ns3:IdentificacaoNfse`, `ns3:Servico`)
+
+**Implementação:**
+1. Função `_normalize_ginfes_namespaces()` - Remove prefixos de namespace das chaves
+2. Função `parse_xml_lista_ginfes()` - Processa múltiplas NFS-e do arquivo
+3. Atualizado `is_lista_nfse()` para detectar formato GINFES
+4. Parser automático detecta layout GINFES no `parse_xml_nfse()`
+
+**Campos extraídos:**
+- `numero_nfe`, `codigo_verificacao`, `data_emissao`, `competencia`
+- `emitente_cnpj`, `emitente_nome` (Prestador)
+- `destinatario_cnpj`, `destinatario_nome` (Tomador)
+- `valor_total`, `bc_iss`, `aliquota_iss`, `valor_iss`, `valor_iss_retido`
+- `discriminacao_servico`, `codigo_servico`
+- Retenções: PIS, COFINS, IR, CSLL, INSS
+
+**Arquivos modificados:**
+- `/app/backend/server.py` - funções de parser NFS-e (linhas ~3634-4390)
+
+---
+
 **INVESTIGAÇÃO: Bug de Importação Silenciosa do SIEG**
 
 **Problema reportado:**
