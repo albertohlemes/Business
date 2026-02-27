@@ -3783,6 +3783,37 @@ def parse_xml_nfse(xml_content: str) -> Dict[str, Any]:
         raise ValueError(f"Erro ao processar XML NFS-e: {str(e)}")
 
 
+def _normalize_ginfes_namespaces(nfse_data: dict) -> dict:
+    """
+    Remove prefixos de namespace (ns2:, ns3:, etc.) das chaves do dicionário GINFES.
+    Converte estrutura com namespaces para estrutura padrão.
+    """
+    if not isinstance(nfse_data, dict):
+        return nfse_data
+    
+    result = {}
+    for key, value in nfse_data.items():
+        # Remover prefixo de namespace (ns2:, ns3:, etc.)
+        new_key = key.split(':')[-1] if ':' in key else key
+        
+        # Ignorar atributos de namespace (@xmlns:...)
+        if new_key.startswith('@xmlns'):
+            continue
+        
+        # Processar recursivamente
+        if isinstance(value, dict):
+            result[new_key] = _normalize_ginfes_namespaces(value)
+        elif isinstance(value, list):
+            result[new_key] = [
+                _normalize_ginfes_namespaces(item) if isinstance(item, dict) else item 
+                for item in value
+            ]
+        else:
+            result[new_key] = value
+    
+    return result
+
+
 def _find_infnfse_recursive(data: dict, depth: int = 0) -> Optional[Dict]:
     """Busca recursiva por InfNfse na estrutura do XML"""
     if depth > 5:  # Limite de profundidade
