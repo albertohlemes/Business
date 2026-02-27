@@ -3,7 +3,51 @@
 ## Visão Geral
 Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS, IRPJ/CSLL), análise tributária, validação de documentos fiscais e gestão de grupos empresariais (Matriz-Filial).
 
-## Última Atualização: 26/02/2026 (Sessão 4)
+## Última Atualização: 27/02/2026 (Sessão 5)
+
+### Correções e Melhorias - Sessão 5 (27/02/2026)
+
+**BUG CRÍTICO CORRIGIDO: CFOPs de operações distintas não convertidos na importação SIEG**
+
+**Problema identificado:**
+- Notas de entrada importadas via SIEG com CFOPs de saída do fornecedor (5xxx/6xxx) **não estavam sendo convertidos** para CFOPs de entrada (1xxx/2xxx)
+- Exemplo: Bonificação recebida de fornecedor com CFOP 5910 deveria ser convertida para 1910, mas permanecia como 5910
+- Isso causava erros graves na apuração de PIS/COFINS:
+  - CFOPs de saída (5910, 5920, 5202, etc.) apareciam na seção de **DÉBITOS** (saídas)
+  - Valores de créditos ficavam incorretos
+  - Totais de entradas vs saídas não batiam
+
+**CFOPs afetados:**
+| CFOP Original | CFOP Corrigido | Descrição |
+|---------------|----------------|-----------|
+| 5910 | 1910 | Bonificação/Doação |
+| 5920 | 1920 | Remessa para Armazém |
+| 5921 | 1921 | Retorno de Vasilhame |
+| 5202 | 1202 | Devolução de compra |
+| 6910 | 2910 | Bonificação/Doação (interestadual) |
+| 6920 | 2920 | Remessa para Armazém (interestadual) |
+
+**Solução aplicada:**
+1. Corrigida a lógica de processamento de "operações distintas" na importação SIEG (`server.py` linhas 7510-7588)
+2. Criada tabela `CFOP_OPERACAO_DISTINTA_CONVERSAO` com mapeamento correto
+3. CFOPs de saída (5xxx/6xxx) são agora convertidos para entrada (1xxx/2xxx)
+4. CFOP original preservado em `cfop_original_emissor`
+5. Script de correção de dados existentes: `/app/backend/scripts/fix_cfop_sieg_entries.py`
+
+**Dados corrigidos no banco:**
+- 78 documentos corrigidos
+- 128 produtos corrigidos
+- Conversões: 5910→1910 (53), 5202→1202 (46), 5920→1920 (10), 5921→1921 (6), 6910→2910 (8), 6920→2920 (4)
+
+**Resultado após correção:**
+- Apuração PIS/COFINS COMERCIAL RS (02/2026):
+  - Créditos PIS: R$ 126.274,37
+  - Créditos COFINS: R$ 581.626,82
+  - Débitos PIS: R$ 100.254,58
+  - Débitos COFINS: R$ 461.783,39
+  - Saldo credor: R$ 163.992,17
+
+---
 
 ### Correções e Melhorias - Sessão 4 (continuação)
 
