@@ -12516,6 +12516,25 @@ async def list_documents(
                     doc['tipo_operacao'] = 'entrada'
                 elif cfop and cfop[0] in ['5', '6', '7']:
                     doc['tipo_operacao'] = 'saida'
+        
+        # Para NFS-e, calcular total de retenções e extrair descrição do serviço
+        if doc.get('modelo') == 'nfse':
+            # Calcular total de retenções
+            total_retencoes = 0
+            total_retencoes += float(doc.get('iss_retido', 0) or 0)
+            total_retencoes += float(doc.get('pis_retido', 0) or 0)
+            total_retencoes += float(doc.get('cofins_retido', 0) or 0)
+            total_retencoes += float(doc.get('csll_retido', 0) or 0)
+            total_retencoes += float(doc.get('ir_retido', 0) or 0)
+            total_retencoes += float(doc.get('inss_retido', 0) or 0)
+            total_retencoes += float(doc.get('outras_retencoes', 0) or 0)
+            doc['total_retencoes'] = total_retencoes
+            
+            # Extrair descrição do serviço (pode estar em servicos[] ou discriminacao_servico)
+            if not doc.get('discriminacao_servico'):
+                servicos = doc.get('servicos', [])
+                if servicos and isinstance(servicos, list) and len(servicos) > 0:
+                    doc['discriminacao_servico'] = servicos[0].get('descricao', '') or servicos[0].get('discriminacao', '')
     
     # Filtrar por modelo do documento (pós-query pois pode ser complexo)
     if modelo:
