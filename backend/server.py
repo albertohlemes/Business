@@ -5681,6 +5681,62 @@ async def login(credentials: UserLogin, request: Request = None):
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
+
+@api_router.get("/auth/check-access/{company_id}")
+async def check_access_to_company(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Verifica se o usuário atual tem acesso a uma empresa específica.
+    Útil para diagnóstico de problemas de permissão.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        return {
+            "has_access": False,
+            "reason": "Empresa não encontrada",
+            "company_id": company_id
+        }
+    
+    user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+    role = user_data.get('role', 'operacional')
+    company_ids = user_data.get('company_ids', [])
+    company_cnpj = company.get('cnpj', '')
+    
+    has_access = await check_company_access(company, current_user)
+    
+    # Determinar o motivo
+    reason = ""
+    if has_access:
+        if role in ['super_admin', 'admin']:
+            reason = f"Acesso permitido (role: {role})"
+        elif has_permission(user_data, PermissionFlags.ALL_COMPANIES):
+            reason = "Acesso permitido (permissão ALL_COMPANIES)"
+        elif company_cnpj in company_ids or company_id in company_ids:
+            reason = "Acesso permitido (empresa na lista company_ids)"
+        else:
+            reason = "Acesso permitido (responsável ou criador da empresa)"
+    else:
+        reason = f"Acesso NEGADO. Seu role é '{role}' e a empresa não está em sua lista de empresas autorizadas."
+    
+    return {
+        "has_access": has_access,
+        "reason": reason,
+        "user": {
+            "email": user_data.get('email'),
+            "role": role,
+            "company_ids": company_ids[:10] if len(company_ids) > 10 else company_ids,
+            "total_companies": len(company_ids)
+        },
+        "company": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company_cnpj
+        }
+    }
+
+
 @api_router.put("/auth/me/preferences")
 async def update_preferences(prefs: dict, current_user: User = Depends(get_current_user)):
     """Update user preferences (menu mode, etc.)"""
