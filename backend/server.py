@@ -2822,32 +2822,45 @@ async def check_company_access(company: Dict, user: User, allow_view_only: bool 
     
     # Super Admin e Admin têm acesso total
     role = user_data.get('role', 'operacional')
+    user_email = user_data.get('email', 'N/A')
+    company_name = company.get('razao_social', company.get('name', 'N/A'))
+    company_id = company.get('id', '')
+    
     if role in ['super_admin', 'admin']:
+        logger.debug(f"[ACCESS] {user_email} ({role}) -> {company_name}: PERMITIDO (admin)")
         return True
     
     # Verificar se tem permissão de acesso a todas empresas
     if has_permission(user_data, PermissionFlags.ALL_COMPANIES):
+        logger.debug(f"[ACCESS] {user_email} ({role}) -> {company_name}: PERMITIDO (ALL_COMPANIES)")
         return True
     
     # Verificar se a empresa está na lista de empresas do usuário
     company_ids = user_data.get('company_ids', [])
     company_cnpj = company.get('cnpj', '')
-    company_id = company.get('id', '')
     
     # Verificar por CNPJ ou ID
     if company_cnpj in company_ids or company_id in company_ids:
+        logger.debug(f"[ACCESS] {user_email} ({role}) -> {company_name}: PERMITIDO (company_ids)")
         return True
     
     # Verificar se o usuário é o responsável pela empresa
     responsavel_id = company.get('responsavel_id', '')
     user_id = user_data.get('id', '')
     if responsavel_id and user_id and responsavel_id == user_id:
+        logger.debug(f"[ACCESS] {user_email} ({role}) -> {company_name}: PERMITIDO (responsável)")
         return True
     
     # Verificar se o usuário criou a empresa
     created_by = company.get('created_by', '')
     if created_by and user_id and created_by == user_id:
+        logger.debug(f"[ACCESS] {user_email} ({role}) -> {company_name}: PERMITIDO (criador)")
         return True
+    
+    # Log detalhado quando acesso é negado
+    logger.warning(f"[ACCESS DENIED] {user_email} ({role}) -> {company_name} (ID: {company_id})")
+    logger.warning(f"[ACCESS DENIED]   company_ids do usuário: {company_ids}")
+    logger.warning(f"[ACCESS DENIED]   company_cnpj: {company_cnpj}, company_id: {company_id}")
     
     return False
 
