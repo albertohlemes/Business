@@ -20788,6 +20788,8 @@ async def get_classification_suggestions_v2(
                 grupo['descricao'] = descricao_original
                 grupo['ncm'] = ncm
                 grupo['cfop_atual'] = prod.get('cfop', '')
+                grupo['cst_icms'] = prod.get('cst_icms', prod.get('cst', ''))
+                grupo['cst_icms_descricao'] = _get_descricao_cst_icms(prod.get('cst_icms', prod.get('cst', '')))
                 grupo['quantidade'] += prod.get('quantidade', 0)
                 grupo['valor_total'] += prod.get('valor_total', 0)
                 grupo['ocorrencias'].append({
