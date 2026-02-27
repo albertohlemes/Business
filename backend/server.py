@@ -2538,9 +2538,9 @@ def obter_categoria_padrao_por_atividade(tipo_atividade: str) -> tuple:
     Retorna a categoria padrão e CFOP baseado no tipo de atividade da empresa.
     
     Regras de negócio:
-    - Indústria → INSUMO (matéria-prima para produção)
-    - Comércio → REVENDA (mercadoria para comercialização)
-    - Serviços → DESPESA (material de consumo)
+    - Indústria -> INSUMO (matéria-prima para produção)
+    - Comércio -> REVENDA (mercadoria para comercialização)
+    - Serviços -> DESPESA (material de consumo)
     
     Args:
         tipo_atividade: 'industria', 'comercio', 'servicos' ou variantes
@@ -7654,7 +7654,7 @@ async def sieg_sync_execute(
                     product['categoria_classificada'] = 'operacao_distinta'
                     product['justificativa_ia'] = f"CFOP distinto: {get_descricao_cfop_distinto(cfop_original)} - PENDENTE VALIDAÇÃO"
                     
-                    logger.info(f"[SIEG] CFOP distinto: {cfop_original} → {cfop_convertido} (PENDENTE VALIDAÇÃO)")
+                    logger.info(f"[SIEG] CFOP distinto: {cfop_original} -> {cfop_convertido} (PENDENTE VALIDAÇÃO)")
                     
                     # Adicionar ao alerta
                     file_alertas_cfop.append({
@@ -9966,13 +9966,13 @@ async def upload_xml_batch(
                         product['cfop_original_emissor'] = cfop_original
                         product['cfop'] = cfop_convertido
                         product['categoria_classificada'] = 'transferencia'
-                        product['justificativa_ia'] = f'Transferência matriz-filial: {cfop_original} → {cfop_convertido}'
+                        product['justificativa_ia'] = f'Transferência matriz-filial: {cfop_original} -> {cfop_convertido}'
                         cst_transferencia = '98'
                         product['cst_pis'] = cst_transferencia
                         product['cst_cofins'] = cst_transferencia
                         product['cst_pis_calculado'] = cst_transferencia
                         product['cst_cofins_calculado'] = cst_transferencia
-                        logger.info(f"UPLOAD TRANSFERÊNCIA: {cfop_original} → {cfop_convertido} (CST {cst_transferencia})")
+                        logger.info(f"UPLOAD TRANSFERÊNCIA: {cfop_original} -> {cfop_convertido} (CST {cst_transferencia})")
                     else:
                         # IMPORTANTE: Preservar CFOP original do emissor ANTES de classificar
                         # Isso é necessário para detectar corretamente ST (5403, 6403, etc.)
@@ -10010,7 +10010,7 @@ async def upload_xml_batch(
                     'cfop_original': cfop_original,
                     'cfop_convertido': cfop_convertido,
                     'categoria': categoria_especifica,
-                    'motivo': f"CFOP {cfop_original} ({CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original]}) → {cfop_convertido}"
+                    'motivo': f"CFOP {cfop_original} ({CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original]}) -> {cfop_convertido}"
                 })
             
             # 3. PRÉ-PROCESSAR PRODUTOS COM CFOP DE DEVOLUÇÃO
@@ -11879,13 +11879,13 @@ async def upload_xml_with_progress(
                         product['cfop_original_emissor'] = cfop_original
                         product['cfop'] = cfop_convertido
                         product['categoria_classificada'] = 'transferencia'
-                        product['justificativa_ia'] = f'Transferência matriz-filial: {cfop_original} → {cfop_convertido}'
+                        product['justificativa_ia'] = f'Transferência matriz-filial: {cfop_original} -> {cfop_convertido}'
                         cst_transferencia = '98'
                         product['cst_pis'] = cst_transferencia
                         product['cst_cofins'] = cst_transferencia
                         product['cst_pis_calculado'] = cst_transferencia
                         product['cst_cofins_calculado'] = cst_transferencia
-                        logger.info(f"UPLOAD TRANSFERÊNCIA: {cfop_original} → {cfop_convertido} (CST {cst_transferencia})")
+                        logger.info(f"UPLOAD TRANSFERÊNCIA: {cfop_original} -> {cfop_convertido} (CST {cst_transferencia})")
                     else:
                         # IMPORTANTE: Preservar CFOP original do emissor ANTES de classificar
                         # Isso é necessário para detectar corretamente ST (5403, 6403, etc.)
@@ -11915,7 +11915,7 @@ async def upload_xml_with_progress(
                     'cfop_original': cfop_original,
                     'cfop_convertido': cfop_convertido,
                     'categoria': 'operacao_distinta',
-                    'motivo': f"CFOP {cfop_original} ({CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original]}) → {cfop_convertido}"
+                    'motivo': f"CFOP {cfop_original} ({CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original]}) -> {cfop_convertido}"
                 })
             
             # Atualizar progresso: classificando
@@ -20255,7 +20255,7 @@ async def resolver_alerta_cfop_por_grupo(
                                         "produto_descricao": produto_descricao,
                                         "descricao_produto": produto_descricao,
                                         "padrao": descricao_norm,
-                                        "motivo": f"Wizard: {cfop_anterior} → {novo_cfop} ({categoria_final})",
+                                        "motivo": f"Wizard: {cfop_anterior} -> {novo_cfop} ({categoria_final})",
                                         "aprendido_de": "wizard_alerta_cfop",
                                         "updated_by": current_user.id,
                                         "updated_at": datetime.now(timezone.utc)
@@ -20279,7 +20279,7 @@ async def resolver_alerta_cfop_por_grupo(
                                     "categoria": categoria_final,
                                     # Campos compartilhados
                                     "ncm": produto_ncm,
-                                    "motivo": f"Wizard: {cfop_anterior} → {novo_cfop} ({categoria_final})",
+                                    "motivo": f"Wizard: {cfop_anterior} -> {novo_cfop} ({categoria_final})",
                                     "aprendido_de": "wizard_alerta_cfop",
                                     "created_by": current_user.id,
                                     "created_at": datetime.now(timezone.utc)
@@ -20449,14 +20449,14 @@ async def resolver_alerta_cfop_individual(
                 "produto_descricao": produto_descricao,
                 "descricao_produto": produto_descricao,
                 "padrao": descricao_norm,
-                "motivo": f"Correção individual: {cfop_anterior} → {novo_cfop} ({categoria_final})",
+                "motivo": f"Correção individual: {cfop_anterior} -> {novo_cfop} ({categoria_final})",
                 "aprendido_de": "wizard_individual",
                 "updated_by": current_user.id,
                 "updated_at": now
             }}
         )
         regra_msg = "Regra atualizada na Memória IA"
-        logger.info(f"MEMÓRIA IA: Regra ATUALIZADA para produto '{produto_descricao}' → CFOP {novo_cfop}")
+        logger.info(f"MEMÓRIA IA: Regra ATUALIZADA para produto '{produto_descricao}' -> CFOP {novo_cfop}")
     else:
         # CRIAR nova regra com TODOS os campos necessários para ambos os sistemas
         nova_regra = {
@@ -20475,14 +20475,14 @@ async def resolver_alerta_cfop_individual(
             "categoria": categoria_final or "conversao_cfop",
             # Campos compartilhados
             "ncm": produto_ncm,
-            "motivo": f"Correção individual: {cfop_anterior} → {novo_cfop} ({categoria_final})",
+            "motivo": f"Correção individual: {cfop_anterior} -> {novo_cfop} ({categoria_final})",
             "aprendido_de": "wizard_individual",
             "created_by": current_user.id,
             "created_at": now
         }
         await db.learned_rules.insert_one(nova_regra)
         regra_msg = "Nova regra criada na Memória IA"
-        logger.info(f"MEMÓRIA IA: Nova regra CRIADA para produto '{produto_descricao}' → CFOP {novo_cfop}")
+        logger.info(f"MEMÓRIA IA: Nova regra CRIADA para produto '{produto_descricao}' -> CFOP {novo_cfop}")
     
     # Invalidar cache para a empresa/competência
     invalidate_company_cache(company_id, doc.get('competencia'))
@@ -21637,7 +21637,7 @@ async def classificar_produtos_ia(
     # Carregar regras existentes
     regras_existentes = await db.learned_rules.find({"company_id": company_id}).to_list(100)
     regras_texto = "\n".join([
-        f"- {r.get('descricao_produto', '')} → {r.get('categoria', '')}"
+        f"- {r.get('descricao_produto', '')} -> {r.get('categoria', '')}"
         for r in regras_existentes
     ]) if regras_existentes else "Nenhuma regra cadastrada"
     
@@ -21712,12 +21712,12 @@ Comando do usuário: "{comando}"
 As palavras-chave cadastradas devem ser EXPANDIDAS SEMANTICAMENTE para incluir todos os produtos relacionados:
 
 Exemplos de expansão semântica:
-- "carne" → inclui: picanha, alcatra, costela, frango, peixe, linguiça, bacon, filé, bife, coxão, patinho, maminha, cupim, acém, contrafilé, chã de dentro, lagarto, músculo, coxinha da asa, sobrecoxa, peito de frango, tilápia, salmão, camarão, etc.
-- "frutas" → inclui: abacaxi, banana, maçã, laranja, uva, melancia, melão, mamão, morango, manga, pera, kiwi, limão, abacate, goiaba, etc.
-- "verduras" ou "legumes" → inclui: alface, tomate, cebola, cenoura, batata, beterraba, abobrinha, berinjela, brócolis, couve, espinafre, etc.
-- "laticínios" → inclui: leite, queijo, manteiga, iogurte, creme de leite, requeijão, etc.
-- "bebidas" → inclui: água, refrigerante, suco, cerveja, vinho, etc.
-- "limpeza" → inclui: detergente, desinfetante, água sanitária, sabão, esponja, vassoura, rodo, etc.
+- "carne" -> inclui: picanha, alcatra, costela, frango, peixe, linguiça, bacon, filé, bife, coxão, patinho, maminha, cupim, acém, contrafilé, chã de dentro, lagarto, músculo, coxinha da asa, sobrecoxa, peito de frango, tilápia, salmão, camarão, etc.
+- "frutas" -> inclui: abacaxi, banana, maçã, laranja, uva, melancia, melão, mamão, morango, manga, pera, kiwi, limão, abacate, goiaba, etc.
+- "verduras" ou "legumes" -> inclui: alface, tomate, cebola, cenoura, batata, beterraba, abobrinha, berinjela, brócolis, couve, espinafre, etc.
+- "laticínios" -> inclui: leite, queijo, manteiga, iogurte, creme de leite, requeijão, etc.
+- "bebidas" -> inclui: água, refrigerante, suco, cerveja, vinho, etc.
+- "limpeza" -> inclui: detergente, desinfetante, água sanitária, sabão, esponja, vassoura, rodo, etc.
 
 **APLIQUE ESTA EXPANSÃO PARA AS PALAVRAS-CHAVE CADASTRADAS:**
 {palavras_chave_texto if palavras_chave_texto else 'Nenhuma palavra-chave cadastrada'}
@@ -21992,7 +21992,7 @@ Se o comando não for claro, retorne {{"alteracoes": [], "erro": "mensagem expli
         if 'budget' in error_msg.lower() or 'exceeded' in error_msg.lower():
             return {
                 "success": False, 
-                "message": "Budget da IA excedido. Adicione mais créditos em Perfil → Universal Key → Add Balance",
+                "message": "Budget da IA excedido. Adicione mais créditos em Perfil -> Universal Key -> Add Balance",
                 "alteracoes": [],
                 "budget_error": True
             }
@@ -22640,7 +22640,7 @@ async def analise_tributaria_ia(
                 'explicacao': f"Entra com crédito de {aliq_creditavel}% e sai com débito de {aliq_saida}%. Diferença de {round(aliq_saida - aliq_creditavel)}pp gera prejuízo."
             })
         
-        # Vilão 2: Entrada ST (sem crédito) → Saída tributada (com débito)
+        # Vilão 2: Entrada ST (sem crédito) -> Saída tributada (com débito)
         if entrada['tem_st'] and not entrada['tem_tributado'] and saida['tem_tributado'] and icms_debito > 100:
             if not any(v['ncm'] == ncm for v in viloes):  # Evitar duplicatas
                 viloes.append({
@@ -22664,7 +22664,7 @@ async def analise_tributaria_ia(
                     'explicacao': f"Entra com ST (sem crédito) mas sai tributado a {aliq_saida}%. Todo débito é prejuízo."
                 })
         
-        # Vilão 3: Compra do SIMPLES NACIONAL (sem crédito) → Saída tributada
+        # Vilão 3: Compra do SIMPLES NACIONAL (sem crédito) -> Saída tributada
         if entrada.get('tem_simples') and not entrada['tem_tributado'] and saida['tem_tributado'] and icms_debito > 100:
             if not any(v['ncm'] == ncm for v in viloes):
                 viloes.append({
@@ -22739,7 +22739,7 @@ async def analise_tributaria_ia(
                     'explicacao': f"Produto gera R$ {icms_debito:,.2f} de ICMS débito sem crédito na entrada. Avaliar fornecedores que gerem crédito."
                 })
         
-        # Oportunidade 1: Entrada tributada → Saída ST (favorável)
+        # Oportunidade 1: Entrada tributada -> Saída ST (favorável)
         if entrada['tem_tributado'] and saida['tem_st'] and not saida['tem_tributado'] and icms_credito > 100:
             oportunidades.append({
                 'tipo': 'TRIBUTADO_ENTRADA_ST_SAIDA',
@@ -22759,7 +22759,7 @@ async def analise_tributaria_ia(
                 'explicacao': f"Entra tributado a {aliq_creditavel}% e sai com ST (sem débito). Crédito integral de R$ {round(icms_credito, 2):,.2f}."
             })
         
-        # Oportunidade 2: Entrada tributada → Saída ISENTA (0%) - ex: Arroz
+        # Oportunidade 2: Entrada tributada -> Saída ISENTA (0%) - ex: Arroz
         if entrada['tem_tributado'] and saida.get('tem_isento') and icms_debito == 0 and icms_credito > 100:
             if not any(o['ncm'] == ncm for o in oportunidades):
                 oportunidades.append({
@@ -24558,8 +24558,8 @@ ALÍQUOTAS DE ICMS POR ESTADO (operações internas):
 - Demais estados: 17% ou 18%
 - Produtos da cesta básica: 7% ou isentos em muitos estados
 - Medicamentos: 12% ou isentos
-- Alíquota interestadual Sul/Sudeste → outros estados: 7%
-- Alíquota interestadual outros estados → Sul/Sudeste: 12%
+- Alíquota interestadual Sul/Sudeste -> outros estados: 7%
+- Alíquota interestadual outros estados -> Sul/Sudeste: 12%
 
 Base legal comum:
 - Lei 10.637/2002 (PIS não-cumulativo)
@@ -25037,8 +25037,8 @@ INDICADORES IMPORTANTES A ANALISAR:
 ALÍQUOTAS DE ICMS POR ESTADO:
 - SP, MG, RJ, PR: 18%
 - SC, RS: 17%
-- Interestadual Sul/Sudeste → outros: 7%
-- Interestadual outros → Sul/Sudeste: 12%
+- Interestadual Sul/Sudeste -> outros: 7%
+- Interestadual outros -> Sul/Sudeste: 12%
 
 Responda APENAS com um JSON válido no formato:
 {
@@ -38918,17 +38918,17 @@ TAREFA: Analise a descrição e gere palavras-chave ESPECÍFICAS para classifica
 
 REGRAS DE CLASSIFICAÇÃO:
 1. **produtos_comercializados** (REVENDA): Produtos que a empresa compra PARA REVENDER ao cliente final
-   - Ex: Se é loja de roupas → "camisa", "calca", "vestido", "sapato"
-   - Ex: Se é mercado → "refrigerante", "biscoito", "cerveja"
+   - Ex: Se é loja de roupas -> "camisa", "calca", "vestido", "sapato"
+   - Ex: Se é mercado -> "refrigerante", "biscoito", "cerveja"
 
 2. **insumos_producao** (INSUMO): Matérias-primas que são TRANSFORMADAS no processo produtivo
-   - Ex: Se é restaurante → "carne", "frango", "arroz", "feijao", "oleo", "tempero", "legume", "verdura"
-   - Ex: Se é padaria → "farinha", "fermento", "acucar", "ovos", "leite"
-   - Ex: Se é indústria → matérias-primas específicas do setor
+   - Ex: Se é restaurante -> "carne", "frango", "arroz", "feijao", "oleo", "tempero", "legume", "verdura"
+   - Ex: Se é padaria -> "farinha", "fermento", "acucar", "ovos", "leite"
+   - Ex: Se é indústria -> matérias-primas específicas do setor
 
 3. **produtos_aplicacao_servico** (SERVIÇO): Materiais aplicados diretamente na prestação de serviço
-   - Ex: Se é oficina mecânica → "peca", "oleo motor", "filtro", "pastilha freio"
-   - Ex: Se é salão de beleza → "tinta cabelo", "shampoo profissional", "creme"
+   - Ex: Se é oficina mecânica -> "peca", "oleo motor", "filtro", "pastilha freio"
+   - Ex: Se é salão de beleza -> "tinta cabelo", "shampoo profissional", "creme"
 
 4. **produtos_despesa** (DESPESA): Materiais de uso e consumo que NÃO integram o produto/serviço final
    - SEMPRE incluir: "material escritorio", "material limpeza", "copa cozinha", "manutencao"
@@ -40608,9 +40608,9 @@ async def classificar_produtos_pendentes_wizard(
     Classifica em lote TODOS os produtos pendentes de classificação.
     
     Regras de classificação por tipo de atividade:
-    - Indústria → INSUMO (matéria-prima para produção)
-    - Comércio → REVENDA (mercadoria para comercialização)  
-    - Serviços → DESPESA (material de consumo)
+    - Indústria -> INSUMO (matéria-prima para produção)
+    - Comércio -> REVENDA (mercadoria para comercialização)  
+    - Serviços -> DESPESA (material de consumo)
     
     Args:
         usar_ia: Se True, tenta classificar usando IA. Se False, aplica categoria padrão.
@@ -40933,23 +40933,23 @@ async def complete_wizard_step(
             
             if acao == "manter":
                 # "Manter" na verdade significa "Converter para o CFOP de entrada sugerido"
-                # O cfop_destino é o CFOP de ENTRADA equivalente (ex: 5910 → 1910)
+                # O cfop_destino é o CFOP de ENTRADA equivalente (ex: 5910 -> 1910)
                 # Se cfop_destino for diferente do CFOP atual, ATUALIZAR o CFOP
                 cfop_destino = cfop_destino_manual if cfop_destino_manual else None
                 
                 # Se não tiver cfop_destino explícito, calcular o CFOP de entrada equivalente
                 if not cfop_destino:
                     if cfop_chave.startswith('5'):
-                        cfop_destino = '1' + cfop_chave[1:]  # 5910 → 1910
+                        cfop_destino = '1' + cfop_chave[1:]  # 5910 -> 1910
                     elif cfop_chave.startswith('6'):
-                        cfop_destino = '2' + cfop_chave[1:]  # 6910 → 2910
+                        cfop_destino = '2' + cfop_chave[1:]  # 6910 -> 2910
                     else:
                         cfop_destino = cfop_chave
                 
                 # Determinar categoria baseada no CFOP de DESTINO (não do atual)
                 categoria_cfop = obter_categoria_por_cfop(cfop_destino)
                 
-                logger.info(f"WIZARD STEP 3 MANTER: CFOP {cfop_chave} → {cfop_destino}, categoria={categoria_cfop}")
+                logger.info(f"WIZARD STEP 3 MANTER: CFOP {cfop_chave} -> {cfop_destino}, categoria={categoria_cfop}")
                 
                 count = 0
                 for doc in docs:
@@ -40975,7 +40975,7 @@ async def complete_wizard_step(
                                 p["categoria_origem"] = "wizard_manter"
                                 p["categoria_classificada_em"] = datetime.now(timezone.utc).isoformat()
                             
-                            logger.info(f"WIZARD STEP 3 MANTER: Produto '{p.get('descricao', '')[:30]}' CFOP {cfop_prod} → {cfop_destino} ({categoria_cfop})")
+                            logger.info(f"WIZARD STEP 3 MANTER: Produto '{p.get('descricao', '')[:30]}' CFOP {cfop_prod} -> {cfop_destino} ({categoria_cfop})")
                             alterado = True
                             count += 1
                     
@@ -40985,7 +40985,7 @@ async def complete_wizard_step(
                             {"$set": {"produtos": produtos_atualizados}}
                         )
                 
-                actions_taken.append(f"CFOP {cfop_chave} → {cfop_destino}: {count} produtos convertidos e classificados")
+                actions_taken.append(f"CFOP {cfop_chave} -> {cfop_destino}: {count} produtos convertidos e classificados")
             
             elif acao == "converter_compra":
                 # Converter para CFOP de compra (entradas)
@@ -41025,7 +41025,7 @@ async def complete_wizard_step(
                             {"$set": {"produtos": produtos_atualizados}}
                         )
                 
-                actions_taken.append(f"CFOP {cfop_chave} → {cfop_destino}: {count} produtos convertidos e classificados")
+                actions_taken.append(f"CFOP {cfop_chave} -> {cfop_destino}: {count} produtos convertidos e classificados")
             
             elif acao == "converter_manual" and cfop_destino_manual:
                 # Converter para CFOP digitado manualmente
@@ -41034,7 +41034,7 @@ async def complete_wizard_step(
                 # Determinar categoria baseada no CFOP de destino
                 categoria_cfop = obter_categoria_por_cfop(cfop_destino)
                 
-                logger.info(f"WIZARD STEP 3 MANUAL: Convertendo {cfop_chave} → {cfop_destino}, categoria={categoria_cfop}")
+                logger.info(f"WIZARD STEP 3 MANUAL: Convertendo {cfop_chave} -> {cfop_destino}, categoria={categoria_cfop}")
                 
                 count = 0
                 for doc in docs:
@@ -41045,7 +41045,7 @@ async def complete_wizard_step(
                         cfop_emissor = str(p.get("cfop_original_emissor", ""))
                         
                         if p.get("pendente_revisao_cfop") and (cfop_prod in cfops_buscar or cfop_emissor in cfops_buscar):
-                            logger.info(f"WIZARD STEP 3 MANUAL: Produto '{p.get('descricao', '')[:30]}' CFOP {cfop_prod} → {cfop_destino}")
+                            logger.info(f"WIZARD STEP 3 MANUAL: Produto '{p.get('descricao', '')[:30]}' CFOP {cfop_prod} -> {cfop_destino}")
                             
                             p["cfop_original_distinto"] = cfop_prod
                             p["cfop"] = cfop_destino
@@ -41070,7 +41070,7 @@ async def complete_wizard_step(
                         )
                         logger.info(f"WIZARD STEP 3 MANUAL: Update doc {doc['id'][:8]} = matched={result.matched_count}, modified={result.modified_count}")
                 
-                actions_taken.append(f"CFOP {cfop_chave} → {cfop_destino}: {count} produtos convertidos e classificados (manual)")
+                actions_taken.append(f"CFOP {cfop_chave} -> {cfop_destino}: {count} produtos convertidos e classificados (manual)")
                 logger.info(f"WIZARD STEP 3 MANUAL: Total de {count} produtos convertidos")
         
         # 3. Processar CFOPs individuais por produto (se houver)
@@ -41107,7 +41107,7 @@ async def complete_wizard_step(
                                     {"id": doc_id},
                                     {"$set": {"produtos": produtos}}
                                 )
-                                actions_taken.append(f"Produto individual → CFOP {cfop_destino}")
+                                actions_taken.append(f"Produto individual -> CFOP {cfop_destino}")
         
         # 4. SINCRONIZAÇÃO FINAL: Garantir que NENHUM produto ficou com pendente_revisao_cfop=True
         # Isso é uma proteção extra para garantir consistência
@@ -41238,13 +41238,13 @@ async def complete_wizard_step(
                                             "categoria_correta": categoria_cfop or "conversao_cfop",
                                             "ncm": produto_ncm or regra_existente.get("ncm", ""),
                                             "cfop_original": cfop_original_emissor,
-                                            "motivo": f"Wizard: {cfop_anterior} → {cfop_destino}" + (f" ({categoria_cfop})" if categoria_cfop else ""),
+                                            "motivo": f"Wizard: {cfop_anterior} -> {cfop_destino}" + (f" ({categoria_cfop})" if categoria_cfop else ""),
                                             "aprendido_de": "wizard_individual",
                                             "updated_by": current_user.id,
                                             "updated_at": now
                                         }}
                                     )
-                                    logger.info(f"[WIZARD-MEMORIA-IA] Regra ATUALIZADA: {produto_descricao[:30]}... → CFOP {cfop_destino}")
+                                    logger.info(f"[WIZARD-MEMORIA-IA] Regra ATUALIZADA: {produto_descricao[:30]}... -> CFOP {cfop_destino}")
                                 else:
                                     # CRIAR nova regra
                                     nova_regra = {
@@ -41256,13 +41256,13 @@ async def complete_wizard_step(
                                         "cfop_original": cfop_original_emissor,
                                         "cfop_correto": cfop_destino,
                                         "categoria_correta": categoria_cfop or "conversao_cfop",
-                                        "motivo": f"Wizard: {cfop_anterior} → {cfop_destino}" + (f" ({categoria_cfop})" if categoria_cfop else ""),
+                                        "motivo": f"Wizard: {cfop_anterior} -> {cfop_destino}" + (f" ({categoria_cfop})" if categoria_cfop else ""),
                                         "aprendido_de": "wizard_individual",
                                         "created_by": current_user.id,
                                         "created_at": now
                                     }
                                     await db.learned_rules.insert_one(nova_regra)
-                                    logger.info(f"[WIZARD-MEMORIA-IA] Nova regra CRIADA: {produto_descricao[:30]}... → CFOP {cfop_destino}")
+                                    logger.info(f"[WIZARD-MEMORIA-IA] Nova regra CRIADA: {produto_descricao[:30]}... -> CFOP {cfop_destino}")
                                 
                     except (ValueError, IndexError) as e:
                         logger.warning(f"[WIZARD] Erro ao processar CFOP individual {key}: {e}")
@@ -41598,7 +41598,7 @@ async def complete_wizard_step(
     
     elif step_id == 5:  # PIS/COFINS Entradas
         # Aplicar regras de PIS/COFINS nas entradas
-        # Prioridade: CFOP exceção → Regra empresa → Regra padrão
+        # Prioridade: CFOP exceção -> Regra empresa -> Regra padrão
         recalcular = step_data.get("recalcular_cst", False)
         if recalcular:
             regime = company.get("regime_tributario", "simples_nacional")
@@ -41742,7 +41742,7 @@ async def complete_wizard_step(
     
     elif step_id == 6:  # PIS/COFINS Saídas
         # Aplicar regras de PIS/COFINS nas saídas
-        # Prioridade: CFOP exceção → Regra empresa → Regra padrão
+        # Prioridade: CFOP exceção -> Regra empresa -> Regra padrão
         recalcular = step_data.get("recalcular_cst", False)
         if recalcular:
             regime = company.get("regime_tributario", "simples_nacional")
@@ -44774,8 +44774,8 @@ async def validador_piscofins_dados(
     1. CFOPs exceção (que não geram crédito/débito)
     2. Regras por NCM com validação
     
-    Lógica: Se item está em CFOP exceção → CST esperado 49/98
-            Se item está em CFOP normal → usa alíquota da regra do NCM
+    Lógica: Se item está em CFOP exceção -> CST esperado 49/98
+            Se item está em CFOP normal -> usa alíquota da regra do NCM
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
