@@ -2926,6 +2926,32 @@ const Documents = ({ user, onLogout }) => {
                             {operacao === 'entrada' ? doc.emitente_cnpj : doc.destinatario_cnpj}
                           </span>
                         </td>
+                        {/* Coluna Serviço - apenas para NFS-e */}
+                        {(tipoDoc === 'servicos_tomados' || tipoDoc === 'servicos_prestados') && (
+                          <td className="px-2 py-3 hidden lg:table-cell w-48">
+                            <p className={`text-xs truncate ${
+                              doc.cancelada ? 'text-red-400/60 line-through' : 'text-[#A1A1AA]'
+                            }`} title={doc.servicos?.[0]?.descricao || doc.discriminacao_servico || '-'}>
+                              {(doc.servicos?.[0]?.descricao || doc.discriminacao_servico || '-').substring(0, 50)}
+                              {(doc.servicos?.[0]?.descricao || doc.discriminacao_servico || '').length > 50 && '...'}
+                            </p>
+                          </td>
+                        )}
+                        {/* Coluna Retenções - apenas para NFS-e */}
+                        {(tipoDoc === 'servicos_tomados' || tipoDoc === 'servicos_prestados') && (
+                          <td className="px-2 py-3 text-right hidden xl:table-cell w-24">
+                            <span className={`text-xs font-medium ${
+                              (doc.total_retencoes || 0) > 0 
+                                ? (doc.cancelada ? 'text-red-400/60 line-through' : 'text-amber-400')
+                                : 'text-[#666]'
+                            }`}>
+                              {(doc.total_retencoes || 0) > 0 
+                                ? formatCurrency(doc.total_retencoes)
+                                : '-'
+                              }
+                            </span>
+                          </td>
+                        )}
                         <td className={`px-4 py-3 w-24 hidden md:table-cell ${
                           doc.cancelada ? 'text-red-400/60 line-through' : 'text-[#A1A1AA]'
                         }`}>
