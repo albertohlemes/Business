@@ -2019,7 +2019,7 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
                 entradas_cst[cst_display]['valor_cofins'] += valor_cofins
                 entradas_cst[cst_display]['qtd'] += 1
                 
-            else:  # saída
+            elif is_cfop_saida:  # saída
                 # Verificar se deve ser desconsiderado (usar CST 49 para saídas, não 98)
                 categoria_sem_debito = any(cat in categoria for cat in CATEGORIAS_SEM_DEBITO) if categoria else False
                 cfop_sem_debito = cfop in CFOPS_SEM_DEBITO_CALC
