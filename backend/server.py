@@ -17505,7 +17505,7 @@ async def relatorio_divergencias_saida(
 ):
     """
     Gera relatório de divergências nas saídas:
-    - Produtos com NCM de alíquota zero mas com tributação (PIS/COFINS CST != 06)
+    - Produtos com NCM de alíquota zero mas com tributação (PIS/COFINS CST diferente de 06)
     - Produtos com tributação normal mas que deveriam ter alíquota zero
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
