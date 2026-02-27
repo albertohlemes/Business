@@ -4268,9 +4268,11 @@ def _parse_nfse_abrasf(nfse: Dict[str, Any], get_field, safe_float) -> Dict[str,
     return {
         'modelo': 'nfse',
         'chave_nfe': codigo_verificacao or str(uuid.uuid4())[:20],
+        'codigo_verificacao': codigo_verificacao,  # Campo separado para referência
         'numero_nfe': str(numero),
         'serie': '1',
         'data_emissao': str(data_emissao),
+        'competencia': str(competencia)[:7].replace('-', '/') if competencia else '',  # MM/YYYY
         'competencia_nfse': str(competencia),
         # Dados do prestador (emitente)
         'emitente_cnpj': str(cnpj_prestador),
@@ -4286,16 +4288,25 @@ def _parse_nfse_abrasf(nfse: Dict[str, Any], get_field, safe_float) -> Dict[str,
         'destinatario_endereco': tomador_endereco,
         'valor_total': valor_servicos,
         'valor_servicos': valor_servicos,
-        # Campos de retenção para apuração
+        # Campos de ISS
+        'bc_iss': safe_float(get_field(valores, 'BaseCalculo', 'baseCalculo') or 0),
+        'aliquota_iss': aliq_iss,
         'valor_iss': valor_iss,
+        'valor_iss_retido': safe_float(get_field(valores, 'ValorIssRetido', 'valorIssRetido') or 0),
         'iss_retido_flag': iss_foi_retido,
         'iss_retido': valor_iss_retido,  # Valor do ISS retido (para abater do DAS)
+        # Outras retenções
         'pis_retido': pis_retido,
         'cofins_retido': cofins_retido,
         'ir_retido': ir_retido,
         'csll_retido': csll_retido,
         'inss_retido': inss_retido,
         'total_retencoes': valor_iss_retido + pis_retido + cofins_retido + ir_retido + csll_retido + inss_retido,
+        # Descrição do serviço
+        'discriminacao_servico': discriminacao,
+        'codigo_servico': codigo_servico,
+        # Tipo (prestado = saída para o prestador)
+        'tipo': None,  # Será definido na importação com base no CNPJ da empresa
         'produtos': [],
         'servicos': servicos
     }
