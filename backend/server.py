@@ -26929,8 +26929,22 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
     Usada quando há mais de 10000 documentos para evitar timeout.
     Usa cache inteligente para evitar recálculos desnecessários.
     """
+    # Verificar se é benefício fiscal de restaurante (zera TODO crédito)
+    tipo_beneficio = company.get('tipo_beneficio_fiscal', '') if company else ''
+    beneficio_zera_tudo = beneficio_fiscal and tipo_beneficio in ['restaurante', 'bar', 'lanchonete']
+    
+    # Se benefício zera tudo, também verificar se a lista contém "TODOS"
+    if beneficio_fiscal and not beneficio_zera_tudo:
+        produtos_sem_credito = company.get('produtos_sem_credito_icms', []) if company else []
+        for item in produtos_sem_credito:
+            if item.upper().strip() in ['TODOS', 'TODOS OS PRODUTOS', 'TODOS PRODUTOS', 'ALL', '*']:
+                beneficio_zera_tudo = True
+                break
+    
+    logger.info(f"ICMS AGREGADO: beneficio_fiscal={beneficio_fiscal}, tipo_beneficio={tipo_beneficio}, beneficio_zera_tudo={beneficio_zera_tudo}")
+    
     # Gerar chave extra baseada nas configurações
-    config_key = f"{desconsiderar_despesas}_{desconsiderar_st}_{beneficio_fiscal}"
+    config_key = f"{desconsiderar_despesas}_{desconsiderar_st}_{beneficio_fiscal}_{beneficio_zera_tudo}"
     
     # Verificar cache primeiro
     cached = aggregation_cache.get("icms", company_id, competencia, config_key)
