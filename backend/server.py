@@ -7243,6 +7243,19 @@ async def sieg_sync_execute(
         saida_xmls = sieg_result.get("saida", {}).get("xmls", [])
         total_xmls = len(entrada_xmls) + len(saida_xmls)
         
+        # Logging detalhado para diagnóstico
+        logger.info(f"[SIEG SYNC] {company_id}/{competencia} - SIEG retornou: {len(entrada_xmls)} entradas, {len(saida_xmls)} saídas")
+        if entrada_xmls:
+            primeiro_xml = entrada_xmls[0]
+            logger.info(f"[SIEG SYNC] Exemplo entrada - chaves disponíveis: {list(primeiro_xml.keys())}")
+            xml_content = primeiro_xml.get('xml', '')
+            logger.info(f"[SIEG SYNC] Exemplo entrada - tamanho XML: {len(xml_content)} chars, início: {xml_content[:200] if xml_content else 'VAZIO'}")
+        if saida_xmls:
+            primeiro_xml = saida_xmls[0]
+            logger.info(f"[SIEG SYNC] Exemplo saída - chaves disponíveis: {list(primeiro_xml.keys())}")
+            xml_content = primeiro_xml.get('xml', '')
+            logger.info(f"[SIEG SYNC] Exemplo saída - tamanho XML: {len(xml_content)} chars")
+        
         results["sieg_stats"]["entrada"] = len(entrada_xmls)
         results["sieg_stats"]["saida"] = len(saida_xmls)
         
