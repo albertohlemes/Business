@@ -4349,7 +4349,47 @@ def parse_xml_lista_nfse(xml_content: str) -> List[Dict[str, Any]]:
 def is_lista_nfse(xml_content: str) -> bool:
     """Verifica se o XML é uma lista de NFS-e (múltiplas notas)"""
     xml_lower = xml_content.lower()
-    return '<listanotafiscal' in xml_lower or '<listanfse' in xml_lower
+    return ('<listanotafiscal' in xml_lower or 
+            '<listanfse' in xml_lower or 
+            'ns2:nfse' in xml_lower)  # GINFES com múltiplas notas
+
+
+def parse_xml_lista_ginfes(xml_content: str) -> List[Dict[str, Any]]:
+    """
+    Parser para arquivo XML GINFES com múltiplas NFS-e.
+    Formato: <ns2:NFSE><ns2:Nfse>...</ns2:Nfse><ns2:Nfse>...</ns2:Nfse></ns2:NFSE>
+    """
+    try:
+        data = xmltodict.parse(xml_content, process_namespaces=False)
+        resultados = []
+        
+        ginfes_root = data.get('ns2:NFSE', {})
+        if not ginfes_root:
+            return []
+        
+        nfse_list = ginfes_root.get('ns2:Nfse', [])
+        
+        # Se for uma única NFS-e, converter para lista
+        if isinstance(nfse_list, dict):
+            nfse_list = [nfse_list]
+        
+        for nfse_item in nfse_list:
+            try:
+                # Normalizar removendo prefixos de namespace
+                normalized = _normalize_ginfes_namespaces(nfse_item)
+                if normalized:
+                    parsed = _parse_single_nfse(normalized)
+                    resultados.append(parsed)
+            except Exception as e:
+                import traceback
+                logger.error(f"[GINFES] Erro ao processar NFS-e: {e}")
+                logger.debug(f"Traceback: {traceback.format_exc()}")
+                continue
+        
+        logger.info(f"[GINFES] Processadas {len(resultados)} NFS-e do arquivo")
+        return resultados
+    except Exception as e:
+        raise ValueError(f"Erro ao processar XML GINFES: {str(e)}")
 
 def detect_xml_type(xml_content: str) -> str:
     """Detecta o tipo de XML: nfe, nfce, nfse, cte"""
