@@ -35134,7 +35134,13 @@ async def preview_nfse_for_cancellation(
             
             # Verificar se é uma lista de NFS-e
             if is_lista_nfse(xml_str):
-                lista_nfse = parse_xml_lista_nfse(xml_str)
+                # Verificar qual parser usar baseado no formato
+                if 'ns2:NFSE' in xml_str or 'ns2:Nfse' in xml_str:
+                    lista_nfse = parse_xml_lista_ginfes(xml_str)
+                    print(f"[PREVIEW] GINFES: {len(lista_nfse)} NFS-e detectadas")
+                else:
+                    lista_nfse = parse_xml_lista_nfse(xml_str)
+                    print(f"[PREVIEW] ABRASF: {len(lista_nfse)} NFS-e detectadas")
                 
                 for idx, nfse in enumerate(lista_nfse):
                     cnpj_emitente = nfse.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
