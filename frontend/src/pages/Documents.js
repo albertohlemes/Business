@@ -2836,6 +2836,18 @@ const Documents = ({ user, onLogout }) => {
                           {(sortField === 'emitente_cnpj' || sortField === 'destinatario_cnpj') && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
                         </div>
                       </th>
+                      {/* Coluna Serviço - apenas para NFS-e */}
+                      {(tipoDoc === 'servicos_tomados' || tipoDoc === 'servicos_prestados') && (
+                        <th className="text-left px-2 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden lg:table-cell w-48">
+                          Serviço
+                        </th>
+                      )}
+                      {/* Coluna Retenções - apenas para NFS-e */}
+                      {(tipoDoc === 'servicos_tomados' || tipoDoc === 'servicos_prestados') && (
+                        <th className="text-right px-2 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden xl:table-cell w-24">
+                          Retenções
+                        </th>
+                      )}
                       <th 
                         className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white w-24 hidden md:table-cell"
                         onClick={() => handleSort('data_emissao')}
