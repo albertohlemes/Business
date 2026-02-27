@@ -2186,14 +2186,6 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
             continue
             
         tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
-        if not tipo_operacao:
-            produtos = doc.get('produtos', [])
-            if produtos:
-                cfop = str(produtos[0].get('cfop', ''))
-                if cfop and cfop[0] in ['1', '2', '3']:
-                    tipo_operacao = 'entrada'
-                elif cfop and cfop[0] in ['5', '6', '7']:
-                    tipo_operacao = 'saida'
         
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
@@ -2204,7 +2196,21 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
             
             valor_base = max(Decimal('0'), valor_total - v_icms)
             
-            if tipo_operacao == 'entrada':
+            # IMPORTANTE: Usar o CFOP como referência primária para determinar se é entrada ou saída
+            # Isso é mais confiável que o campo 'tipo' do documento, especialmente para
+            # devoluções onde o tipo pode não corresponder ao CFOP
+            primeiro_digito_cfop = cfop[0] if cfop else ''
+            is_cfop_entrada = primeiro_digito_cfop in ['1', '2', '3']
+            is_cfop_saida = primeiro_digito_cfop in ['5', '6', '7']
+            
+            # Se não conseguir determinar pelo CFOP, usar o tipo do documento
+            if not is_cfop_entrada and not is_cfop_saida:
+                if tipo_operacao == 'entrada':
+                    is_cfop_entrada = True
+                else:
+                    is_cfop_saida = True
+            
+            if is_cfop_entrada:
                 # Determinar CST usando a MESMA função das outras telas
                 categoria_sem_credito = any(cat in categoria for cat in CATEGORIAS_SEM_CREDITO) if categoria else False
                 cfop_sem_credito = cfop in CFOPS_SEM_CREDITO_LOCAL
