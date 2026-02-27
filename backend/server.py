@@ -2233,8 +2233,13 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
                 # Lógica: CFOP especial tem prioridade (combustível p/ comercialização)
                 if cfop_com_credito and not categoria_sem_credito:
                     cst = '50'  # Com crédito
-                    valor_pis = valor_base * Decimal('0.0165')
-                    valor_cofins = valor_base * Decimal('0.076')
+                    # Alíquotas baseadas no regime
+                    if regime == 'lucro_presumido':
+                        valor_pis = valor_base * Decimal('0.0065')  # 0,65%
+                        valor_cofins = valor_base * Decimal('0.03')  # 3%
+                    else:
+                        valor_pis = valor_base * Decimal('0.0165')  # 1,65%
+                        valor_cofins = valor_base * Decimal('0.076')  # 7,6%
                 elif categoria_sem_credito or cfop_sem_credito:
                     cst = '98'  # Desconsiderado
                     valor_pis = Decimal('0')
