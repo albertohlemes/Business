@@ -8370,19 +8370,178 @@ async def sieg_diagnostico_documentos(
     }
 
 
-
-
-# ============================================================================
-# PAINEL DE MONITORAMENTO SIEG
-# ============================================================================
-
-@api_router.get("/sieg/painel")
-async def sieg_painel_geral(
+@api_router.get("/sieg/debug-import/{company_id}")
+async def sieg_debug_import(
+    company_id: str,
+    competencia: str = None,
     current_user: User = Depends(get_current_user)
 ):
     """
-    Painel geral de monitoramento SIEG - visão de todas as empresas
+    Endpoint de diagnóstico avançado para debug de importação SIEG.
+    Simula o processo de importação e identifica onde os XMLs são descartados.
+    NÃO salva nenhum documento, apenas retorna diagnóstico.
+    """
+    from datetime import datetime
+    import re
     
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    cnpj = company.get('cnpj', '')
+    if not cnpj:
+        raise HTTPException(status_code=400, detail="Empresa sem CNPJ configurado")
+    
+    # Competência padrão
+    if not competencia:
+        now = datetime.now()
+        competencia = f"{now.month:02d}/{now.year}"
+    
+    resultado_debug = {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": cnpj
+        },
+        "competencia": competencia,
+        "etapas": {}
+    }
+    
+    try:
+        # ETAPA 1: Buscar chaves já importadas
+        chaves_ja_importadas = await get_chaves_ja_importadas(db, company_id, competencia)
+        resultado_debug["etapas"]["1_chaves_existentes"] = {
+            "total": len(chaves_ja_importadas),
+            "amostra": list(chaves_ja_importadas)[:5]
+        }
+        
+        # ETAPA 2: Baixar XMLs do SIEG
+        sieg_result = await sync_from_sieg(cnpj, competencia)
+        
+        entrada_xmls = sieg_result.get("entrada", {}).get("xmls", [])
+        saida_xmls = sieg_result.get("saida", {}).get("xmls", [])
+        
+        resultado_debug["etapas"]["2_sieg_download"] = {
+            "entradas_baixadas": len(entrada_xmls),
+            "saidas_baixadas": len(saida_xmls),
+            "erro_entrada": sieg_result.get("entrada", {}).get("error"),
+            "erro_saida": sieg_result.get("saida", {}).get("error")
+        }
+        
+        # ETAPA 3: Analisar XMLs de entrada
+        analise_entradas = {
+            "total": len(entrada_xmls),
+            "com_chave": 0,
+            "sem_chave": 0,
+            "duplicados": 0,
+            "novos": 0,
+            "xml_vazio": 0,
+            "detalhes": []
+        }
+        
+        for idx, xml_data in enumerate(entrada_xmls[:20]):  # Limitar a 20 para debug
+            xml_content = xml_data.get("xml", "")
+            
+            if not xml_content:
+                analise_entradas["xml_vazio"] += 1
+                analise_entradas["detalhes"].append({"idx": idx, "status": "xml_vazio"})
+                continue
+            
+            # Extrair chave
+            chave_match = re.search(r'<chNFe>(\d{44})</chNFe>', xml_content)
+            if not chave_match:
+                chave_match = re.search(r'Id="NFe(\d{44})"', xml_content)
+            if not chave_match:
+                chave_match = re.search(r'<infNFe[^>]*Id="NFe(\d{44})"', xml_content)
+            
+            if chave_match:
+                chave = chave_match.group(1)
+                analise_entradas["com_chave"] += 1
+                
+                if chave in chaves_ja_importadas:
+                    analise_entradas["duplicados"] += 1
+                    status = "duplicado"
+                else:
+                    analise_entradas["novos"] += 1
+                    status = "novo"
+                
+                analise_entradas["detalhes"].append({
+                    "idx": idx,
+                    "chave": chave[:20] + "...",
+                    "status": status
+                })
+            else:
+                analise_entradas["sem_chave"] += 1
+                analise_entradas["detalhes"].append({
+                    "idx": idx,
+                    "status": "sem_chave",
+                    "xml_preview": xml_content[:500]
+                })
+        
+        resultado_debug["etapas"]["3_analise_entradas"] = analise_entradas
+        
+        # ETAPA 4: Analisar XMLs de saída (similar)
+        analise_saidas = {
+            "total": len(saida_xmls),
+            "com_chave": 0,
+            "sem_chave": 0,
+            "duplicados": 0,
+            "novos": 0,
+            "xml_vazio": 0
+        }
+        
+        for xml_data in saida_xmls[:20]:
+            xml_content = xml_data.get("xml", "")
+            
+            if not xml_content:
+                analise_saidas["xml_vazio"] += 1
+                continue
+            
+            chave_match = re.search(r'<chNFe>(\d{44})</chNFe>', xml_content)
+            if not chave_match:
+                chave_match = re.search(r'Id="NFe(\d{44})"', xml_content)
+            
+            if chave_match:
+                chave = chave_match.group(1)
+                analise_saidas["com_chave"] += 1
+                if chave in chaves_ja_importadas:
+                    analise_saidas["duplicados"] += 1
+                else:
+                    analise_saidas["novos"] += 1
+            else:
+                analise_saidas["sem_chave"] += 1
+        
+        resultado_debug["etapas"]["4_analise_saidas"] = analise_saidas
+        
+        # DIAGNÓSTICO FINAL
+        total_baixados = len(entrada_xmls) + len(saida_xmls)
+        total_novos = analise_entradas["novos"] + analise_saidas["novos"]
+        total_duplicados = analise_entradas["duplicados"] + analise_saidas["duplicados"]
+        total_sem_chave = analise_entradas["sem_chave"] + analise_saidas["sem_chave"]
+        
+        resultado_debug["diagnostico"] = {
+            "total_baixados_sieg": total_baixados,
+            "total_novos": total_novos,
+            "total_duplicados": total_duplicados,
+            "total_sem_chave": total_sem_chave,
+            "problema_detectado": total_baixados > 0 and total_novos == 0,
+            "causa_provavel": (
+                "Todos os XMLs já foram importados anteriormente" if total_duplicados == total_baixados
+                else f"XMLs sem chave NFe detectável ({total_sem_chave})" if total_sem_chave > 0
+                else "Nenhum problema detectado - XMLs devem ser importados corretamente"
+            )
+        }
+        
+    except Exception as e:
+        resultado_debug["erro"] = str(e)
+        import traceback
+        resultado_debug["traceback"] = traceback.format_exc()
+    
+    return resultado_debug
+
+
+
     ATUALIZADO: Agora lê configuração diretamente de cada empresa (campos sieg_*)
     """
     user_data = {"id": current_user.id, "email": current_user.email, "role": current_user.role}
