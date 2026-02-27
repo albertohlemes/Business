@@ -9146,7 +9146,13 @@ async def sieg_resync_data_especifica(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     cnpj = company.get('cnpj', '')
     if not cnpj:
@@ -9375,7 +9381,13 @@ async def upload_company_logo(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Validar tipo de arquivo
     allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
@@ -9462,7 +9474,13 @@ async def upload_xml_batch(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Extrair CNPJ da empresa selecionada (limpar formatação e espaços)
     # IMPORTANTE: Usar strip() para garantir consistência na comparação
@@ -10668,7 +10686,13 @@ async def init_upload(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     upload_id = str(uuid.uuid4())
     session_data = {
@@ -10762,7 +10786,13 @@ async def upload_background(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Gerar job_id
     job_id = str(uuid.uuid4())
@@ -10926,7 +10956,13 @@ async def upload_zip_with_progress(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Verificar se é um arquivo ZIP
     if not file.filename.lower().endswith('.zip'):
@@ -11030,7 +11066,13 @@ async def process_zip_upload(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Verificar se é um arquivo ZIP
     if not file.filename.lower().endswith('.zip'):
@@ -14475,7 +14517,13 @@ async def get_dashboard_stats(
     
     # Usar função padronizada de verificação de acesso
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Buscar todos os documentos da empresa na competência
     # EXCLUIR notas canceladas e desconsideradas
@@ -15803,7 +15851,13 @@ async def apuracao_pis_cofins(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     regime = company.get('regime_tributario', 'lucro_presumido')
     
@@ -16361,7 +16415,13 @@ async def apuracao_periodo(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     regime = company.get('regime_tributario', 'lucro_presumido')
     
@@ -16657,7 +16717,13 @@ async def analise_aliquotas_saida(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Regime tributário e UF da empresa
     regime = company.get('regime_tributario', 'lucro_presumido')
@@ -17640,7 +17706,13 @@ async def relatorio_divergencias_saida(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Buscar documentos de saída
     documents = await db.xml_documents.find({
@@ -17868,7 +17940,13 @@ async def relatorio_divergencias_entrada(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Verificar regime tributário (crédito só existe no Lucro Real)
     regime = company.get('regime_tributario', 'lucro_presumido')
@@ -19993,7 +20071,13 @@ async def alertas_cfop_operacoes_distintas(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Buscar documentos de entrada que tenham produtos pendentes de revisão
     # IMPORTANTE: Excluir notas canceladas e desconsideradas para consistência com o Wizard
@@ -20099,7 +20183,13 @@ async def alertas_cfop_agrupado_por_cfop(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Buscar documentos de entrada que tenham produtos pendentes de revisão
     # IMPORTANTE: Excluir notas canceladas e desconsideradas para consistência com o Wizard
@@ -20903,7 +20993,13 @@ async def report_by_product(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     query = {"company_id": company_id}
     if competencia:
@@ -22138,7 +22234,13 @@ async def report_by_ncm(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     query = {"company_id": company_id}
     if competencia:
@@ -22261,7 +22363,13 @@ async def export_sped(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # EXCLUIR notas canceladas, desconsideradas e recibos de locação (não vão no SPED)
     query = {
@@ -26062,7 +26170,13 @@ async def relacao_notas(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Buscar documentos - incluir ou não canceladas
     query = {
@@ -26212,7 +26326,13 @@ async def relacao_notas_detalhada(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Buscar documentos
     query = {
@@ -26561,7 +26681,13 @@ async def apuracao_movimento(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Buscar documentos do período
     query = {
@@ -26772,7 +26898,13 @@ async def preview_delete_documents(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Construir query base no MongoDB (mais eficiente que filtrar em Python)
     match_stage = {
@@ -26899,7 +27031,13 @@ async def delete_documents_bulk(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     BATCH_SIZE = 500  # Processar em lotes de 500 documentos
     total_deleted = 0
@@ -30397,7 +30535,13 @@ async def listar_divergencias_pis_cofins(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Determinar perfil da empresa
     tipo_atividade = company.get('tipo_atividade', 'comercio')
@@ -30775,7 +30919,13 @@ async def upload_xml_validated(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
     
@@ -30904,7 +31054,13 @@ async def process_document_with_ai(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     results = {
         "processados": [],
@@ -35134,7 +35290,13 @@ async def preview_nfse_for_cancellation(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
     
@@ -35244,7 +35406,13 @@ async def import_nfse_with_cancellations(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
     
@@ -35439,7 +35607,13 @@ async def import_cancellation_from_report(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     content = await report_file.read()
     filename = report_file.filename.lower()
@@ -36037,7 +36211,13 @@ async def get_notas_ausentes(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Determinar quais modelos a empresa usa com base no tipo de atividade
     tipo_atividade = company.get('tipo_atividade', 'comercio')
@@ -36554,7 +36734,13 @@ async def exportar_documentos_categoria(
     
     # Verificar acesso
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Mapear tipo de documento para modelos no banco
     modelos_map = {
@@ -37137,7 +37323,13 @@ async def get_fechamento_mensal(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     regime = company.get('regime_tributario', 'lucro_presumido')
     is_simples = regime == 'simples_nacional'
@@ -37411,7 +37603,13 @@ async def fechar_competencia_mensal(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Verificar se já está fechado
     existente = await db.fechamentos_mensais.find_one(
@@ -37533,7 +37731,13 @@ async def get_historico_fechamentos(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     fechamentos = await db.fechamentos_mensais.find(
         {"company_id": company_id},
@@ -40067,7 +40271,13 @@ async def get_wizard_status(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Buscar status existente
     wizard = await db.wizard_fechamento.find_one(
@@ -40113,7 +40323,13 @@ async def reset_wizard(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Deletar wizard existente
     await db.wizard_fechamento.delete_one(
@@ -40205,7 +40421,13 @@ async def get_wizard_step_data(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Filtro base para documentos
     base_filter = {
@@ -40792,7 +41014,13 @@ async def classificar_produtos_pendentes_wizard(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     uf_empresa = company.get('uf', 'SP')
     tipo_atividade = company.get('tipo_atividade', 'comercio')
@@ -40953,7 +41181,13 @@ async def complete_wizard_step(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Processar ações específicas de cada etapa
     actions_taken = []
@@ -42513,7 +42747,13 @@ async def get_wizard_report(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Buscar dados do wizard
     wizard = await db.wizard_fechamento.find_one(
@@ -43140,7 +43380,13 @@ async def get_config_reforma_tributaria(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Buscar configuração específica ou usar padrão
     config = await db.reforma_tributaria_config.find_one(
@@ -43171,7 +43417,13 @@ async def save_config_reforma_tributaria(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     config_data = {
         "company_id": company_id,
@@ -43206,7 +43458,13 @@ async def get_apuracao_reforma_tributaria(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Buscar configuração
     config_doc = await db.reforma_tributaria_config.find_one(
@@ -43609,7 +43867,13 @@ async def get_relatorio_reforma_tributaria_pdf(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     if not await check_company_access(company, current_user):
-        raise HTTPException(status_code=403, detail="Acesso negado")
+        # Log detalhado para diagnóstico
+        user_data = current_user.model_dump() if hasattr(current_user, 'model_dump') else dict(current_user)
+        logger.error(f"[UPLOAD DENIED] Usuário {user_data.get('email')} tentou acessar empresa {company.get('razao_social')} (ID: {company_id})")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem permissão para importar documentos nesta empresa. Solicite ao administrador que adicione você à lista de usuários autorizados."
+        )
     
     # Buscar configuração
     config_doc = await db.reforma_tributaria_config.find_one(
