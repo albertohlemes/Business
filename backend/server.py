@@ -7715,47 +7715,44 @@ async def sieg_sync_execute(
                     '6949': '2949',  # Outras Saídas -> Outras Entradas
                 }
                 
-                # Separar produtos para operação distinta
-                produtos_operacao_distinta = []
+                # Separar produtos para validação de CFOP
+                # TODOS os CFOPs de SAÍDA (5xxx/6xxx) em notas de ENTRADA precisam de validação
+                produtos_cfop_saida = []  # CFOPs de saída que precisam validação
                 produtos_para_classificar_final = []
                 
                 for product in produtos_para_classificar:
                     cfop_original = product.get('cfop_original_emissor', product.get('cfop', ''))
-                    if cfop_original in CFOPS_OPERACOES_DISTINTAS_SIEG:
-                        produtos_operacao_distinta.append((product, cfop_original))
+                    
+                    # TODOS os CFOPs de saída (5xxx/6xxx) precisam de validação
+                    if is_cfop_saida_em_entrada(cfop_original):
+                        produtos_cfop_saida.append((product, cfop_original))
                     else:
                         produtos_para_classificar_final.append(product)
                 
-                # Processar operações distintas - CONVERTER CFOP de saída para entrada
-                # E GERAR ALERTA para revisão do usuário
+                # Processar CFOPs de SAÍDA - converter e SEMPRE gerar alerta para validação
                 file_alertas_cfop = []  # Alertas de CFOP para este arquivo
                 
-                for product, cfop_original in produtos_operacao_distinta:
-                    # CORRIGIDO: CFOPs de saída (5xxx/6xxx) devem ser convertidos para entrada (1xxx/2xxx)
-                    # quando a nota é recebida como entrada (terceiro enviou para nós)
-                    # CFOPs que JÁ são de entrada (1xxx/2xxx) são mantidos como estão
-                    primeiro_digito = cfop_original[0] if cfop_original else ''
-                    
-                    if primeiro_digito in ['5', '6']:
-                        # CFOP de saída - converter para entrada
-                        cfop_convertido = CFOP_OPERACAO_DISTINTA_CONVERSAO.get(cfop_original, cfop_original)
-                        product['cfop'] = cfop_convertido
-                        product['cfop_original_emissor'] = cfop_original
-                        product['cfop_original'] = cfop_original
-                        logger.info(f"[SIEG] Operação distinta CONVERTIDA: {cfop_original} → {cfop_convertido} ({CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]})")
+                for product, cfop_original in produtos_cfop_saida:
+                    # Converter CFOP de saída (5xxx/6xxx) para entrada (1xxx/2xxx)
+                    # Conversão padrão: 5xxx -> 1xxx, 6xxx -> 2xxx
+                    if cfop_original.startswith('5'):
+                        cfop_convertido = CFOP_OPERACAO_DISTINTA_CONVERSAO.get(cfop_original, '1' + cfop_original[1:])
+                    elif cfop_original.startswith('6'):
+                        cfop_convertido = CFOP_OPERACAO_DISTINTA_CONVERSAO.get(cfop_original, '2' + cfop_original[1:])
                     else:
-                        # CFOP já é de entrada (1xxx/2xxx) - manter
                         cfop_convertido = cfop_original
-                        product['cfop'] = cfop_convertido
-                        product['cfop_original_emissor'] = cfop_original
-                        product['cfop_original'] = cfop_original
-                        logger.info(f"[SIEG] Operação distinta MANTIDA: CFOP {cfop_original} ({CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]})")
                     
-                    # GERAR ALERTA para revisão do usuário
-                    product['pendente_revisao_cfop'] = True  # Precisa revisão do usuário
-                    product['natureza_operacao_original'] = CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]
-                    product['categoria_classificada'] = 'operacao_distinta'
-                    product['justificativa_ia'] = f"Operação especial: {CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]} - CFOP {'convertido' if primeiro_digito in ['5', '6'] else 'mantido'} - PENDENTE REVISÃO"
+                    product['cfop'] = cfop_convertido
+                    product['cfop_original_emissor'] = cfop_original
+                    product['cfop_original'] = cfop_original
+                    
+                    # SEMPRE gerar alerta para revisão do usuário
+                    product['pendente_revisao_cfop'] = True
+                    product['natureza_operacao_original'] = get_descricao_cfop(cfop_original)
+                    product['categoria_classificada'] = 'pendente_revisao'  # Categoria pendente até usuário validar
+                    product['justificativa_ia'] = f"CFOP {cfop_original} ({get_descricao_cfop(cfop_original)}) - PENDENTE VALIDAÇÃO DO USUÁRIO"
+                    
+                    logger.info(f"[SIEG] CFOP de saída em entrada: {cfop_original} → {cfop_convertido} (PENDENTE VALIDAÇÃO)")
                     
                     # Adicionar ao alerta
                     file_alertas_cfop.append({
@@ -7765,10 +7762,10 @@ async def sieg_sync_execute(
                         'cst_icms': product.get('cst_icms', product.get('cst', '')),
                         'cfop_emissor': cfop_original,
                         'cfop_convertido': cfop_convertido,
-                        'descricao_cfop': CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original],
+                        'descricao_cfop': get_descricao_cfop(cfop_original),
                         'valor': product.get('valor_total', 0),
-                        'acao_tomada': f'Convertido para {cfop_convertido} (pendente revisão)',
-                        'categoria': 'operacao_distinta'
+                        'acao_tomada': f'Convertido para {cfop_convertido} (pendente validação)',
+                        'categoria': 'pendente_revisao'
                     })
                 
                 # Adicionar alertas ao resultado
