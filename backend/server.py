@@ -19542,6 +19542,8 @@ async def alertas_cfop_operacoes_distintas(
                     'cfop_original_emissor': cfop_original,
                     'cfop_atual': cfop_atual,
                     'natureza_operacao': natureza,
+                    'cst_icms': prod.get('cst_icms', prod.get('cst', '')),
+                    'cst_icms_descricao': _get_descricao_cst_icms(prod.get('cst_icms', prod.get('cst', ''))),
                     'opcoes': {
                         'manter_natureza': {
                             'cfop': cfop_atual,
