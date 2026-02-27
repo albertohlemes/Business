@@ -8199,6 +8199,120 @@ async def sieg_diagnostico(
     }
 
 
+@api_router.get("/sieg/diagnostico-documentos/{company_id}")
+async def sieg_diagnostico_documentos(
+    company_id: str,
+    competencia: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Diagnóstico dos documentos importados para verificar problemas de exibição no dashboard.
+    """
+    from datetime import datetime
+    
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Competência padrão
+    if not competencia:
+        now = datetime.now()
+        competencia = f"{now.month:02d}/{now.year}"
+    
+    # Contar documentos TOTAL (sem filtros)
+    total_docs = await db.xml_documents.count_documents({
+        "company_id": company_id,
+        "competencia": competencia
+    })
+    
+    # Contar documentos ATIVOS (com filtro de notas ativas)
+    filtro_ativos = {
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }
+    total_ativos = await db.xml_documents.count_documents(filtro_ativos)
+    
+    # Contar por tipo
+    entradas_total = await db.xml_documents.count_documents({
+        "company_id": company_id, "competencia": competencia, "tipo": "entrada"
+    })
+    saidas_total = await db.xml_documents.count_documents({
+        "company_id": company_id, "competencia": competencia, "tipo": "saida"
+    })
+    
+    # Contar por tipo_operacao (campo alternativo)
+    entradas_tipo_operacao = await db.xml_documents.count_documents({
+        "company_id": company_id, "competencia": competencia, "tipo_operacao": "entrada"
+    })
+    saidas_tipo_operacao = await db.xml_documents.count_documents({
+        "company_id": company_id, "competencia": competencia, "tipo_operacao": "saida"
+    })
+    
+    # Contar cancelados e desconsiderados
+    cancelados = await db.xml_documents.count_documents({
+        "company_id": company_id, "competencia": competencia, "cancelada": True
+    })
+    desconsiderados = await db.xml_documents.count_documents({
+        "company_id": company_id, "competencia": competencia, "desconsiderada_devolucao": True
+    })
+    
+    # Verificar competências existentes
+    competencias_existentes = await db.xml_documents.distinct("competencia", {"company_id": company_id})
+    
+    # Buscar amostra de documentos
+    amostra = await db.xml_documents.find(
+        {"company_id": company_id, "competencia": competencia},
+        {"_id": 0, "numero_nfe": 1, "tipo": 1, "tipo_operacao": 1, "modelo": 1, "valor_total": 1, 
+         "cancelada": 1, "desconsiderada_devolucao": 1, "origem": 1}
+    ).limit(5).to_list(5)
+    
+    # Verificar se há problema de formato de competência
+    formatos_competencia = {}
+    for comp in competencias_existentes[:20]:
+        formatos_competencia[comp] = await db.xml_documents.count_documents({
+            "company_id": company_id, "competencia": comp
+        })
+    
+    return {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', '')
+        },
+        "competencia_buscada": competencia,
+        "estatisticas": {
+            "total_documentos": total_docs,
+            "documentos_ativos": total_ativos,
+            "entradas_campo_tipo": entradas_total,
+            "saidas_campo_tipo": saidas_total,
+            "entradas_campo_tipo_operacao": entradas_tipo_operacao,
+            "saidas_campo_tipo_operacao": saidas_tipo_operacao,
+            "cancelados": cancelados,
+            "desconsiderados": desconsiderados
+        },
+        "competencias_existentes": sorted(competencias_existentes)[-10:],
+        "formatos_competencia": formatos_competencia,
+        "amostra_documentos": amostra,
+        "diagnostico": {
+            "problema_detectado": total_docs == 0 or (total_docs > 0 and entradas_total == 0 and saidas_total == 0),
+            "possivel_causa": (
+                "Nenhum documento encontrado para esta competência" if total_docs == 0
+                else "Documentos existem mas campo 'tipo' está vazio ou incorreto" if (entradas_total == 0 and saidas_total == 0)
+                else "Documentos parecem OK"
+            ),
+            "recomendacao": (
+                f"Verifique se a competência '{competencia}' está correta. Competências disponíveis: {sorted(competencias_existentes)[-5:]}" if total_docs == 0
+                else "Verificar campo 'tipo' dos documentos - pode estar como 'tipo_operacao' ou outro valor" if (entradas_total == 0 and saidas_total == 0)
+                else "Tudo parece OK"
+            )
+        }
+    }
+
+
+
+
 # ============================================================================
 # PAINEL DE MONITORAMENTO SIEG
 # ============================================================================
