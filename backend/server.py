@@ -1913,16 +1913,9 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
         if doc.get('desconsiderada_devolucao'):
             continue
             
-        # Determinar tipo de operação
-        tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
-        if not tipo_operacao:
-            produtos = doc.get('produtos', [])
-            if produtos:
-                cfop = str(produtos[0].get('cfop', ''))
-                if cfop and cfop[0] in ['1', '2', '3']:
-                    tipo_operacao = 'entrada'
-                elif cfop and cfop[0] in ['5', '6', '7']:
-                    tipo_operacao = 'saida'
+        # O tipo_operacao do documento NÃO é confiável para classificação de PIS/COFINS
+        # Devemos usar o CFOP como referência primária
+        tipo_operacao_doc = doc.get('tipo_operacao') or doc.get('tipo')
         
         for prod in doc.get('produtos', []):
             ncm = str(prod.get('ncm', '')).replace('.', '')
@@ -1931,6 +1924,19 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
             valor_total = Decimal(str(prod.get('valor_total', 0) or 0))
             v_icms = Decimal(str(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0))
             
+            # IMPORTANTE: Usar o CFOP como referência primária para determinar se é entrada ou saída
+            # Isso é mais confiável que o campo 'tipo' do documento
+            primeiro_digito_cfop = cfop[0] if cfop else ''
+            is_cfop_entrada = primeiro_digito_cfop in ['1', '2', '3']
+            is_cfop_saida = primeiro_digito_cfop in ['5', '6', '7']
+            
+            # Se não conseguir determinar pelo CFOP, usar o tipo do documento
+            if not is_cfop_entrada and not is_cfop_saida:
+                is_cfop_entrada = tipo_operacao_doc == 'entrada'
+                is_cfop_saida = tipo_operacao_doc == 'saida'
+            
+            tipo_operacao = 'entrada' if is_cfop_entrada else 'saida'
+            
             # ==========================================================
             # VERIFICAR SE É CFOP DE TRANSFERÊNCIA (MATRIZ-FILIAL)
             # IMPORTANTE: Verificar TANTO o CFOP armazenado QUANTO o original do emissor
@@ -1938,13 +1944,13 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
             # CST: Entrada = 98 (Sem incidência), Saída = 49 (Outras saídas)
             # ==========================================================
             if is_cfop_transferencia(cfop) or is_cfop_transferencia(cfop_original_emissor):
-                # CST diferenciado por tipo de operação
-                cst_display = '98' if tipo_operacao == 'entrada' else '49'
+                # CST diferenciado por tipo de operação (baseado no CFOP)
+                cst_display = '98' if is_cfop_entrada else '49'
                 valor_pis = Decimal('0')
                 valor_cofins = Decimal('0')
                 valor_base_calc = valor_total  # Sem descontar ICMS já que não há cálculo
                 
-                target_dict = entradas_cst if tipo_operacao == 'entrada' else saidas_cst
+                target_dict = entradas_cst if is_cfop_entrada else saidas_cst
                 if cst_display not in target_dict:
                     target_dict[cst_display] = {
                         'valor_base': Decimal('0'),
@@ -1964,7 +1970,7 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
             # Lei 14.592/2023: Excluir ICMS da base
             valor_base = max(Decimal('0'), valor_total - v_icms)
             
-            if tipo_operacao == 'entrada':
+            if is_cfop_entrada:
                 # Verificar se deve ser desconsiderado
                 categoria_sem_credito = any(cat in categoria for cat in CATEGORIAS_SEM_CREDITO) if categoria else False
                 cfop_sem_credito = cfop in CFOPS_SEM_CREDITO_CALC
