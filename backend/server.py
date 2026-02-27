@@ -1645,22 +1645,26 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
             if doc.get('desconsiderada_devolucao'):
                 continue
             
-            # Determinar tipo de operação
-            tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
-            if not tipo_operacao:
-                produtos = doc.get('produtos', [])
-                if produtos:
-                    cfop = str(produtos[0].get('cfop', ''))
-                    if cfop and cfop[0] in ['1', '2', '3']:
-                        tipo_operacao = 'entrada'
-                    elif cfop and cfop[0] in ['5', '6', '7']:
-                        tipo_operacao = 'saida'
+            # O tipo_operacao do documento NÃO é confiável - devemos usar o CFOP
+            tipo_operacao_doc = doc.get('tipo_operacao') or doc.get('tipo')
             
             for prod in doc.get('produtos', []):
                 try:
                     ncm = str(prod.get('ncm', '')).replace('.', '')
                     cfop = str(prod.get('cfop', ''))
                     cfop_original_emissor = str(prod.get('cfop_original_emissor', '') or cfop)
+                    
+                    # IMPORTANTE: Usar o CFOP como referência primária para determinar entrada/saída
+                    primeiro_digito_cfop = cfop[0] if cfop else ''
+                    is_cfop_entrada = primeiro_digito_cfop in ['1', '2', '3']
+                    is_cfop_saida = primeiro_digito_cfop in ['5', '6', '7']
+                    
+                    # Se não conseguir determinar pelo CFOP, usar o tipo do documento
+                    if not is_cfop_entrada and not is_cfop_saida:
+                        is_cfop_entrada = tipo_operacao_doc == 'entrada'
+                        is_cfop_saida = tipo_operacao_doc == 'saida'
+                    
+                    tipo_operacao = 'entrada' if is_cfop_entrada else 'saida'
                     
                     # Tratamento robusto de valores numéricos
                     valor_total_raw = prod.get('valor_total', 0)
@@ -1684,8 +1688,8 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                 # ==========================================================
                 if is_cfop_transferencia(cfop) or is_cfop_transferencia(cfop_original_emissor):
                     # Transferência não entra na base de cálculo
-                    totais['desconsiderados_credito'] += valor_total if tipo_operacao == 'entrada' else Decimal('0')
-                    totais['desconsiderados_debito'] += valor_total if tipo_operacao == 'saida' else Decimal('0')
+                    totais['desconsiderados_credito'] += valor_total if is_cfop_entrada else Decimal('0')
+                    totais['desconsiderados_debito'] += valor_total if is_cfop_saida else Decimal('0')
                     continue
                 
                 # Obter categoria classificada do produto
@@ -1694,7 +1698,7 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                 # Lei 14.592/2023: Excluir ICMS da base em entradas E saídas
                 valor_base = max(Decimal('0'), valor_total - v_icms)
                 
-                if tipo_operacao == 'entrada':
+                if is_cfop_entrada:
                     # ============================================================
                     # VERIFICAR SE GERA CRÉDITO (baseado na categoria E no CFOP)
                     # Prioridade: 1) Categoria classificada, 2) CFOP especial, 3) CFOP padrão
