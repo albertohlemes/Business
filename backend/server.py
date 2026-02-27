@@ -35153,7 +35153,6 @@ async def preview_nfse_for_cancellation(
                     
                     # Só incluir se pertencer à empresa
                     if cnpj_emitente == cnpj_empresa:
-                    if cnpj_emitente == cnpj_empresa:
                         # Verificar se já existe no banco
                         existing = await db.xml_documents.find_one({
                             "chave_nfe": nfse.get('chave_nfe', ''),
