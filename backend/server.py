@@ -27027,7 +27027,7 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
             # Verificar se deve desconsiderar
             if beneficio_zera_tudo:
                 # Benefício fiscal (restaurante/bar) - zera TODO crédito de ICMS
-                icms_despesa_desc += valor_icms  # Conta como desconsiderado
+                icms_beneficio_desc += valor_icms  # Conta como desconsiderado por benefício
             elif desconsiderar_despesas and cfop in cfops_despesa:
                 icms_despesa_desc += valor_icms
             elif desconsiderar_st and cfop in cfops_st:
