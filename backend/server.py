@@ -7434,244 +7434,102 @@ async def sieg_sync_execute(
                     if cfop_original and not product.get('cfop_original_emissor'):
                         product['cfop_original_emissor'] = cfop_original
                 
-                # TODOS os CFOPs de SAÍDA (5xxx/6xxx) que chegam em notas de ENTRADA
-                # precisam de validação do usuário para definir a conversão correta
-                # O usuário decide se mantém a natureza original ou converte para outro CFOP
-                
-                # Descrições dos CFOPs de saída para exibição
-                CFOPS_DESCRICAO = {
-                    # Vendas/Transferências
-                    '5101': 'Venda de produção do estabelecimento',
-                    '5102': 'Venda de mercadoria adquirida',
-                    '5103': 'Venda de produção a não contribuinte',
-                    '5104': 'Venda de mercadoria a não contribuinte',
-                    '5105': 'Venda de produção com ST',
-                    '5106': 'Venda de mercadoria com ST',
-                    '5109': 'Venda de produção para Zona Franca',
-                    '5110': 'Venda de mercadoria para Zona Franca',
-                    '5111': 'Venda de produção para Zona Franca a não contribuinte',
-                    '5112': 'Venda de mercadoria para Zona Franca a não contribuinte',
-                    '5113': 'Venda de produção para Zona Franca com ST',
-                    '5114': 'Venda de mercadoria para Zona Franca com ST',
-                    '5115': 'Venda de mercadoria adquirida de terceiro para exportação',
-                    '5116': 'Venda de produção a comercial exportadora',
-                    '5117': 'Venda de mercadoria a comercial exportadora',
-                    '5118': 'Venda de produção adquirida de terceiro',
-                    '5119': 'Venda de mercadoria adquirida do exterior',
-                    '5120': 'Venda de mercadoria adquirida do exterior',
-                    '5122': 'Venda de produção remetida para formação de lote',
-                    '5123': 'Venda de mercadoria remetida para formação de lote',
-                    '5124': 'Industrialização para outra empresa',
-                    '5125': 'Industrialização para outra empresa quando a mercadoria recebida para utilização no processo',
-                    # Devoluções
-                    '5201': 'Devolução de compra para industrialização',
-                    '5202': 'Devolução de compra para comercialização',
-                    '5205': 'Anulação de valor - Loss',
-                    '5206': 'Anulação de valor - Loss de ST',
-                    '5207': 'Anulação de valor - Loss de industrialização',
-                    '5208': 'Devolução de mercadoria de uso e consumo',
-                    '5209': 'Devolução de compra de ativo imobilizado',
-                    '5210': 'Devolução de compra de material para uso ou consumo',
-                    '5251': 'Venda de energia elétrica para distribuição',
-                    '5252': 'Venda de energia elétrica para estabelecimento comercial',
-                    '5253': 'Venda de energia elétrica para estabelecimento prestador de serviço de transporte',
-                    '5254': 'Venda de energia elétrica para estabelecimento prestador de serviço de comunicação',
-                    '5255': 'Venda de energia elétrica para estabelecimento industrial',
-                    '5256': 'Venda de energia elétrica para estabelecimento público',
-                    '5257': 'Venda de energia elétrica para consumo por demanda contratada',
-                    # Transferências
-                    '5351': 'Transferência de produção do estabelecimento',
-                    '5352': 'Transferência de mercadoria adquirida',
-                    '5353': 'Transferência de energia elétrica',
-                    '5354': 'Transferência de produção do estabelecimento com ST',
-                    '5355': 'Transferência de mercadoria adquirida com ST',
-                    '5356': 'Transferência de produção',
-                    '5357': 'Transferência de mercadoria',
-                    # Operações com ST
-                    '5401': 'Venda de produção em operação com ST',
-                    '5402': 'Venda de produção com ST sujeita a ST',
-                    '5403': 'Venda de mercadoria adquirida com ST',
-                    '5405': 'Venda de mercadoria adquirida com ST sujeita a ST',
-                    '5408': 'Transferência de produção em operação com ST',
-                    '5409': 'Transferência de mercadoria adquirida em operação com ST',
-                    '5410': 'Devolução de compra para industrialização em operação com ST',
-                    '5411': 'Devolução de compra para comercialização em operação com ST',
-                    '5412': 'Devolução de bem do ativo imobilizado em operação com ST',
-                    '5413': 'Devolução de mercadoria destinada a uso ou consumo em operação com ST',
-                    '5414': 'Remessa de produção para venda fora do estabelecimento em operação com ST',
-                    '5415': 'Remessa de mercadoria adquirida para venda fora do estabelecimento em operação com ST',
-                    # Combustíveis
-                    '5651': 'Venda de combustível a consumidor final',
-                    '5652': 'Venda de combustível a consumidor final',
-                    '5653': 'Venda de combustível a consumidor final',
-                    '5654': 'Venda de combustível a consumidor final',
-                    '5655': 'Venda de combustível a consumidor final',
-                    '5656': 'Venda de combustível a não contribuinte',
-                    '5657': 'Remessa de combustível para armazenagem',
-                    '5658': 'Transferência de combustível',
-                    '5659': 'Venda de combustível com ST',
-                    '5660': 'Devolução de compra de combustível',
-                    '5661': 'Devolução de combustível importado',
-                    '5662': 'Devolução de combustível de zona franca',
-                    '5663': 'Remessa de combustível para armazenagem',
-                    '5664': 'Retorno de combustível de armazenagem',
-                    '5665': 'Retorno de remessa para venda fora do estabelecimento',
-                    '5666': 'Remessa de combustível para venda fora do estabelecimento',
-                    '5667': 'Venda de combustível adquirido para comercialização a não contribuinte',
-                    # Remessas/Operações Especiais
+                # CFOPs DISTINTOS - operações especiais que SEMPRE precisam de validação do usuário
+                # Estes CFOPs NÃO usam histórico/memória - o usuário decide a conversão
+                CFOPS_DISTINTOS = {
+                    # Remessas para industrialização (5901-5903, 6901-6903)
                     '5901': 'Remessa para industrialização por encomenda',
                     '5902': 'Retorno de mercadoria utilizada na industrialização',
                     '5903': 'Retorno de mercadoria recebida para industrialização',
-                    '5904': 'Remessa para venda fora do estabelecimento',
-                    '5905': 'Remessa para depósito fechado ou armazém geral',
-                    '5906': 'Retorno de mercadoria depositada',
-                    '5907': 'Retorno de mercadoria para depósito',
-                    '5908': 'Remessa de bem por conta de contrato de comodato',
-                    '5909': 'Retorno de bem recebido por conta de contrato de comodato',
-                    '5910': 'Remessa em bonificação/doação/brinde',
-                    '5911': 'Remessa de amostra grátis',
-                    '5912': 'Remessa de mercadoria para demonstração',
-                    '5913': 'Retorno de mercadoria recebida para demonstração',
-                    '5914': 'Remessa de mercadoria em consignação',
-                    '5915': 'Devolução de mercadoria recebida em consignação',
-                    '5916': 'Retorno de mercadoria recebida em locação',
-                    '5917': 'Remessa de mercadoria em conserto ou reparo',
-                    '5918': 'Devolução de mercadoria recebida em conserto ou reparo',
-                    '5919': 'Devolução de vasilhame ou sacaria',
-                    '5920': 'Remessa de vasilhame ou sacaria',
-                    '5921': 'Devolução de vasilhame ou sacaria',
-                    '5922': 'Lançamento efetuado a título de simples faturamento',
-                    '5923': 'Remessa de mercadoria por conta de contrato de arrendamento mercantil',
-                    '5924': 'Retorno de mercadoria remetida por conta de contrato de arrendamento',
-                    '5925': 'Retorno de mercadoria remetida para industrialização não entregue',
-                    '5926': 'Lançamento a título de reclassificação',
-                    '5927': 'Lançamento a título de baixa de estoque',
-                    '5928': 'Lançamento a título de baixa de estoque',
-                    '5929': 'Lançamento efetuado em decorrência de emissão de documento fiscal (ECF/PDV)',
-                    '5931': 'Lançamento a título de devolução simbólica',
-                    '5932': 'Prestação de serviço de transporte iniciado em outra UF',
-                    '5933': 'Prestação de serviço tributado pelo ISSQN',
-                    '5949': 'Outra saída de mercadoria não especificada',
-                    # Interestaduais (6xxx)
-                    '6101': 'Venda de produção do estabelecimento',
-                    '6102': 'Venda de mercadoria adquirida',
-                    '6103': 'Venda de produção a não contribuinte',
-                    '6104': 'Venda de mercadoria a não contribuinte',
-                    '6105': 'Venda de produção com ST',
-                    '6106': 'Venda de mercadoria com ST',
-                    '6107': 'Venda de produção para Zona Franca',
-                    '6108': 'Venda de mercadoria para Zona Franca',
-                    '6109': 'Venda de produção para Zona Franca com ST',
-                    '6110': 'Venda de mercadoria para Zona Franca com ST',
-                    '6111': 'Venda de produção originada no exterior',
-                    '6112': 'Venda de mercadoria adquirida originada no exterior',
-                    '6113': 'Venda de produção adquirida no mercado interno',
-                    '6114': 'Venda de mercadoria adquirida no mercado interno',
-                    '6115': 'Venda de mercadoria adquirida de terceiro',
-                    '6116': 'Venda de produção a comercial exportadora',
-                    '6117': 'Venda de mercadoria a comercial exportadora',
-                    '6118': 'Venda de produção adquirida de terceiro',
-                    '6119': 'Venda de mercadoria adquirida do exterior',
-                    '6120': 'Venda de mercadoria adquirida do exterior',
-                    '6122': 'Venda de produção remetida para formação de lote',
-                    '6123': 'Venda de mercadoria remetida para formação de lote',
-                    '6124': 'Industrialização para outra empresa',
-                    '6125': 'Industrialização para outra empresa quando a mercadoria recebida para utilização no processo',
-                    '6201': 'Devolução de compra para industrialização',
-                    '6202': 'Devolução de compra para comercialização',
-                    '6205': 'Anulação de valor',
-                    '6206': 'Anulação de valor de ST',
-                    '6207': 'Anulação de valor de industrialização',
-                    '6208': 'Devolução de mercadoria de uso e consumo',
-                    '6209': 'Devolução de compra de ativo imobilizado',
-                    '6210': 'Devolução de compra de material para uso ou consumo',
-                    '6251': 'Venda de energia elétrica para distribuição',
-                    '6252': 'Venda de energia elétrica para estabelecimento comercial',
-                    '6253': 'Venda de energia elétrica para estabelecimento prestador de serviço de transporte',
-                    '6254': 'Venda de energia elétrica para estabelecimento prestador de serviço de comunicação',
-                    '6255': 'Venda de energia elétrica para estabelecimento industrial',
-                    '6256': 'Venda de energia elétrica para estabelecimento público',
-                    '6257': 'Venda de energia elétrica para consumo por demanda contratada',
-                    '6351': 'Transferência de produção do estabelecimento',
-                    '6352': 'Transferência de mercadoria adquirida',
-                    '6353': 'Transferência de energia elétrica',
-                    '6354': 'Transferência de produção do estabelecimento com ST',
-                    '6355': 'Transferência de mercadoria adquirida com ST',
-                    '6356': 'Transferência de produção',
-                    '6357': 'Transferência de mercadoria',
-                    '6401': 'Venda de produção em operação com ST',
-                    '6402': 'Venda de produção com ST sujeita a ST',
-                    '6403': 'Venda de mercadoria adquirida com ST',
-                    '6404': 'Venda de mercadoria sujeita a ST a não contribuinte',
-                    '6405': 'Venda de mercadoria adquirida com ST sujeita a ST',
-                    '6408': 'Transferência de produção em operação com ST',
-                    '6409': 'Transferência de mercadoria adquirida em operação com ST',
-                    '6410': 'Devolução de compra para industrialização em operação com ST',
-                    '6411': 'Devolução de compra para comercialização em operação com ST',
-                    '6412': 'Devolução de bem do ativo imobilizado em operação com ST',
-                    '6413': 'Devolução de mercadoria destinada a uso ou consumo em operação com ST',
-                    '6414': 'Remessa de produção para venda fora do estabelecimento em operação com ST',
-                    '6415': 'Remessa de mercadoria adquirida para venda fora do estabelecimento em operação com ST',
-                    '6651': 'Venda de combustível a consumidor final',
-                    '6652': 'Venda de combustível a consumidor final',
-                    '6653': 'Venda de combustível a consumidor final',
-                    '6654': 'Venda de combustível a consumidor final',
-                    '6655': 'Venda de combustível a consumidor final',
-                    '6656': 'Venda de combustível a não contribuinte',
-                    '6657': 'Remessa de combustível para armazenagem',
-                    '6658': 'Transferência de combustível',
-                    '6659': 'Venda de combustível com ST',
-                    '6660': 'Devolução de compra de combustível',
-                    '6661': 'Devolução de combustível importado',
-                    '6662': 'Devolução de combustível de zona franca',
-                    '6663': 'Remessa de combustível para armazenagem',
-                    '6664': 'Retorno de combustível de armazenagem',
-                    '6665': 'Retorno de remessa para venda fora do estabelecimento',
-                    '6666': 'Remessa de combustível para venda fora do estabelecimento',
-                    '6667': 'Venda de combustível adquirido para comercialização a não contribuinte',
                     '6901': 'Remessa para industrialização por encomenda',
                     '6902': 'Retorno de mercadoria utilizada na industrialização',
                     '6903': 'Retorno de mercadoria recebida para industrialização',
+                    # Remessa para venda fora (5904, 6904)
+                    '5904': 'Remessa para venda fora do estabelecimento',
                     '6904': 'Remessa para venda fora do estabelecimento',
+                    # Depósito/Armazém (5905-5907, 6905-6907)
+                    '5905': 'Remessa para depósito fechado ou armazém geral',
+                    '5906': 'Retorno de mercadoria depositada',
+                    '5907': 'Retorno de mercadoria para depósito',
                     '6905': 'Remessa para depósito fechado ou armazém geral',
                     '6906': 'Retorno de mercadoria depositada',
                     '6907': 'Retorno de mercadoria para depósito',
+                    # Comodato (5908-5909, 6908-6909)
+                    '5908': 'Remessa de bem por conta de contrato de comodato',
+                    '5909': 'Retorno de bem recebido por conta de contrato de comodato',
                     '6908': 'Remessa de bem por conta de contrato de comodato',
                     '6909': 'Retorno de bem recebido por conta de contrato de comodato',
+                    # Bonificação/Doação (5910, 6910)
+                    '5910': 'Remessa em bonificação/doação/brinde',
                     '6910': 'Remessa em bonificação/doação/brinde',
+                    # Amostra grátis (5911, 6911)
+                    '5911': 'Remessa de amostra grátis',
                     '6911': 'Remessa de amostra grátis',
+                    # Demonstração (5912-5913, 6912-6913)
+                    '5912': 'Remessa de mercadoria para demonstração',
+                    '5913': 'Retorno de mercadoria recebida para demonstração',
                     '6912': 'Remessa de mercadoria para demonstração',
                     '6913': 'Retorno de mercadoria recebida para demonstração',
+                    # Consignação (5914-5915, 6914-6915)
+                    '5914': 'Remessa de mercadoria em consignação',
+                    '5915': 'Devolução de mercadoria recebida em consignação',
                     '6914': 'Remessa de mercadoria em consignação',
                     '6915': 'Devolução de mercadoria recebida em consignação',
+                    # Locação (5916, 6916)
+                    '5916': 'Retorno de mercadoria recebida em locação',
                     '6916': 'Retorno de mercadoria recebida em locação',
+                    # Conserto/Reparo (5917-5918, 6917-6918)
+                    '5917': 'Remessa de mercadoria em conserto ou reparo',
+                    '5918': 'Devolução de mercadoria recebida em conserto ou reparo',
                     '6917': 'Remessa de mercadoria em conserto ou reparo',
                     '6918': 'Devolução de mercadoria recebida em conserto ou reparo',
+                    # Vasilhame/Sacaria (5919-5921, 6919-6921)
+                    '5919': 'Devolução de vasilhame ou sacaria',
+                    '5920': 'Remessa de vasilhame ou sacaria',
+                    '5921': 'Devolução de vasilhame ou sacaria',
                     '6919': 'Devolução de vasilhame ou sacaria',
                     '6920': 'Remessa de vasilhame ou sacaria',
                     '6921': 'Devolução de vasilhame ou sacaria',
+                    # Simples faturamento (5922, 6922)
+                    '5922': 'Lançamento efetuado a título de simples faturamento',
                     '6922': 'Lançamento efetuado a título de simples faturamento',
+                    # Arrendamento (5923-5924, 6923-6924)
+                    '5923': 'Remessa de mercadoria por conta de contrato de arrendamento mercantil',
+                    '5924': 'Retorno de mercadoria remetida por conta de contrato de arrendamento',
                     '6923': 'Remessa de mercadoria por conta de contrato de arrendamento mercantil',
                     '6924': 'Retorno de mercadoria remetida por conta de contrato de arrendamento',
+                    # Retorno não entregue (5925, 6925)
+                    '5925': 'Retorno de mercadoria remetida para industrialização não entregue',
                     '6925': 'Retorno de mercadoria remetida para industrialização não entregue',
+                    # Reclassificação/Baixa de estoque (5926-5928)
+                    '5926': 'Lançamento a título de reclassificação',
+                    '5927': 'Lançamento a título de baixa de estoque',
+                    '5928': 'Lançamento a título de baixa de estoque',
+                    # ECF/PDV (5929, 6929)
+                    '5929': 'Lançamento efetuado em decorrência de emissão de documento fiscal (ECF/PDV)',
                     '6929': 'Lançamento efetuado em decorrência de emissão de documento fiscal (ECF/PDV)',
+                    # Devolução simbólica (5931, 6931)
+                    '5931': 'Lançamento a título de devolução simbólica',
                     '6931': 'Lançamento a título de devolução simbólica',
+                    # Serviços (5932-5933, 6932-6933)
+                    '5932': 'Prestação de serviço de transporte iniciado em outra UF',
+                    '5933': 'Prestação de serviço tributado pelo ISSQN',
                     '6932': 'Prestação de serviço de transporte iniciado em outra UF',
                     '6933': 'Prestação de serviço tributado pelo ISSQN',
+                    # Outras saídas (5949, 6949)
+                    '5949': 'Outra saída de mercadoria não especificada',
                     '6949': 'Outra saída de mercadoria não especificada',
                 }
                 
-                def is_cfop_saida_em_entrada(cfop: str) -> bool:
-                    """Verifica se é um CFOP de saída (5xxx/6xxx) - todos precisam de validação quando em nota de entrada"""
-                    if not cfop:
-                        return False
-                    return cfop[0] in ['5', '6']
+                def is_cfop_distinto(cfop: str) -> bool:
+                    """Verifica se é um CFOP distinto que precisa de validação do usuário"""
+                    return cfop in CFOPS_DISTINTOS
                 
-                def get_descricao_cfop(cfop: str) -> str:
-                    """Retorna descrição do CFOP"""
-                    return CFOPS_DESCRICAO.get(cfop, f'CFOP {cfop}')
+                def get_descricao_cfop_distinto(cfop: str) -> str:
+                    """Retorna descrição do CFOP distinto"""
+                    return CFOPS_DISTINTOS.get(cfop, f'CFOP {cfop}')
                 
-                # Separar produtos que precisam de validação (CFOPs de saída em nota de entrada)
+                # Separar produtos: CFOPs DISTINTOS vão para alerta, demais para classificação normal
                 
                 # Tabela de conversão de CFOPs de SAÍDA para ENTRADA (operações distintas)
                 # Quando recebemos uma nota de terceiro com CFOP de saída (5xxx/6xxx),
