@@ -26981,6 +26981,7 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
     icms_st_saidas = 0
     icms_despesa_desc = 0
     icms_st_desc = 0
+    icms_beneficio_desc = 0  # ICMS desconsiderado por benefício fiscal
     total_entradas = 0
     total_saidas = 0
     entradas_por_cfop = {}
