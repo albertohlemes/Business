@@ -14466,7 +14466,7 @@ async def _get_dashboard_stats_aggregated(company: dict, company_id: str, compet
                 "nfce": round(total_nfce, 2),
                 "cte": round(total_cte_saida, 2),
                 "servicos_prestados": round(total_nfse_prestados, 2),
-                "total": round(float(total_saidas_cfop), 2)  # Total por CFOP (igual apuracao-icms)
+                "total": round(total_nfe_saida + total_nfce + total_cte_saida + total_nfse_prestados, 2)  # Soma dos componentes
             },
             # CORREÇÃO: Usar valores calculados por CFOP
             "compras": {
