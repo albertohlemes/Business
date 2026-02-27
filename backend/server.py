@@ -19375,6 +19375,59 @@ def obter_categoria_por_cfop(cfop: str) -> str:
     return 'revenda'
 
 
+def _get_descricao_cst_icms(cst: str) -> str:
+    """Retorna descrição simplificada do CST ICMS para auxiliar na classificação."""
+    if not cst:
+        return ''
+    cst = str(cst).strip()
+    
+    # CSTs que indicam Substituição Tributária
+    csts_st = {
+        '10': 'Tributada com ST',
+        '30': 'Isenta com ST', 
+        '60': 'ICMS cobrado anteriormente por ST',
+        '70': 'Redução de BC com ST',
+    }
+    
+    # CSTs de regime normal
+    csts_normal = {
+        '00': 'Tributada integralmente',
+        '20': 'Redução de BC',
+        '40': 'Isenta',
+        '41': 'Não tributada',
+        '50': 'Suspensão',
+        '51': 'Diferimento',
+        '90': 'Outras',
+    }
+    
+    # CSTs Simples Nacional (CSOSN)
+    csosn = {
+        '101': 'SN - Tributada com crédito',
+        '102': 'SN - Tributada sem crédito',
+        '103': 'SN - Isento ICMS',
+        '201': 'SN - Tributada com ST e crédito',
+        '202': 'SN - Tributada com ST sem crédito',
+        '203': 'SN - Isento ST sem crédito',
+        '300': 'SN - Imune',
+        '400': 'SN - Não tributada',
+        '500': 'SN - ICMS cobrado por ST',
+        '900': 'SN - Outros',
+    }
+    
+    if cst in csts_st:
+        return csts_st[cst]
+    if cst in csts_normal:
+        return csts_normal[cst]
+    if cst in csosn:
+        return csosn[cst]
+    
+    # Tentar identificar se é ST pelo número
+    if cst in ['10', '30', '60', '70'] or cst in ['201', '202', '203', '500']:
+        return f'CST {cst} (ST)'
+    
+    return f'CST {cst}'
+
+
 def obter_nome_categoria(categoria: str) -> str:
     """Retorna o nome amigável de uma categoria - NUNCA retorna Pendente"""
     if not categoria or categoria.lower() in ['pendente', 'none', 'null', '']:
