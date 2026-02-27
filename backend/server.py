@@ -1794,13 +1794,13 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                         # USAR REGRA DA EMPRESA
                         gera_debito = regra_empresa.get('gera_debito', True)
                         if gera_debito:
-                            aliq_pis = Decimal(str(regra_empresa.get('aliquota_pis', 1.65) or 1.65))
-                            aliq_cofins = Decimal(str(regra_empresa.get('aliquota_cofins', 7.6) or 7.6))
-                            
-                            # Se lucro presumido e regra não especifica, usar alíquotas cumulativas
-                            if is_presumido and regra_empresa.get('tipo_regra') == 'tributado':
-                                aliq_pis = Decimal('0.65')
-                                aliq_cofins = Decimal('3.0')
+                            # Usar alíquotas da regra, ou padrão baseado no regime
+                            if is_presumido:
+                                default_pis, default_cofins = 0.65, 3.0
+                            else:
+                                default_pis, default_cofins = 1.65, 7.6
+                            aliq_pis = Decimal(str(regra_empresa.get('aliquota_pis', default_pis) or default_pis))
+                            aliq_cofins = Decimal(str(regra_empresa.get('aliquota_cofins', default_cofins) or default_cofins))
                             
                             pis = (valor_base * aliq_pis / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                             cofins = (valor_base * aliq_cofins / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
