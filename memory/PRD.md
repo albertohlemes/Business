@@ -5,6 +5,35 @@ Sistema fiscal brasileiro completo para apuração de impostos (PIS/COFINS, ICMS
 
 ## Última Atualização: 26/02/2026 (Sessão 4)
 
+### Correções e Melhorias - Sessão 4 (continuação)
+
+**BUG CRÍTICO CORRIGIDO: Classificação CST PIS/COFINS incorreta**
+
+**Problema identificado:**
+- CFOPs de saída (5xxx, 6xxx) apareciam na seção de créditos (entradas)
+- CFOPs de entrada (1xxx, 2xxx) poderiam aparecer na seção de débitos (saídas)
+- Isso acontecia porque o sistema usava o campo `tipo` do documento como referência, mas em devoluções esse campo pode não corresponder ao CFOP
+
+**Solução aplicada:**
+- Alterado para usar o **primeiro dígito do CFOP** como referência primária
+- CFOPs 1, 2, 3 → sempre tratados como ENTRADA
+- CFOPs 5, 6, 7 → sempre tratados como SAÍDA
+- Corrigido em 3 funções principais:
+  - `calcular_pis_cofins_unificado()`
+  - `calcular_pis_cofins_por_cst()`
+  - `calcular_confronto_cfop_cst()`
+
+**Arquivos modificados:**
+- `/app/backend/server.py` - linhas ~1631, ~1911, ~2105
+
+**Resultado após correção:**
+| CFOP | CST Antes | CST Correto | Status |
+|------|-----------|-------------|--------|
+| 1102 (Compra) | 98 ❌ | 50 ✅ | CORRIGIDO |
+| 5102 (Venda) | 49 ❌ | 01 ✅ | CORRIGIDO |
+| 5910 (Outras saídas) | 50 ❌ | 49 ✅ | CORRIGIDO |
+| 1406 (Exceção) | 50 ❌ | 98 ✅ | CORRIGIDO |
+
 ### Correções e Melhorias - Sessão 4
 - **CORRIGIDO CRÍTICO**: Filtro de NFs Ausentes não considerava notas de entrada emitidas pela empresa
   - Problema: Notas de entrada emitidas pela própria empresa (devoluções, retornos - CFOP 1xxx, 2xxx) não eram consideradas na sequência numérica
