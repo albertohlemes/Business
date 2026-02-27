@@ -35251,7 +35251,13 @@ async def import_nfse_with_cancellations(
             notas_para_processar = []
             
             if is_lista_nfse(xml_str):
-                notas_para_processar = parse_xml_lista_nfse(xml_str)
+                # Verificar qual parser usar baseado no formato
+                if 'ns2:NFSE' in xml_str or 'ns2:Nfse' in xml_str:
+                    notas_para_processar = parse_xml_lista_ginfes(xml_str)
+                    print(f"[IMPORT] GINFES: {len(notas_para_processar)} NFS-e")
+                else:
+                    notas_para_processar = parse_xml_lista_nfse(xml_str)
+                    print(f"[IMPORT] ABRASF: {len(notas_para_processar)} NFS-e")
             else:
                 parsed = parse_xml_nfse(xml_str)
                 if parsed:
