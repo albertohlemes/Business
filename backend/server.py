@@ -1751,9 +1751,13 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                         
                         # Se CFOP é especial (combustível p/ comercialização), forçar crédito
                         if cfop_com_credito_especial:
-                            # Alíquotas padrão: PIS 1,65% e COFINS 7,6%
-                            pis = valor_base * Decimal('0.0165')
-                            cofins = valor_base * Decimal('0.076')
+                            # Alíquotas baseadas no regime: Presumido=cumulativo, Real=não-cumulativo
+                            if is_presumido:
+                                pis = valor_base * Decimal('0.0065')  # 0,65%
+                                cofins = valor_base * Decimal('0.03')  # 3%
+                            else:
+                                pis = valor_base * Decimal('0.0165')  # 1,65%
+                                cofins = valor_base * Decimal('0.076')  # 7,6%
                             totais['creditos_pis'] += pis
                             totais['creditos_cofins'] += cofins
                             totais['base_credito'] += valor_base
