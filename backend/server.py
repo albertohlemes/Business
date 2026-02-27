@@ -27303,8 +27303,14 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
                 "valor_icms": round(icms_st_desc, 2),
                 "qtd_itens": sum(c.get('qtd_itens', 0) for c in entradas_por_cfop.values() if c.get('is_st') and c.get('desconsiderado'))
             },
-            "beneficio_fiscal": {"bc_icms": 0, "valor_icms": 0, "qtd_itens": 0, "produtos": []},
-            "total_icms_desconsiderado": round(icms_despesa_desc + icms_st_desc, 2)
+            "beneficio_fiscal": {
+                "bc_icms": round(sum(c.get('bc_icms', 0) for c in entradas_por_cfop.values()) if beneficio_zera_tudo else 0, 2),
+                "valor_icms": round(icms_beneficio_desc, 2),
+                "qtd_itens": sum(c.get('qtd_itens', 0) for c in entradas_por_cfop.values()) if beneficio_zera_tudo else 0,
+                "tipo_beneficio": tipo_beneficio if beneficio_zera_tudo else "",
+                "motivo": f"Benefício fiscal ({tipo_beneficio}) - todos os produtos sem direito a crédito ICMS" if beneficio_zera_tudo else ""
+            },
+            "total_icms_desconsiderado": round(icms_despesa_desc + icms_st_desc + icms_beneficio_desc, 2)
         },
         "compras_liquidas": {
             "brutas": round(total_compras_brutas, 2),
