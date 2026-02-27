@@ -1983,8 +1983,13 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
                 if cfop_com_credito and not categoria_sem_credito:
                     # CFOP de combustível p/ comercialização - SEMPRE crédito
                     cst_display = '50'
-                    valor_pis = valor_base * Decimal('0.0165')
-                    valor_cofins = valor_base * Decimal('0.076')
+                    # Alíquotas baseadas no regime
+                    if is_presumido:
+                        valor_pis = valor_base * Decimal('0.0065')  # 0,65%
+                        valor_cofins = valor_base * Decimal('0.03')  # 3%
+                    else:
+                        valor_pis = valor_base * Decimal('0.0165')  # 1,65%
+                        valor_cofins = valor_base * Decimal('0.076')  # 7,6%
                 elif categoria_sem_credito or cfop_sem_credito:
                     # Agrupar como CST 98 - Desconsiderado
                     cst_display = '98'
