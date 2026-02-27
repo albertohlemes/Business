@@ -22,7 +22,7 @@ import sys
 from datetime import datetime
 
 class CancelledNotesReportTester:
-    def __init__(self, base_url="https://icms-credit-fix.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://nf-audit.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.token = None
         self.company_id = None
