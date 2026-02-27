@@ -7860,16 +7860,39 @@ async def sieg_sync_execute(
                     parsed_data = parse_xml_nfe(xml_content)
                 
                 chave_nfe = parsed_data.get('chave_nfe', '')
+                numero_nfe = parsed_data.get('numero_nfe', parsed_data.get('numero', ''))
                 
-                existing = await db.xml_documents.find_one({
-                    "company_id": company_id,
-                    "competencia": competencia,
-                    "chave_nfe": chave_nfe
-                }, {"_id": 0})
+                # Log para diagnóstico
+                if idx < 3:  # Logar apenas os primeiros 3 para não poluir os logs
+                    logger.info(f"[SIEG SYNC] Saída {idx + 1}: tipo={xml_type}, chave={chave_nfe[:20] if chave_nfe else 'VAZIO'}, numero={numero_nfe}")
                 
-                if existing:
-                    results["duplicados"].append(chave_nfe[-10:])
-                    continue
+                # Verificar duplicata - SOMENTE se tiver chave_nfe válida
+                if chave_nfe:
+                    existing = await db.xml_documents.find_one({
+                        "company_id": company_id,
+                        "competencia": competencia,
+                        "chave_nfe": chave_nfe
+                    }, {"_id": 0, "id": 1})
+                    
+                    if existing:
+                        results["duplicados"].append(chave_nfe[-10:])
+                        logger.debug(f"[SIEG SYNC] Saída {idx + 1}: duplicada (chave já existe)")
+                        continue
+                else:
+                    # Sem chave - verificar por número + destinatário para evitar duplicata
+                    destinatario_cnpj = parsed_data.get('destinatario_cnpj', '')
+                    if numero_nfe and destinatario_cnpj:
+                        existing = await db.xml_documents.find_one({
+                            "company_id": company_id,
+                            "competencia": competencia,
+                            "numero_nfe": numero_nfe,
+                            "destinatario_cnpj": destinatario_cnpj
+                        }, {"_id": 0, "id": 1})
+                        
+                        if existing:
+                            results["duplicados"].append(f"NF{numero_nfe}")
+                            logger.debug(f"[SIEG SYNC] Saída {idx + 1}: duplicada (número + destinatário já existe)")
+                            continue
                 
                 # Aplicar CST calculado em cada produto (usando regras cadastradas)
                 for product in parsed_data.get('produtos', []):
