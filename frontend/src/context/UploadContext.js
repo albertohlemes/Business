@@ -383,6 +383,14 @@ export const UploadProvider = ({ children }) => {
       return true;
     } catch (error) {
       console.error('Erro no upload:', error);
+      
+      // Ignorar erros de postMessage que são causados por extensões/devtools
+      if (error.message && error.message.includes('postMessage')) {
+        console.warn('Aviso: Erro de postMessage no upload (geralmente causado por extensões do navegador)');
+        // Não marcar como erro - deixar o polling continuar tentando
+        return true;
+      }
+      
       setUploadError(error.message || 'Erro desconhecido no upload');
       setIsUploading(false);
       
