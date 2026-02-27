@@ -49,6 +49,7 @@ async def get_chaves_ja_importadas(db, company_id: str, competencia: str) -> set
     Retorna um set com todas as chaves de NFe já importadas para a competência.
     Usado para evitar duplicados e identificar documentos novos rapidamente.
     """
+    # Buscar documentos com chave_nfe
     cursor = db.xml_documents.find(
         {
             "company_id": company_id,
@@ -61,7 +62,32 @@ async def get_chaves_ja_importadas(db, company_id: str, competencia: str) -> set
     docs = await cursor.to_list(length=50000)
     chaves = {doc.get("chave_nfe") for doc in docs if doc.get("chave_nfe")}
     
-    logger.info(f"[SMART SYNC] {len(chaves)} chaves já importadas para {company_id}/{competencia}")
+    # Também buscar por chave_acesso (campo alternativo usado em alguns documentos)
+    cursor_alt = db.xml_documents.find(
+        {
+            "company_id": company_id,
+            "competencia": competencia,
+            "chave_acesso": {"$exists": True, "$ne": ""},
+            "chave_nfe": {"$exists": False}  # Só se não tiver chave_nfe
+        },
+        {"chave_acesso": 1, "_id": 0}
+    )
+    
+    docs_alt = await cursor_alt.to_list(length=50000)
+    chaves_alt = {doc.get("chave_acesso") for doc in docs_alt if doc.get("chave_acesso")}
+    chaves.update(chaves_alt)
+    
+    # Contar total de documentos para diagnóstico
+    total_docs = await db.xml_documents.count_documents({
+        "company_id": company_id,
+        "competencia": competencia
+    })
+    
+    logger.info(f"[SMART SYNC] {len(chaves)} chaves já importadas para {company_id}/{competencia} (total docs: {total_docs})")
+    
+    if total_docs > 0 and len(chaves) == 0:
+        logger.warning(f"[SMART SYNC] ATENÇÃO: {total_docs} documentos existem mas nenhuma chave foi encontrada! Verificar campos chave_nfe/chave_acesso.")
+    
     return chaves
 
 
