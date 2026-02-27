@@ -9202,7 +9202,7 @@ async def sieg_set_config_horarios(
     """
     Atualiza horário da sincronização diária SIEG.
     Qualquer usuário autenticado pode configurar o horário.
-    Formato: HH:MM (ex: 03:00, 04:30, 02:00)
+    Formato: HH:MM (ex: "03:00", "04:30", "02:00")
     """
     # Validar formato do horário
     try:
