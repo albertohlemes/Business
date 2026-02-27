@@ -9298,7 +9298,7 @@ async def upload_company_logo_legacy(
 ):
     """
     Upload de logo da empresa (legado). Retorna URL da imagem.
-    Aceita PNG, JPG, JPEG, WEBP. Máximo 2MB.
+    Aceita PNG, JPG, JPEG, WEBP. Tamanho máximo: 2 megabytes.
     """
     # Validar tipo de arquivo
     allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
