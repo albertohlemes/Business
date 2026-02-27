@@ -18,7 +18,7 @@ import time
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://nf-audit.preview.emergentagent.com"
+    BASE_URL = "https://sieg-import-debug.preview.emergentagent.com"
 
 # Test credentials
 TEST_EMAIL = "alberto.lemes@businessconta.com.br"
