@@ -8541,7 +8541,17 @@ async def sieg_debug_import(
     return resultado_debug
 
 
+# ============================================================================
+# PAINEL DE MONITORAMENTO SIEG
+# ============================================================================
 
+@api_router.get("/sieg/painel")
+async def sieg_painel_geral(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Painel geral de monitoramento SIEG - visão de todas as empresas
+    
     ATUALIZADO: Agora lê configuração diretamente de cada empresa (campos sieg_*)
     """
     user_data = {"id": current_user.id, "email": current_user.email, "role": current_user.role}
