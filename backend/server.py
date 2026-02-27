@@ -7577,14 +7577,23 @@ async def sieg_sync_execute(
                 produtos_cfop_distinto = []  # CFOPs distintos que precisam validação
                 produtos_para_classificar_final = []
                 
+                # Verificar se é nota de AUTO-EMISSÃO (empresa emite para ela mesma)
+                # Nesse caso, NÃO converte CFOP - mantém a natureza original (saída)
+                emitente_cnpj = parsed_data.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+                destinatario_cnpj = parsed_data.get('destinatario_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+                company_cnpj_limpo = cnpj.replace('.', '').replace('/', '').replace('-', '')
+                
+                # É auto-emissão se emitente = destinatário = empresa
+                is_auto_emissao = (emitente_cnpj == destinatario_cnpj == company_cnpj_limpo)
+                
                 for product in produtos_para_classificar:
                     cfop_original = product.get('cfop_original_emissor', product.get('cfop', ''))
                     
-                    # Apenas CFOPs DISTINTOS precisam de validação
-                    if is_cfop_distinto(cfop_original):
+                    # Apenas CFOPs DISTINTOS precisam de validação (se não for auto-emissão)
+                    if is_cfop_distinto(cfop_original) and not is_auto_emissao:
                         produtos_cfop_distinto.append((product, cfop_original))
                     else:
-                        # CFOPs de venda/outros - classificação normal com histórico
+                        # CFOPs de venda/outros OU auto-emissão - classificação normal com histórico
                         produtos_para_classificar_final.append(product)
                 
                 # Processar CFOPs DISTINTOS - converter e gerar alerta para validação
