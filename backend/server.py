@@ -7507,6 +7507,48 @@ async def sieg_sync_execute(
                     '2949': 'Outras Entradas',
                 }
                 
+                # Tabela de conversão de CFOPs de SAÍDA para ENTRADA (operações distintas)
+                # Quando recebemos uma nota de terceiro com CFOP de saída (5xxx/6xxx),
+                # precisamos converter para o CFOP de entrada correspondente (1xxx/2xxx)
+                CFOP_OPERACAO_DISTINTA_CONVERSAO = {
+                    # Estaduais (5xxx -> 1xxx)
+                    '5910': '1910',  # Bonificação/Doação
+                    '5911': '1911',  # Amostra Grátis
+                    '5912': '1912',  # Demonstração
+                    '5913': '1913',  # Locação de Bens
+                    '5914': '1914',  # Consignação -> Retorno de Consignação
+                    '5915': '1915',  # Retorno de Consignação -> Devolução de Consignação
+                    '5916': '1916',  # Retorno de Locação
+                    '5917': '1917',  # Conserto/Reparo -> Retorno de Conserto
+                    '5918': '1918',  # Devolução de Conserto
+                    '5919': '1919',  # Industrialização por Encomenda
+                    '5920': '1920',  # Remessa para Armazém -> Retorno de Armazém
+                    '5921': '1921',  # Retorno de Vasilhame/Sacaria
+                    '5922': '1922',  # Lançamento de Comodato
+                    '5923': '1923',  # Retorno de Comodato
+                    '5924': '1924',  # Remessa p/ Industrialização
+                    '5925': '1925',  # Retorno Industrialização não Entregue
+                    '5949': '1949',  # Outras Saídas -> Outras Entradas
+                    # Interestaduais (6xxx -> 2xxx)
+                    '6910': '2910',  # Bonificação/Doação
+                    '6911': '2911',  # Amostra Grátis
+                    '6912': '2912',  # Demonstração
+                    '6913': '2913',  # Locação de Bens
+                    '6914': '2914',  # Consignação -> Retorno de Consignação
+                    '6915': '2915',  # Retorno de Consignação -> Devolução de Consignação
+                    '6916': '2916',  # Retorno de Locação
+                    '6917': '2917',  # Conserto/Reparo -> Retorno de Conserto
+                    '6918': '2918',  # Devolução de Conserto
+                    '6919': '2919',  # Industrialização por Encomenda
+                    '6920': '2920',  # Remessa para Armazém -> Retorno de Armazém
+                    '6921': '2921',  # Retorno de Vasilhame/Sacaria
+                    '6922': '2922',  # Lançamento de Comodato
+                    '6923': '2923',  # Retorno de Comodato
+                    '6924': '2924',  # Remessa p/ Industrialização
+                    '6925': '2925',  # Retorno Industrialização não Entregue
+                    '6949': '2949',  # Outras Saídas -> Outras Entradas
+                }
+                
                 # Separar produtos para operação distinta
                 produtos_operacao_distinta = []
                 produtos_para_classificar_final = []
@@ -7518,20 +7560,32 @@ async def sieg_sync_execute(
                     else:
                         produtos_para_classificar_final.append(product)
                 
-                # Processar operações distintas - marcar para revisão mas MANTER CFOP ORIGINAL
+                # Processar operações distintas - CONVERTER CFOP de saída para entrada
                 for product, cfop_original in produtos_operacao_distinta:
-                    # CORRIGIDO: Manter o CFOP original - NÃO converter
-                    # O CFOP de operações especiais deve ser preservado exatamente como veio no XML
-                    cfop_final = cfop_original
+                    # CORRIGIDO: CFOPs de saída (5xxx/6xxx) devem ser convertidos para entrada (1xxx/2xxx)
+                    # quando a nota é recebida como entrada (terceiro enviou para nós)
+                    # CFOPs que JÁ são de entrada (1xxx/2xxx) são mantidos como estão
+                    primeiro_digito = cfop_original[0] if cfop_original else ''
                     
-                    product['cfop'] = cfop_final  # Manter o CFOP original
-                    product['cfop_original'] = cfop_original
-                    product['pendente_revisao_cfop'] = False  # Não precisa revisão, está correto
+                    if primeiro_digito in ['5', '6']:
+                        # CFOP de saída - converter para entrada
+                        cfop_convertido = CFOP_OPERACAO_DISTINTA_CONVERSAO.get(cfop_original, cfop_original)
+                        product['cfop'] = cfop_convertido
+                        product['cfop_original_emissor'] = cfop_original
+                        product['cfop_original'] = cfop_original
+                        logger.info(f"[SIEG] Operação distinta CONVERTIDA: {cfop_original} → {cfop_convertido} ({CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]})")
+                    else:
+                        # CFOP já é de entrada (1xxx/2xxx) - manter
+                        cfop_convertido = cfop_original
+                        product['cfop'] = cfop_convertido
+                        product['cfop_original_emissor'] = cfop_original
+                        product['cfop_original'] = cfop_original
+                        logger.info(f"[SIEG] Operação distinta MANTIDA: CFOP {cfop_original} ({CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]})")
+                    
+                    product['pendente_revisao_cfop'] = False  # Não precisa revisão
                     product['natureza_operacao_original'] = CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]
                     product['categoria_classificada'] = 'operacao_distinta'
-                    product['justificativa_ia'] = f"Operação especial: {CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]} - CFOP mantido"
-                    
-                    logger.info(f"[SIEG] Operação distinta mantida: CFOP {cfop_original} ({CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]})")
+                    product['justificativa_ia'] = f"Operação especial: {CFOPS_OPERACOES_DISTINTAS_SIEG[cfop_original]} - CFOP {'convertido' if primeiro_digito in ['5', '6'] else 'mantido'}"
                 
                 if produtos_para_classificar_final:
                     file_conversions = []
