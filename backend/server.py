@@ -27289,6 +27289,9 @@ async def _get_icms_aggregated(company: dict, company_id: str, competencia: str,
         "flags": {
             "desconsiderar_icms_despesas": desconsiderar_despesas,
             "desconsiderar_icms_st": desconsiderar_st,
+            "beneficio_fiscal_icms": beneficio_fiscal,
+            "tipo_beneficio_fiscal": tipo_beneficio,
+            "beneficio_zera_tudo": beneficio_zera_tudo,
             "cfops_despesa": cfops_despesa,
             "cfops_st": cfops_st
         },
