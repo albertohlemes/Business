@@ -4242,12 +4242,21 @@ def _parse_nfse_abrasf(nfse: Dict[str, Any], get_field, safe_float) -> Dict[str,
         if isinstance(cnpj_tomador, dict):
             cnpj_tomador = cnpj_tomador.get('Cnpj', '') or cnpj_tomador.get('Cpf', '') or ''
     
-    # Nome do tomador
+    # Nome do tomador - buscar em mais campos possíveis
     nome_tomador = (
         get_field(tomador, 'RazaoSocial', 'razaoSocial', 'NomeFantasia', 'nomeFantasia', 'Nome', 'nome') or
-        get_field(nfse, 'RazaoSocialTomador', 'NomeTomador') or
-        'CONSUMIDOR'
+        get_field(nfse, 'RazaoSocialTomador', 'NomeTomador', 'NomeClienteTomador', 'ClienteTomador') or
+        get_field(id_tomador, 'RazaoSocial', 'razaoSocial', 'Nome', 'nome') or
+        ''
     )
+    
+    # Se ainda não encontrou o nome e tem CNPJ, não usar CONSUMIDOR
+    # Somente usar CONSUMIDOR se realmente não houver informação de tomador
+    if not nome_tomador:
+        if cnpj_tomador:
+            nome_tomador = f'CLIENTE CNPJ {cnpj_tomador}'  # Pelo menos mostra o CNPJ
+        else:
+            nome_tomador = 'CONSUMIDOR FINAL'
     
     # Endereço do tomador
     endereco_tomador_data = get_field(tomador, 'Endereco', 'endereco', 'EnderecoTomador') or {}
