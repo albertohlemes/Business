@@ -36074,17 +36074,35 @@ async def import_nfse_with_cancellations(
                         })
                         continue
                     
-                    # Extrair competência
-                    competencia_nfse = parsed_data.get('competencia_nfse', '')
+                    # Extrair competência (priorizar competência do XML sobre data de emissão)
+                    competencia_nfse = parsed_data.get('competencia_nfse', '') or parsed_data.get('competencia', '')
+                    data_emissao_doc = parsed_data.get('data_emissao', '')
+                    
+                    competencia_doc = competencia  # default: competência informada na importação
+                    
                     if competencia_nfse:
                         try:
-                            comp_date = competencia_nfse.split('T')[0]
-                            ano, mes, _ = comp_date.split('-')
-                            competencia_doc = f"{mes}/{ano}"
-                        except:
-                            competencia_doc = competencia
-                    else:
-                        competencia_doc = competencia
+                            comp_str = str(competencia_nfse).strip()
+                            
+                            if '-' in comp_str:
+                                comp_date = comp_str.split('T')[0]
+                                partes = comp_date.split('-')
+                                if len(partes) >= 2:
+                                    ano, mes = partes[0], partes[1]
+                                    competencia_doc = f"{mes}/{ano}"
+                            elif '/' in comp_str:
+                                competencia_doc = comp_str
+                        except Exception as e:
+                            logger.warning(f"[NFSE] Erro ao extrair competência: {e}")
+                            if data_emissao_doc:
+                                try:
+                                    dt_str = str(data_emissao_doc).split('T')[0]
+                                    partes = dt_str.split('-')
+                                    if len(partes) >= 2:
+                                        ano, mes = partes[0], partes[1]
+                                        competencia_doc = f"{mes}/{ano}"
+                                except:
+                                    pass
                     
                     # Valores - zerar se cancelada
                     valor_original = parsed_data.get('valor_total', 0)
