@@ -9877,18 +9877,40 @@ async def upload_xml_batch(
                             })
                             continue
                         
-                        # Extrair competência da NFS-e
-                        competencia_nfse = parsed_data.get('competencia_nfse', '')
+                        # Extrair competência da NFS-e (priorizar competência do XML sobre data de emissão)
+                        competencia_nfse = parsed_data.get('competencia_nfse', '') or parsed_data.get('competencia', '')
+                        data_emissao_doc = parsed_data.get('data_emissao', '')
+                        
+                        competencia_doc = competencia  # default: competência informada na importação
+                        
                         if competencia_nfse:
                             try:
-                                # Formato: 2026-01-01T00:00:00
-                                comp_date = competencia_nfse.split('T')[0]
-                                ano, mes, _ = comp_date.split('-')
-                                competencia_doc = f"{mes}/{ano}"
-                            except:
-                                competencia_doc = competencia
-                        else:
-                            competencia_doc = competencia
+                                # Tentar extrair MM/YYYY da competência
+                                # Formato pode ser: 2026-01-01T00:00:00, 2026-01, 01/2026
+                                comp_str = str(competencia_nfse).strip()
+                                
+                                if '-' in comp_str:
+                                    # Formato ISO: 2026-01-01T00:00:00 ou 2026-01
+                                    comp_date = comp_str.split('T')[0]
+                                    partes = comp_date.split('-')
+                                    if len(partes) >= 2:
+                                        ano, mes = partes[0], partes[1]
+                                        competencia_doc = f"{mes}/{ano}"
+                                elif '/' in comp_str:
+                                    # Já está no formato MM/YYYY
+                                    competencia_doc = comp_str
+                            except Exception as e:
+                                logger.warning(f"[NFSE] Erro ao extrair competência de '{competencia_nfse}': {e}")
+                                # Fallback: tentar usar data de emissão
+                                if data_emissao_doc:
+                                    try:
+                                        dt_str = str(data_emissao_doc).split('T')[0]
+                                        partes = dt_str.split('-')
+                                        if len(partes) >= 2:
+                                            ano, mes = partes[0], partes[1]
+                                            competencia_doc = f"{mes}/{ano}"
+                                    except:
+                                        pass
                         
                         # Preparar documento
                         document = {
