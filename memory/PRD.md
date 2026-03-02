@@ -31,66 +31,59 @@ Sistema de gestão fiscal brasileiro com funcionalidades para importação de do
 
 # CHANGELOG
 
-## 2025-01-XX - Correções na Tela de Monofásicos
+## 2025-01-XX - Bug Fix: Menu PIS/COFINS zerado (Erro 500)
 
-### Bug Fix 1: Tela branca com texto invisível
-**Issue**: A página de Gestão de Monofásicos aparecia com fundo branco e texto branco/claro, tornando impossível a leitura.
+### Problema
+O menu PIS/COFINS para empresa ROGER CESAR DE OLIVEIRA (Lucro Presumido) estava completamente vazio, retornando erro 500 no endpoint `/api/pis-cofins/apuracao/{company_id}`.
 
-**Root Cause**: O componente usava classes CSS de tema claro (bg-white, text-gray-900) enquanto o app usa tema escuro.
+### Root Cause
+Na função `calcular_pis_cofins_por_cst()` (linha 1924), a variável `is_presumido` era usada (linha 2049) mas nunca definida na função. Isso causava um `NameError: name 'is_presumido' is not defined`.
 
-**Fix Applied**:
-- Migrado todo o componente para tema escuro consistente
-- bg-white → bg-[#141414]
-- border → border-[#2A2A2A]
-- text-gray-900 → text-white
-- text-gray-500 → text-gray-400
-- Badges e botões com cores apropriadas para tema escuro
+### Fix Applied
+Adicionada a definição de `is_presumido = regime == 'lucro_presumido'` na função `calcular_pis_cofins_por_cst()`, alinhando com a mesma definição existente em `calcular_pis_cofins_unificado()`.
 
-### Bug Fix 2: Erro "body stream already read" ao reprocessar
-**Issue**: Ao clicar em "Reprocessar Cálculo", aparecia erro "Failed to execute 'json' on 'Response': body stream already read".
-
-**Root Cause**: O código chamava `response.json()` duas vezes - uma vez no `if (!response.ok)` e outra após verificação.
-
-**Fix Applied**:
-- Corrigido para chamar `response.json()` apenas uma vez, antes da verificação de `response.ok`
-
-**Files Changed**:
-- `/app/frontend/src/pages/MonofasicosManager.js`
+### Files Changed
+- `/app/backend/server.py` (linha 1963)
 
 ---
 
-## 2025-01-XX - Correções de Alíquotas PIS/COFINS e NFS-e
+## 2025-01-XX - Correções na Tela de Monofásicos
+- Tema escuro aplicado (bg-[#141414])
+- Corrigido erro "body stream already read"
 
-### Bug Fix 1: Alíquotas PIS/COFINS incorretas para Lucro Presumido
-- Corrigido para usar 0.65%/3.0% em vez de 1.65%/7.6% para empresas Lucro Presumido
-- RET e Reforma Tributária não afetados
+## 2025-01-XX - Correções de Alíquotas PIS/COFINS
+- Alíquotas Lucro Presumido: 0.65%/3.0% corrigidas no backend
 
-### Bug Fix 2: NFS-e com cliente "CONSUMIDOR"
-- Parser melhorado para buscar nome do tomador em mais campos do XML
-- Quando há CNPJ sem nome, mostra "CLIENTE CNPJ XXXXX"
+---
 
-### Bug Fix 3: Data de competência em NFS-e
-- Priorizada competência do XML sobre data de emissão para NFS-e retroativas
+# NOTA IMPORTANTE: Validador PIS/COFINS
+
+O Validador PIS/COFINS mostra "Divergente" para várias NCMs porque:
+
+1. **As alíquotas praticadas** nas notas (1.65%/7.6%) são do Lucro Real
+2. **O sistema espera** alíquotas de Lucro Presumido (0.65%/3.0%)
+3. **O real problema**: Para Lucro Presumido, **entradas NÃO geram crédito**!
+
+O validador está correto ao apontar divergência - as notas de entrada foram emitidas com tributação de Lucro Real pelo fornecedor, mas para a empresa que é Lucro Presumido, não deveria haver direito a crédito (CST 70/73 com alíquotas 0%).
+
+**Ação recomendada**: Criar regras de NCM para a empresa indicando que entradas não geram crédito (tipo_regra='sem_credito').
 
 ---
 
 # ROADMAP
 
 ## P0 - Blockers
-- [IN PROGRESS] Falha silenciosa na importação SIEG para algumas empresas
-- [IN PROGRESS] Upload de arquivos grandes trava (erro postMessage)
+- [RESOLVED] Menu PIS/COFINS retornando erro 500
+- [IN PROGRESS] Falha silenciosa na importação SIEG
+- [IN PROGRESS] Upload de arquivos grandes trava
 
 ## P1 - High Priority  
-- [ ] Bug de CFOPs de transferência (5152) - processamento incorreto
-- [ ] Verificar colunas NFS-e (Descrição do Serviço, Retenções)
+- [ ] Bug de CFOPs de transferência (5152)
+- [ ] Verificar colunas NFS-e
 
 ## P2 - Medium Priority
 - [ ] Totalizador por CST nos detalhamentos PIS/COFINS
 - [ ] Modal de seleção de empresa sobrepondo UI
 
 ## Backlog - Refatoração
-- [ ] **CRÍTICO**: Refatorar server.py (+47.000 linhas) em módulos:
-  - services/ - Lógica de negócio fiscal
-  - routes/ - Endpoints da API
-  - utils/ - Funções auxiliares
-  - parsers/ - Parsers de XML
+- [ ] **CRÍTICO**: Refatorar server.py (+47.000 linhas) em módulos
