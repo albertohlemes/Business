@@ -25,55 +25,52 @@ Sistema de gestão fiscal brasileiro com funcionalidades para importação de do
 - Backend monolítico (server.py ~47.000 linhas) - NECESSITA REFATORAÇÃO
 - Autenticação via JWT
 - Contexto global React para estado da aplicação
+- Tema escuro padrão (bg-[#141414], border-[#2A2A2A], text-white)
 
 ---
 
 # CHANGELOG
 
-## 2025-01-XX - Correções de Alíquotas PIS/COFINS e NFS-e
+## 2025-01-XX - Correções na Tela de Monofásicos
 
-### Bug Fix 1: Alíquotas PIS/COFINS incorretas para Lucro Presumido
-**Issue**: Na tela do Validador PIS/COFINS, empresas do Lucro Presumido estavam mostrando alíquotas de 1.65%/7.6% (Lucro Real) em vez de 0.65%/3.0% (Lucro Presumido).
+### Bug Fix 1: Tela branca com texto invisível
+**Issue**: A página de Gestão de Monofásicos aparecia com fundo branco e texto branco/claro, tornando impossível a leitura.
 
-**Root Cause**: Os endpoints do validador (`/validador-pis-cofins/{company_id}/dados` e `/validador-pis-cofins/{company_id}/por-ncm`) usavam valores fixos de 1.65/7.6 como default, ignorando o regime tributário da empresa.
+**Root Cause**: O componente usava classes CSS de tema claro (bg-white, text-gray-900) enquanto o app usa tema escuro.
 
 **Fix Applied**:
-- Adicionada verificação do regime tributário (`lucro_presumido` vs `lucro_real`) nos endpoints
-- Default de alíquotas agora respeitam o regime: 
-  - Lucro Presumido: PIS 0.65%, COFINS 3.0%
-  - Lucro Real: PIS 1.65%, COFINS 7.6%
-- Mantido funcionamento do RET e Reforma Tributária que usam comparações com Lucro Real
+- Migrado todo o componente para tema escuro consistente
+- bg-white → bg-[#141414]
+- border → border-[#2A2A2A]
+- text-gray-900 → text-white
+- text-gray-500 → text-gray-400
+- Badges e botões com cores apropriadas para tema escuro
+
+### Bug Fix 2: Erro "body stream already read" ao reprocessar
+**Issue**: Ao clicar em "Reprocessar Cálculo", aparecia erro "Failed to execute 'json' on 'Response': body stream already read".
+
+**Root Cause**: O código chamava `response.json()` duas vezes - uma vez no `if (!response.ok)` e outra após verificação.
+
+**Fix Applied**:
+- Corrigido para chamar `response.json()` apenas uma vez, antes da verificação de `response.ok`
 
 **Files Changed**:
-- `/app/backend/server.py` (endpoints validador-pis-cofins)
-
-### Bug Fix 2: NFS-e com cliente como "CONSUMIDOR"
-**Issue**: Ao importar NFS-e de serviços prestados, o sistema estava mostrando "CONSUMIDOR" como destinatário mesmo quando havia cliente informado no XML.
-
-**Fix Applied**:
-- Melhorado parser de NFS-e para buscar nome do tomador em mais campos
-- Quando há CNPJ mas não há nome, agora mostra "CLIENTE CNPJ XXXXXXXX" em vez de "CONSUMIDOR"
-- Mantido "CONSUMIDOR FINAL" apenas quando realmente não há informação de tomador
-
-### Bug Fix 3: Data de competência em NFS-e
-**Issue**: Sistema usava data de emissão em vez de data de competência para NFS-e retroativas.
-
-**Fix Applied**:
-- Priorizada competência do XML (`competencia_nfse`) sobre data de emissão
-- Melhorado parsing para suportar múltiplos formatos (ISO, MM/YYYY)
-- Fallback para data de emissão apenas quando competência não está disponível
-
-**Files Changed**:
-- `/app/backend/server.py` (parsers de NFS-e e importação)
+- `/app/frontend/src/pages/MonofasicosManager.js`
 
 ---
 
-## 2025-01-XX - Bug Fix: Tela de Monofásicos travando
-**Issue**: A página de gestão de monofásicos ficava permanentemente em "Carregando...".
+## 2025-01-XX - Correções de Alíquotas PIS/COFINS e NFS-e
 
-**Fix Applied**:
-- MonofasicosManager.js: Token obtido do localStorage em vez do contexto
-- SimplesNacionalDashboard.js: Usar navigate() do React Router
+### Bug Fix 1: Alíquotas PIS/COFINS incorretas para Lucro Presumido
+- Corrigido para usar 0.65%/3.0% em vez de 1.65%/7.6% para empresas Lucro Presumido
+- RET e Reforma Tributária não afetados
+
+### Bug Fix 2: NFS-e com cliente "CONSUMIDOR"
+- Parser melhorado para buscar nome do tomador em mais campos do XML
+- Quando há CNPJ sem nome, mostra "CLIENTE CNPJ XXXXX"
+
+### Bug Fix 3: Data de competência em NFS-e
+- Priorizada competência do XML sobre data de emissão para NFS-e retroativas
 
 ---
 
