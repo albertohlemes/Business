@@ -26,6 +26,7 @@ import RET from './pages/RET';
 import Indicadores from './pages/Indicadores';
 import AnaliseTributariaIA from './pages/AnaliseTributariaIA';
 import SimplesNacionalDashboard from './pages/SimplesNacionalDashboard';
+import MonofasicosManager from './pages/MonofasicosManager';
 import DifaLPage from './pages/DifaLPage';
 import Apuracao from './pages/Apuracao';
 import ImpostosRetidos from './pages/ImpostosRetidos';
