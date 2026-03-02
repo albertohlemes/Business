@@ -46299,8 +46299,9 @@ async def validador_piscofins_por_ncm(
         aliq_cofins_praticada = max(set(dados['aliquotas_cofins']), key=dados['aliquotas_cofins'].count) if dados['aliquotas_cofins'] else 0
         cst_mais_comum = max(set(dados['csts_pis']), key=dados['csts_pis'].count) if dados['csts_pis'] else None
         
-        aliq_pis_esperada = regra.get('aliquota_pis', 1.65) if regra else None
-        aliq_cofins_esperada = regra.get('aliquota_cofins', 7.6) if regra else None
+        # Usar alíquota da regra ou padrão do regime tributário
+        aliq_pis_esperada = regra.get('aliquota_pis', aliq_pis_padrao) if regra else None
+        aliq_cofins_esperada = regra.get('aliquota_cofins', aliq_cofins_padrao) if regra else None
         
         status = 'sem_regra'
         divergencia_pis = 0
