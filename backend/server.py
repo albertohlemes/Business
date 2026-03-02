@@ -45964,14 +45964,16 @@ async def validador_piscofins_dados(
         fonte_regra = None
         
         if regra:
-            aliq_pis_esperada = regra.get('aliquota_pis', 1.65)
-            aliq_cofins_esperada = regra.get('aliquota_cofins', 7.6)
+            # Usar alíquota da regra ou padrão do regime tributário
+            aliq_pis_esperada = regra.get('aliquota_pis', aliq_pis_padrao)
+            aliq_cofins_esperada = regra.get('aliquota_cofins', aliq_cofins_padrao)
             cst_esperado_entrada = regra.get('cst_esperado_entrada')
             cst_esperado_saida = regra.get('cst_esperado_saida')
             fonte_regra = 'empresa'
         elif regra_padrao:
-            aliq_pis_esperada = regra_padrao.get('aliquota_pis', 0.0165) * 100 if regra_padrao.get('aliquota_pis', 0) < 1 else regra_padrao.get('aliquota_pis', 1.65)
-            aliq_cofins_esperada = regra_padrao.get('aliquota_cofins', 0.076) * 100 if regra_padrao.get('aliquota_cofins', 0) < 1 else regra_padrao.get('aliquota_cofins', 7.6)
+            # Para regras padrão, converter de decimal para percentual se necessário, usando alíquota do regime
+            aliq_pis_esperada = regra_padrao.get('aliquota_pis', aliq_pis_padrao / 100) * 100 if regra_padrao.get('aliquota_pis', 0) < 1 else regra_padrao.get('aliquota_pis', aliq_pis_padrao)
+            aliq_cofins_esperada = regra_padrao.get('aliquota_cofins', aliq_cofins_padrao / 100) * 100 if regra_padrao.get('aliquota_cofins', 0) < 1 else regra_padrao.get('aliquota_cofins', aliq_cofins_padrao)
             cst_esperado_entrada = regra_padrao.get('cst_entrada')
             cst_esperado_saida = regra_padrao.get('cst_saida')
             fonte_regra = 'padrao'
