@@ -277,10 +277,16 @@ async def job_sync_todas_empresas():
 
 def start_scheduler():
     """
-    Inicia o scheduler com os jobs configurados
+    Inicia o scheduler com os jobs configurados.
+    
+    PROTEÇÃO contra duplicação:
+    - Verifica se já está rodando
+    - Remove jobs existentes antes de adicionar novos
     """
+    global scheduler
+    
     if scheduler.running:
-        print("[SIEG-SCHEDULER] Scheduler já está rodando")
+        print("[SIEG-SCHEDULER] Scheduler já está rodando - ignorando nova tentativa")
         return
     
     # Carregar configuração do banco de dados
@@ -293,6 +299,13 @@ def start_scheduler():
         except:
             hora, minuto = 3, 0
         
+        # PROTEÇÃO: Remover jobs existentes antes de adicionar novos
+        for job_id in ['sieg_daily_sync', 'sieg_12h_sync', 'sieg_6h_sync', 'sieg_today_sync']:
+            try:
+                scheduler.remove_job(job_id)
+            except Exception:
+                pass
+        
         # Job diário com horário do banco (usando timezone de Brasília)
         from pytz import timezone
         tz_brasilia = timezone('America/Sao_Paulo')
@@ -302,7 +315,9 @@ def start_scheduler():
             CronTrigger(hour=hora, minute=minuto, timezone=tz_brasilia),
             id='sieg_daily_sync',
             name=f'SIEG - Sincronização Diária ({horario_diario})',
-            replace_existing=True
+            replace_existing=True,
+            max_instances=1,  # PROTEÇÃO: Apenas uma instância por vez
+            coalesce=True  # PROTEÇÃO: Se perder execuções, executar apenas uma vez
         )
         
         print(f"[SIEG-SCHEDULER] Scheduler iniciado com horário: {horario_diario} (Brasília)")
