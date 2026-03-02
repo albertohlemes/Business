@@ -1960,6 +1960,7 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
     perfil = perfis[0] if perfis else 'VAREJO'
     regime = company.get('regime_tributario', 'lucro_real')
     regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
+    is_presumido = regime == 'lucro_presumido'
     
     # Buscar documentos
     docs = await db.xml_documents.find(
