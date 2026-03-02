@@ -4029,7 +4029,14 @@ def _parse_nfse_nacional(nfse: Dict[str, Any], get_field, safe_float) -> Dict[st
         toma = {}
     
     cnpj_tomador = get_field(toma, 'CNPJ', 'cnpj', 'Cnpj', 'CPF', 'cpf') or ''
-    nome_tomador = get_field(toma, 'xNome', 'nome', 'razaoSocial') or 'CONSUMIDOR'
+    nome_tomador = get_field(toma, 'xNome', 'nome', 'razaoSocial') or ''
+    
+    # Se não encontrou nome mas tem CNPJ
+    if not nome_tomador:
+        if cnpj_tomador:
+            nome_tomador = f'CLIENTE CNPJ {cnpj_tomador}'
+        else:
+            nome_tomador = 'CONSUMIDOR FINAL'
     
     # Endereço do tomador
     end_toma = get_field(toma, 'enderToma', 'endereco', 'end') or {}
