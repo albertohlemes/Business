@@ -230,7 +230,7 @@ export default function MonofasicosManager() {
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
-        <span className="ml-2 text-gray-600">Carregando...</span>
+        <span className="ml-2 text-gray-400">Carregando...</span>
       </div>
     );
   }
@@ -238,15 +238,15 @@ export default function MonofasicosManager() {
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-center gap-3">
           <AlertTriangle className="w-6 h-6 text-red-500" />
           <div>
-            <h3 className="font-medium text-red-800">Erro ao carregar dados</h3>
-            <p className="text-red-600 text-sm">{error}</p>
+            <h3 className="font-medium text-red-400">Erro ao carregar dados</h3>
+            <p className="text-red-300 text-sm">{error}</p>
           </div>
           <button
             onClick={fetchData}
-            className="ml-auto px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
+            className="ml-auto px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30"
           >
             Tentar novamente
           </button>
@@ -262,14 +262,14 @@ export default function MonofasicosManager() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-[#2A2A2A] rounded-lg text-gray-400"
             data-testid="btn-voltar"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestão de Monofásicos</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-white">Gestão de Monofásicos</h1>
+            <p className="text-sm text-gray-400">
               {data?.empresa?.razao_social} - Competência {competencia}
             </p>
           </div>
@@ -288,34 +288,34 @@ export default function MonofasicosManager() {
 
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border p-4">
-          <div className="text-sm text-gray-500">Total Monofásico Ativo</div>
-          <div className="text-2xl font-bold text-orange-600">
+        <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] p-4">
+          <div className="text-sm text-gray-400">Total Monofásico Ativo</div>
+          <div className="text-2xl font-bold text-orange-500">
             {formatCurrency(data?.resumo?.total_monofasico_ativo)}
           </div>
-          <div className="text-xs text-gray-400">Excluído do cálculo DAS</div>
+          <div className="text-xs text-gray-500">Excluído do cálculo DAS</div>
         </div>
         
-        <div className="bg-white rounded-xl shadow-sm border p-4">
-          <div className="text-sm text-gray-500">Total Removido pelo Usuário</div>
-          <div className="text-2xl font-bold text-green-600">
+        <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] p-4">
+          <div className="text-sm text-gray-400">Total Removido pelo Usuário</div>
+          <div className="text-2xl font-bold text-green-500">
             {formatCurrency(data?.resumo?.total_monofasico_excluido)}
           </div>
-          <div className="text-xs text-gray-400">Volta para tributação</div>
+          <div className="text-xs text-gray-500">Volta para tributação</div>
         </div>
         
-        <div className="bg-white rounded-xl shadow-sm border p-4">
-          <div className="text-sm text-gray-500">NCMs Monofásicos</div>
-          <div className="text-2xl font-bold text-blue-600">
+        <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] p-4">
+          <div className="text-sm text-gray-400">NCMs Monofásicos</div>
+          <div className="text-2xl font-bold text-blue-500">
             {data?.resumo?.qtd_ncms_ativos || 0}
-            <span className="text-sm text-gray-400 ml-1">/ {data?.resumo?.qtd_ncms || 0}</span>
+            <span className="text-sm text-gray-500 ml-1">/ {data?.resumo?.qtd_ncms || 0}</span>
           </div>
-          <div className="text-xs text-gray-400">{data?.resumo?.qtd_ncms_excluidos || 0} excluídos</div>
+          <div className="text-xs text-gray-500">{data?.resumo?.qtd_ncms_excluidos || 0} excluídos</div>
         </div>
         
-        <div className="bg-white rounded-xl shadow-sm border p-4">
-          <div className="text-sm text-gray-500">Produtos Monofásicos</div>
-          <div className="text-2xl font-bold text-purple-600">
+        <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] p-4">
+          <div className="text-sm text-gray-400">Produtos Monofásicos</div>
+          <div className="text-2xl font-bold text-purple-500">
             {data?.resumo?.qtd_produtos || 0}
           </div>
           <div className="text-xs text-gray-400">Na competência</div>
