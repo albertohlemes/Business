@@ -1687,7 +1687,9 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
         'base_credito': Decimal('0'),
         'base_debito': Decimal('0'),
         'desconsiderados_credito': Decimal('0'),
-        'desconsiderados_debito': Decimal('0')
+        'desconsiderados_debito': Decimal('0'),
+        'estorno_debito_pis': Decimal('0'),
+        'estorno_debito_cofins': Decimal('0')
     }
     
     # Buscar TODOS os documentos (incluindo categoria_classificada)
