@@ -194,6 +194,10 @@ function App() {
               element={user ? <SimplesNacionalDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
+              path="/simples-nacional/:companyId/monofasicos"
+              element={user ? <MonofasicosManager user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
               path="/difal"
               element={user ? <DifaLPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
