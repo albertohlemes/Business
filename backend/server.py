@@ -2055,46 +2055,58 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
             valor_base = max(Decimal('0'), valor_total - v_icms)
             
             if tipo_operacao == 'entrada':
-                # Verificar se deve ser desconsiderado
-                categoria_sem_credito = any(cat in categoria for cat in CATEGORIAS_SEM_CREDITO) if categoria else False
-                cfop_sem_credito = cfop in CFOPS_SEM_CREDITO_CALC
-                cfop_com_credito = cfop in CFOPS_COM_CREDITO
-                
-                # Lógica: CFOP especial tem prioridade, mas categoria pode sobrescrever
-                if cfop_com_credito and not categoria_sem_credito:
-                    # CFOP de combustível p/ comercialização - SEMPRE crédito
-                    cst_display = '50'
-                    # Alíquotas baseadas no regime
-                    if is_presumido:
-                        valor_pis = valor_base * Decimal('0.0065')  # 0,65%
-                        valor_cofins = valor_base * Decimal('0.03')  # 3%
+                # ============================================================
+                # LUCRO PRESUMIDO: NÃO GERA CRÉDITO DE ENTRADAS!
+                # ============================================================
+                if is_presumido:
+                    # Para Lucro Presumido, todas as entradas são CST 70/98 (sem crédito)
+                    cfops_devolucao = ['1201', '1202', '1203', '1204', '1410', '1411', '2201', '2202', '2410', '2411']
+                    if cfop in cfops_devolucao:
+                        # Devolução: CST 49 (estorno)
+                        cst_display = '49'
+                        valor_pis = (valor_base * Decimal('0.0065')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                        valor_cofins = (valor_base * Decimal('0.03')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                     else:
-                        valor_pis = valor_base * Decimal('0.0165')  # 1,65%
-                        valor_cofins = valor_base * Decimal('0.076')  # 7,6%
-                elif categoria_sem_credito or cfop_sem_credito:
-                    # Agrupar como CST 98 - Desconsiderado
-                    cst_display = '98'
-                    valor_pis = Decimal('0')
-                    valor_cofins = Decimal('0')
-                else:
-                    # Usar a função calcular_pis_cofins_produto para determinar CST e valores
-                    calc = calcular_pis_cofins_produto(
-                        float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
-                    )
-                    
-                    if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
-                        cst_display = '50'  # CST 50 - Com direito a crédito
-                        valor_pis = Decimal(str(calc.get('valor_pis', 0)))
-                        valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
-                    else:
-                        classificacao = calc.get('classificacao', {})
-                        tipo_tributacao = classificacao.get('tipo', '')
-                        if tipo_tributacao == 'ALIQUOTA_ZERO':
-                            cst_display = '73'  # CST 73 - Alíquota zero
-                        else:
-                            cst_display = '70'  # CST 70 - Sem direito a crédito
+                        # Entradas normais: sem crédito
+                        cst_display = '98'  # Desconsiderado / Sem crédito
                         valor_pis = Decimal('0')
                         valor_cofins = Decimal('0')
+                else:
+                    # LUCRO REAL: Verificar se deve ser desconsiderado
+                    categoria_sem_credito = any(cat in categoria for cat in CATEGORIAS_SEM_CREDITO) if categoria else False
+                    cfop_sem_credito = cfop in CFOPS_SEM_CREDITO_CALC
+                    cfop_com_credito = cfop in CFOPS_COM_CREDITO
+                    
+                    # Lógica: CFOP especial tem prioridade, mas categoria pode sobrescrever
+                    if cfop_com_credito and not categoria_sem_credito:
+                        # CFOP de combustível p/ comercialização - SEMPRE crédito
+                        cst_display = '50'
+                        valor_pis = valor_base * Decimal('0.0165')  # 1,65%
+                        valor_cofins = valor_base * Decimal('0.076')  # 7,6%
+                    elif categoria_sem_credito or cfop_sem_credito:
+                        # Agrupar como CST 98 - Desconsiderado
+                        cst_display = '98'
+                        valor_pis = Decimal('0')
+                        valor_cofins = Decimal('0')
+                    else:
+                        # Usar a função calcular_pis_cofins_produto para determinar CST e valores
+                        calc = calcular_pis_cofins_produto(
+                            float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
+                        )
+                        
+                        if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
+                            cst_display = '50'  # CST 50 - Com direito a crédito
+                            valor_pis = Decimal(str(calc.get('valor_pis', 0)))
+                            valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                        else:
+                            classificacao = calc.get('classificacao', {})
+                            tipo_tributacao = classificacao.get('tipo', '')
+                            if tipo_tributacao == 'ALIQUOTA_ZERO':
+                                cst_display = '73'  # CST 73 - Alíquota zero
+                            else:
+                                cst_display = '70'  # CST 70 - Sem direito a crédito
+                            valor_pis = Decimal('0')
+                            valor_cofins = Decimal('0')
                 
                 if cst_display not in entradas_cst:
                     entradas_cst[cst_display] = {
