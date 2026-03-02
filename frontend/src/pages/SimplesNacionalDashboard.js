@@ -551,7 +551,7 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                         
                         {/* Botão Gestão de Monofásicos */}
                         <button
-                          onClick={() => window.location.href = `/simples-nacional/${selectedCompany?.id}/monofasicos`}
+                          onClick={() => navigate(`/simples-nacional/${selectedCompany?.id}/monofasicos`)}
                           className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-blue-400 bg-blue-400/10 hover:bg-blue-400/20 rounded-lg transition-colors"
                           data-testid="btn-gerir-monofasicos"
                         >
