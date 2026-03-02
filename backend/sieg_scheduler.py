@@ -71,7 +71,10 @@ scheduler = AsyncIOScheduler()
 
 async def sync_empresa_sieg(company_id: str, cnpj: str, competencia: str = None):
     """
-    Sincroniza uma empresa específica com o SIEG
+    Sincroniza uma empresa específica com o SIEG.
+    
+    ATUALIZADO: Agora usa a mesma lógica de processamento que a sincronização manual,
+    importando corretamente os XMLs no banco de dados.
     """
     db = get_scheduler_db()
     
@@ -87,6 +90,7 @@ async def sync_empresa_sieg(company_id: str, cnpj: str, competencia: str = None)
         "data_sync": start_time.isoformat(),
         "status": "em_andamento",
         "total_encontrados": 0,
+        "total_novos": 0,
         "total_importados": 0,
         "total_duplicados": 0,
         "total_erros": 0,
@@ -94,91 +98,84 @@ async def sync_empresa_sieg(company_id: str, cnpj: str, competencia: str = None)
         "saidas": {},
         "duracao_segundos": 0,
         "detalhes": [],
-        "tipo_execucao": "automatico"
+        "tipo_execucao": "automatico",
+        "modo": "incremental"
     }
     
     try:
         print(f"[SIEG-SCHEDULER] Iniciando sync para empresa {company_id} - {competencia}")
         
-        # Executar sincronização
-        result = await sync_from_sieg(cnpj, competencia)
+        # Buscar empresa para obter dados completos
+        company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+        if not company:
+            raise Exception(f"Empresa não encontrada: {company_id}")
         
-        entrada_xmls = result.get("entrada", {}).get("xmls", [])
-        saida_xmls = result.get("saida", {}).get("xmls", [])
+        # Importar a função de processamento do server
+        # Usamos importação dinâmica para evitar imports circulares
+        import importlib
+        server_module = importlib.import_module("server")
         
-        total_encontrados = len(entrada_xmls) + len(saida_xmls)
-        total_importados = 0
-        total_duplicados = 0
-        total_erros = 0
+        # Usar a função de sincronização completa que processa e salva os XMLs
+        # Simular um objeto de progresso para capturar os resultados
+        progress = {
+            "upload_id": f"scheduler_{company_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "company_id": company_id,
+            "total": 0,
+            "processed": 0,
+            "step": "Iniciando",
+            "status": "processing"
+        }
         
-        # Processar XMLs de entrada
-        for xml_data in entrada_xmls:
-            try:
-                chave = xml_data.get("chave", "")
-                # Verificar se já existe
-                existing = await db.xml_documents.find_one({"chave_acesso": chave})
-                if existing:
-                    total_duplicados += 1
-                    continue
-                
-                # Aqui seria processado o XML e salvo no banco
-                # Por enquanto, apenas contabilizamos
-                total_importados += 1
-                
-            except Exception as e:
-                total_erros += 1
-                log_entry["detalhes"].append({
-                    "tipo": "erro",
-                    "chave": xml_data.get("chave", ""),
-                    "mensagem": str(e)
-                })
-        
-        # Processar XMLs de saída
-        for xml_data in saida_xmls:
-            try:
-                chave = xml_data.get("chave", "")
-                existing = await db.xml_documents.find_one({"chave_acesso": chave})
-                if existing:
-                    total_duplicados += 1
-                    continue
-                    
-                total_importados += 1
-                
-            except Exception as e:
-                total_erros += 1
-                log_entry["detalhes"].append({
-                    "tipo": "erro",
-                    "chave": xml_data.get("chave", ""),
-                    "mensagem": str(e)
-                })
+        # Chamar a função de sincronização com os parâmetros corretos
+        results = await server_module.sieg_sync_execute(
+            db=db,
+            company_id=company_id,
+            company=company,
+            cnpj=cnpj,
+            competencia=competencia,
+            progress=progress,
+            modo="incremental"  # Usar modo incremental para pegar notas novas
+        )
         
         end_time = datetime.now(timezone.utc)
         duracao = (end_time - start_time).total_seconds()
         
+        # Extrair estatísticas do resultado
+        sieg_stats = results.get("sieg_stats", {})
+        total_encontrados = sieg_stats.get("entrada", 0) + sieg_stats.get("saida", 0)
+        total_novos = sieg_stats.get("novos_entrada", 0) + sieg_stats.get("novos_saida", 0)
+        
         log_entry.update({
-            "status": "sucesso" if total_erros == 0 else "parcial",
+            "status": "sucesso" if results.get("erros", 0) == 0 else "parcial",
             "total_encontrados": total_encontrados,
-            "total_importados": total_importados,
-            "total_duplicados": total_duplicados,
-            "total_erros": total_erros,
+            "total_novos": total_novos,
+            "total_importados": results.get("processados", 0),
+            "total_duplicados": len(results.get("duplicados", [])),
+            "total_erros": results.get("erros", 0),
             "duracao_segundos": round(duracao, 2),
             "entradas": {
-                "encontrados": len(entrada_xmls),
-                "stats": result.get("entrada", {}).get("stats", {})
+                "encontrados": sieg_stats.get("entrada", 0),
+                "novos": sieg_stats.get("novos_entrada", 0)
             },
             "saidas": {
-                "encontrados": len(saida_xmls),
-                "stats": result.get("saida", {}).get("stats", {})
+                "encontrados": sieg_stats.get("saida", 0),
+                "novos": sieg_stats.get("novos_saida", 0)
             }
         })
         
-        print(f"[SIEG-SCHEDULER] Sync concluído para {company_id}: {total_importados} importados, {total_duplicados} duplicados, {total_erros} erros")
+        print(f"[SIEG-SCHEDULER] Sync concluído para {company_id}: "
+              f"encontrados={total_encontrados}, novos={total_novos}, "
+              f"importados={results.get('processados', 0)}, "
+              f"duplicados={len(results.get('duplicados', []))}")
         
     except Exception as e:
+        import traceback
         print(f"[SIEG-SCHEDULER] Erro ao sincronizar empresa {company_id}: {e}")
+        print(f"[SIEG-SCHEDULER] Traceback: {traceback.format_exc()}")
         log_entry.update({
             "status": "erro",
-            "detalhes": [{"tipo": "erro_fatal", "mensagem": str(e)}]
+            "detalhes": [{"tipo": "erro_fatal", "mensagem": str(e)}],
+            "duracao_segundos": (datetime.now(timezone.utc) - start_time).total_seconds()
         })
     
     # Salvar log
