@@ -38,7 +38,7 @@ export default function MonofasicosManager() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [ncmsDisponiveis, setNcmsDisponiveis] = useState([]);
 
-  const competencia = competenciaSelecionada || (() => {
+  const competencia = selectedCompetencia || (() => {
     const now = new Date();
     return `${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
   })();
