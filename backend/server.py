@@ -1757,7 +1757,26 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                 
                 if tipo_operacao == 'entrada':
                     # ============================================================
-                    # VERIFICAR SE GERA CRÉDITO (baseado na categoria E no CFOP)
+                    # LUCRO PRESUMIDO: NÃO GERA CRÉDITO DE ENTRADAS!
+                    # O regime cumulativo não permite apropriação de créditos.
+                    # Exceção: devoluções de vendas (estorno de débito)
+                    # ============================================================
+                    if is_presumido:
+                        # Verificar se é devolução de venda (CFOP de devolução recebida)
+                        cfops_devolucao_entrada = ['1201', '1202', '1203', '1204', '1410', '1411', '2201', '2202', '2410', '2411']
+                        if cfop in cfops_devolucao_entrada:
+                            # Devolução de venda: gera estorno de débito (não crédito)
+                            pis = (valor_base * Decimal('0.0065')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)  # 0,65%
+                            cofins = (valor_base * Decimal('0.03')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)  # 3%
+                            totais['estorno_debito_pis'] = totais.get('estorno_debito_pis', Decimal('0')) + pis
+                            totais['estorno_debito_cofins'] = totais.get('estorno_debito_cofins', Decimal('0')) + cofins
+                        else:
+                            # Entradas normais: NÃO GERA CRÉDITO para Lucro Presumido
+                            totais['desconsiderados_credito'] += valor_base
+                        continue  # Pula para próximo produto
+                    
+                    # ============================================================
+                    # LUCRO REAL: VERIFICAR SE GERA CRÉDITO (baseado na categoria E no CFOP)
                     # Prioridade: 1) Categoria classificada, 2) CFOP especial, 3) CFOP padrão
                     # ============================================================
                     
