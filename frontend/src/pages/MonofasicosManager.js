@@ -25,7 +25,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
 export default function MonofasicosManager() {
   const { companyId } = useParams();
   const navigate = useNavigate();
-  const { token, selectedCompany, competenciaSelecionada } = useApp();
+  const { token, selectedCompany, selectedCompetencia } = useAppContext();
   
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
