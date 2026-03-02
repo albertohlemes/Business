@@ -1261,6 +1261,9 @@ def is_ncm_monofasico(ncm: str) -> bool:
     Inclui: Combustíveis, medicamentos, cosméticos, bebidas frias NÃO ALCOÓLICAS, veículos, etc.
     
     IMPORTANTE: Bebidas alcoólicas (2204-2208) NÃO são monofásicas - são tributadas normalmente.
+    
+    NOTA: Esta é a verificação padrão do sistema. Para verificar com exceções do usuário,
+    use is_ncm_monofasico_com_excecoes()
     """
     if not ncm:
         return False
@@ -1271,6 +1274,64 @@ def is_ncm_monofasico(ncm: str) -> bool:
         return True
     
     return False
+
+
+async def is_ncm_monofasico_com_excecoes(ncm: str, company_id: str, produto_id: str = None) -> tuple:
+    """
+    Verifica se NCM é monofásico considerando as exceções configuradas pelo usuário.
+    
+    Retorna: (is_monofasico: bool, origem: str)
+    - origem pode ser: "sistema", "incluido_usuario", "excluido_usuario", None
+    """
+    if not ncm:
+        return False, None
+    
+    ncm_str = str(ncm).replace('.', '').strip()
+    ncm_4dig = ncm_str[:4] if len(ncm_str) >= 4 else ncm_str
+    
+    # Verificação padrão do sistema
+    is_sistema_monofasico = ncm_4dig in NCMS_MONOFASICOS
+    
+    # Buscar exceções do usuário (com cache)
+    cache_key = f"monofasico_excecoes_{company_id}"
+    excecoes = getattr(is_ncm_monofasico_com_excecoes, '_cache', {}).get(cache_key)
+    
+    if excecoes is None:
+        excecoes = await db.monofasico_excecoes.find_one({"company_id": company_id}) or {}
+        if not hasattr(is_ncm_monofasico_com_excecoes, '_cache'):
+            is_ncm_monofasico_com_excecoes._cache = {}
+        is_ncm_monofasico_com_excecoes._cache[cache_key] = excecoes
+    
+    ncms_excluidos = set(excecoes.get("ncms_excluidos", []))
+    ncms_incluidos = set(excecoes.get("ncms_incluidos", []))
+    produtos_excluidos = set(excecoes.get("produtos_excluidos", []))
+    
+    # Verificar exceções
+    is_excluido_usuario = ncm_str in ncms_excluidos or ncm_4dig in ncms_excluidos
+    is_incluido_usuario = ncm_str in ncms_incluidos or ncm_4dig in ncms_incluidos
+    is_produto_excluido = produto_id and produto_id in produtos_excluidos
+    
+    # Determinar resultado final
+    if is_produto_excluido:
+        return False, "excluido_usuario"
+    elif is_excluido_usuario:
+        return False, "excluido_usuario"
+    elif is_incluido_usuario:
+        return True, "incluido_usuario"
+    elif is_sistema_monofasico:
+        return True, "sistema"
+    else:
+        return False, None
+
+
+def limpar_cache_monofasico_excecoes(company_id: str = None):
+    """Limpa o cache de exceções de monofásicos"""
+    if hasattr(is_ncm_monofasico_com_excecoes, '_cache'):
+        if company_id:
+            cache_key = f"monofasico_excecoes_{company_id}"
+            is_ncm_monofasico_com_excecoes._cache.pop(cache_key, None)
+        else:
+            is_ncm_monofasico_com_excecoes._cache.clear()
 
 
 def is_ncm_bebida_alcoolica(ncm: str) -> bool:
