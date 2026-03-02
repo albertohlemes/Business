@@ -318,29 +318,29 @@ export default function MonofasicosManager() {
           <div className="text-2xl font-bold text-purple-500">
             {data?.resumo?.qtd_produtos || 0}
           </div>
-          <div className="text-xs text-gray-400">Na competência</div>
+          <div className="text-xs text-gray-500">Na competência</div>
         </div>
       </div>
 
       {/* Alerta informativo */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-        <Info className="w-5 h-5 text-blue-500 mt-0.5" />
-        <div className="text-sm text-blue-800">
+      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-start gap-3">
+        <Info className="w-5 h-5 text-blue-400 mt-0.5" />
+        <div className="text-sm text-blue-300">
           <strong>Como funciona:</strong> Produtos monofásicos são excluídos do cálculo do DAS pois o PIS/COFINS já foi recolhido na origem (fabricante/importador).
           Se você identificar que algum produto NÃO deveria ser monofásico, remova-o da lista e reprocesse o cálculo.
         </div>
       </div>
 
       {/* Tabs e Filtros */}
-      <div className="bg-white rounded-xl shadow-sm border">
-        <div className="border-b px-4 py-3 flex items-center justify-between">
+      <div className="bg-[#141414] rounded-xl border border-[#2A2A2A]">
+        <div className="border-b border-[#2A2A2A] px-4 py-3 flex items-center justify-between">
           <div className="flex gap-2">
             <button
               onClick={() => { setActiveTab('ncm'); clearSelection(); }}
               className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
                 activeTab === 'ncm' 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-400 hover:bg-[#2A2A2A]'
               }`}
               data-testid="tab-ncm"
             >
@@ -351,8 +351,8 @@ export default function MonofasicosManager() {
               onClick={() => { setActiveTab('produtos'); clearSelection(); }}
               className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
                 activeTab === 'produtos' 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-400 hover:bg-[#2A2A2A]'
               }`}
               data-testid="tab-produtos"
             >
@@ -363,13 +363,13 @@ export default function MonofasicosManager() {
           
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
               <input
                 type="text"
                 placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-4 py-2 border rounded-lg text-sm w-64"
+                className="pl-9 pr-4 py-2 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg text-sm w-64 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
                 data-testid="input-search"
               />
             </div>
@@ -377,7 +377,7 @@ export default function MonofasicosManager() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="border rounded-lg px-3 py-2 text-sm"
+              className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
               data-testid="select-filter"
             >
               <option value="todos">Todos</option>
@@ -389,15 +389,15 @@ export default function MonofasicosManager() {
 
         {/* Barra de Ações */}
         {selectedItems.size > 0 && (
-          <div className="bg-blue-50 px-4 py-3 flex items-center justify-between border-b">
-            <span className="text-sm text-blue-700">
+          <div className="bg-blue-600/10 px-4 py-3 flex items-center justify-between border-b border-[#2A2A2A]">
+            <span className="text-sm text-blue-400">
               {selectedItems.size} item(ns) selecionado(s)
             </span>
             <div className="flex gap-2">
               <button
                 onClick={() => handleAction(activeTab === 'ncm' ? 'excluir_lote' : 'excluir_produto', Array.from(selectedItems))}
                 disabled={processing}
-                className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm hover:bg-red-200 flex items-center gap-1"
+                className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-sm hover:bg-red-500/30 flex items-center gap-1"
                 data-testid="btn-excluir-lote"
               >
                 <Trash2 className="w-4 h-4" />
@@ -406,7 +406,7 @@ export default function MonofasicosManager() {
               <button
                 onClick={() => handleAction(activeTab === 'ncm' ? 'restaurar_lote' : 'restaurar_produto', Array.from(selectedItems))}
                 disabled={processing}
-                className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm hover:bg-green-200 flex items-center gap-1"
+                className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-sm hover:bg-green-500/30 flex items-center gap-1"
                 data-testid="btn-restaurar-lote"
               >
                 <Plus className="w-4 h-4" />
@@ -414,7 +414,7 @@ export default function MonofasicosManager() {
               </button>
               <button
                 onClick={clearSelection}
-                className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+                className="px-3 py-1.5 bg-[#2A2A2A] text-gray-300 rounded-lg text-sm hover:bg-[#333]"
               >
                 Limpar seleção
               </button>
@@ -426,59 +426,59 @@ export default function MonofasicosManager() {
         {activeTab === 'ncm' && (
           <div className="overflow-x-auto">
             <table className="w-full" data-testid="table-ncm">
-              <thead className="bg-gray-50">
+              <thead className="bg-[#0A0A0A]">
                 <tr>
                   <th className="px-4 py-3 text-left">
-                    <button onClick={selectAll} className="text-gray-400 hover:text-gray-600">
+                    <button onClick={selectAll} className="text-gray-500 hover:text-gray-300">
                       {selectedItems.size === filteredNcms.length ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">NCM</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Motivo</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor Total</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Qtd</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">NCM</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Tipo</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Motivo</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Valor Total</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">Qtd</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">Status</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y divide-[#2A2A2A]">
                 {filteredNcms.map((item) => (
                   <tr 
                     key={item.ncm} 
-                    className={`hover:bg-gray-50 ${item.status === 'excluido' ? 'bg-gray-100 opacity-60' : ''}`}
+                    className={`hover:bg-[#1A1A1A] ${item.status === 'excluido' ? 'opacity-60' : ''}`}
                   >
                     <td className="px-4 py-3">
                       <button onClick={() => toggleSelectItem(item.ncm)}>
                         {selectedItems.has(item.ncm) ? 
-                          <CheckSquare className="w-4 h-4 text-blue-600" /> : 
-                          <Square className="w-4 h-4 text-gray-400" />
+                          <CheckSquare className="w-4 h-4 text-blue-500" /> : 
+                          <Square className="w-4 h-4 text-gray-500" />
                         }
                       </button>
                     </td>
-                    <td className="px-4 py-3 font-mono font-medium">{item.ncm}</td>
+                    <td className="px-4 py-3 font-mono font-medium text-white">{item.ncm}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        item.tipo === 'COMBUSTÍVEL' ? 'bg-yellow-100 text-yellow-800' :
-                        item.tipo === 'MEDICAMENTO' ? 'bg-red-100 text-red-800' :
-                        item.tipo === 'COSMÉTICOS' ? 'bg-pink-100 text-pink-800' :
-                        item.tipo === 'BEBIDA FRIA' ? 'bg-blue-100 text-blue-800' :
-                        item.tipo === 'VEÍCULO' ? 'bg-purple-100 text-purple-800' :
-                        'bg-gray-100 text-gray-800'
+                        item.tipo === 'COMBUSTÍVEL' ? 'bg-yellow-500/20 text-yellow-400' :
+                        item.tipo === 'MEDICAMENTO' ? 'bg-red-500/20 text-red-400' :
+                        item.tipo === 'COSMÉTICOS' ? 'bg-pink-500/20 text-pink-400' :
+                        item.tipo === 'BEBIDA FRIA' ? 'bg-blue-500/20 text-blue-400' :
+                        item.tipo === 'VEÍCULO' ? 'bg-purple-500/20 text-purple-400' :
+                        'bg-gray-500/20 text-gray-400'
                       }`}>
                         {item.tipo}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{item.motivo}</td>
-                    <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.valor_total)}</td>
-                    <td className="px-4 py-3 text-center text-gray-600">{item.qtd_produtos}</td>
+                    <td className="px-4 py-3 text-sm text-gray-400 max-w-xs truncate">{item.motivo}</td>
+                    <td className="px-4 py-3 text-right font-medium text-white">{formatCurrency(item.valor_total)}</td>
+                    <td className="px-4 py-3 text-center text-gray-400">{item.qtd_produtos}</td>
                     <td className="px-4 py-3 text-center">
                       {item.status === 'excluido' ? (
-                        <span className="px-2 py-1 bg-gray-200 text-gray-700 rounded-full text-xs">Excluído</span>
+                        <span className="px-2 py-1 bg-gray-500/20 text-gray-400 rounded-full text-xs">Excluído</span>
                       ) : item.status === 'incluido_manual' ? (
-                        <span className="px-2 py-1 bg-blue-200 text-blue-700 rounded-full text-xs">Manual</span>
+                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs">Manual</span>
                       ) : (
-                        <span className="px-2 py-1 bg-green-200 text-green-700 rounded-full text-xs">Ativo</span>
+                        <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">Ativo</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -486,7 +486,7 @@ export default function MonofasicosManager() {
                         <button
                           onClick={() => handleAction('restaurar_ncm', [item.ncm])}
                           disabled={processing}
-                          className="text-green-600 hover:text-green-800"
+                          className="text-green-400 hover:text-green-300"
                           title="Restaurar como monofásico"
                         >
                           <Plus className="w-4 h-4" />
@@ -495,7 +495,7 @@ export default function MonofasicosManager() {
                         <button
                           onClick={() => handleAction('excluir_ncm', [item.ncm])}
                           disabled={processing}
-                          className="text-red-600 hover:text-red-800"
+                          className="text-red-400 hover:text-red-300"
                           title="Remover da lista de monofásicos"
                         >
                           <X className="w-4 h-4" />
@@ -520,22 +520,22 @@ export default function MonofasicosManager() {
         {activeTab === 'produtos' && (
           <div className="overflow-x-auto">
             <table className="w-full" data-testid="table-produtos">
-              <thead className="bg-gray-50">
+              <thead className="bg-[#0A0A0A]">
                 <tr>
                   <th className="px-4 py-3 text-left">
-                    <button onClick={selectAll} className="text-gray-400 hover:text-gray-600">
+                    <button onClick={selectAll} className="text-gray-500 hover:text-gray-300">
                       {selectedItems.size === filteredProdutos.length ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">NCM</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Origem</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Código</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Descrição</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">NCM</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Valor</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">Origem</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y divide-[#2A2A2A]">
                 {filteredProdutos.slice(0, 100).map((item) => (
                   <tr 
                     key={item.id} 
