@@ -32712,7 +32712,418 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     }
 
 
-@api_router.get("/simples-nacional/{company_id}/exportar-produtos")
+# ============================================================================
+# GESTÃO DE MONOFÁSICOS - SIMPLES NACIONAL
+# ============================================================================
+
+@api_router.get("/simples-nacional/{company_id}/monofasicos")
+async def listar_monofasicos_simples_nacional(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lista todos os produtos/NCMs que foram considerados monofásicos na apuração do Simples Nacional.
+    Retorna dois agrupamentos:
+    - Por NCM: NCMs únicos considerados monofásicos
+    - Por Produto: Produtos individuais considerados monofásicos
+    
+    Também mostra as exceções configuradas pelo usuário.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if company.get('regime_tributario') != 'simples_nacional':
+        raise HTTPException(status_code=400, detail="Esta funcionalidade é apenas para empresas do Simples Nacional")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar exceções configuradas pela empresa
+    excecoes = await db.monofasico_excecoes.find_one({"company_id": company_id}) or {}
+    ncms_excluidos = set(excecoes.get("ncms_excluidos", []))  # NCMs que NÃO são monofásicos (usuário removeu)
+    ncms_incluidos = set(excecoes.get("ncms_incluidos", []))  # NCMs adicionais que SÃO monofásicos
+    produtos_excluidos = set(excecoes.get("produtos_excluidos", []))  # Produtos específicos excluídos
+    
+    # Buscar documentos de saída da competência
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "saida",
+        "cancelada": {"$ne": True}
+    }
+    
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(length=50000)
+    
+    # Agrupar por NCM
+    ncms_monofasicos = {}
+    produtos_monofasicos = []
+    
+    for doc in documents:
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', '')).replace('.', '').strip()
+            ncm_4dig = ncm[:4] if len(ncm) >= 4 else ncm
+            descricao = prod.get('descricao', '')
+            codigo = prod.get('codigo', '')
+            valor = float(prod.get('valor_total', 0) or prod.get('valor_produto', 0) or 0)
+            
+            # Verificar se é monofásico pelo sistema
+            is_sistema_monofasico = ncm_4dig in NCMS_MONOFASICOS
+            
+            # Verificar exceções do usuário
+            is_excluido_usuario = ncm in ncms_excluidos or ncm_4dig in ncms_excluidos
+            is_incluido_usuario = ncm in ncms_incluidos or ncm_4dig in ncms_incluidos
+            produto_id = f"{ncm}_{codigo}_{descricao[:50]}"
+            is_produto_excluido = produto_id in produtos_excluidos
+            
+            # Determinar se é monofásico final
+            if is_produto_excluido:
+                is_monofasico_final = False
+                origem = "excluido_usuario"
+            elif is_excluido_usuario:
+                is_monofasico_final = False
+                origem = "excluido_usuario"
+            elif is_incluido_usuario:
+                is_monofasico_final = True
+                origem = "incluido_usuario"
+            elif is_sistema_monofasico:
+                is_monofasico_final = True
+                origem = "sistema"
+            else:
+                is_monofasico_final = False
+                origem = None
+            
+            # Se for monofásico final, adicionar às listas
+            if is_monofasico_final or is_sistema_monofasico:
+                info_ncm = NCMS_MONOFASICOS.get(ncm_4dig, {})
+                
+                # Agregar por NCM
+                if ncm_4dig not in ncms_monofasicos:
+                    ncms_monofasicos[ncm_4dig] = {
+                        "ncm": ncm_4dig,
+                        "ncm_completo": ncm,
+                        "tipo": info_ncm.get('tipo', 'OUTROS'),
+                        "motivo": info_ncm.get('motivo', 'Identificado como monofásico'),
+                        "valor_total": 0,
+                        "qtd_produtos": 0,
+                        "is_monofasico_sistema": is_sistema_monofasico,
+                        "is_excluido_usuario": is_excluido_usuario,
+                        "is_incluido_usuario": is_incluido_usuario,
+                        "status": "excluido" if is_excluido_usuario else ("incluido_manual" if is_incluido_usuario else "ativo"),
+                        "produtos": []
+                    }
+                
+                ncms_monofasicos[ncm_4dig]["valor_total"] += valor
+                ncms_monofasicos[ncm_4dig]["qtd_produtos"] += 1
+                
+                # Adicionar produto individual
+                produto_info = {
+                    "id": produto_id,
+                    "ncm": ncm,
+                    "ncm_4dig": ncm_4dig,
+                    "codigo": codigo,
+                    "descricao": descricao,
+                    "valor": valor,
+                    "tipo": info_ncm.get('tipo', 'OUTROS'),
+                    "motivo": info_ncm.get('motivo', ''),
+                    "origem": origem,
+                    "is_excluido": is_produto_excluido or is_excluido_usuario,
+                    "documento": {
+                        "numero": doc.get('numero_nfe', ''),
+                        "data": doc.get('data_emissao', ''),
+                        "destinatario": doc.get('destinatario_nome', '')
+                    }
+                }
+                produtos_monofasicos.append(produto_info)
+    
+    # Ordenar
+    ncms_list = sorted(ncms_monofasicos.values(), key=lambda x: x['valor_total'], reverse=True)
+    produtos_list = sorted(produtos_monofasicos, key=lambda x: x['valor'], reverse=True)
+    
+    # Calcular totais
+    total_monofasico_ativo = sum(n['valor_total'] for n in ncms_list if n['status'] == 'ativo')
+    total_monofasico_excluido = sum(n['valor_total'] for n in ncms_list if n['status'] == 'excluido')
+    
+    return {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "regime": "simples_nacional"
+        },
+        "competencia": competencia,
+        "resumo": {
+            "total_monofasico_ativo": round(total_monofasico_ativo, 2),
+            "total_monofasico_excluido": round(total_monofasico_excluido, 2),
+            "qtd_ncms": len(ncms_list),
+            "qtd_ncms_ativos": len([n for n in ncms_list if n['status'] == 'ativo']),
+            "qtd_ncms_excluidos": len([n for n in ncms_list if n['status'] == 'excluido']),
+            "qtd_produtos": len(produtos_list)
+        },
+        "agrupamento_ncm": ncms_list,
+        "agrupamento_produtos": produtos_list[:500],  # Limitar para performance
+        "excecoes_configuradas": {
+            "ncms_excluidos": list(ncms_excluidos),
+            "ncms_incluidos": list(ncms_incluidos),
+            "produtos_excluidos": list(produtos_excluidos)[:100]
+        }
+    }
+
+
+@api_router.post("/simples-nacional/{company_id}/monofasicos/excecoes")
+async def configurar_excecoes_monofasicos(
+    company_id: str,
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Configura exceções de monofásicos para a empresa.
+    Permite:
+    - Excluir NCMs da lista de monofásicos (não serão desconsiderados do cálculo)
+    - Incluir NCMs adicionais como monofásicos
+    - Excluir produtos específicos
+    
+    Request body:
+    {
+        "acao": "excluir_ncm" | "incluir_ncm" | "restaurar_ncm" | "excluir_produto" | "restaurar_produto" | "excluir_lote" | "restaurar_lote",
+        "ncms": ["2710", "3004"],  // para ações de NCM
+        "produtos": ["ncm_codigo_descricao"],  // para ações de produto
+        "motivo": "Descrição do motivo"
+    }
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if company.get('regime_tributario') != 'simples_nacional':
+        raise HTTPException(status_code=400, detail="Esta funcionalidade é apenas para empresas do Simples Nacional")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    acao = request.get('acao', '')
+    ncms = request.get('ncms', [])
+    produtos = request.get('produtos', [])
+    motivo = request.get('motivo', '')
+    
+    # Buscar ou criar documento de exceções
+    excecoes = await db.monofasico_excecoes.find_one({"company_id": company_id}) or {
+        "company_id": company_id,
+        "ncms_excluidos": [],
+        "ncms_incluidos": [],
+        "produtos_excluidos": [],
+        "historico": []
+    }
+    
+    ncms_excluidos = set(excecoes.get("ncms_excluidos", []))
+    ncms_incluidos = set(excecoes.get("ncms_incluidos", []))
+    produtos_excluidos = set(excecoes.get("produtos_excluidos", []))
+    historico = excecoes.get("historico", [])
+    
+    # Executar ação
+    alteracoes = []
+    
+    if acao == "excluir_ncm" or acao == "excluir_lote":
+        for ncm in ncms:
+            ncm_str = str(ncm).replace('.', '').strip()[:4]
+            if ncm_str not in ncms_excluidos:
+                ncms_excluidos.add(ncm_str)
+                ncms_incluidos.discard(ncm_str)  # Remover se estava incluído manualmente
+                alteracoes.append(f"NCM {ncm_str} excluído")
+    
+    elif acao == "incluir_ncm":
+        for ncm in ncms:
+            ncm_str = str(ncm).replace('.', '').strip()[:4]
+            if ncm_str not in ncms_incluidos:
+                ncms_incluidos.add(ncm_str)
+                ncms_excluidos.discard(ncm_str)  # Remover da exclusão se estava lá
+                alteracoes.append(f"NCM {ncm_str} incluído como monofásico")
+    
+    elif acao == "restaurar_ncm" or acao == "restaurar_lote":
+        for ncm in ncms:
+            ncm_str = str(ncm).replace('.', '').strip()[:4]
+            if ncm_str in ncms_excluidos:
+                ncms_excluidos.discard(ncm_str)
+                alteracoes.append(f"NCM {ncm_str} restaurado")
+            if ncm_str in ncms_incluidos:
+                ncms_incluidos.discard(ncm_str)
+                alteracoes.append(f"NCM {ncm_str} removido da inclusão manual")
+    
+    elif acao == "excluir_produto":
+        for prod in produtos:
+            if prod not in produtos_excluidos:
+                produtos_excluidos.add(prod)
+                alteracoes.append(f"Produto excluído: {prod[:50]}...")
+    
+    elif acao == "restaurar_produto":
+        for prod in produtos:
+            if prod in produtos_excluidos:
+                produtos_excluidos.discard(prod)
+                alteracoes.append(f"Produto restaurado: {prod[:50]}...")
+    
+    else:
+        raise HTTPException(status_code=400, detail=f"Ação inválida: {acao}")
+    
+    # Registrar no histórico
+    if alteracoes:
+        historico.append({
+            "data": datetime.now(timezone.utc).isoformat(),
+            "usuario": current_user.email,
+            "acao": acao,
+            "alteracoes": alteracoes,
+            "motivo": motivo
+        })
+    
+    # Salvar
+    await db.monofasico_excecoes.update_one(
+        {"company_id": company_id},
+        {"$set": {
+            "company_id": company_id,
+            "ncms_excluidos": list(ncms_excluidos),
+            "ncms_incluidos": list(ncms_incluidos),
+            "produtos_excluidos": list(produtos_excluidos),
+            "historico": historico[-50:],  # Manter últimos 50 registros
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": current_user.email
+        }},
+        upsert=True
+    )
+    
+    return {
+        "success": True,
+        "acao": acao,
+        "alteracoes": alteracoes,
+        "excecoes_atuais": {
+            "ncms_excluidos": list(ncms_excluidos),
+            "ncms_incluidos": list(ncms_incluidos),
+            "qtd_produtos_excluidos": len(produtos_excluidos)
+        },
+        "mensagem": f"{len(alteracoes)} alteração(ões) realizada(s). Reprocesse o cálculo para ver o impacto."
+    }
+
+
+@api_router.get("/simples-nacional/{company_id}/monofasicos/ncms-disponiveis")
+async def listar_ncms_monofasicos_disponiveis(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lista todos os NCMs que o sistema reconhece como monofásicos.
+    Útil para o usuário adicionar NCMs manualmente.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar exceções da empresa
+    excecoes = await db.monofasico_excecoes.find_one({"company_id": company_id}) or {}
+    ncms_excluidos = set(excecoes.get("ncms_excluidos", []))
+    ncms_incluidos = set(excecoes.get("ncms_incluidos", []))
+    
+    ncms_lista = []
+    for ncm, info in NCMS_MONOFASICOS.items():
+        ncms_lista.append({
+            "ncm": ncm,
+            "tipo": info.get('tipo', ''),
+            "motivo": info.get('motivo', ''),
+            "status": "excluido" if ncm in ncms_excluidos else "ativo",
+            "is_excluido": ncm in ncms_excluidos
+        })
+    
+    # Adicionar NCMs incluídos manualmente que não estão na lista padrão
+    for ncm in ncms_incluidos:
+        if ncm not in NCMS_MONOFASICOS:
+            ncms_lista.append({
+                "ncm": ncm,
+                "tipo": "MANUAL",
+                "motivo": "Incluído manualmente pelo usuário",
+                "status": "incluido_manual",
+                "is_excluido": False
+            })
+    
+    # Organizar por tipo
+    ncms_lista.sort(key=lambda x: (x['tipo'], x['ncm']))
+    
+    return {
+        "total": len(ncms_lista),
+        "ncms": ncms_lista,
+        "tipos": list(set(n['tipo'] for n in ncms_lista))
+    }
+
+
+@api_router.post("/simples-nacional/{company_id}/monofasicos/reprocessar")
+async def reprocessar_calculo_simples_nacional(
+    company_id: str,
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Reprocessa o cálculo do Simples Nacional considerando as exceções de monofásicos configuradas.
+    
+    Request body:
+    {
+        "competencia": "02/2026"
+    }
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if company.get('regime_tributario') != 'simples_nacional':
+        raise HTTPException(status_code=400, detail="Esta funcionalidade é apenas para empresas do Simples Nacional")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    competencia = request.get('competencia', '')
+    if not competencia:
+        raise HTTPException(status_code=400, detail="Competência é obrigatória")
+    
+    # Invalidar cache se existir
+    try:
+        aggregation_cache.invalidate("simples", company_id, competencia)
+        aggregation_cache.invalidate("dashboard", company_id, competencia)
+    except:
+        pass
+    
+    # Recalcular dashboard do Simples Nacional
+    from services.simples_nacional_calculator import calcular_das_periodo
+    
+    # Buscar faturamento
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "saida",
+        "cancelada": {"$ne": True}
+    }
+    
+    pipeline = [
+        {"$match": query},
+        {"$group": {"_id": None, "total": {"$sum": "$valor_total"}}}
+    ]
+    
+    result = await db.xml_documents.aggregate(pipeline).to_list(1)
+    faturamento = result[0]["total"] if result else 0
+    
+    # Buscar histórico de faturamento
+    historico = company.get('historico_faturamento', {})
+    
+    # Calcular DAS
+    das_result = calcular_das_periodo(faturamento, historico, company.get('anexo_simples', 'III'))
+    
+    return {
+        "success": True,
+        "competencia": competencia,
+        "faturamento": round(faturamento, 2),
+        "das_calculado": das_result,
+        "mensagem": "Cálculo reprocessado com sucesso. As exceções de monofásicos foram consideradas."
+    }
+
+
+
 async def exportar_produtos_agrupados_simples(
     company_id: str,
     competencia: str,
