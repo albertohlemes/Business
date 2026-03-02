@@ -18,7 +18,7 @@ import {
   Square,
   Info
 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useAppContext } from '../context/AppContext';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
