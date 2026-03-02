@@ -33635,8 +33635,12 @@ async def reprocessar_calculo_simples_nacional(
     # Calcular RBT12 (soma dos últimos 12 meses)
     rbt12 = 0
     if historico:
-        for mes, valor in historico.items():
-            rbt12 += float(valor or 0)
+        for mes, valor_data in historico.items():
+            # Suportar tanto formato antigo (número direto) quanto novo (objeto com 'valor')
+            if isinstance(valor_data, dict):
+                rbt12 += float(valor_data.get('valor', 0) or 0)
+            else:
+                rbt12 += float(valor_data or 0)
     
     # Se não tem histórico, usar o faturamento do mês atual * 12 como estimativa
     if rbt12 == 0:

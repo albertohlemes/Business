@@ -27,7 +27,12 @@ Sistema de gestão fiscal brasileiro com funcionalidades para importação de do
   - Alterado `{data?.empresa || 'Empresa'}` para `{data?.empresa?.razao_social || 'Empresa'}`
   - Corrigido mapeamento de campos da API (`agrupamento_ncm`, `agrupamento_produtos`, `resumo`) para estrutura esperada pelo frontend
 - **Files**: `/app/frontend/src/pages/MonofasicosManager.js`
-- **Testado**: ✅ Tela agora abre e exibe corretamente
+
+### Monofásicos - Erro 500 no Reprocessamento
+- **Problema**: Erro `TypeError: float() argument must be a string or a real number, not 'dict'` ao reprocessar
+- **Causa**: O campo `historico_faturamento` contém objetos `{valor, origem, ...}` em vez de números simples
+- **Solução**: Verificar se `valor_data` é dict e extrair `.get('valor', 0)`
+- **Files**: `/app/backend/server.py` linha 33638
 
 ### PIS/COFINS - Aba Apuração
 - **Status**: Funcionando corretamente
