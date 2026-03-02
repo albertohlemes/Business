@@ -548,6 +548,16 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                           <Download className="w-3.5 h-3.5" />
                           {exportingProdutos ? 'Exportando...' : 'Exportar Relatório'}
                         </button>
+                        
+                        {/* Botão Gestão de Monofásicos */}
+                        <button
+                          onClick={() => window.location.href = `/simples-nacional/${selectedCompany?.id}/monofasicos`}
+                          className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-blue-400 bg-blue-400/10 hover:bg-blue-400/20 rounded-lg transition-colors"
+                          data-testid="btn-gerir-monofasicos"
+                        >
+                          <Scale className="w-3.5 h-3.5" />
+                          Gerir Monofásicos
+                        </button>
                       </>
                     );
                   })()}
