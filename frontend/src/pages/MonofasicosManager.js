@@ -539,26 +539,26 @@ export default function MonofasicosManager() {
                 {filteredProdutos.slice(0, 100).map((item) => (
                   <tr 
                     key={item.id} 
-                    className={`hover:bg-gray-50 ${item.is_excluido ? 'bg-gray-100 opacity-60' : ''}`}
+                    className={`hover:bg-[#1A1A1A] ${item.is_excluido ? 'opacity-60' : ''}`}
                   >
                     <td className="px-4 py-3">
                       <button onClick={() => toggleSelectItem(item.id)}>
                         {selectedItems.has(item.id) ? 
-                          <CheckSquare className="w-4 h-4 text-blue-600" /> : 
-                          <Square className="w-4 h-4 text-gray-400" />
+                          <CheckSquare className="w-4 h-4 text-blue-500" /> : 
+                          <Square className="w-4 h-4 text-gray-500" />
                         }
                       </button>
                     </td>
-                    <td className="px-4 py-3 font-mono text-sm">{item.codigo || '-'}</td>
-                    <td className="px-4 py-3 text-sm max-w-xs truncate" title={item.descricao}>{item.descricao}</td>
-                    <td className="px-4 py-3 font-mono text-sm">{item.ncm}</td>
-                    <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.valor)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-gray-300">{item.codigo || '-'}</td>
+                    <td className="px-4 py-3 text-sm max-w-xs truncate text-white" title={item.descricao}>{item.descricao}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-gray-300">{item.ncm}</td>
+                    <td className="px-4 py-3 text-right font-medium text-white">{formatCurrency(item.valor)}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        item.origem === 'sistema' ? 'bg-blue-100 text-blue-700' :
-                        item.origem === 'incluido_usuario' ? 'bg-purple-100 text-purple-700' :
-                        item.origem === 'excluido_usuario' ? 'bg-gray-200 text-gray-700' :
-                        'bg-gray-100 text-gray-600'
+                        item.origem === 'sistema' ? 'bg-blue-500/20 text-blue-400' :
+                        item.origem === 'incluido_usuario' ? 'bg-purple-500/20 text-purple-400' :
+                        item.origem === 'excluido_usuario' ? 'bg-gray-500/20 text-gray-400' :
+                        'bg-gray-500/20 text-gray-400'
                       }`}>
                         {item.origem === 'sistema' ? 'Sistema' :
                          item.origem === 'incluido_usuario' ? 'Manual' :
@@ -570,7 +570,7 @@ export default function MonofasicosManager() {
                         <button
                           onClick={() => handleAction('restaurar_produto', [item.id])}
                           disabled={processing}
-                          className="text-green-600 hover:text-green-800"
+                          className="text-green-400 hover:text-green-300"
                           title="Restaurar"
                         >
                           <Plus className="w-4 h-4" />
@@ -579,7 +579,7 @@ export default function MonofasicosManager() {
                         <button
                           onClick={() => handleAction('excluir_produto', [item.id])}
                           disabled={processing}
-                          className="text-red-600 hover:text-red-800"
+                          className="text-red-400 hover:text-red-300"
                           title="Excluir"
                         >
                           <X className="w-4 h-4" />
@@ -598,7 +598,7 @@ export default function MonofasicosManager() {
               </tbody>
             </table>
             {filteredProdutos.length > 100 && (
-              <div className="px-4 py-3 bg-gray-50 text-center text-sm text-gray-500">
+              <div className="px-4 py-3 bg-[#0A0A0A] text-center text-sm text-gray-500">
                 Mostrando 100 de {filteredProdutos.length} produtos. Use os filtros para refinar a busca.
               </div>
             )}
