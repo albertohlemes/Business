@@ -1711,9 +1711,11 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
             if doc.get('desconsiderada_devolucao'):
                 continue
             
-            # Determinar tipo de operação
-            tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo')
-            if not tipo_operacao:
+            # Determinar tipo de operação - LÓGICA MAIS ROBUSTA
+            tipo_operacao = doc.get('tipo_operacao') or doc.get('tipo') or ''
+            tipo_operacao = str(tipo_operacao).lower().strip()
+            
+            if tipo_operacao not in ['entrada', 'saida']:
                 produtos = doc.get('produtos', [])
                 if produtos:
                     cfop = str(produtos[0].get('cfop', ''))
@@ -1925,6 +1927,10 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
         pis_debitos = arredondar(totais['debitos_pis'])
         cofins_creditos = arredondar(totais['creditos_cofins'])
         cofins_debitos = arredondar(totais['debitos_cofins'])
+        
+        logger.info(f"[UNIFICADO] Empresa {company_id}: PIS debitos={pis_debitos:.2f}, creditos={pis_creditos:.2f}")
+        logger.info(f"[UNIFICADO] Empresa {company_id}: COFINS debitos={cofins_debitos:.2f}, creditos={cofins_creditos:.2f}")
+        logger.info(f"[UNIFICADO] Empresa {company_id}: is_presumido={is_presumido}, base_debito={totais['base_debito']:.2f}")
         
         # Para Lucro Presumido, aplicar estornos de débito (devoluções recebidas)
         estorno_pis = arredondar(totais.get('estorno_debito_pis', Decimal('0')))
@@ -30352,19 +30358,31 @@ async def apurar_pis_cofins(
         return None
     
     # Buscar documentos de saída para cálculo do presumido
+    # NOTA: Usar tipo_operacao para maior consistência, já que alguns documentos
+    # podem ter o campo "tipo" inconsistente
     query_saidas = {
         "company_id": company_id,
         "competencia": competencia,
-        "tipo": "saida"
+        "$or": [
+            {"tipo": "saida"},
+            {"tipo_operacao": "saida"},
+            {"tipo": "SAIDA"},
+            {"tipo_operacao": "SAIDA"}
+        ]
     }
     query_saidas.update(get_filtro_notas_ativas())
     
     docs_saidas = await db.xml_documents.find(query_saidas, {"_id": 0, "xml_content": 0}).to_list(15000)
     
+    logger.info(f"[LUCRO PRESUMIDO] Encontrados {len(docs_saidas)} documentos de saída para empresa {company_id}/{competencia}")
+    
     base_debito_presumido = 0.0
     base_excluida_presumido = 0.0  # Bases que não tributam por regra (alíquota zero, monofásico)
     base_transferencia_presumido = 0.0  # Bases de transferência (não tributadas)
+    pis_debito_presumido = 0.0
+    cofins_debito_presumido = 0.0
     
+    # Usar mesma lógica de cálculo que calcular_pis_cofins_por_cst
     for doc in docs_saidas:
         for prod in doc.get('produtos', []):
             ncm = str(prod.get('ncm', '') or '').replace('.', '').strip()
@@ -30388,23 +30406,24 @@ async def apurar_pis_cofins(
                 base_excluida_presumido += valor_base
                 continue
             
-            # Verificar se NCM tem regra customizada
-            regra = buscar_regra_ncm_presumido(ncm)
-            if regra:
-                tipo_regra = regra.get('tipo_regra', 'tributado')
-                gera_debito = regra.get('gera_debito', True)
-                
-                # Se a regra diz que não gera débito (alíquota zero, monofásico, etc.)
-                if not gera_debito or tipo_regra in ['aliquota_zero', 'monofasico', 'st']:
-                    base_excluida_presumido += valor_base
-                    continue
+            # USAR A MESMA FUNÇÃO QUE calcular_pis_cofins_por_cst para consistência
+            calc = calcular_pis_cofins_produto(
+                valor_base, ncm, cfop, 'saida', perfil, 'LUCRO_PRESUMIDO'
+            )
             
-            # Se chegou aqui, é tributado normalmente
-            base_debito_presumido += valor_base
+            # Se gera débito (valor_pis > 0), somar
+            if calc.get('valor_pis', 0) > 0:
+                pis_debito_presumido += calc['valor_pis']
+                cofins_debito_presumido += calc['valor_cofins']
+                base_debito_presumido += valor_base
+            else:
+                base_excluida_presumido += valor_base
     
-    pis_presumido = round(base_debito_presumido * aliq_pis_presumido, 2)
-    cofins_presumido = round(base_debito_presumido * aliq_cofins_presumido, 2)
+    pis_presumido = round(pis_debito_presumido, 2)
+    cofins_presumido = round(cofins_debito_presumido, 2)
     total_presumido = round(pis_presumido + cofins_presumido, 2)
+    
+    logger.info(f"[LUCRO PRESUMIDO] Base tributada={base_debito_presumido:.2f}, PIS={pis_presumido:.2f}, COFINS={cofins_presumido:.2f}")
     
     lucro_presumido = {
         "creditos": {"pis": 0, "cofins": 0, "total": 0},
