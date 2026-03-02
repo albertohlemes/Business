@@ -30432,7 +30432,7 @@ async def apurar_pis_cofins(
             
             # USAR A MESMA FUNÇÃO QUE calcular_pis_cofins_por_cst para consistência
             calc = calcular_pis_cofins_produto(
-                valor_base, ncm, cfop, 'saida', perfil, 'LUCRO_PRESUMIDO'
+                valor_base, ncm, cfop, 'saida', perfil_empresa, 'LUCRO_PRESUMIDO'
             )
             
             # Se gera débito (valor_pis > 0), somar
