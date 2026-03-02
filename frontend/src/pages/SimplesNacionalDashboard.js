@@ -17,6 +17,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL + '/api';
 
 const SimplesNacionalDashboard = ({ user, onLogout }) => {
+  const navigate = useNavigate();
   const { selectedCompany, selectedCompetencia } = useAppContext();
   const { documentsVersion } = useUpload();
   const [loading, setLoading] = useState(true);
