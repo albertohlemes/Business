@@ -25,7 +25,10 @@ const API = process.env.REACT_APP_BACKEND_URL;
 export default function MonofasicosManager() {
   const { companyId } = useParams();
   const navigate = useNavigate();
-  const { token, selectedCompany, selectedCompetencia } = useAppContext();
+  const { selectedCompany, selectedCompetencia } = useAppContext();
+  
+  // Obter token diretamente do localStorage para garantir disponibilidade
+  const token = localStorage.getItem('token');
   
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -38,13 +41,24 @@ export default function MonofasicosManager() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [ncmsDisponiveis, setNcmsDisponiveis] = useState([]);
 
-  const competencia = selectedCompetencia || (() => {
+  const competencia = selectedCompetencia || localStorage.getItem('selectedCompetencia') || (() => {
     const now = new Date();
     return `${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
   })();
 
   const fetchData = useCallback(async () => {
-    if (!companyId || !token) return;
+    // Verificar token e companyId
+    if (!companyId) {
+      setError('ID da empresa não encontrado na URL');
+      setLoading(false);
+      return;
+    }
+    
+    if (!token) {
+      setError('Sessão expirada. Faça login novamente.');
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     setError(null);
