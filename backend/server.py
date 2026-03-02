@@ -1701,6 +1701,13 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
             query, 
             {"produtos": 1, "tipo": 1, "tipo_operacao": 1, "modelo": 1, "desconsiderada_devolucao": 1}
         ).to_list(length=50000)
+        
+        # LOG DE DEBUG: Contar tipos
+        tipos_contagem = {}
+        for doc in docs:
+            t = doc.get('tipo_operacao') or doc.get('tipo') or 'indefinido'
+            tipos_contagem[t] = tipos_contagem.get(t, 0) + 1
+        logger.info(f"[UNIFICADO DEBUG] Empresa {company_id}: Total docs={len(docs)}, Tipos={tipos_contagem}")
     except Exception as e:
         logger.error(f"Erro ao buscar documentos PIS/COFINS: {e}")
         docs = []
@@ -1723,6 +1730,9 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                         tipo_operacao = 'entrada'
                     elif cfop and cfop[0] in ['5', '6', '7']:
                         tipo_operacao = 'saida'
+                    else:
+                        logger.warning(f"[UNIFICADO] CFOP inválido ou vazio: '{cfop}' - pulando documento")
+                        continue
             
             for prod in doc.get('produtos', []):
                 try:
@@ -1910,6 +1920,9 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
         except Exception as e:
             logger.warning(f"Erro ao processar documento PIS/COFINS: {e}")
             continue
+    
+    # LOG DE DEBUG FINAL
+    logger.info(f"[UNIFICADO FINAL] debitos_pis={totais['debitos_pis']}, debitos_cofins={totais['debitos_cofins']}, base_debito={totais['base_debito']}")
     
     # Arredondar para 2 casas decimais no final
     def arredondar(valor) -> float:

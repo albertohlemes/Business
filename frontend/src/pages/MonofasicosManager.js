@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { 
   ArrowLeft, 
   Search, 
@@ -56,33 +57,21 @@ export default function MonofasicosManager() {
     setError(null);
     
     try {
-      const response = await fetch(
-        `${API}/api/simples-nacional/${companyId}/monofasicos?competencia=${encodeURIComponent(competencia)}`,
-        { 
+      const response = await axios.get(
+        `${API}/api/simples-nacional/${companyId}/monofasicos`,
+        {
+          params: { competencia },
           headers: { 
             'Authorization': `Bearer ${token}`,
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          } 
+            'Cache-Control': 'no-cache'
+          }
         }
       );
       
-      // Ler texto primeiro para evitar "body stream already read"
-      const responseText = await response.text();
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch {
-        result = { detail: responseText || 'Erro desconhecido' };
-      }
-      
-      if (!response.ok) {
-        throw new Error(result.detail || 'Erro ao carregar dados');
-      }
-      
-      setData(result);
+      setData(response.data);
     } catch (err) {
-      setError(err.message);
+      const errorMessage = err.response?.data?.detail || err.message || 'Erro ao carregar dados';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -103,33 +92,16 @@ export default function MonofasicosManager() {
         motivo: `Ação ${acao} via interface`
       };
       
-      const response = await fetch(
+      await axios.post(
         `${API}/api/simples-nacional/${companyId}/monofasicos/excecoes`,
+        body,
         {
-          method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          body: JSON.stringify(body)
+            'Content-Type': 'application/json'
+          }
         }
       );
-      
-      // SOLUÇÃO: Ler o texto primeiro, depois parsear como JSON
-      const responseText = await response.text();
-      
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch {
-        result = { detail: responseText || 'Erro desconhecido' };
-      }
-      
-      if (!response.ok) {
-        throw new Error(result.detail || 'Erro ao processar ação');
-      }
       
       // Recarregar dados e reprocessar automaticamente
       await fetchData();
@@ -137,7 +109,8 @@ export default function MonofasicosManager() {
       setSelectedItems(new Set());
       
     } catch (err) {
-      alert(`Erro: ${err.message}`);
+      const errorMessage = err.response?.data?.detail || err.message || 'Erro ao processar ação';
+      alert(`Erro: ${errorMessage}`);
     } finally {
       setProcessing(false);
     }
@@ -146,34 +119,18 @@ export default function MonofasicosManager() {
   const handleReprocessar = async (silencioso = false) => {
     if (!silencioso) setProcessing(true);
     try {
-      const response = await fetch(
+      const response = await axios.post(
         `${API}/api/simples-nacional/${companyId}/monofasicos/reprocessar`,
+        { competencia },
         {
-          method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          body: JSON.stringify({ competencia })
+            'Content-Type': 'application/json'
+          }
         }
       );
       
-      // SOLUÇÃO: Ler o texto primeiro, depois parsear como JSON
-      // Isso evita o erro "body stream already read"
-      const responseText = await response.text();
-      
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch {
-        result = { detail: responseText || 'Erro desconhecido' };
-      }
-      
-      if (!response.ok) {
-        throw new Error(result.detail || 'Erro ao reprocessar');
-      }
+      const result = response.data;
       
       if (!silencioso) {
         alert(`Cálculo reprocessado!\n\nFaturamento: R$ ${result.faturamento?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
@@ -183,13 +140,38 @@ export default function MonofasicosManager() {
       await fetchData();
       
     } catch (err) {
+      const errorMessage = err.response?.data?.detail || err.message || 'Erro ao reprocessar';
       if (!silencioso) {
-        alert(`Erro: ${err.message}`);
+        alert(`Erro: ${errorMessage}`);
       }
     } finally {
       if (!silencioso) setProcessing(false);
     }
   };
+
+  // Filtrar dados
+  const getFilteredItems = () => {
+    if (!data) return [];
+    
+    const items = activeTab === 'ncm' 
+      ? (data.ncms_monofasicos || [])
+      : (data.produtos_monofasicos || []);
+    
+    return items.filter(item => {
+      const matchesSearch = !searchTerm || 
+        (item.ncm && item.ncm.includes(searchTerm)) ||
+        (item.descricao && item.descricao.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.produto && item.produto.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const matchesFilter = filterStatus === 'todos' ||
+        (filterStatus === 'incluidos' && item.incluido) ||
+        (filterStatus === 'excluidos' && !item.incluido);
+      
+      return matchesSearch && matchesFilter;
+    });
+  };
+
+  const filteredItems = getFilteredItems();
 
   const toggleSelectItem = (id) => {
     const newSelected = new Set(selectedItems);
@@ -201,69 +183,45 @@ export default function MonofasicosManager() {
     setSelectedItems(newSelected);
   };
 
-  const selectAll = () => {
-    const items = activeTab === 'ncm' ? filteredNcms : filteredProdutos;
-    setSelectedItems(new Set(items.map(i => activeTab === 'ncm' ? i.ncm : i.id)));
+  const toggleSelectAll = () => {
+    if (selectedItems.size === filteredItems.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(filteredItems.map(item => item.ncm || item.produto)));
+    }
   };
 
-  const clearSelection = () => setSelectedItems(new Set());
-
-  // Filtrar dados
-  const filteredNcms = data?.agrupamento_ncm?.filter(item => {
-    const matchSearch = !searchTerm || 
-      item.ncm.includes(searchTerm) ||
-      item.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.motivo.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchStatus = filterStatus === 'todos' ||
-      (filterStatus === 'ativos' && item.status !== 'excluido') ||
-      (filterStatus === 'excluidos' && item.status === 'excluido');
-    
-    return matchSearch && matchStatus;
-  }) || [];
-
-  const filteredProdutos = data?.produtos?.filter(item => {
-    const matchSearch = !searchTerm || 
-      item.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.ncm?.includes(searchTerm) ||
-      item.codigo?.includes(searchTerm);
-    
-    const matchStatus = filterStatus === 'todos' ||
-      (filterStatus === 'ativos' && !item.is_excluido) ||
-      (filterStatus === 'excluidos' && item.is_excluido);
-    
-    return matchSearch && matchStatus;
-  }) || [];
-
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value || 0);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin text-[#C8A951]" />
-        <span className="ml-2 text-gray-400">Carregando...</span>
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center" data-testid="monofasicos-loading">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 text-[#C8A951] animate-spin mx-auto mb-4" />
+          <p className="text-white">Carregando dados de monofásicos...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6">
-        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-center gap-3">
-          <AlertTriangle className="w-6 h-6 text-red-500" />
-          <div>
-            <h3 className="font-medium text-red-400">Erro ao carregar dados</h3>
-            <p className="text-red-300 text-sm">{error}</p>
+      <div className="min-h-screen bg-[#0A0A0A] p-6" data-testid="monofasicos-error">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 max-w-2xl mx-auto">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-6 h-6 text-red-400" />
+            <div>
+              <h3 className="text-red-400 font-medium">Erro ao carregar dados</h3>
+              <p className="text-red-300 text-sm mt-1">{error}</p>
+            </div>
           </div>
           <button
             onClick={fetchData}
-            className="ml-auto px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30"
+            className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition-colors flex items-center gap-2"
           >
+            <RefreshCw className="w-4 h-4" />
             Tentar novamente
           </button>
         </div>
@@ -279,14 +237,13 @@ export default function MonofasicosManager() {
           <button
             onClick={() => navigate(-1)}
             className="p-2 hover:bg-[#2A2A2A] rounded-lg text-gray-400"
-            data-testid="btn-voltar"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-white">Gestão de Monofásicos</h1>
-            <p className="text-sm text-gray-400">
-              {data?.empresa?.razao_social} - Competência {competencia}
+            <h1 className="text-2xl font-bold text-white">Gerenciamento de Monofásicos</h1>
+            <p className="text-gray-400 text-sm">
+              {data?.empresa || 'Empresa'} - Competência {competencia}
             </p>
           </div>
         </div>
@@ -294,8 +251,7 @@ export default function MonofasicosManager() {
         <button
           onClick={() => handleReprocessar(false)}
           disabled={processing}
-          className="flex items-center gap-2 px-4 py-2 bg-[#C8A951] text-black rounded-lg hover:bg-[#B09240] disabled:opacity-50 font-medium"
-          data-testid="btn-reprocessar"
+          className="px-4 py-2 bg-[#C8A951] hover:bg-[#B89841] text-black font-medium rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${processing ? 'animate-spin' : ''}`} />
           Reprocessar Cálculo
@@ -304,323 +260,237 @@ export default function MonofasicosManager() {
 
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
-          <div className="text-sm text-gray-400">Total Monofásico Ativo</div>
-          <div className="text-2xl font-bold text-orange-500">
-            {formatCurrency(data?.resumo?.total_monofasico_ativo)}
-          </div>
-          <div className="text-xs text-gray-500">Excluído do cálculo DAS</div>
+        <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
+          <p className="text-gray-400 text-sm">Total Monofásico</p>
+          <p className="text-2xl font-bold text-[#C8A951]">
+            {formatCurrency(data?.total_monofasico || 0)}
+          </p>
+          <p className="text-gray-500 text-xs">Excluído do DAS</p>
         </div>
         
-        <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
-          <div className="text-sm text-gray-400">Total Removido pelo Usuário</div>
-          <div className="text-2xl font-bold text-green-500">
-            {formatCurrency(data?.resumo?.total_monofasico_excluido)}
-          </div>
-          <div className="text-xs text-gray-500">Volta para tributação</div>
+        <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
+          <p className="text-gray-400 text-sm">Total Removido pelo Usuário</p>
+          <p className="text-2xl font-bold text-green-400">
+            {formatCurrency(data?.total_removido_usuario || 0)}
+          </p>
+          <p className="text-gray-500 text-xs">Volta para tributação</p>
         </div>
         
-        <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
-          <div className="text-sm text-gray-400">NCMs Monofásicos</div>
-          <div className="text-2xl font-bold text-blue-500">
-            {data?.resumo?.qtd_ncms_ativos || 0}
-            <span className="text-sm text-gray-500 ml-1">/ {data?.resumo?.qtd_ncms || 0}</span>
-          </div>
-          <div className="text-xs text-gray-500">{data?.resumo?.qtd_ncms_excluidos || 0} excluídos</div>
+        <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
+          <p className="text-gray-400 text-sm">NCMs Monofásicos</p>
+          <p className="text-2xl font-bold text-blue-400">
+            {data?.ncms_monofasicos?.length || 0}
+            <span className="text-sm font-normal text-gray-500"> / {data?.total_ncms_excluidos || 0}</span>
+          </p>
+          <p className="text-gray-500 text-xs">{data?.total_ncms_excluidos || 0} excluídos</p>
         </div>
         
-        <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
-          <div className="text-sm text-gray-400">Produtos Monofásicos</div>
-          <div className="text-2xl font-bold text-purple-500">
-            {data?.resumo?.qtd_produtos || 0}
-          </div>
-          <div className="text-xs text-gray-500">Na competência</div>
+        <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
+          <p className="text-gray-400 text-sm">Produtos Monofásicos</p>
+          <p className="text-2xl font-bold text-purple-400">
+            {data?.produtos_monofasicos?.length || 0}
+          </p>
+          <p className="text-gray-500 text-xs">Na competência</p>
         </div>
       </div>
 
-      {/* Alerta informativo */}
+      {/* Info */}
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-start gap-3">
-        <Info className="w-5 h-5 text-blue-400 mt-0.5" />
-        <div className="text-sm text-blue-300">
-          <strong>Como funciona:</strong> Produtos monofásicos são excluídos do cálculo do DAS pois o PIS/COFINS já foi recolhido na origem (fabricante/importador).
-          Se você identificar que algum produto NÃO deveria ser monofásico, remova-o da lista e o cálculo será reprocessado automaticamente.
-        </div>
+        <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+        <p className="text-blue-300 text-sm">
+          Os monofásicos são excluídos do cálculo do DAS pois o PIS/COFINS já foi recolhido na origem (fabricante/importador). 
+          Se você identificar que algum produto NÃO deveria ser monofásico, remova-o da lista e o cálculo será recalculado automaticamente.
+        </p>
       </div>
 
       {/* Tabs e Filtros */}
-      <div className="bg-[#141414] rounded-lg border border-[#2A2A2A]">
-        <div className="border-b border-[#2A2A2A] px-4 py-3 flex items-center justify-between">
-          <div className="flex gap-2">
-            <button
-              onClick={() => { setActiveTab('ncm'); clearSelection(); }}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                activeTab === 'ncm' 
-                  ? 'bg-[#C8A951] text-black font-medium' 
-                  : 'text-gray-400 hover:bg-[#2A2A2A]'
-              }`}
-              data-testid="tab-ncm"
-            >
-              <Hash className="w-4 h-4" />
-              Por NCM ({filteredNcms.length})
-            </button>
-            <button
-              onClick={() => { setActiveTab('produtos'); clearSelection(); }}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                activeTab === 'produtos' 
-                  ? 'bg-[#C8A951] text-black font-medium' 
-                  : 'text-gray-400 hover:bg-[#2A2A2A]'
-              }`}
-              data-testid="tab-produtos"
-            >
-              <Package className="w-4 h-4" />
-              Por Produto ({filteredProdutos.length})
-            </button>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTab('ncm')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+              activeTab === 'ncm' 
+                ? 'bg-[#C8A951] text-black' 
+                : 'bg-[#2A2A2A] text-gray-400 hover:bg-[#3A3A3A]'
+            }`}
+          >
+            <Hash className="w-4 h-4" />
+            Por NCM ({data?.ncms_monofasicos?.length || 0})
+          </button>
+          <button
+            onClick={() => setActiveTab('produto')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+              activeTab === 'produto' 
+                ? 'bg-[#C8A951] text-black' 
+                : 'bg-[#2A2A2A] text-gray-400 hover:bg-[#3A3A3A]'
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            Por Produto ({data?.produtos_monofasicos?.length || 0})
+          </button>
+        </div>
+        
+        <div className="flex gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-4 py-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg text-white placeholder:text-gray-500 focus:border-[#C8A951] focus:outline-none"
+            />
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-              <input
-                type="text"
-                placeholder="Buscar..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg text-sm w-64 text-white placeholder-gray-500 focus:border-[#C8A951] focus:outline-none"
-                data-testid="input-search"
-              />
-            </div>
-            
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-3 py-2 text-sm text-white focus:border-[#C8A951] focus:outline-none"
-              data-testid="select-filter"
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-3 py-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+          >
+            <option value="todos">Todos</option>
+            <option value="incluidos">Incluídos</option>
+            <option value="excluidos">Excluídos pelo usuário</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Ações em massa */}
+      {selectedItems.size > 0 && (
+        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg p-4 flex items-center justify-between">
+          <p className="text-white">
+            {selectedItems.size} item(ns) selecionado(s)
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleAction('remover', Array.from(selectedItems))}
+              disabled={processing}
+              className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
             >
-              <option value="todos">Todos</option>
-              <option value="ativos">Ativos (monofásicos)</option>
-              <option value="excluidos">Excluídos pelo usuário</option>
-            </select>
+              <Plus className="w-4 h-4" />
+              Voltar para Tributação
+            </button>
+            <button
+              onClick={() => handleAction('adicionar', Array.from(selectedItems))}
+              disabled={processing}
+              className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4" />
+              Marcar como Monofásico
+            </button>
           </div>
         </div>
+      )}
 
-        {/* Barra de Ações */}
-        {selectedItems.size > 0 && (
-          <div className="bg-[#C8A951]/10 px-4 py-3 flex items-center justify-between border-b border-[#2A2A2A]">
-            <span className="text-sm text-[#C8A951]">
-              {selectedItems.size} item(ns) selecionado(s)
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleAction(activeTab === 'ncm' ? 'excluir_lote' : 'excluir_produto', Array.from(selectedItems))}
-                disabled={processing}
-                className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-sm hover:bg-red-500/30 flex items-center gap-1 disabled:opacity-50"
-                data-testid="btn-excluir-lote"
-              >
-                <Trash2 className="w-4 h-4" />
-                Remover da lista
-              </button>
-              <button
-                onClick={() => handleAction(activeTab === 'ncm' ? 'restaurar_lote' : 'restaurar_produto', Array.from(selectedItems))}
-                disabled={processing}
-                className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-sm hover:bg-green-500/30 flex items-center gap-1 disabled:opacity-50"
-                data-testid="btn-restaurar-lote"
-              >
-                <Plus className="w-4 h-4" />
-                Restaurar como monofásico
-              </button>
-              <button
-                onClick={clearSelection}
-                className="px-3 py-1.5 bg-[#2A2A2A] text-gray-300 rounded-lg text-sm hover:bg-[#333]"
-              >
-                Limpar seleção
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Tabela NCMs */}
-        {activeTab === 'ncm' && (
-          <div className="overflow-x-auto">
-            <table className="w-full" data-testid="table-ncm">
-              <thead className="bg-[#0A0A0A]">
-                <tr>
-                  <th className="px-4 py-3 text-left">
-                    <button onClick={selectAll} className="text-gray-500 hover:text-gray-300">
-                      {selectedItems.size === filteredNcms.length && filteredNcms.length > 0 ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                    </button>
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">NCM</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Tipo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Motivo</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Valor Total</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">Qtd</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">Status</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#2A2A2A]">
-                {filteredNcms.map((item) => (
+      {/* Tabela */}
+      <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-[#1A1A1A]">
+            <tr>
+              <th className="px-4 py-3 text-left">
+                <button 
+                  onClick={toggleSelectAll}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  {selectedItems.size === filteredItems.length && filteredItems.length > 0 ? (
+                    <CheckSquare className="w-5 h-5" />
+                  ) : (
+                    <Square className="w-5 h-5" />
+                  )}
+                </button>
+              </th>
+              <th className="px-4 py-3 text-left text-gray-400 text-sm font-medium">
+                {activeTab === 'ncm' ? 'NCM' : 'PRODUTO'}
+              </th>
+              <th className="px-4 py-3 text-left text-gray-400 text-sm font-medium">TIPO</th>
+              <th className="px-4 py-3 text-left text-gray-400 text-sm font-medium">MOTIVO</th>
+              <th className="px-4 py-3 text-right text-gray-400 text-sm font-medium">VALOR TOTAL</th>
+              <th className="px-4 py-3 text-center text-gray-400 text-sm font-medium">QTD</th>
+              <th className="px-4 py-3 text-center text-gray-400 text-sm font-medium">STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredItems.length === 0 ? (
+              <tr>
+                <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
+                  Nenhum {activeTab === 'ncm' ? 'NCM' : 'produto'} encontrado com os filtros aplicados.
+                </td>
+              </tr>
+            ) : (
+              filteredItems.map((item, index) => {
+                const id = item.ncm || item.produto;
+                const isSelected = selectedItems.has(id);
+                
+                return (
                   <tr 
-                    key={item.ncm} 
-                    className={`hover:bg-[#1A1A1A] ${item.status === 'excluido' ? 'opacity-60' : ''}`}
+                    key={index} 
+                    className={`border-t border-[#2A2A2A] ${isSelected ? 'bg-[#C8A951]/10' : 'hover:bg-[#1A1A1A]'}`}
                   >
                     <td className="px-4 py-3">
-                      <button onClick={() => toggleSelectItem(item.ncm)}>
-                        {selectedItems.has(item.ncm) ? 
-                          <CheckSquare className="w-4 h-4 text-[#C8A951]" /> : 
-                          <Square className="w-4 h-4 text-gray-500" />
-                        }
+                      <button 
+                        onClick={() => toggleSelectItem(id)}
+                        className="text-gray-400 hover:text-white transition-colors"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="w-5 h-5 text-[#C8A951]" />
+                        ) : (
+                          <Square className="w-5 h-5" />
+                        )}
                       </button>
                     </td>
-                    <td className="px-4 py-3 font-mono font-medium text-white">{item.ncm}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        item.tipo === 'COMBUSTÍVEL' ? 'bg-yellow-500/20 text-yellow-400' :
-                        item.tipo === 'MEDICAMENTO' ? 'bg-red-500/20 text-red-400' :
-                        item.tipo === 'COSMÉTICOS' ? 'bg-pink-500/20 text-pink-400' :
-                        item.tipo === 'BEBIDA FRIA' ? 'bg-blue-500/20 text-blue-400' :
-                        item.tipo === 'VEÍCULO' ? 'bg-purple-500/20 text-purple-400' :
-                        item.tipo === 'EQUIPAMENTO' ? 'bg-cyan-500/20 text-cyan-400' :
+                      <div>
+                        <p className="text-white font-mono">{item.ncm || '-'}</p>
+                        <p className="text-gray-500 text-sm truncate max-w-xs">
+                          {item.descricao || item.produto || '-'}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        item.tipo === 'COMBUSTIVEIS' ? 'bg-orange-500/20 text-orange-400' :
+                        item.tipo === 'BEBIDAS' ? 'bg-blue-500/20 text-blue-400' :
+                        item.tipo === 'AUTOPECAS' ? 'bg-purple-500/20 text-purple-400' :
+                        item.tipo === 'FARMACIA' ? 'bg-green-500/20 text-green-400' :
                         'bg-gray-500/20 text-gray-400'
                       }`}>
-                        {item.tipo}
+                        {item.tipo || 'GERAL'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-400 max-w-xs truncate">{item.motivo}</td>
-                    <td className="px-4 py-3 text-right font-medium text-white">{formatCurrency(item.valor_total)}</td>
-                    <td className="px-4 py-3 text-center text-gray-400">{item.qtd_produtos}</td>
-                    <td className="px-4 py-3 text-center">
-                      {item.status === 'excluido' ? (
-                        <span className="px-2 py-1 bg-gray-500/20 text-gray-400 rounded-full text-xs">Excluído</span>
-                      ) : item.status === 'incluido_manual' ? (
-                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs">Manual</span>
-                      ) : (
-                        <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">Ativo</span>
-                      )}
+                    <td className="px-4 py-3 text-gray-400 text-sm">
+                      {item.motivo || 'Classificação por NCM'}
+                    </td>
+                    <td className="px-4 py-3 text-right text-white">
+                      {formatCurrency(item.valor_total)}
+                    </td>
+                    <td className="px-4 py-3 text-center text-gray-400">
+                      {item.quantidade || 1}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {item.status === 'excluido' ? (
-                        <button
-                          onClick={() => handleAction('restaurar_ncm', [item.ncm])}
-                          disabled={processing}
-                          className="text-green-400 hover:text-green-300 disabled:opacity-50"
-                          title="Restaurar como monofásico"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
+                      {item.incluido !== false ? (
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-red-500/20 text-red-400">
+                          Monofásico
+                        </span>
                       ) : (
-                        <button
-                          onClick={() => handleAction('excluir_ncm', [item.ncm])}
-                          disabled={processing}
-                          className="text-red-400 hover:text-red-300 disabled:opacity-50"
-                          title="Remover da lista de monofásicos"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-green-500/20 text-green-400">
+                          Tributado
+                        </span>
                       )}
                     </td>
                   </tr>
-                ))}
-                {filteredNcms.length === 0 && (
-                  <tr>
-                    <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
-                      Nenhum NCM encontrado com os filtros aplicados.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Tabela Produtos */}
-        {activeTab === 'produtos' && (
-          <div className="overflow-x-auto">
-            <table className="w-full" data-testid="table-produtos">
-              <thead className="bg-[#0A0A0A]">
-                <tr>
-                  <th className="px-4 py-3 text-left">
-                    <button onClick={selectAll} className="text-gray-500 hover:text-gray-300">
-                      {selectedItems.size === filteredProdutos.length && filteredProdutos.length > 0 ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                    </button>
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Código</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Descrição</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">NCM</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Valor</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">Origem</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#2A2A2A]">
-                {filteredProdutos.slice(0, 100).map((item) => (
-                  <tr 
-                    key={item.id} 
-                    className={`hover:bg-[#1A1A1A] ${item.is_excluido ? 'opacity-60' : ''}`}
-                  >
-                    <td className="px-4 py-3">
-                      <button onClick={() => toggleSelectItem(item.id)}>
-                        {selectedItems.has(item.id) ? 
-                          <CheckSquare className="w-4 h-4 text-[#C8A951]" /> : 
-                          <Square className="w-4 h-4 text-gray-500" />
-                        }
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-sm text-gray-300">{item.codigo || '-'}</td>
-                    <td className="px-4 py-3 text-sm max-w-xs truncate text-white" title={item.descricao}>{item.descricao}</td>
-                    <td className="px-4 py-3 font-mono text-sm text-gray-300">{item.ncm}</td>
-                    <td className="px-4 py-3 text-right font-medium text-white">{formatCurrency(item.valor)}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        item.origem === 'sistema' ? 'bg-blue-500/20 text-blue-400' :
-                        item.origem === 'incluido_usuario' ? 'bg-purple-500/20 text-purple-400' :
-                        item.origem === 'excluido_usuario' ? 'bg-gray-500/20 text-gray-400' :
-                        'bg-gray-500/20 text-gray-400'
-                      }`}>
-                        {item.origem === 'sistema' ? 'Sistema' :
-                         item.origem === 'incluido_usuario' ? 'Manual' :
-                         item.origem === 'excluido_usuario' ? 'Excluído' : '-'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {item.is_excluido ? (
-                        <button
-                          onClick={() => handleAction('restaurar_produto', [item.id])}
-                          disabled={processing}
-                          className="text-green-400 hover:text-green-300 disabled:opacity-50"
-                          title="Restaurar"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleAction('excluir_produto', [item.id])}
-                          disabled={processing}
-                          className="text-red-400 hover:text-red-300 disabled:opacity-50"
-                          title="Excluir"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {filteredProdutos.length === 0 && (
-                  <tr>
-                    <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
-                      Nenhum produto encontrado com os filtros aplicados.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-            {filteredProdutos.length > 100 && (
-              <div className="px-4 py-3 bg-[#0A0A0A] text-center text-sm text-gray-500">
-                Mostrando 100 de {filteredProdutos.length} produtos. Use os filtros para refinar a busca.
-              </div>
+                );
+              })
             )}
-          </div>
-        )}
+          </tbody>
+        </table>
+        
+        {/* Footer */}
+        <div className="px-4 py-3 bg-[#0A0A0A] text-center text-sm text-gray-500">
+          Mostrando {filteredItems.length} de {
+            activeTab === 'ncm' 
+              ? (data?.ncms_monofasicos?.length || 0)
+              : (data?.produtos_monofasicos?.length || 0)
+          } itens
+        </div>
       </div>
     </div>
   );
