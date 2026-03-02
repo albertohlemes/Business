@@ -102,7 +102,21 @@ export default function MonofasicosManager() {
         }
       );
       
-      const result = await response.json();
+      // Clone response before reading to avoid "body stream already read" error
+      const responseClone = response.clone();
+      
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        // Fallback: try reading from clone
+        const text = await responseClone.text();
+        try {
+          result = JSON.parse(text);
+        } catch {
+          result = { detail: text || 'Erro desconhecido' };
+        }
+      }
       
       if (!response.ok) {
         throw new Error(result.detail || 'Erro ao processar ação');
@@ -135,7 +149,21 @@ export default function MonofasicosManager() {
         }
       );
       
-      const result = await response.json();
+      // Clone response before reading to avoid "body stream already read" error
+      const responseClone = response.clone();
+      
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        // Fallback: try reading from clone
+        const text = await responseClone.text();
+        try {
+          result = JSON.parse(text);
+        } catch {
+          result = { detail: text || 'Erro desconhecido' };
+        }
+      }
       
       if (!response.ok) {
         throw new Error(result.detail || 'Erro ao reprocessar');
@@ -238,7 +266,7 @@ export default function MonofasicosManager() {
   }
 
   return (
-    <div className="p-6 space-y-6" data-testid="monofasicos-manager">
+    <div className="min-h-screen bg-[#0A0A0A] p-6 space-y-6" data-testid="monofasicos-manager">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">

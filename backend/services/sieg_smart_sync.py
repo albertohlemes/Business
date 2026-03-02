@@ -95,13 +95,23 @@ async def verificar_cancelamentos_posteriores(
     db, 
     company_id: str, 
     competencia: str,
-    chaves_sieg: List[str]
+    chaves_sieg: List[str] = None,
+    xmls_sieg: List[Dict] = None
 ) -> Dict[str, Any]:
     """
     Verifica se alguma nota já importada foi cancelada posteriormente no SIEG.
     
-    Compara as chaves dos XMLs recebidos do SIEG com as notas importadas
-    e identifica quais devem ser marcadas como canceladas.
+    ATUALIZADO: Agora verifica:
+    1. Eventos de cancelamento na collection eventos_cancelamento
+    2. Eventos de cancelamento embutidos nos XMLs do SIEG (procEvento, cStat 135)
+    3. Notas que existem no banco mas não vieram no SIEG (podem ter sido canceladas)
+    
+    Args:
+        db: Database connection
+        company_id: ID da empresa
+        competencia: Competência (MM/YYYY)
+        chaves_sieg: Lista de chaves NFe que vieram do SIEG
+        xmls_sieg: Lista de XMLs raw do SIEG para buscar eventos de cancelamento
     
     Returns:
         {
@@ -109,37 +119,105 @@ async def verificar_cancelamentos_posteriores(
             "total": int
         }
     """
-    # Buscar notas importadas que podem ter sido canceladas
-    notas_importadas = await db.xml_documents.find(
-        {
-            "company_id": company_id,
-            "competencia": competencia,
-            "cancelada": {"$ne": True},
-            "chave_nfe": {"$in": chaves_sieg}
-        },
-        {"chave_nfe": 1, "_id": 0}
-    ).to_list(length=50000)
+    import re
     
-    chaves_importadas = {doc.get("chave_nfe") for doc in notas_importadas}
-    
-    # Verificar eventos de cancelamento na collection
     canceladas = []
-    for chave in chaves_importadas:
-        evento = await db.eventos_cancelamento.find_one({
-            "chave_nfe": chave,
-            "processado": {"$ne": True}
-        })
-        if evento:
-            canceladas.append({
-                "chave": chave,
-                "motivo": evento.get("justificativa", "Cancelamento via SIEG"),
-                "data_cancelamento": evento.get("data_cancelamento")
-            })
+    chaves_sieg_set = set(chaves_sieg or [])
     
-    logger.info(f"[SMART SYNC] {len(canceladas)} notas com cancelamento pendente")
+    # 1. Buscar notas importadas que NÃO vieram no SIEG (podem ter sido canceladas)
+    if chaves_sieg_set:
+        notas_importadas = await db.xml_documents.find(
+            {
+                "company_id": company_id,
+                "competencia": competencia,
+                "cancelada": {"$ne": True},
+                "chave_nfe": {"$exists": True, "$ne": ""}
+            },
+            {"chave_nfe": 1, "numero_nfe": 1, "_id": 0}
+        ).to_list(length=50000)
+        
+        chaves_importadas = {doc.get("chave_nfe") for doc in notas_importadas if doc.get("chave_nfe")}
+        
+        # Notas que existem no banco mas não vieram no SIEG
+        # CUIDADO: Isso pode ser por limite de paginação, então só logar como warning
+        notas_ausentes = chaves_importadas - chaves_sieg_set
+        if notas_ausentes:
+            logger.warning(f"[SMART SYNC] {len(notas_ausentes)} notas existem no banco mas não vieram no SIEG. Verificar se foram canceladas.")
+    
+    # 2. Verificar eventos de cancelamento embutidos nos XMLs do SIEG
+    if xmls_sieg:
+        for xml_info in xmls_sieg:
+            xml_content = xml_info.get("xml", "")
+            if not xml_content:
+                continue
+            
+            # Verificar se o XML é um evento de cancelamento (procEventoNFe)
+            if "<procEventoNFe" in xml_content and "<cStat>135</cStat>" in xml_content:
+                # Evento de cancelamento homologado
+                chave_match = re.search(r'<chNFe>(\d{44})</chNFe>', xml_content)
+                justificativa_match = re.search(r'<xJust>([^<]+)</xJust>', xml_content)
+                data_match = re.search(r'<dhRegEvento>([^<]+)</dhRegEvento>', xml_content)
+                
+                if chave_match:
+                    chave = chave_match.group(1)
+                    canceladas.append({
+                        "chave": chave,
+                        "motivo": justificativa_match.group(1) if justificativa_match else "Cancelamento via evento SIEG",
+                        "data_cancelamento": data_match.group(1) if data_match else datetime.now(timezone.utc).isoformat(),
+                        "origem": "evento_xml_sieg"
+                    })
+                    logger.info(f"[SMART SYNC] Cancelamento detectado via evento XML: {chave[:20]}...")
+            
+            # Verificar se o próprio XML da NFe indica cancelamento (cStat 101, 151, 155)
+            # cStat 101 = Cancelamento homologado
+            # cStat 151 = Cancelamento de NFe autorizada
+            # cStat 155 = Cancelamento de NFe autorizada fora do prazo
+            cstat_match = re.search(r'<cStat>(\d+)</cStat>', xml_content)
+            if cstat_match and cstat_match.group(1) in ['101', '151', '155']:
+                chave_match = re.search(r'<chNFe>(\d{44})</chNFe>', xml_content)
+                if not chave_match:
+                    chave_match = re.search(r'Id="NFe(\d{44})"', xml_content)
+                
+                if chave_match:
+                    chave = chave_match.group(1)
+                    xmotivo_match = re.search(r'<xMotivo>([^<]+)</xMotivo>', xml_content)
+                    canceladas.append({
+                        "chave": chave,
+                        "motivo": xmotivo_match.group(1) if xmotivo_match else f"Cancelamento - cStat {cstat_match.group(1)}",
+                        "data_cancelamento": datetime.now(timezone.utc).isoformat(),
+                        "origem": "cstat_cancelamento"
+                    })
+                    logger.info(f"[SMART SYNC] Cancelamento detectado via cStat: {chave[:20]}...")
+    
+    # 3. Verificar eventos de cancelamento na collection (método original)
+    if chaves_sieg_set:
+        for chave in chaves_sieg_set:
+            evento = await db.eventos_cancelamento.find_one({
+                "chave_nfe": chave,
+                "processado": {"$ne": True}
+            })
+            if evento:
+                # Verificar se já não está na lista
+                if not any(c["chave"] == chave for c in canceladas):
+                    canceladas.append({
+                        "chave": chave,
+                        "motivo": evento.get("justificativa", "Cancelamento via SIEG"),
+                        "data_cancelamento": evento.get("data_cancelamento"),
+                        "origem": "collection_eventos"
+                    })
+    
+    # Remover duplicatas
+    chaves_vistas = set()
+    canceladas_unicas = []
+    for c in canceladas:
+        if c["chave"] not in chaves_vistas:
+            chaves_vistas.add(c["chave"])
+            canceladas_unicas.append(c)
+    
+    logger.info(f"[SMART SYNC] {len(canceladas_unicas)} notas com cancelamento pendente")
     return {
-        "canceladas": canceladas,
-        "total": len(canceladas)
+        "canceladas": canceladas_unicas,
+        "total": len(canceladas_unicas)
     }
 
 
@@ -454,3 +532,123 @@ async def registrar_sync_log(
     
     await db.sieg_sync_logs.insert_one(log_entry)
     return log_entry["id"]
+
+
+
+async def detectar_notas_excluidas_para_reimportar(
+    db,
+    company_id: str,
+    competencia: str,
+    chaves_sieg: set
+) -> Dict[str, Any]:
+    """
+    Detecta notas que foram excluídas pelo usuário mas ainda existem no SIEG.
+    Essas notas devem ser reimportadas.
+    
+    LÓGICA:
+    1. O usuário exclui manualmente uma nota do sistema (ou exclui todo o mês)
+    2. Na próxima sincronização, o SIEG traz as mesmas notas
+    3. Como a nota não existe mais no banco, ela deve ser reimportada
+    
+    Esta função identifica quais chaves do SIEG NÃO existem mais no banco
+    (foram excluídas) e devem ser reimportadas.
+    
+    Returns:
+        {
+            "chaves_para_reimportar": set(),
+            "total": int
+        }
+    """
+    if not chaves_sieg:
+        return {"chaves_para_reimportar": set(), "total": 0}
+    
+    # Buscar todas as chaves que existem no banco para esta competência
+    docs_existentes = await db.xml_documents.find(
+        {
+            "company_id": company_id,
+            "competencia": competencia,
+            "chave_nfe": {"$exists": True, "$ne": ""}
+        },
+        {"chave_nfe": 1, "_id": 0}
+    ).to_list(length=100000)
+    
+    chaves_existentes = {doc.get("chave_nfe") for doc in docs_existentes if doc.get("chave_nfe")}
+    
+    # Chaves do SIEG que não existem no banco = foram excluídas ou nunca importadas
+    chaves_para_reimportar = chaves_sieg - chaves_existentes
+    
+    if chaves_para_reimportar:
+        logger.info(f"[SMART SYNC] {len(chaves_para_reimportar)} notas do SIEG não existem no banco (excluídas ou novas)")
+    
+    return {
+        "chaves_para_reimportar": chaves_para_reimportar,
+        "total": len(chaves_para_reimportar)
+    }
+
+
+async def sincronizar_cancelamentos_sieg(
+    db,
+    company_id: str,
+    competencia: str,
+    xmls_sieg: List[Dict]
+) -> Dict[str, Any]:
+    """
+    Sincroniza status de cancelamento entre SIEG e banco local.
+    
+    IMPORTANTE: Esta função deve ser chamada em TODA sincronização SIEG.
+    
+    1. Verifica eventos de cancelamento nos XMLs do SIEG
+    2. Marca notas canceladas no banco local
+    3. Remove notas do SIEG que foram canceladas (para evitar reimportação)
+    
+    Returns:
+        {
+            "notas_canceladas": List de chaves,
+            "total_cancelados": int,
+            "xmls_filtrados": List de XMLs sem os cancelados
+        }
+    """
+    import re
+    
+    cancelamentos = await verificar_cancelamentos_posteriores(
+        db=db,
+        company_id=company_id,
+        competencia=competencia,
+        chaves_sieg=None,
+        xmls_sieg=xmls_sieg
+    )
+    
+    total_processados = 0
+    notas_canceladas = []
+    
+    if cancelamentos["canceladas"]:
+        total_processados = await processar_cancelamentos(db, company_id, cancelamentos["canceladas"])
+        notas_canceladas = [c["chave"] for c in cancelamentos["canceladas"]]
+    
+    # Filtrar XMLs para remover os cancelados
+    chaves_canceladas = set(notas_canceladas)
+    xmls_filtrados = []
+    
+    for xml_info in xmls_sieg:
+        xml_content = xml_info.get("xml", "")
+        if not xml_content:
+            continue
+        
+        # Extrair chave
+        chave_match = re.search(r'<chNFe>(\d{44})</chNFe>', xml_content)
+        if not chave_match:
+            chave_match = re.search(r'Id="NFe(\d{44})"', xml_content)
+        
+        if chave_match:
+            chave = chave_match.group(1)
+            if chave in chaves_canceladas:
+                logger.info(f"[SMART SYNC] Removendo XML cancelado do processamento: {chave[:20]}...")
+                continue
+        
+        xmls_filtrados.append(xml_info)
+    
+    return {
+        "notas_canceladas": notas_canceladas,
+        "total_cancelados": total_processados,
+        "xmls_filtrados": xmls_filtrados
+    }

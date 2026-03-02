@@ -1,0 +1,59 @@
+{
+  "summary": "Backend testing for PIS/COFINS Lucro Presumido fixes and CFOP filter. All 9 tests passed. Verified: 1) Lucro Presumido NUNCA gera créditos (gera_credito=False), 2) Alíquotas corretas 0.65%/3.00%, 3) Filtro CFOP funciona em /api/xml/documents, 4) MonofasicosManager.js tem bg-[#0A0A0A] na linha 269",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_lucro_presumido_pis_cofins.py",
+    "/app/test_reports/pytest/pytest_lucro_presumido_pis_cofins.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "✅ pis_cofins_calculator.py linhas 804-820: Lucro Presumido entrada sempre retorna gera_credito=False, valor_pis=0, valor_cofins=0",
+    "✅ pis_cofins_calculator.py linhas 830-831: Alíquotas saída Lucro Presumido são ALIQUOTAS_PRESUMIDO['COMERCIO'] = 0.65%/3.00%",
+    "✅ server.py linhas 13182-13185: Filtro CFOP implementado em /api/xml/documents",
+    "✅ MonofasicosManager.js linha 269: min-h-screen bg-[#0A0A0A] (fundo escuro)",
+    "✅ MonofasicosManager.js linhas 105-119: Clone de response antes de ler para evitar 'body stream already read' error"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_lucro_presumido_pis_cofins.py"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "N/A - backend only testing requested"
+  },
+  "test_credentials": {
+    "email": "alberto.lemes@businessconta.com.br",
+    "password": "@Ahl142536"
+  },
+  "seed_data_creation": "None - unit tests use calcular_pis_cofins_produto function directly",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All PIS/COFINS Lucro Presumido fixes verified. The calcular_pis_cofins_produto function in pis_cofins_calculator.py correctly handles: 1) Entradas no Lucro Presumido NUNCA geram créditos, 2) Alíquotas de saída são 0.65%/3.00%. CFOP filter is working on /api/xml/documents endpoint.",
+  "verified_code_sections": {
+    "pis_cofins_calculator.py:804-820": "Lucro Presumido entrada: CST=98, valor_pis=0, valor_cofins=0, gera_credito=False",
+    "pis_cofins_calculator.py:830-831": "Lucro Presumido saída: aliquota_pis=0.65, aliquota_cofins=3.00",
+    "pis_cofins_calculator.py:502-505": "ALIQUOTAS_PRESUMIDO constantes: COMERCIO={pis: 0.65, cofins: 3.00}",
+    "server.py:13100": "cfop parameter added to list_documents endpoint",
+    "server.py:13182-13185": "CFOP filter query: produtos.cfop = cfop_limpo",
+    "MonofasicosManager.js:269": "min-h-screen bg-[#0A0A0A] (dark background)",
+    "MonofasicosManager.js:105-119": "Response clone for body stream handling"
+  },
+  "tests_passed": [
+    "test_lucro_presumido_entrada_nunca_gera_credito",
+    "test_lucro_presumido_entrada_monofasico_sem_credito",
+    "test_lucro_presumido_aliquotas_corretas_saida",
+    "test_aliquotas_presumido_constantes",
+    "test_comparar_lucro_real_vs_presumido",
+    "test_cfop_filter_parameter_accepted",
+    "test_cfop_filter_with_company",
+    "test_backend_status",
+    "test_login_endpoint"
+  ]
+}

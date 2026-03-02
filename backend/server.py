@@ -7284,21 +7284,86 @@ async def execute_reimport_task(task_id: str, company_id: str, competencia: str)
         progress["completed"] = True
 
 
-async def verificar_e_processar_cancelamentos_sieg(db, company_id: str, competencia: str) -> int:
+async def verificar_e_processar_cancelamentos_sieg(db, company_id: str, competencia: str, xmls_sieg: list = None) -> int:
     """
     Verifica e processa cancelamentos de notas já importadas.
     Chamado mesmo quando não há novos XMLs para garantir que cancelamentos sejam aplicados.
+    
+    ATUALIZADO: Agora também verifica cancelamentos embutidos nos XMLs do SIEG.
     """
     try:
-        # Buscar eventos de cancelamento não processados
+        total_processados = 0
+        
+        # 1. Verificar cancelamentos embutidos nos XMLs do SIEG (se disponíveis)
+        if xmls_sieg:
+            import re
+            for xml_info in xmls_sieg:
+                xml_content = xml_info.get("xml", "")
+                if not xml_content:
+                    continue
+                
+                # Verificar se é evento de cancelamento (procEventoNFe com cStat 135)
+                is_cancelamento = False
+                chave_nfe = None
+                justificativa = "Cancelamento detectado via SIEG"
+                data_cancelamento = datetime.now(timezone.utc).isoformat()
+                
+                if "<procEventoNFe" in xml_content and "<cStat>135</cStat>" in xml_content:
+                    is_cancelamento = True
+                    chave_match = re.search(r'<chNFe>(\d{44})</chNFe>', xml_content)
+                    if chave_match:
+                        chave_nfe = chave_match.group(1)
+                    
+                    justificativa_match = re.search(r'<xJust>([^<]+)</xJust>', xml_content)
+                    if justificativa_match:
+                        justificativa = justificativa_match.group(1)
+                    
+                    data_match = re.search(r'<dhRegEvento>([^<]+)</dhRegEvento>', xml_content)
+                    if data_match:
+                        data_cancelamento = data_match.group(1)
+                
+                # Verificar se o próprio XML da NFe indica cancelamento (cStat 101, 151, 155)
+                cstat_match = re.search(r'<cStat>(\d+)</cStat>', xml_content)
+                if cstat_match and cstat_match.group(1) in ['101', '151', '155']:
+                    is_cancelamento = True
+                    chave_match = re.search(r'<chNFe>(\d{44})</chNFe>', xml_content)
+                    if not chave_match:
+                        chave_match = re.search(r'Id="NFe(\d{44})"', xml_content)
+                    if chave_match:
+                        chave_nfe = chave_match.group(1)
+                    
+                    xmotivo_match = re.search(r'<xMotivo>([^<]+)</xMotivo>', xml_content)
+                    if xmotivo_match:
+                        justificativa = xmotivo_match.group(1)
+                
+                # Processar cancelamento se encontrado
+                if is_cancelamento and chave_nfe:
+                    nota = await db.xml_documents.find_one({
+                        "company_id": company_id,
+                        "chave_nfe": chave_nfe,
+                        "cancelada": {"$ne": True}
+                    })
+                    
+                    if nota:
+                        await db.xml_documents.update_one(
+                            {"_id": nota["_id"]},
+                            {
+                                "$set": {
+                                    "cancelada": True,
+                                    "data_cancelamento": data_cancelamento,
+                                    "justificativa_cancelamento": justificativa,
+                                    "status_validacao": "cancelada"
+                                }
+                            }
+                        )
+                        total_processados += 1
+                        logger.info(f"[SIEG] Nota {chave_nfe[:20]}... marcada como cancelada via XML")
+        
+        # 2. Verificar eventos de cancelamento não processados na collection
         eventos = await db.eventos_cancelamento.find({
             "processado": {"$ne": True}
         }).to_list(length=10000)
         
-        if not eventos:
-            return 0
-        
-        total_processados = 0
         for evento in eventos:
             chave_nfe = evento.get("chave_nfe")
             if not chave_nfe:
@@ -7574,7 +7639,7 @@ async def sieg_sync_execute(
         if total_xmls == 0:
             # Mesmo sem XMLs novos, verificar cancelamentos
             progress["step"] = "Verificando cancelamentos..."
-            await verificar_e_processar_cancelamentos_sieg(db, company_id, competencia)
+            await verificar_e_processar_cancelamentos_sieg(db, company_id, competencia, xmls_sieg=None)
             
             progress["step"] = "Nenhum XML encontrado no SIEG"
             progress["progress_percent"] = 100
@@ -7610,6 +7675,20 @@ async def sieg_sync_execute(
         results["smart_sync"]["notas_duplicadas"] = total_duplicados
         
         logger.info(f"[SMART SYNC] {total_novos} novos, {total_duplicados} duplicados filtrados")
+        
+        # ============================================================
+        # SMART SYNC: Verificar cancelamentos em TODOS os XMLs
+        # ============================================================
+        progress["step"] = "Verificando cancelamentos..."
+        progress["progress_percent"] = 7
+        
+        todos_xmls_sieg = entrada_xmls + saida_xmls
+        total_cancelados = await verificar_e_processar_cancelamentos_sieg(
+            db, company_id, competencia, xmls_sieg=todos_xmls_sieg
+        )
+        if total_cancelados > 0:
+            results["smart_sync"]["notas_canceladas"] = total_cancelados
+            logger.info(f"[SMART SYNC] {total_cancelados} notas marcadas como canceladas")
         
         # ============================================================
         # SMART SYNC: Detectar devoluções de fornecedor
@@ -13018,6 +13097,7 @@ async def list_documents(
     modelo: Optional[str] = None,
     status: Optional[str] = None,  # 'ativa', 'cancelada' ou None para todas
     search: Optional[str] = None,  # Busca por número, CNPJ, emitente ou chave
+    cfop: Optional[str] = None,  # NOVO: Filtro por CFOP específico
     skip: int = 0,  # Paginação: quantos pular
     limit: int = 100,  # Paginação: máximo por página (padrão 100)
     current_user: User = Depends(get_current_user)
@@ -13098,6 +13178,11 @@ async def list_documents(
         query['cancelada'] = True
     elif status == 'ativa':
         query.update(get_filtro_notas_ativas())
+    
+    # NOVO: Filtrar por CFOP específico (busca em produtos.cfop)
+    if cfop and cfop.strip():
+        cfop_limpo = cfop.strip()
+        query['produtos.cfop'] = cfop_limpo
     
     # Contar total para paginação
     total_count = await db.xml_documents.count_documents(query)

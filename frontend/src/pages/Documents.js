@@ -143,6 +143,7 @@ const Documents = ({ user, onLogout }) => {
   
   // Filtro de status (ativas/canceladas)
   const [filterStatus, setFilterStatus] = useState('ativas'); // 'ativas', 'canceladas', 'todas'
+  const [filterCfop, setFilterCfop] = useState(''); // Filtro por CFOP específico
 
   // Modal de exclusão em massa
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -192,7 +193,7 @@ const Documents = ({ user, onLogout }) => {
     if (ctxCompany && operacao && tipoDoc) {
       fetchDocuments();
     }
-  }, [ctxCompany, operacao, tipoDoc, selectedCompetencia, filterStatus]);
+  }, [ctxCompany, operacao, tipoDoc, selectedCompetencia, filterStatus, filterCfop]);
 
   // Efeito para abrir automaticamente o documento destacado (vindo de outra página)
   useEffect(() => {
@@ -249,6 +250,11 @@ const Documents = ({ user, onLogout }) => {
       // Filtrar por status (ativas/canceladas)
       if (filterStatus !== 'todas') {
         params.append('status', filterStatus === 'canceladas' ? 'cancelada' : 'ativa');
+      }
+      
+      // Filtrar por CFOP específico
+      if (filterCfop && filterCfop.trim()) {
+        params.append('cfop', filterCfop.trim());
       }
       
       const res = await axios.get(`${API}/xml/documents?${params.toString()}`, {
@@ -2662,6 +2668,29 @@ const Documents = ({ user, onLogout }) => {
                   }}
                   className="px-3 py-2 bg-[#2A2A2A] text-white rounded-lg hover:bg-[#3A3A3A] transition-colors"
                   title="Limpar busca"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            
+            {/* Filtro por CFOP */}
+            <div className="relative w-full sm:w-40 flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Filtrar CFOP"
+                  value={filterCfop}
+                  onChange={(e) => setFilterCfop(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  maxLength={4}
+                  className="w-full px-3 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white text-sm placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                />
+              </div>
+              {filterCfop && (
+                <button
+                  onClick={() => setFilterCfop('')}
+                  className="px-3 py-2 bg-[#2A2A2A] text-white rounded-lg hover:bg-[#3A3A3A] transition-colors"
+                  title="Limpar filtro CFOP"
                 >
                   <X className="w-4 h-4" />
                 </button>

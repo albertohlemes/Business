@@ -804,23 +804,19 @@ def calcular_pis_cofins_produto(
     # LUCRO PRESUMIDO
     if regime_tributario == 'LUCRO_PRESUMIDO':
         if tipo_operacao == 'entrada':
-            # Presumido não tem crédito, exceto monofásicos
-            if classificacao['tipo'] == 'MONOFASICO':
-                # Monofásico gera crédito mesmo no presumido
-                resultado['cst'] = classificacao['cst_entrada']
-                resultado['aliquota_pis'] = float(classificacao['aliquota_pis'])
-                resultado['aliquota_cofins'] = float(classificacao['aliquota_cofins'])
-                resultado['valor_pis'] = float((valor * classificacao['aliquota_pis'] / 100).quantize(Decimal('0.01'), ROUND_HALF_UP))
-                resultado['valor_cofins'] = float((valor * classificacao['aliquota_cofins'] / 100).quantize(Decimal('0.01'), ROUND_HALF_UP))
-                resultado['gera_credito'] = True
-            else:
-                # Sem crédito
-                resultado['cst'] = CST_ENTRADA['SEM_CREDITO_CFOP']
-                resultado['aliquota_pis'] = 0
-                resultado['aliquota_cofins'] = 0
-                resultado['valor_pis'] = 0
-                resultado['valor_cofins'] = 0
-                resultado['gera_credito'] = False
+            # ===================================================================
+            # LUCRO PRESUMIDO (REGIME CUMULATIVO): NUNCA GERA CRÉDITO!
+            # Isso inclui produtos monofásicos. No regime cumulativo,
+            # a empresa não tem direito a apropriar créditos de PIS/COFINS.
+            # A única exceção seria devolução de vendas, que gera ESTORNO de 
+            # débito (não crédito), e deve ser tratada no código que chama esta função.
+            # ===================================================================
+            resultado['cst'] = CST_ENTRADA['SEM_CREDITO_CFOP']
+            resultado['aliquota_pis'] = 0
+            resultado['aliquota_cofins'] = 0
+            resultado['valor_pis'] = 0
+            resultado['valor_cofins'] = 0
+            resultado['gera_credito'] = False
         else:  # saída
             # Débito no presumido: 3,65% na regra geral
             if classificacao['tipo'] in ['ALIQUOTA_ZERO', 'MONOFASICO'] and classificacao['aliquota_pis'] == Decimal('0'):
