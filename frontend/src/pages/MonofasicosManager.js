@@ -3,15 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Search, 
-  Filter, 
-  Check, 
   X, 
   RefreshCw,
   AlertTriangle,
   Package,
   Hash,
-  Download,
-  Upload,
   Trash2,
   Plus,
   CheckSquare,
@@ -25,21 +21,18 @@ const API = process.env.REACT_APP_BACKEND_URL;
 export default function MonofasicosManager() {
   const { companyId } = useParams();
   const navigate = useNavigate();
-  const { selectedCompany, selectedCompetencia } = useAppContext();
+  const { selectedCompetencia } = useAppContext();
   
-  // Obter token diretamente do localStorage para garantir disponibilidade
   const token = localStorage.getItem('token');
   
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('ncm'); // 'ncm' ou 'produtos'
+  const [activeTab, setActiveTab] = useState('ncm');
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('todos'); // 'todos', 'ativos', 'excluidos'
+  const [filterStatus, setFilterStatus] = useState('todos');
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [processing, setProcessing] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [ncmsDisponiveis, setNcmsDisponiveis] = useState([]);
 
   const competencia = selectedCompetencia || localStorage.getItem('selectedCompetencia') || (() => {
     const now = new Date();
@@ -47,9 +40,8 @@ export default function MonofasicosManager() {
   })();
 
   const fetchData = useCallback(async () => {
-    // Verificar token e companyId
     if (!companyId) {
-      setError('ID da empresa não encontrado na URL');
+      setError('ID da empresa não encontrado');
       setLoading(false);
       return;
     }
@@ -69,42 +61,23 @@ export default function MonofasicosManager() {
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       
+      const result = await response.json();
+      
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || 'Erro ao carregar dados');
+        throw new Error(result.detail || 'Erro ao carregar dados');
       }
       
-      const result = await response.json();
       setData(result);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [companyId, token, competencia]);
-
-  const fetchNcmsDisponiveis = useCallback(async () => {
-    if (!companyId || !token) return;
-    
-    try {
-      const response = await fetch(
-        `${API}/api/simples-nacional/${companyId}/monofasicos/ncms-disponiveis`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
-      
-      if (response.ok) {
-        const result = await response.json();
-        setNcmsDisponiveis(result.ncms || []);
-      }
-    } catch (err) {
-      console.error('Erro ao carregar NCMs disponíveis:', err);
-    }
-  }, [companyId, token]);
+  }, [companyId, competencia, token]);
 
   useEffect(() => {
     fetchData();
-    fetchNcmsDisponiveis();
-  }, [fetchData, fetchNcmsDisponiveis]);
+  }, [fetchData]);
 
   const handleAction = async (acao, items) => {
     setProcessing(true);
@@ -129,13 +102,15 @@ export default function MonofasicosManager() {
         }
       );
       
+      const result = await response.json();
+      
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || 'Erro ao processar ação');
+        throw new Error(result.detail || 'Erro ao processar ação');
       }
       
-      // Recarregar dados
+      // Recarregar dados e reprocessar automaticamente
       await fetchData();
+      await handleReprocessar(true); // Silencioso
       setSelectedItems(new Set());
       
     } catch (err) {
@@ -145,8 +120,8 @@ export default function MonofasicosManager() {
     }
   };
 
-  const handleReprocessar = async () => {
-    setProcessing(true);
+  const handleReprocessar = async (silencioso = false) => {
+    if (!silencioso) setProcessing(true);
     try {
       const response = await fetch(
         `${API}/api/simples-nacional/${companyId}/monofasicos/reprocessar`,
@@ -166,12 +141,19 @@ export default function MonofasicosManager() {
         throw new Error(result.detail || 'Erro ao reprocessar');
       }
       
-      alert(`Cálculo reprocessado!\n\nFaturamento: R$ ${result.faturamento?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+      if (!silencioso) {
+        alert(`Cálculo reprocessado!\n\nFaturamento: R$ ${result.faturamento?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+      }
+      
+      // Recarregar dados para mostrar valores atualizados
+      await fetchData();
       
     } catch (err) {
-      alert(`Erro: ${err.message}`);
+      if (!silencioso) {
+        alert(`Erro: ${err.message}`);
+      }
     } finally {
-      setProcessing(false);
+      if (!silencioso) setProcessing(false);
     }
   };
 
@@ -200,17 +182,17 @@ export default function MonofasicosManager() {
       item.motivo.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchStatus = filterStatus === 'todos' ||
-      (filterStatus === 'ativos' && item.status === 'ativo') ||
+      (filterStatus === 'ativos' && item.status !== 'excluido') ||
       (filterStatus === 'excluidos' && item.status === 'excluido');
     
     return matchSearch && matchStatus;
   }) || [];
 
-  const filteredProdutos = data?.agrupamento_produtos?.filter(item => {
-    const matchSearch = !searchTerm ||
-      item.ncm.includes(searchTerm) ||
-      item.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.codigo.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredProdutos = data?.produtos?.filter(item => {
+    const matchSearch = !searchTerm || 
+      item.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.ncm?.includes(searchTerm) ||
+      item.codigo?.includes(searchTerm);
     
     const matchStatus = filterStatus === 'todos' ||
       (filterStatus === 'ativos' && !item.is_excluido) ||
@@ -229,7 +211,7 @@ export default function MonofasicosManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+        <RefreshCw className="w-8 h-8 animate-spin text-[#C8A951]" />
         <span className="ml-2 text-gray-400">Carregando...</span>
       </div>
     );
@@ -276,9 +258,9 @@ export default function MonofasicosManager() {
         </div>
         
         <button
-          onClick={handleReprocessar}
+          onClick={() => handleReprocessar(false)}
           disabled={processing}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-[#C8A951] text-black rounded-lg hover:bg-[#B09240] disabled:opacity-50 font-medium"
           data-testid="btn-reprocessar"
         >
           <RefreshCw className={`w-4 h-4 ${processing ? 'animate-spin' : ''}`} />
@@ -288,7 +270,7 @@ export default function MonofasicosManager() {
 
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] p-4">
+        <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
           <div className="text-sm text-gray-400">Total Monofásico Ativo</div>
           <div className="text-2xl font-bold text-orange-500">
             {formatCurrency(data?.resumo?.total_monofasico_ativo)}
@@ -296,7 +278,7 @@ export default function MonofasicosManager() {
           <div className="text-xs text-gray-500">Excluído do cálculo DAS</div>
         </div>
         
-        <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] p-4">
+        <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
           <div className="text-sm text-gray-400">Total Removido pelo Usuário</div>
           <div className="text-2xl font-bold text-green-500">
             {formatCurrency(data?.resumo?.total_monofasico_excluido)}
@@ -304,7 +286,7 @@ export default function MonofasicosManager() {
           <div className="text-xs text-gray-500">Volta para tributação</div>
         </div>
         
-        <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] p-4">
+        <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
           <div className="text-sm text-gray-400">NCMs Monofásicos</div>
           <div className="text-2xl font-bold text-blue-500">
             {data?.resumo?.qtd_ncms_ativos || 0}
@@ -313,7 +295,7 @@ export default function MonofasicosManager() {
           <div className="text-xs text-gray-500">{data?.resumo?.qtd_ncms_excluidos || 0} excluídos</div>
         </div>
         
-        <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] p-4">
+        <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
           <div className="text-sm text-gray-400">Produtos Monofásicos</div>
           <div className="text-2xl font-bold text-purple-500">
             {data?.resumo?.qtd_produtos || 0}
@@ -327,19 +309,19 @@ export default function MonofasicosManager() {
         <Info className="w-5 h-5 text-blue-400 mt-0.5" />
         <div className="text-sm text-blue-300">
           <strong>Como funciona:</strong> Produtos monofásicos são excluídos do cálculo do DAS pois o PIS/COFINS já foi recolhido na origem (fabricante/importador).
-          Se você identificar que algum produto NÃO deveria ser monofásico, remova-o da lista e reprocesse o cálculo.
+          Se você identificar que algum produto NÃO deveria ser monofásico, remova-o da lista e o cálculo será reprocessado automaticamente.
         </div>
       </div>
 
       {/* Tabs e Filtros */}
-      <div className="bg-[#141414] rounded-xl border border-[#2A2A2A]">
+      <div className="bg-[#141414] rounded-lg border border-[#2A2A2A]">
         <div className="border-b border-[#2A2A2A] px-4 py-3 flex items-center justify-between">
           <div className="flex gap-2">
             <button
               onClick={() => { setActiveTab('ncm'); clearSelection(); }}
               className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
                 activeTab === 'ncm' 
-                  ? 'bg-blue-600 text-white' 
+                  ? 'bg-[#C8A951] text-black font-medium' 
                   : 'text-gray-400 hover:bg-[#2A2A2A]'
               }`}
               data-testid="tab-ncm"
@@ -351,7 +333,7 @@ export default function MonofasicosManager() {
               onClick={() => { setActiveTab('produtos'); clearSelection(); }}
               className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
                 activeTab === 'produtos' 
-                  ? 'bg-blue-600 text-white' 
+                  ? 'bg-[#C8A951] text-black font-medium' 
                   : 'text-gray-400 hover:bg-[#2A2A2A]'
               }`}
               data-testid="tab-produtos"
@@ -369,7 +351,7 @@ export default function MonofasicosManager() {
                 placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg text-sm w-64 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+                className="pl-9 pr-4 py-2 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg text-sm w-64 text-white placeholder-gray-500 focus:border-[#C8A951] focus:outline-none"
                 data-testid="input-search"
               />
             </div>
@@ -377,7 +359,7 @@ export default function MonofasicosManager() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+              className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-3 py-2 text-sm text-white focus:border-[#C8A951] focus:outline-none"
               data-testid="select-filter"
             >
               <option value="todos">Todos</option>
@@ -389,15 +371,15 @@ export default function MonofasicosManager() {
 
         {/* Barra de Ações */}
         {selectedItems.size > 0 && (
-          <div className="bg-blue-600/10 px-4 py-3 flex items-center justify-between border-b border-[#2A2A2A]">
-            <span className="text-sm text-blue-400">
+          <div className="bg-[#C8A951]/10 px-4 py-3 flex items-center justify-between border-b border-[#2A2A2A]">
+            <span className="text-sm text-[#C8A951]">
               {selectedItems.size} item(ns) selecionado(s)
             </span>
             <div className="flex gap-2">
               <button
                 onClick={() => handleAction(activeTab === 'ncm' ? 'excluir_lote' : 'excluir_produto', Array.from(selectedItems))}
                 disabled={processing}
-                className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-sm hover:bg-red-500/30 flex items-center gap-1"
+                className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-sm hover:bg-red-500/30 flex items-center gap-1 disabled:opacity-50"
                 data-testid="btn-excluir-lote"
               >
                 <Trash2 className="w-4 h-4" />
@@ -406,7 +388,7 @@ export default function MonofasicosManager() {
               <button
                 onClick={() => handleAction(activeTab === 'ncm' ? 'restaurar_lote' : 'restaurar_produto', Array.from(selectedItems))}
                 disabled={processing}
-                className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-sm hover:bg-green-500/30 flex items-center gap-1"
+                className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-sm hover:bg-green-500/30 flex items-center gap-1 disabled:opacity-50"
                 data-testid="btn-restaurar-lote"
               >
                 <Plus className="w-4 h-4" />
@@ -430,7 +412,7 @@ export default function MonofasicosManager() {
                 <tr>
                   <th className="px-4 py-3 text-left">
                     <button onClick={selectAll} className="text-gray-500 hover:text-gray-300">
-                      {selectedItems.size === filteredNcms.length ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                      {selectedItems.size === filteredNcms.length && filteredNcms.length > 0 ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                     </button>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">NCM</th>
@@ -451,7 +433,7 @@ export default function MonofasicosManager() {
                     <td className="px-4 py-3">
                       <button onClick={() => toggleSelectItem(item.ncm)}>
                         {selectedItems.has(item.ncm) ? 
-                          <CheckSquare className="w-4 h-4 text-blue-500" /> : 
+                          <CheckSquare className="w-4 h-4 text-[#C8A951]" /> : 
                           <Square className="w-4 h-4 text-gray-500" />
                         }
                       </button>
@@ -464,6 +446,7 @@ export default function MonofasicosManager() {
                         item.tipo === 'COSMÉTICOS' ? 'bg-pink-500/20 text-pink-400' :
                         item.tipo === 'BEBIDA FRIA' ? 'bg-blue-500/20 text-blue-400' :
                         item.tipo === 'VEÍCULO' ? 'bg-purple-500/20 text-purple-400' :
+                        item.tipo === 'EQUIPAMENTO' ? 'bg-cyan-500/20 text-cyan-400' :
                         'bg-gray-500/20 text-gray-400'
                       }`}>
                         {item.tipo}
@@ -486,7 +469,7 @@ export default function MonofasicosManager() {
                         <button
                           onClick={() => handleAction('restaurar_ncm', [item.ncm])}
                           disabled={processing}
-                          className="text-green-400 hover:text-green-300"
+                          className="text-green-400 hover:text-green-300 disabled:opacity-50"
                           title="Restaurar como monofásico"
                         >
                           <Plus className="w-4 h-4" />
@@ -495,7 +478,7 @@ export default function MonofasicosManager() {
                         <button
                           onClick={() => handleAction('excluir_ncm', [item.ncm])}
                           disabled={processing}
-                          className="text-red-400 hover:text-red-300"
+                          className="text-red-400 hover:text-red-300 disabled:opacity-50"
                           title="Remover da lista de monofásicos"
                         >
                           <X className="w-4 h-4" />
@@ -524,7 +507,7 @@ export default function MonofasicosManager() {
                 <tr>
                   <th className="px-4 py-3 text-left">
                     <button onClick={selectAll} className="text-gray-500 hover:text-gray-300">
-                      {selectedItems.size === filteredProdutos.length ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                      {selectedItems.size === filteredProdutos.length && filteredProdutos.length > 0 ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                     </button>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Código</th>
@@ -544,7 +527,7 @@ export default function MonofasicosManager() {
                     <td className="px-4 py-3">
                       <button onClick={() => toggleSelectItem(item.id)}>
                         {selectedItems.has(item.id) ? 
-                          <CheckSquare className="w-4 h-4 text-blue-500" /> : 
+                          <CheckSquare className="w-4 h-4 text-[#C8A951]" /> : 
                           <Square className="w-4 h-4 text-gray-500" />
                         }
                       </button>
@@ -570,7 +553,7 @@ export default function MonofasicosManager() {
                         <button
                           onClick={() => handleAction('restaurar_produto', [item.id])}
                           disabled={processing}
-                          className="text-green-400 hover:text-green-300"
+                          className="text-green-400 hover:text-green-300 disabled:opacity-50"
                           title="Restaurar"
                         >
                           <Plus className="w-4 h-4" />
@@ -579,7 +562,7 @@ export default function MonofasicosManager() {
                         <button
                           onClick={() => handleAction('excluir_produto', [item.id])}
                           disabled={processing}
-                          className="text-red-400 hover:text-red-300"
+                          className="text-red-400 hover:text-red-300 disabled:opacity-50"
                           title="Excluir"
                         >
                           <X className="w-4 h-4" />
