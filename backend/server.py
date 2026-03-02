@@ -46210,6 +46210,15 @@ async def validador_piscofins_por_ncm(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
+    # Determinar alíquotas padrão baseado no regime tributário
+    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
+    if regime_tributario == 'lucro_presumido':
+        aliq_pis_padrao = 0.65
+        aliq_cofins_padrao = 3.0
+    else:  # lucro_real ou outros
+        aliq_pis_padrao = 1.65
+        aliq_cofins_padrao = 7.6
+    
     # Buscar regras personalizadas
     regras = await db.regras_pis_cofins.find({
         "company_id": company_id,
