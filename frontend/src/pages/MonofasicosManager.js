@@ -160,12 +160,12 @@ export default function MonofasicosManager() {
         }
       );
       
+      const result = await response.json();
+      
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || 'Erro ao reprocessar');
+        throw new Error(result.detail || 'Erro ao reprocessar');
       }
       
-      const result = await response.json();
       alert(`Cálculo reprocessado!\n\nFaturamento: R$ ${result.faturamento?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
       
     } catch (err) {
