@@ -19,6 +19,22 @@ Sistema de gestão fiscal brasileiro com funcionalidades para importação de do
 
 # CHANGELOG
 
+## 2025-03-02 - Correção Frontend MonofasicosManager e PisCofins
+
+### Monofásicos - Erro "Objects are not valid as React child"
+- **Problema**: Ao clicar em "Gerir Monofásicos" a tela dava erro porque `data.empresa` era um objeto `{id, razao_social, regime}` e estava sendo renderizado diretamente como filho de React
+- **Solução**: 
+  - Alterado `{data?.empresa || 'Empresa'}` para `{data?.empresa?.razao_social || 'Empresa'}`
+  - Corrigido mapeamento de campos da API (`agrupamento_ncm`, `agrupamento_produtos`, `resumo`) para estrutura esperada pelo frontend
+- **Files**: `/app/frontend/src/pages/MonofasicosManager.js`
+- **Testado**: ✅ Tela agora abre e exibe corretamente
+
+### PIS/COFINS - Aba Apuração
+- **Status**: Funcionando corretamente
+- **Verificado**: Alíquotas dinâmicas por regime (0.65%/3% para Lucro Presumido, 1.65%/7.6% para Lucro Real)
+
+---
+
 ## 2025-12-XX - Correções Múltiplas
 
 ### 1. Monofásicos - UI e Erro de Reprocessamento

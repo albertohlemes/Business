@@ -149,13 +149,14 @@ export default function MonofasicosManager() {
     }
   };
 
-  // Filtrar dados
+  // Filtrar dados - usando a estrutura correta da API
   const getFilteredItems = () => {
     if (!data) return [];
     
+    // API retorna agrupamento_ncm e agrupamento_produtos
     const items = activeTab === 'ncm' 
-      ? (data.ncms_monofasicos || [])
-      : (data.produtos_monofasicos || []);
+      ? (data.agrupamento_ncm || data.ncms_monofasicos || [])
+      : (data.agrupamento_produtos || data.produtos_monofasicos || []);
     
     return items.filter(item => {
       const matchesSearch = !searchTerm || 
@@ -164,8 +165,8 @@ export default function MonofasicosManager() {
         (item.produto && item.produto.toLowerCase().includes(searchTerm.toLowerCase()));
       
       const matchesFilter = filterStatus === 'todos' ||
-        (filterStatus === 'incluidos' && item.incluido) ||
-        (filterStatus === 'excluidos' && !item.incluido);
+        (filterStatus === 'incluidos' && item.incluido !== false) ||
+        (filterStatus === 'excluidos' && item.incluido === false);
       
       return matchesSearch && matchesFilter;
     });
@@ -243,7 +244,7 @@ export default function MonofasicosManager() {
           <div>
             <h1 className="text-2xl font-bold text-white">Gerenciamento de Monofásicos</h1>
             <p className="text-gray-400 text-sm">
-              {data?.empresa || 'Empresa'} - Competência {competencia}
+              {data?.empresa?.razao_social || 'Empresa'} - Competência {competencia}
             </p>
           </div>
         </div>
@@ -263,7 +264,7 @@ export default function MonofasicosManager() {
         <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
           <p className="text-gray-400 text-sm">Total Monofásico</p>
           <p className="text-2xl font-bold text-[#C8A951]">
-            {formatCurrency(data?.total_monofasico || 0)}
+            {formatCurrency(data?.resumo?.total_monofasico_ativo || data?.total_monofasico || 0)}
           </p>
           <p className="text-gray-500 text-xs">Excluído do DAS</p>
         </div>
@@ -271,7 +272,7 @@ export default function MonofasicosManager() {
         <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
           <p className="text-gray-400 text-sm">Total Removido pelo Usuário</p>
           <p className="text-2xl font-bold text-green-400">
-            {formatCurrency(data?.total_removido_usuario || 0)}
+            {formatCurrency(data?.resumo?.total_monofasico_excluido || data?.total_removido_usuario || 0)}
           </p>
           <p className="text-gray-500 text-xs">Volta para tributação</p>
         </div>
@@ -279,16 +280,16 @@ export default function MonofasicosManager() {
         <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
           <p className="text-gray-400 text-sm">NCMs Monofásicos</p>
           <p className="text-2xl font-bold text-blue-400">
-            {data?.ncms_monofasicos?.length || 0}
-            <span className="text-sm font-normal text-gray-500"> / {data?.total_ncms_excluidos || 0}</span>
+            {data?.resumo?.qtd_ncms_ativos || data?.agrupamento_ncm?.length || data?.ncms_monofasicos?.length || 0}
+            <span className="text-sm font-normal text-gray-500"> / {data?.resumo?.qtd_ncms_excluidos || data?.total_ncms_excluidos || 0}</span>
           </p>
-          <p className="text-gray-500 text-xs">{data?.total_ncms_excluidos || 0} excluídos</p>
+          <p className="text-gray-500 text-xs">{data?.resumo?.qtd_ncms_excluidos || data?.total_ncms_excluidos || 0} excluídos</p>
         </div>
         
         <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-4">
           <p className="text-gray-400 text-sm">Produtos Monofásicos</p>
           <p className="text-2xl font-bold text-purple-400">
-            {data?.produtos_monofasicos?.length || 0}
+            {data?.resumo?.qtd_produtos || data?.agrupamento_produtos?.length || data?.produtos_monofasicos?.length || 0}
           </p>
           <p className="text-gray-500 text-xs">Na competência</p>
         </div>
@@ -315,7 +316,7 @@ export default function MonofasicosManager() {
             }`}
           >
             <Hash className="w-4 h-4" />
-            Por NCM ({data?.ncms_monofasicos?.length || 0})
+            Por NCM ({data?.agrupamento_ncm?.length || data?.ncms_monofasicos?.length || 0})
           </button>
           <button
             onClick={() => setActiveTab('produto')}
@@ -326,7 +327,7 @@ export default function MonofasicosManager() {
             }`}
           >
             <Package className="w-4 h-4" />
-            Por Produto ({data?.produtos_monofasicos?.length || 0})
+            Por Produto ({data?.agrupamento_produtos?.length || data?.produtos_monofasicos?.length || 0})
           </button>
         </div>
         
@@ -487,8 +488,8 @@ export default function MonofasicosManager() {
         <div className="px-4 py-3 bg-[#0A0A0A] text-center text-sm text-gray-500">
           Mostrando {filteredItems.length} de {
             activeTab === 'ncm' 
-              ? (data?.ncms_monofasicos?.length || 0)
-              : (data?.produtos_monofasicos?.length || 0)
+              ? (data?.agrupamento_ncm?.length || data?.ncms_monofasicos?.length || 0)
+              : (data?.agrupamento_produtos?.length || data?.produtos_monofasicos?.length || 0)
           } itens
         </div>
       </div>

@@ -1,164 +1,173 @@
 <analysis>**original_problem_statement:**
-O usuário reportou uma série de bugs e solicitações de funcionalidades, focando na correção de cálculos fiscais complexos e na usabilidade da aplicação.
+O usuário reportou uma série de bugs críticos e recorrentes que afetam a funcionalidade principal da aplicação de contabilidade fiscal.
 
-**Bugs e Solicitações da Sessão Atual:**
-1.  **Gerenciador de Monofásicos Travado (RESOLVED, mas recorrente)**: A página de gerenciamento de monofásicos travava em Carregando.... O agente corrigiu a navegação para usar o React Router em vez de , prevenindo a perda de contexto.
-2.  **Cálculo Incorreto de PIS/COFINS (Lucro Presumido) (IN PROGRESS, recorrente)**: Empresas do regime Lucro Presumido estavam sendo calculadas com alíquotas de Lucro Real (1.65%/7.6%) em vez das corretas (0.65%/3%). Além disso, o sistema gerava créditos indevidamente para entradas. O agente aplicou múltiplas correções para ajustar as alíquotas e bloquear a geração de créditos, mas o usuário continuou reportando inconsistências.
-3.  **Importação de NFS-e (Serviços Prestados) (IN PROGRESS)**: A importação de notas de serviço estava com dois problemas:
-    *   O cliente (tomador do serviço) era identificado como consumidor final incorretamente.
-    *   A data de emissão era usada em vez da data de competência.
-    O agente implementou melhorias no parser de XML para extrair os dados corretos.
-4.  **UI do Gerenciador de Monofásicos (RESOLVED, mas recorrente)**: A página de monofásicos estava com a UI quebrada (texto branco em fundo branco) e apresentava um erro de body stream already read ao reprocessar os cálculos. O agente corrigiu o CSS para adequar ao tema escuro da aplicação e ajustou a lógica de  para evitar a leitura dupla da resposta.
-5.  **Apuração de PIS/COFINS Zerada (RESOLVED)**: A tela de apuração de PIS/COFINS estava completamente em branco devido a um erro 500 no backend. O agente identificou e corrigiu um  na função de cálculo ( fora de escopo), resolvendo o erro.
-6.  **Verificação de Impacto no RET**: O usuário perguntou se as correções no PIS/COFINS afetariam os menus de estudo comparativo (RET, etc.). O agente verificou e confirmou que os menus de comparação usam lógicas de cálculo independentes e não foram afetados.
+1.  **Monofásicos (Simples Nacional)**: A UI da página de gerenciamento está com um fundo branco (fora do padrão escuro) e apresenta um erro (body stream already read ou similar) ao tentar reprocessar o cálculo após o usuário manipular os dados. Além disso, ao excluir um produto monofásico e reprocessar, o cálculo do imposto (DAS) fica zerado, mesmo existindo notas de saída.
+2.  **PIS/COFINS (Lucro Presumido)**: O cálculo está inconsistente. O sistema gera créditos indevidamente para notas de entrada e aplica alíquotas de Lucro Real (1.65%/7.6%) em vez das corretas (0.65%/3%). Mesmo após correções, os resumos de apuração (Fechamento Mensal, RET, etc.) mostram o valor a recolher zerado, embora outras seções (como o detalhamento por CST) mostrem os valores de débito corretos.
+3.  **SIEG (Sincronização)**: A sincronização precisa ser melhorada para:
+    *   Verificar se notas já importadas foram canceladas na SEFAZ e cancelar no sistema.
+    *   Re-importar notas fiscais caso o usuário exclua a movimentação do mês e sincronize novamente.
+4.  **Erro de Importação (CFOP)**: O usuário identificou um CFOP de saída (5123) em uma empresa que não realiza esse tipo de operação, indicando um erro na importação ou classificação do XML. Foi solicitado um filtro por CFOP na busca de documentos para ajudar a diagnosticar.
+5.  **Tela de PIS/COFINS em Branco**: O usuário reportou que a tela de apuração de PIS/COFINS ficou completamente em branco após uma das tentativas de correção.
 
 **User's preferred language**: Português (pt-BR)
 
 **what currently exists?**
-A aplicação consiste em um backend FastAPI monolítico ( com mais de 45.000 linhas) e um frontend em React. O código é extremamente acoplado, tornando a correção de bugs e a implementação de novas funcionalidades um grande desafio. Múltiplas correções foram aplicadas na lógica fiscal (PIS/COFINS, Monofásicos) e na UI, mas a instabilidade persiste devido à complexidade do . Problemas críticos da sessão anterior, como a falha na importação SIEG e o travamento no upload de arquivos, permanecem sem solução.
+A aplicação possui um backend FastAPI implementado como um único arquivo monolítico ( com mais de 45.000 linhas) e um frontend em React. A arquitetura monolítica e o código altamente acoplado são a causa raiz de bugs recorrentes e da instabilidade geral do sistema, especialmente nas complexas lógicas fiscais. Múltiplas tentativas de correção foram feitas, mas os problemas persistem devido a lógicas duplicadas e inconsistentes espalhadas pelo .
 
 **Last working item**:
--   **Last item agent was working**: Verificação se as correções aplicadas na apuração de PIS/COFINS para empresas do Lucro Presumido impactaram os menus de estudo e comparação (ex: RET - Reforma Tributária). O agente analisou o código e concluiu que os menus de comparação usam lógicas separadas e não foram afetados pelas mudanças.
--   **Status**: USER VERIFICATION PENDING (A verificação do agente foi concluída, mas a correção principal no PIS/COFINS, que motivou a pergunta, ainda precisa ser validada pelo usuário).
--   **Agent Testing Done**: Y (Apenas análise de código. Testes funcionais não foram possíveis pela ausência de dados no ambiente de preview).
--   **Which testing method agent to use?**: backend testing agent. O agente deve ser instruído a testar exaustivamente o endpoint  para uma empresa do Lucro Presumido, verificando: 1. A não geração de créditos em notas de entrada. 2. O cálculo correto de débitos com alíquotas de 0.65%/3%. 3. O tratamento correto de devoluções como estorno de débito.
+-   **Last item agent was working**: Corrigindo um erro que deixava a tela de apuração de PIS/COFINS em branco. O agente identificou e corrigiu múltiplos erros de sintaxe e variáveis não definidas (,  mal posicionada,  indefinido) no arquivo .
+-   **Status**: USER VERIFICATION PENDING
+-   **Agent Testing Done**: Y (Verificou logs do supervisor e testou o endpoint com , que retornou um erro de autenticação esperado, confirmando que o servidor estava rodando e o endpoint respondendo).
+-   **Which testing method agent to use?**: backend testing agent. O agente deve testar exaustivamente o endpoint  para uma empresa do Lucro Presumido para validar se os débitos são calculados e retornados corretamente nos totais, resolvendo o problema dos valores zerados.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: **(P0, BLOCKER)** Falha silenciosa na importação via SIEG para certas empresas.
--   **Issue 2**: **(P0, CRITICAL)** Upload de grande volume de arquivos trava para usuários específicos.
--   **Issue 3**: **(P0, RECURRING)** Cálculo de PIS/COFINS para Lucro Presumido apresenta inconsistências (créditos indevidos, débitos incorretos). Apesar das múltiplas tentativas de correção, o problema persiste.
--   **Issue 4**: **(P1, RECURRING)** A página de gerenciamento de Monofásicos apresenta bugs recorrentes de UI e funcionalidade ao reprocessar cálculos.
--   **Issue 5**: **(P1, RECURRING)** Processamento incorreto de CFOPs de transferência (ex: 5152), mencionado no handoff inicial e ainda não abordado.
--   **Issue 6**: **(P1, TESTING PENDING)** Correções na importação de NFS-e (cliente consumidor final e data de competência) precisam ser validadas.
+-   **Issue 1**: **(P0, BLOCKER, RECURRING)** Débitos de PIS/COFINS para Lucro Presumido aparecem zerados nos resumos (Apuração, Fechamento Mensal, RET), embora o cálculo por CST esteja correto.
+-   **Issue 2**: **(P0, CRITICAL, RECURRING)** A página de Monofásicos apresenta um erro body stream already read ao reprocessar, mesmo após refatoração para usar .
+-   **Issue 3**: **(P0, CRITICAL)** Após excluir um produto monofásico e reprocessar, o cálculo do DAS resulta em zero, ignorando as notas de saída.
+-   **Issue 4**: **(P1)** A sincronização com o SIEG não verifica notas canceladas nem reimporta documentos após exclusão manual.
+-   **Issue 5**: **(P1)** Erro de importação de XML resulta em CFOPs incorretos (ex: 5123) nas notas de saída.
+-   **Issue 6**: **(P2, RECURRING)** Processamento incorreto de CFOPs de transferência (ex: 5152), mencionado no handoff inicial e ainda não abordado.
 
 **Issues Detail**:
--   **Issue 1: SIEG silent import failure**
-    -   **Attempted fixes**: Logs detalhados e um endpoint de diagnóstico foram adicionados, mas o bug não pôde ser reproduzido por falta de dados. Nenhuma nova tentativa foi feita nesta sessão.
-    -   **Next debug checklist**: Utilizar o endpoint de diagnóstico  no ambiente do usuário e analisar os logs do backend para identificar onde os documentos são descartados.
-    -   **Why fix this issue and what will be achieved with the fix?**: A importação de dados é a função central do sistema. A falha compromete a integridade de todos os cálculos subsequentes.
+-   **Issue 1: PIS/COFINS Lucro Presumido com débitos zerados**
+    -   **Attempted fixes**: Múltiplas correções foram aplicadas para garantir que o regime Lucro Presumido não gere créditos e use as alíquotas corretas (0.65%/3%). A verificação do regime foi tornada case-insensitive (). O problema atual é um descompasso de dados: a função  calcula os débitos corretamente (visível na tabela Resumo por CST), mas a função principal , usada pelos resumos e fechamento, não reflete esses valores, retornando débitos zerados. O agente adicionou logs para depurar o fluxo de dados em .
+    -   **Next debug checklist**:
+        1.  Analisar os logs gerados pelo  no ambiente de preview para entender por que os documentos de saída não estão sendo somados aos totais de débito na função .
+        2.  Verificar a query de busca de documentos (linha  em ) e o campo  dos documentos no banco.
+        3.  Refatorar para que  reutilize os totais já calculados por  para garantir consistência.
+    -   **Why fix this issue and what will be achieved with the fix?**: É a funcionalidade central de apuração de impostos. A correção é crítica para a confiança do usuário no sistema.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: backend
-    -   **Blocked on other issue**: Não, mas bloqueado pela necessidade de dados/ambiente do usuário.
+    -   **Blocked on other issue**: Não.
 
--   **Issue 2: Large file upload hangs**
-    -   **Attempted fixes**: Um tratamento de erro mais explícito foi adicionado ao frontend. Nenhuma nova tentativa foi feita nesta sessão.
-    -   **Next debug checklist**: Pedir ao usuário para testar em uma janela anônima. Considerar refatorar o upload para usar um Web Worker.
-    -   **Why fix this issue and what will be achieved with the fix?**: Impede um caso de uso principal da aplicação para usuários com grande volume de documentos.
+-   **Issue 2: Erro body stream already read em Monofásicos**
+    -   **Attempted fixes**: O componente  foi completamente refatorado para usar  em vez de  para evitar problemas de leitura de resposta. Como o erro persistiu, o agente adicionou headers  nas requisições, suspeitando de um problema de cache do navegador.
+    -   **Next debug checklist**:
+        1.  Verificar se há algum  ou renderização dupla no React que esteja disparando a requisição mais de uma vez.
+        2.  Inspecionar a aba Network no navegador do usuário para confirmar se a requisição está sendo duplicada ou se a resposta está sendo lida por outro processo.
+        3.  Considerar envolver as chamadas  em uma função  para garantir a estabilidade da referência.
+    -   **Why fix this issue and what will be achieved with the fix?**: Impede o usuário de usar a funcionalidade de gerenciamento de produtos monofásicos.
     -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: N
+    -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: Não.
 
--   **Issue 3: PIS/COFINS Lucro Presumido inconsistencies**
-    -   **Attempted fixes**: O agente fez múltiplas alterações no . A última (mensagens 291-321) adicionou uma verificação  no início do processamento de documentos de entrada para zerar bases de cálculo e alíquotas de PIS/COFINS, efetivamente bloqueando a geração de créditos. Também ajustou o cálculo de débitos e estornos.
-    -   **Next debug checklist**: 1. Usar o  para validar a lógica no endpoint . 2. Analisar o  para garantir que a lógica esteja centralizada e consistente. 3. Investigar por que as correções anteriores não foram suficientes, suspeitando de outras partes do monolito que possam sobrescrever a lógica.
-    -   **Why fix this issue and what will be achieved with the fix?**: Garante a correção fiscal da apuração de PIS/COFINS, uma funcionalidade crítica para o usuário.
+-   **Issue 3: DAS zerado após reprocessamento em Monofásicos**
+    -   **Attempted fixes**: O agente identificou que o endpoint de reprocessamento () não passava a lista de exceções de NCMs (produtos excluídos pelo usuário) para a função de cálculo . A correção foi feita em  para buscar as exceções e passá-las como parâmetro, garantindo que o desconto seja aplicado corretamente.
+    -   **Next debug checklist**:
+        1.  Usar o  para criar um teste que simule a exclusão de um produto monofásico e valide se o endpoint  retorna um valor de DAS diferente de zero e correto.
+    -   **Why fix this issue and what will be achieved with the fix?**: Corrige um cálculo fiscal fundamental para empresas do Simples Nacional.
     -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
+    -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: backend
     -   **Blocked on other issue**: Não.
 
 **In progress Task List**:
--   **Task 1**: Verificação da funcionalidade de colunas na listagem de NFS-e (Descrição do Serviço e Retenções).
-    -   **Where to resume**: A funcionalidade está implementada, mas precisa de dados de teste (documentos NFS-e) no banco de dados para verificação visual.
-    -   **What will be achieved with this?**: Melhorar a visibilidade de dados para o usuário na tela de documentos.
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on something**: Falta de dados de teste no ambiente.
+- N/A. Todo o trabalho foi focado na correção dos bugs reportados.
 
 **Upcoming and Future Tasks**
--   **(P0) Refatorar  (CRÍTICO)**: A causa raiz da instabilidade e dos bugs recorrentes. É urgente extrair as lógicas de negócio (fiscal, SIEG, parsers) para módulos dedicados em ,  etc.
--   **(P1)** Resolver o bug recorrente de **processamento de CFOPs de transferência** (Issue 5).
+-   **(P0) Refatorar  (CRÍTICO)**: A causa raiz da instabilidade. É urgente extrair as lógicas de negócio (cálculos fiscais, parsers, SIEG) para módulos dedicados em  e . Esta é a única solução definitiva para os bugs recorrentes.
+-   **(P1)** Abordar o bug recorrente de **processamento de CFOPs de transferência** (Issue 6).
 -   **(P2)** Implementar um totalizador por CST nos detalhamentos de PIS/COFINS (solicitação antiga).
 -   **(P2)** Corrigir o bug do Modal de seleção de empresa sobrepondo a UI (problema antigo).
 
 **Completed work in this session**
--   **Monofasicos Manager - Tela Travada (RESOLVED)**: Corrigido o bug que travava a página em Carregando..., alterando a navegação para  e garantindo que o estado de  seja finalizado.
--   **Monofasicos Manager - UI e Erro de Reprocessamento (RESOLVED)**: Corrigidos os estilos CSS da página para adequar ao tema escuro e resolvido um erro de  ao ajustar a lógica de .
--   **PIS/COFINS - Endpoint com Erro 500 (RESOLVED)**: Corrigido um  no endpoint de apuração de PIS/COFINS que causava falha total na tela.
--   **PIS/COFINS - Tentativa de Correção do Cálculo (IN PROGRESS)**: Implementada lógica para forçar a não geração de créditos e usar as alíquotas corretas para empresas do Lucro Presumido.
--   **NFS-e Parser (IN PROGRESS)**: Melhorado o parser de XML de NFS-e para tentar extrair corretamente o nome do cliente e a data de competência.
--   **Verificação de Impacto no RET (DONE)**: Confirmado que as alterações no cálculo de PIS/COFINS não afetam os menus de estudo e comparação, que possuem lógicas independentes.
+-   **Filtro por CFOP**: Adicionado filtro na página de listagem de documentos (frontend e backend).
+-   **UI Monofásicos**: Adicionado CSS para corrigir o fundo branco da página.
+-   **Refatoração Monofásicos**: O componente  foi reescrito para usar .
+-   **Correção Lógica PIS/COFINS**: Múltiplas funções (, , ) foram ajustadas para não gerar créditos e usar as alíquotas corretas para Lucro Presumido, com verificação case-insensitive.
+-   **Correção Lógica DAS**: O endpoint de reprocessamento do Simples Nacional foi corrigido para considerar as exceções de produtos monofásicos definidas pelo usuário.
+-   **Correção UI PIS/COFINS**: O frontend () foi atualizado para exibir alíquotas dinâmicas (0.65%/3%) para Lucro Presumido.
+-   **Correção de Erros de Backend**: Corrigidos diversos erros de sintaxe e  em  que causavam a falha da página de PIS/COFINS (tela em branco).
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Processamento incorreto de CFOPs de transferência**
-    -   **Debug checklist**: Localizar no  onde os CFOPs (ex: 5152) são processados e analisar por que estão sendo classificados ou calculados incorretamente. Verificar se afeta múltiplos impostos (ICMS, PIS/COFINS).
+-   **Issue 1: Processamento incorreto de CFOPs de transferência (e.g., 5152)**
+    -   **Debug checklist**: Localizar no  onde os CFOPs de transferência são processados e analisar por que estão sendo classificados ou calculados incorretamente.
     -   **Why to solve this issue and what will be achieved with this?**: Garante a correção dos cálculos fiscais que dependem da classificação correta de operações.
     -   **Should Test frontend/backend/both after fix**: backend
     -   **Is recurring issue?**: Y
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Arquitetura monolítica do  e processamento incorreto de CFOPs de transferência.
+-   **Issue recurrence in previous fork**: Arquitetura monolítica do , resultando em cálculos fiscais inconsistentes (PIS/COFINS, Monofásicos) e bugs de UI. O problema de CFOP de transferência também é recorrente.
 -   **Recurrence count**: 10+
 -   **Status**: NOT STARTED
--   **Note**: Adicionalmente, os problemas com o **cálculo de PIS/COFINS para Lucro Presumido** e a **UI/funcionalidade da página de Monofásicos** se tornaram recorrentes nesta sessão, sendo corrigidos múltiplas vezes sem uma solução definitiva.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
 -   Backend: FastAPI, MongoDB (Pymongo)
--   Frontend: React, JavaScript
--   Lógica de Negócio: Regras fiscais complexas do Brasil (PIS/COFINS, ICMS, Simples Nacional, CFOP, NCM).
--   Arquitetura: Monolito de backend com altíssimo acoplamento.
+-   Frontend: React, JavaScript, Axios
+-   Lógica de Negócio: Regras fiscais complexas do Brasil (PIS/COFINS, Simples Nacional, DAS, CFOP, NCM).
+-   Arquitetura: Monolito de backend com altíssimo acoplamento e lógica de negócio duplicada.
 
 **key DB schema**
--   **companies**: Contém configurações da empresa, incluindo .
--   **users**: Contém informações do usuário e permissões por .
+-   **companies**: Armazena configurações da empresa, incluindo .
+-   **users**: Informações do usuário.
+-   **documents**: Armazena dados de notas fiscais importadas.
 
 **All files of reference**
--    (arquivo central, modificado em todas as correções de backend)
--    (componente com bugs recorrentes de UI e lógica)
--    (contém parte da lógica fiscal)
--    (onde o botão para o gerenciador foi ajustado)
+-    (arquivo central, massivamente modificado)
+-    (refatorado)
+-    (UI corrigida)
+-    (UI corrigida)
+-    (novas funções adicionadas)
 
 **Areas that need refactoring**:
--   ** (CRÍTICO)**: A prioridade máxima. O arquivo é inavegável e a causa raiz de quase todos os bugs e da lentidão no desenvolvimento. Extrair a lógica para arquivos de serviço (), rotas () e utilitários () é essencial para a estabilidade do projeto.
+-   ** (CRÍTICO)**: A prioridade máxima. O arquivo é a causa raiz de todos os bugs recorrentes. A lógica fiscal precisa ser extraída para módulos de serviço () e rotas () para garantir consistência e manutenibilidade.
 
 **key api endpoints**
--   : (DEBUGADO) Endpoint da apuração de PIS/COFINS, que estava retornando erro 500 e cujos cálculos foram corrigidos várias vezes.
--   : (DEBUGADO) Endpoint de dados para a página de gerenciamento de monofásicos.
--   : Endpoint para salvar as exceções de monofásicos, envolvido no bug de reprocessamento.
--   : Endpoint do validador PIS/COFINS que mostrava alíquotas incorretas.
+-    (Corrigido para não dar erro 500, mas ainda retorna débitos zerados)
+-    (Corrigido para passar exceções)
+-    (Adicionado filtro por )
+-    (Corrigido para não gerar crédito no Lucro Presumido)
+-    (Novo endpoint de diagnóstico)
 
 **Critical Info for New Agent**
--   **Foco nos Blockers e Recorrências**: Os problemas mais críticos são a falha na importação **SIEG** (blocker), o travamento no **upload** (crítico), e os bugs recorrentes no **PIS/COFINS Lucro Presumido** e na tela de **Monofásicos**. Estes últimos são a principal fonte de insatisfação do usuário nesta sessão.
--   **Refatoração é a Solução Real**: Não se engane com correções pontuais no . A complexidade do arquivo garante que os bugs retornarão. A única solução de longo prazo é propor e iniciar a refatoração do monolito.
--   **Ambiente de Preview vs. Produção**: O ambiente de preview não tem dados. Você não conseguirá reproduzir a maioria dos bugs. Foque na correção lógica, adicione logs detalhados e use o  para validar endpoints de forma isolada. As credenciais fornecidas pelo usuário são para o ambiente de produção e só devem ser usadas como referência para entender o contexto do bug, não para interagir com o sistema.
+-   **Refatoração é a Única Saída**: Correções pontuais no  são paliativas e introduzem novos bugs. A causa raiz dos problemas é a arquitetura monolítica com lógica de negócio duplicada e inconsistente. Proponha a refatoração como a principal estratégia.
+-   **Inconsistência de Dados**: O problema central do PIS/COFINS é que diferentes funções ( vs ) produzem resultados diferentes para os mesmos dados. A solução é unificar a lógica ou garantir que os dados fluam corretamente entre elas.
+-   **Ambiente de Preview vs. Produção**: O usuário está validando em produção (). Lembre-o de que suas correções estão no ambiente de preview e precisam de deploy para serem efetivadas na produção.
+-   **Erro de body stream**: Este erro no frontend () é extremamente persistente. A refatoração para  e a adição de headers  foram as últimas tentativas. Investigue por renderizações duplicadas no React.
+
+**documents and test reports created in this job**
+-   /app/test_reports/iteration_1.json
 
 **Last 10 User Messages and any pending HUMAN messages**
--   : Pergunta se as correções de PIS/COFINS afetaram os menus de estudo/comparação. (Status: Addressed)
--   : Reporta que a apuração de PIS/COFINS para Lucro Presumido continua com inconsistências, gerando créditos indevidos e com débitos errados. (Status: IN PROGRESS, nova tentativa de correção foi implementada)
--   : Reporta que a página de monofásicos continua com erro ao reprocessar e a UI está com cores erradas. (Status: IN PROGRESS, nova tentativa de correção foi implementada)
--   : Reporta que o validador PIS/COFINS ainda mostra alíquotas erradas (1.65%/7.6%) e a tela de apuração está zerada para Lucro Presumido. (Status: IN PROGRESS, parcialmente corrigido - erro 500 resolvido)
--   : Reporta que a página de monofásicos está com a tela branca (texto branco) e dá erro ao reprocessar. (Status: IN PROGRESS, parcialmente corrigido)
--   : Reporta dois novos bugs: alíquotas erradas para Lucro Presumido e problemas na importação de NFS-e (cliente e data). (Status: IN PROGRESS)
--   : Reporta que o botão Gerir Monofásicos leva a uma tela de Carregando... infinita. (Status: RESOLVED)
--   : Pergunta onde está o menu de gerenciamento de monofásicos. (Status: Addressed)
+1.  : Informa que a tela do PIS/COFINS voltou a ficar em branco. (Status: Addressed, fixed in last action)
+2.  : Informa que ao excluir um produto do monofásico e reprocessar, o DAS fica zerado. (Status: Addressed, fixed in )
+3.  : Esclarece que o erro body stream already read é no Monofásicos do Simples Nacional, não PIS/COFINS. (Status: Addressed)
+4.  : Expressa frustração e pede para arrumar o problema do Monofásicos de uma vez por todas. (Status: Addressed, component refactored to axios)
+5.  : Informa que PIS/COFINS zerou o crédito, mas o valor a recolher continua zerado nos resumos (Apuração, Fechamento Mensal, RET). (Status: IN PROGRESS)
+6.  : Informa que o erro de reprocessamento no Monofásicos continua, e o PIS/COFINS está com múltiplos problemas (crédito indevido, débitos zerados na apuração, valores zerados no confronto). (Status: IN PROGRESS)
+7.  : Reporta novamente o problema de crédito no PIS/COFINS (Lucro Presumido) e o erro no reprocessamento do Monofásicos, apontando para a base produtiva. (Status: Addressed)
+8.  : Pergunta onde digitar o comando para usar o endpoint de diagnóstico de CFOP. (Status: Blocked on user confusion)
+9.  : Reitera o problema do CFOP 5123 incorreto, fornecendo credenciais e detalhes para reprodução na base produtiva. (Status: IN PROGRESS)
+10. : A primeira mensagem do usuário na sessão, listando os 4 principais problemas (Monofásicos, PIS/COFINS, SIEG, CFOP). (Status: IN PROGRESS)
 
 **Project Health Check:**
 -   **Broken**:
-    -   Importação de dados via SIEG (falha silenciosa).
-    -   Upload de arquivos em grande volume.
-    -   Cálculo de PIS/COFINS para Lucro Presumido (altamente instável).
-    -   Funcionalidade de reprocessamento na página de Monofásicos (altamente instável).
+    -   Apuração de PIS/COFINS (Lucro Presumido): Retorna débitos zerados nos resumos principais.
+    -   Reprocessamento de Monofásicos: Causa erro de body stream already read no frontend.
+    -   Cálculo do DAS: Zera indevidamente após exclusão de produto monofásico.
+    -   Importação de XML: Gera CFOPs incorretos.
+-   **Mocked**: N/A
 
 **3rd Party Integrations**
--   **SIEG**: Plataforma de automação fiscal para busca de documentos (NFe, NFCe, etc.). Integração central, mas fonte de bugs críticos.
+-   **SIEG**: Plataforma de automação fiscal. A integração existe, mas necessita de melhorias na lógica de sincronização.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
+-   **Testing agent used after significant changes**: YES (Uma vez, no início, com 9 testes passando. Não foi usado para as correções mais complexas posteriores).
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: Nenhum
--   **Known regressions**: A funcionalidade de PIS/COFINS e a UI de Monofásicos regrediram ou não foram corrigidas eficazmente várias vezes durante a sessão.
+-   **Test files created**: N/A
+-   **Known regressions**: A apuração de PIS/COFINS e a funcionalidade de Monofásicos regrediram ou apresentaram novos bugs repetidamente após tentativas de correção.
 
 **Credentials to test flow:**
--   **Nota Importante**: O usuário forneceu credenciais para o ambiente de produção (). **NÃO USE ESTAS CREDENCIAIS**. O agente opera em um ambiente de preview isolado e não tem acesso nem permissão para modificar a produção. As credenciais servem apenas como contexto para entender os bugs reportados.
+-   **Nota Importante**: As credenciais fornecidas pelo usuário são para o ambiente de produção e **NÃO DEVEM SER USADAS**. Elas servem apenas para contexto.
 -   **Usuário**: 
 -   **Senha**: 
 
 **What agent forgot to execute**
--   O agente não abordou o bug sobre o **processamento incorreto de CFOPs de transferência**, que foi herdado do handoff anterior.
--   O agente não utilizou o  mesmo enfrentando bugs complexos e recorrentes (PIS/COFINS, Monofásicos), o que poderia ter ajudado a validar as correções de backend de forma mais robusta e evitar o ciclo de corrigir-e-falhar.</analysis>
+-   O agente não abordou o bug sobre o **processamento incorreto de CFOPs de transferência (ex: 5152)**, que foi herdado do handoff anterior e listado como pendente.
+-   O agente criou um endpoint de diagnóstico de CFOP, mas não conseguiu orientar o usuário sobre como usá-lo, deixando o problema do CFOP 5123 sem uma investigação conclusiva por parte do usuário.</analysis>
