@@ -102,20 +102,14 @@ export default function MonofasicosManager() {
         }
       );
       
-      // Clone response before reading to avoid "body stream already read" error
-      const responseClone = response.clone();
+      // SOLUÇÃO: Ler o texto primeiro, depois parsear como JSON
+      const responseText = await response.text();
       
       let result;
       try {
-        result = await response.json();
-      } catch (jsonError) {
-        // Fallback: try reading from clone
-        const text = await responseClone.text();
-        try {
-          result = JSON.parse(text);
-        } catch {
-          result = { detail: text || 'Erro desconhecido' };
-        }
+        result = JSON.parse(responseText);
+      } catch {
+        result = { detail: responseText || 'Erro desconhecido' };
       }
       
       if (!response.ok) {
@@ -149,20 +143,15 @@ export default function MonofasicosManager() {
         }
       );
       
-      // Clone response before reading to avoid "body stream already read" error
-      const responseClone = response.clone();
+      // SOLUÇÃO: Ler o texto primeiro, depois parsear como JSON
+      // Isso evita o erro "body stream already read"
+      const responseText = await response.text();
       
       let result;
       try {
-        result = await response.json();
-      } catch (jsonError) {
-        // Fallback: try reading from clone
-        const text = await responseClone.text();
-        try {
-          result = JSON.parse(text);
-        } catch {
-          result = { detail: text || 'Erro desconhecido' };
-        }
+        result = JSON.parse(responseText);
+      } catch {
+        result = { detail: responseText || 'Erro desconhecido' };
       }
       
       if (!response.ok) {

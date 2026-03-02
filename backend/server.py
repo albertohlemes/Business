@@ -1637,8 +1637,11 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
     perfil_empresa = company.get('perfil_comercial', 'VAREJO') or 'VAREJO'
     perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
     perfil = perfis[0] if perfis else 'VAREJO'
-    regime = company.get('regime_tributario', 'lucro_real')
-    is_presumido = regime == 'lucro_presumido'
+    regime = str(company.get('regime_tributario', 'lucro_real') or 'lucro_real').lower().strip()
+    is_presumido = 'presumido' in regime
+    
+    # DEBUG: Log para verificar regime
+    logger.info(f"[PIS/COFINS UNIFICADO] Empresa {company_id}: regime='{regime}', is_presumido={is_presumido}")
     
     # ==========================================================================
     # BUSCAR REGRAS DA EMPRESA PARA USO CONSISTENTE EM TODA A APLICAÇÃO
@@ -1994,9 +1997,12 @@ async def calcular_pis_cofins_por_cst(company_id: str, competencia: str, company
     perfil_empresa = company.get('perfil_comercial', 'VAREJO') or 'VAREJO'
     perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
     perfil = perfis[0] if perfis else 'VAREJO'
-    regime = company.get('regime_tributario', 'lucro_real')
-    regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
-    is_presumido = regime == 'lucro_presumido'
+    regime = str(company.get('regime_tributario', 'lucro_real') or 'lucro_real').lower().strip()
+    regime_calc = 'LUCRO_REAL' if 'real' in regime else 'LUCRO_PRESUMIDO'
+    is_presumido = 'presumido' in regime
+    
+    # DEBUG: Log para verificar regime
+    logger.info(f"[PIS/COFINS] Empresa {company_id}: regime_tributario='{regime}', is_presumido={is_presumido}")
     
     # Buscar documentos
     docs = await db.xml_documents.find(
