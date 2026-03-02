@@ -69,12 +69,18 @@ async def save_scheduler_config(config: dict):
 scheduler = AsyncIOScheduler()
 
 
-async def sync_empresa_sieg(company_id: str, cnpj: str, competencia: str = None):
+async def sync_empresa_sieg(company_id: str, cnpj: str, competencia: str = None, tentativa: int = 1, max_tentativas: int = 3):
     """
     Sincroniza uma empresa específica com o SIEG.
     
     ATUALIZADO: Agora usa a mesma lógica de processamento que a sincronização manual,
     importando corretamente os XMLs no banco de dados.
+    
+    Features:
+    - Modo incremental (traz apenas notas novas)
+    - Retry automático em caso de erro (até 3 tentativas)
+    - Logs no mesmo formato que sincronização manual
+    - Relatório completo no histórico
     """
     db = get_scheduler_db()
     
@@ -84,26 +90,9 @@ async def sync_empresa_sieg(company_id: str, cnpj: str, competencia: str = None)
         competencia = f"{now.month:02d}/{now.year}"
     
     start_time = datetime.now(timezone.utc)
-    log_entry = {
-        "company_id": company_id,
-        "competencia": competencia,
-        "data_sync": start_time.isoformat(),
-        "status": "em_andamento",
-        "total_encontrados": 0,
-        "total_novos": 0,
-        "total_importados": 0,
-        "total_duplicados": 0,
-        "total_erros": 0,
-        "entradas": {},
-        "saidas": {},
-        "duracao_segundos": 0,
-        "detalhes": [],
-        "tipo_execucao": "automatico",
-        "modo": "incremental"
-    }
     
     try:
-        print(f"[SIEG-SCHEDULER] Iniciando sync para empresa {company_id} - {competencia}")
+        print(f"[SIEG-SCHEDULER] Iniciando sync para empresa {company_id} - {competencia} (tentativa {tentativa}/{max_tentativas})")
         
         # Buscar empresa para obter dados completos
         company = await db.companies.find_one({"id": company_id}, {"_id": 0})
@@ -111,22 +100,20 @@ async def sync_empresa_sieg(company_id: str, cnpj: str, competencia: str = None)
             raise Exception(f"Empresa não encontrada: {company_id}")
         
         # Importar a função de processamento do server
-        # Usamos importação dinâmica para evitar imports circulares
         import importlib
         server_module = importlib.import_module("server")
         
-        # Usar a função de sincronização completa que processa e salva os XMLs
-        # Simular um objeto de progresso para capturar os resultados
+        # Simular objeto de progresso para capturar os resultados
         progress = {
             "upload_id": f"scheduler_{company_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
             "company_id": company_id,
             "total": 0,
             "processed": 0,
-            "step": "Iniciando",
+            "step": "Sincronização automática",
             "status": "processing"
         }
         
-        # Chamar a função de sincronização com os parâmetros corretos
+        # Chamar a função de sincronização completa que processa e salva os XMLs
         results = await server_module.sieg_sync_execute(
             db=db,
             company_id=company_id,
@@ -134,7 +121,7 @@ async def sync_empresa_sieg(company_id: str, cnpj: str, competencia: str = None)
             cnpj=cnpj,
             competencia=competencia,
             progress=progress,
-            modo="incremental"  # Usar modo incremental para pegar notas novas
+            modo="incremental"  # Usar modo incremental para pegar apenas notas novas
         )
         
         end_time = datetime.now(timezone.utc)
@@ -145,43 +132,89 @@ async def sync_empresa_sieg(company_id: str, cnpj: str, competencia: str = None)
         total_encontrados = sieg_stats.get("entrada", 0) + sieg_stats.get("saida", 0)
         total_novos = sieg_stats.get("novos_entrada", 0) + sieg_stats.get("novos_saida", 0)
         
-        log_entry.update({
-            "status": "sucesso" if results.get("erros", 0) == 0 else "parcial",
-            "total_encontrados": total_encontrados,
-            "total_novos": total_novos,
-            "total_importados": results.get("processados", 0),
-            "total_duplicados": len(results.get("duplicados", [])),
-            "total_erros": results.get("erros", 0),
-            "duracao_segundos": round(duracao, 2),
-            "entradas": {
-                "encontrados": sieg_stats.get("entrada", 0),
-                "novos": sieg_stats.get("novos_entrada", 0)
-            },
-            "saidas": {
-                "encontrados": sieg_stats.get("saida", 0),
-                "novos": sieg_stats.get("novos_saida", 0)
-            }
-        })
+        # Usar a mesma função de log que a sincronização manual
+        from services.sieg_smart_sync import registrar_sync_log
         
-        print(f"[SIEG-SCHEDULER] Sync concluído para {company_id}: "
+        await registrar_sync_log(db, company_id, competencia, 
+            status="sucesso" if results.get("erros", 0) == 0 else "parcial",
+            stats={
+                "modo": "incremental",
+                "tipo_execucao": "automatico",
+                "tentativa": tentativa,
+                "total_encontrados": total_encontrados,
+                "total_novos": total_novos,
+                "total_importados": results.get("processados", 0),
+                "total_duplicados": len(results.get("duplicados", [])),
+                "total_cancelamentos": results.get("cancelamentos", 0),
+                "total_devolucoes": results.get("devolucoes", 0),
+                "total_erros": results.get("erros", 0),
+                "duracao_segundos": round(duracao, 2),
+                "detalhes": {
+                    "entradas": {
+                        "encontrados": sieg_stats.get("entrada", 0),
+                        "novos": sieg_stats.get("novos_entrada", 0)
+                    },
+                    "saidas": {
+                        "encontrados": sieg_stats.get("saida", 0),
+                        "novos": sieg_stats.get("novos_saida", 0)
+                    },
+                    "classificados": results.get("classificados", 0)
+                }
+            }
+        )
+        
+        print(f"[SIEG-SCHEDULER] ✓ Sync concluído para {company_id}: "
               f"encontrados={total_encontrados}, novos={total_novos}, "
               f"importados={results.get('processados', 0)}, "
               f"duplicados={len(results.get('duplicados', []))}")
         
+        return {
+            "status": "sucesso",
+            "company_id": company_id,
+            "competencia": competencia,
+            "total_encontrados": total_encontrados,
+            "total_novos": total_novos,
+            "total_importados": results.get("processados", 0),
+            "duracao_segundos": round(duracao, 2)
+        }
+        
     except Exception as e:
         import traceback
-        print(f"[SIEG-SCHEDULER] Erro ao sincronizar empresa {company_id}: {e}")
-        print(f"[SIEG-SCHEDULER] Traceback: {traceback.format_exc()}")
-        log_entry.update({
+        print(f"[SIEG-SCHEDULER] ✗ Erro ao sincronizar empresa {company_id} (tentativa {tentativa}): {e}")
+        
+        # Retry automático se não excedeu tentativas
+        if tentativa < max_tentativas:
+            print(f"[SIEG-SCHEDULER] Aguardando 30s antes de tentar novamente...")
+            import asyncio
+            await asyncio.sleep(30)
+            return await sync_empresa_sieg(company_id, cnpj, competencia, tentativa + 1, max_tentativas)
+        
+        # Registrar log de erro final
+        print(f"[SIEG-SCHEDULER] ✗ Todas as {max_tentativas} tentativas falharam para {company_id}")
+        
+        try:
+            from services.sieg_smart_sync import registrar_sync_log
+            await registrar_sync_log(db, company_id, competencia, "erro", {
+                "modo": "incremental",
+                "tipo_execucao": "automatico",
+                "tentativas": max_tentativas,
+                "total_erros": 1,
+                "duracao_segundos": (datetime.now(timezone.utc) - start_time).total_seconds(),
+                "detalhes": {
+                    "erro": str(e),
+                    "traceback": traceback.format_exc()
+                }
+            })
+        except Exception as log_error:
+            print(f"[SIEG-SCHEDULER] Erro ao registrar log: {log_error}")
+        
+        return {
             "status": "erro",
-            "detalhes": [{"tipo": "erro_fatal", "mensagem": str(e)}],
-            "duracao_segundos": (datetime.now(timezone.utc) - start_time).total_seconds()
-        })
-    
-    # Salvar log
-    await db.sieg_sync_logs.insert_one(log_entry)
-    
-    return log_entry
+            "company_id": company_id,
+            "competencia": competencia,
+            "erro": str(e),
+            "tentativas": tentativa
+        }
 
 
 async def job_sync_todas_empresas():
