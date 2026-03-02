@@ -2536,6 +2536,9 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
         'saidas_cfop_cst': saidas_lista,
         'totais_centralizados': totais_centralizados  # Usar estes valores no frontend
     }
+
+
+def calcular_credito_presumido_transportadora(valor_debito_icms: float, percentual: float = 20.0):
     """
     Calcula o crédito presumido de ICMS para transportadoras.
     Conforme RICMS SP, Art. 70, XI - crédito de 20% do valor do débito nas prestações de serviço de transporte.
@@ -10295,8 +10298,16 @@ async def upload_xml_batch(
             # Detectar se é NF de emissão própria (vendas da empresa)
             is_emissao_propria = cnpj_emitente == cnpj_empresa
             
+            # Determinar tipo de operação pelo CFOP do primeiro produto
+            cfops_doc = [p.get('cfop', '') for p in parsed_data.get('produtos', []) if p.get('cfop')]
+            tipo_operacao = 'entrada'
+            if cfops_doc:
+                primeiro_cfop = str(cfops_doc[0])
+                if primeiro_cfop and primeiro_cfop[0] in ['5', '6', '7']:
+                    tipo_operacao = 'saida'
+            
             # LOG PARA DEBUG
-            logger.info(f"COMPETÊNCIA DEBUG - NF {parsed_data.get('numero_nfe', '')}: tipo={tipo_operacao}, dhEmi={data_emissao[:10] if data_emissao else 'N/A'}, dhSaiEnt={data_saida_entrada[:10] if data_saida_entrada else 'N/A'}, emissao_propria={is_emissao_propria}")
+            logger.debug(f"COMPETÊNCIA DEBUG - NF {parsed_data.get('numero_nfe', '')}: tipo={tipo_operacao}, dhEmi={data_emissao[:10] if data_emissao else 'N/A'}, dhSaiEnt={data_saida_entrada[:10] if data_saida_entrada else 'N/A'}, emissao_propria={is_emissao_propria}")
             
             # Determinar qual data usar para a competência
             if tipo_operacao == 'saida' or is_emissao_propria:
