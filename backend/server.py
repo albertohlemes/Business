@@ -1922,23 +1922,38 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
         pis_debitos = arredondar(totais['debitos_pis'])
         cofins_creditos = arredondar(totais['creditos_cofins'])
         cofins_debitos = arredondar(totais['debitos_cofins'])
+        
+        # Para Lucro Presumido, aplicar estornos de débito (devoluções recebidas)
+        estorno_pis = arredondar(totais.get('estorno_debito_pis', Decimal('0')))
+        estorno_cofins = arredondar(totais.get('estorno_debito_cofins', Decimal('0')))
+        
+        # Estornos reduzem os débitos
+        pis_debitos_liquido = max(0, pis_debitos - estorno_pis)
+        cofins_debitos_liquido = max(0, cofins_debitos - estorno_cofins)
     except Exception as e:
         logger.error(f"Erro ao arredondar totais PIS/COFINS: {e}")
         pis_creditos = pis_debitos = cofins_creditos = cofins_debitos = 0.0
+        pis_debitos_liquido = cofins_debitos_liquido = 0.0
+        estorno_pis = estorno_cofins = 0.0
     
     return {
         'pis_creditos': pis_creditos,
-        'pis_debitos': pis_debitos,
+        'pis_debitos': pis_debitos_liquido,  # Débitos líquidos (após estornos)
+        'pis_debitos_bruto': pis_debitos,    # Débitos brutos (antes de estornos)
+        'pis_estorno': estorno_pis,
         'cofins_creditos': cofins_creditos,
-        'cofins_debitos': cofins_debitos,
-        'pis_saldo': round(pis_debitos - pis_creditos, 2),
-        'cofins_saldo': round(cofins_debitos - cofins_creditos, 2),
+        'cofins_debitos': cofins_debitos_liquido,  # Débitos líquidos (após estornos)
+        'cofins_debitos_bruto': cofins_debitos,    # Débitos brutos (antes de estornos)
+        'cofins_estorno': estorno_cofins,
+        'pis_saldo': round(pis_debitos_liquido - pis_creditos, 2),
+        'cofins_saldo': round(cofins_debitos_liquido - cofins_creditos, 2),
         'base_credito': arredondar(totais['base_credito']),
         'base_debito': arredondar(totais['base_debito']),
         'desconsiderados': {
             'base_credito': arredondar(totais['desconsiderados_credito']),
             'base_debito': arredondar(totais['desconsiderados_debito'])
-        }
+        },
+        'is_presumido': is_presumido
     }
 
 
