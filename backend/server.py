@@ -33551,33 +33551,108 @@ async def reprocessar_calculo_simples_nacional(
     # Recalcular dashboard do Simples Nacional
     from services.simples_nacional_calculator import calcular_das_periodo
     
-    # Buscar faturamento
+    # Buscar faturamento - CORRIGIDO: usar $or para encontrar saídas
     query = {
         "company_id": company_id,
         "competencia": competencia,
-        "tipo": "saida",
+        "$or": [
+            {"tipo": "saida"},
+            {"tipo_operacao": "saida"},
+            {"tipo": "SAIDA"},
+            {"tipo_operacao": "SAIDA"}
+        ],
         "cancelada": {"$ne": True}
     }
     
-    pipeline = [
-        {"$match": query},
-        {"$group": {"_id": None, "total": {"$sum": "$valor_total"}}}
-    ]
+    # Buscar documentos de saída
+    docs_saida = await db.xml_documents.find(query, {"_id": 0, "produtos": 1, "valor_total": 1}).to_list(15000)
     
-    result = await db.xml_documents.aggregate(pipeline).to_list(1)
-    faturamento = result[0]["total"] if result else 0
+    logger.info(f"[REPROCESSAR MONOFASICOS] Encontrados {len(docs_saida)} documentos de saída para {company_id}/{competencia}")
     
-    # Buscar histórico de faturamento
+    # Buscar exceções de monofásicos configuradas pelo usuário
+    excecoes = await db.monofasicos_excecoes.find({
+        "company_id": company_id,
+        "ativo": True
+    }).to_list(10000)
+    
+    # Criar sets para busca rápida
+    ncms_excluidos = set()  # NCMs que o usuário REMOVEU do monofásico (voltam a tributar)
+    ncms_adicionados = set()  # NCMs que o usuário ADICIONOU como monofásico
+    
+    for exc in excecoes:
+        ncm = exc.get('ncm', '')
+        acao = exc.get('acao', '')
+        if acao == 'remover':  # Usuário removeu do monofásico = volta a tributar
+            ncms_excluidos.add(ncm)
+        elif acao == 'adicionar':  # Usuário adicionou como monofásico = não tributa
+            ncms_adicionados.add(ncm)
+    
+    # Calcular faturamento total e valor dos monofásicos
+    faturamento_total = 0
+    valor_monofasico = 0
+    valor_tributavel = 0
+    
+    for doc in docs_saida:
+        doc_valor = float(doc.get('valor_total', 0) or 0)
+        faturamento_total += doc_valor
+        
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', '') or '').replace('.', '').strip()
+            valor_prod = float(prod.get('valor_total', 0) or 0)
+            
+            # Verificar se é monofásico (usando a mesma lógica do endpoint GET)
+            from services.pis_cofins_calculator import classificar_ncm_comercio
+            classificacao = classificar_ncm_comercio(ncm, 'VAREJO')
+            is_monofasico_padrao = classificacao.get('tipo') == 'MONOFASICO'
+            
+            # Aplicar exceções do usuário
+            if ncm in ncms_excluidos:
+                # Usuário removeu do monofásico - TRIBUTA normalmente
+                valor_tributavel += valor_prod
+            elif ncm in ncms_adicionados or is_monofasico_padrao:
+                # É monofásico (padrão ou adicionado pelo usuário) - NÃO tributa PIS/COFINS
+                valor_monofasico += valor_prod
+            else:
+                # Produto normal - tributa
+                valor_tributavel += valor_prod
+    
+    logger.info(f"[REPROCESSAR MONOFASICOS] Faturamento={faturamento_total:.2f}, Monofásico={valor_monofasico:.2f}, Tributável={valor_tributavel:.2f}")
+    
+    # Buscar histórico de faturamento (RBT12)
     historico = company.get('historico_faturamento', {})
     
-    # Calcular DAS
-    das_result = calcular_das_periodo(faturamento, historico, company.get('anexo_simples', 'III'))
+    # Calcular RBT12 (soma dos últimos 12 meses)
+    rbt12 = 0
+    if historico:
+        for mes, valor in historico.items():
+            rbt12 += float(valor or 0)
+    
+    # Se não tem histórico, usar o faturamento do mês atual * 12 como estimativa
+    if rbt12 == 0:
+        rbt12 = faturamento_total * 12
+    
+    # Calcular DAS passando os produtos monofásicos para desconto
+    das_result = calcular_das_periodo(
+        faturamento_periodo=faturamento_total,
+        rbt12=rbt12,
+        anexo=company.get('anexo_simples', 'III'),
+        produtos_st=0,  # TODO: Calcular produtos com ST
+        produtos_monofasicos=valor_monofasico,
+        produtos_aliquota_zero=0  # TODO: Calcular produtos alíquota zero
+    )
     
     return {
         "success": True,
         "competencia": competencia,
-        "faturamento": round(faturamento, 2),
+        "faturamento": round(faturamento_total, 2),
+        "faturamento_tributavel": round(valor_tributavel, 2),
+        "valor_monofasico": round(valor_monofasico, 2),
+        "rbt12": round(rbt12, 2),
         "das_calculado": das_result,
+        "excecoes_aplicadas": {
+            "ncms_excluidos_do_monofasico": list(ncms_excluidos),
+            "ncms_adicionados_ao_monofasico": list(ncms_adicionados)
+        },
         "mensagem": "Cálculo reprocessado com sucesso. As exceções de monofásicos foram consideradas."
     }
 
