@@ -19,50 +19,41 @@ Sistema de gestão fiscal brasileiro com funcionalidades para importação de do
 
 # CHANGELOG
 
-## 2025-01-XX - CORREÇÃO CRÍTICA: Apuração PIS/COFINS Lucro Presumido
+## 2025-12-XX - Correções Múltiplas
 
-### Problemas Corrigidos:
+### 1. Monofásicos - UI e Erro de Reprocessamento
+- **Problema**: Fundo branco fora do padrão + erro "body stream already read"
+- **Solução**: 
+  - Adicionado `min-h-screen bg-[#0A0A0A]` no container principal
+  - Implementado clone da response antes de ler (evita dupla leitura)
+- **Files**: `/app/frontend/src/pages/MonofasicosManager.js`
 
-1. **Lucro Presumido gerando créditos indevidamente**
-   - **Antes**: Entradas com CST 50 (CFOP 1101, 2101) geravam créditos de PIS/COFINS
-   - **Agora**: Lucro Presumido NÃO gera nenhum crédito de entrada (regime cumulativo)
-   - Exceção: devoluções de venda (CFOPs 1201, 2201, etc.) geram estorno de débito
+### 2. PIS/COFINS Lucro Presumido - Correção Definitiva
+- **Problema**: Gerando créditos indevidos e usando alíquotas de Lucro Real (1.65%/7.6%)
+- **Solução**:
+  - Função `calcular_pis_cofins_produto` em `pis_cofins_calculator.py` corrigida
+  - Lucro Presumido NUNCA gera créditos em entradas (regime cumulativo)
+  - Alíquotas corretas: 0.65% PIS / 3.00% COFINS
+- **Testes**: 9/9 passaram em `/app/backend/tests/test_lucro_presumido_pis_cofins.py`
 
-2. **Alíquotas incorretas exibidas**
-   - **Antes**: Mostrava 1.65%/7.6% (Lucro Real) mesmo para Lucro Presumido
-   - **Agora**: O retorno inclui flag `is_presumido` para que o frontend mostre alíquotas corretas (0.65%/3%)
+### 3. SIEG - Verificação de Cancelamentos
+- **Problema**: Notas canceladas após importação não eram atualizadas
+- **Solução**:
+  - Função `verificar_e_processar_cancelamentos_sieg` atualizada para verificar:
+    - Eventos de cancelamento na collection
+    - Eventos de cancelamento embutidos nos XMLs do SIEG (cStat 101, 135, 151, 155)
+  - Adicionada função `detectar_notas_excluidas_para_reimportar`
+- **Files**: `/app/backend/server.py`, `/app/backend/services/sieg_smart_sync.py`
 
-3. **Débitos não calculados corretamente**
-   - **Antes**: Total de débitos zerado no resumo
-   - **Agora**: Débitos calculados corretamente com alíquotas de Lucro Presumido
-
-### Lógica Implementada:
-
-```
-LUCRO PRESUMIDO:
-├── ENTRADAS
-│   ├── Devoluções (CFOP 1201, 2201, etc.) → Estorno de débito (0.65%/3%)
-│   └── Demais entradas → CST 98 (sem crédito, desconsiderado)
-├── SAÍDAS
-│   └── Vendas tributadas → Débito (0.65%/3%)
-└── SALDO = Débitos - Estornos (sem créditos)
-
-LUCRO REAL:
-├── ENTRADAS → Créditos (1.65%/7.6%) se permitido pelo CFOP/categoria
-├── SAÍDAS → Débitos (1.65%/7.6%)
-└── SALDO = Débitos - Créditos
-```
-
-### Files Changed:
-- `/app/backend/server.py`:
-  - Função `calcular_pis_cofins_unificado()`: Bloqueia créditos para Lucro Presumido
-  - Função `calcular_pis_cofins_por_cst()`: Classifica entradas como CST 98 para Lucro Presumido
-  - Inicialização de `totais` com campos de estorno
-  - Retorno inclui `is_presumido`, `estorno_pis`, `estorno_cofins`
+### 4. Filtro por CFOP na Busca de Documentos
+- **Solução**:
+  - Adicionado parâmetro `cfop` no endpoint `/api/xml/documents`
+  - Adicionado campo de filtro CFOP na UI de documentos
+- **Files**: `/app/backend/server.py`, `/app/frontend/src/pages/Documents.js`
 
 ---
 
-## Correções Anteriores (sessão atual):
+## Correções Anteriores (sessão passada):
 - Tela de Monofásicos: cores e erro body stream
 - Menu PIS/COFINS: erro 500 por `is_presumido` não definido
 - Alíquotas nos endpoints do Validador
@@ -73,13 +64,18 @@ LUCRO REAL:
 
 ## P0 - Blockers
 - [RESOLVED] Apuração PIS/COFINS Lucro Presumido com créditos indevidos
+- [RESOLVED] Monofásicos - UI e erro de reprocessamento
 - [RESOLVED] Menu PIS/COFINS retornando erro 500
-- [IN PROGRESS] Falha silenciosa na importação SIEG
+- [IN PROGRESS] Falha silenciosa na importação SIEG para certas empresas
 - [IN PROGRESS] Upload de arquivos grandes trava
 
 ## P1 - High Priority  
-- [ ] Bug de CFOPs de transferência (5152)
-- [ ] Verificar colunas NFS-e
+- [ ] Bug de CFOPs de transferência (5152) - processamento incorreto
+- [ ] Verificar colunas NFS-e (descrição serviço, retenções)
+- [ ] Validar importação NFS-e (cliente "consumidor final", data competência)
+- [ ] Investigar CFOP 5123 na empresa Inova Brands mês 02 (usar endpoint de diagnóstico)
 
-## Backlog
-- [ ] Refatorar server.py (+47.000 linhas)
+## P2 - Backlog
+- [ ] Refatorar server.py (+47.000 linhas) - CRÍTICO para estabilidade
+- [ ] Totalizador por CST nos detalhamentos de PIS/COFINS
+- [ ] Modal de seleção de empresa sobrepondo UI

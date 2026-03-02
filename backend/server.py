@@ -27433,6 +27433,147 @@ async def get_cfops_for_company(
     return sorted(list(cfops))
 
 
+@api_router.get("/xml/documents/diagnostico-cfop/{company_id}")
+async def diagnosticar_cfop_documentos(
+    company_id: str,
+    competencia: str,
+    cfop: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Endpoint de diagnóstico para verificar documentos com um CFOP específico.
+    Retorna detalhes do documento e XML original para investigação.
+    """
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        "produtos.cfop": cfop
+    }
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(100)
+    
+    resultado = []
+    for doc in documents:
+        # Extrair produtos com o CFOP específico
+        produtos_cfop = []
+        for prod in doc.get('produtos', []):
+            if prod.get('cfop') == cfop:
+                produtos_cfop.append({
+                    "descricao": prod.get('descricao', ''),
+                    "ncm": prod.get('ncm', ''),
+                    "cfop": prod.get('cfop', ''),
+                    "cfop_original_emissor": prod.get('cfop_original_emissor', ''),
+                    "valor_total": prod.get('valor_total', 0)
+                })
+        
+        resultado.append({
+            "id": doc.get('id'),
+            "numero_nfe": doc.get('numero_nfe'),
+            "chave_nfe": doc.get('chave_nfe'),
+            "data_emissao": doc.get('data_emissao'),
+            "tipo": doc.get('tipo'),
+            "tipo_operacao": doc.get('tipo_operacao'),
+            "emitente_nome": doc.get('emitente_nome'),
+            "emitente_cnpj": doc.get('emitente_cnpj'),
+            "destinatario_nome": doc.get('destinatario_nome'),
+            "destinatario_cnpj": doc.get('destinatario_cnpj'),
+            "valor_total": doc.get('valor_total'),
+            "origem": doc.get('origem', 'upload_manual'),
+            "origem_importacao": doc.get('origem_importacao'),
+            "produtos_com_cfop": produtos_cfop
+        })
+    
+    return {
+        "cfop_pesquisado": cfop,
+        "total_documentos": len(resultado),
+        "documentos": resultado,
+        "nota": "Para investigar mais, use o filtro de CFOP na página de documentos ou visualize o XML original do documento."
+    }
+
+
+@api_router.post("/xml/documents/corrigir-cfop/{company_id}")
+async def corrigir_cfop_documento(
+    company_id: str,
+    competencia: str = Form(...),
+    cfop_errado: str = Form(...),
+    cfop_correto: str = Form(...),
+    documento_id: Optional[str] = Form(None),  # Se vazio, corrige todos com o CFOP errado
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Corrige CFOP incorreto em documentos.
+    
+    IMPORTANTE: Esta é uma correção de dados, use com cautela.
+    O CFOP original do XML será preservado no campo 'cfop_original_xml'.
+    """
+    # Validar CFOPs
+    if not cfop_errado or not cfop_correto:
+        raise HTTPException(status_code=400, detail="CFOPs não podem ser vazios")
+    
+    if cfop_errado == cfop_correto:
+        raise HTTPException(status_code=400, detail="CFOPs não podem ser iguais")
+    
+    # Construir query
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        "produtos.cfop": cfop_errado
+    }
+    
+    if documento_id:
+        query["id"] = documento_id
+    
+    # Buscar documentos afetados
+    documentos = await db.xml_documents.find(query, {"_id": 1, "id": 1, "produtos": 1, "numero_nfe": 1}).to_list(1000)
+    
+    if not documentos:
+        return {
+            "sucesso": False,
+            "mensagem": f"Nenhum documento encontrado com CFOP {cfop_errado}",
+            "documentos_atualizados": 0
+        }
+    
+    total_atualizados = 0
+    total_produtos_corrigidos = 0
+    
+    for doc in documentos:
+        produtos = doc.get('produtos', [])
+        produtos_atualizados = False
+        
+        for prod in produtos:
+            if prod.get('cfop') == cfop_errado:
+                # Preservar CFOP original se ainda não foi salvo
+                if not prod.get('cfop_original_xml'):
+                    prod['cfop_original_xml'] = cfop_errado
+                
+                prod['cfop'] = cfop_correto
+                prod['cfop_corrigido_manualmente'] = True
+                prod['data_correcao_cfop'] = datetime.now(timezone.utc).isoformat()
+                prod['usuario_correcao_cfop'] = current_user.email
+                produtos_atualizados = True
+                total_produtos_corrigidos += 1
+        
+        if produtos_atualizados:
+            await db.xml_documents.update_one(
+                {"_id": doc["_id"]},
+                {
+                    "$set": {
+                        "produtos": produtos,
+                        "ultima_correcao_cfop": datetime.now(timezone.utc).isoformat()
+                    }
+                }
+            )
+            total_atualizados += 1
+    
+    return {
+        "sucesso": True,
+        "mensagem": f"CFOP {cfop_errado} corrigido para {cfop_correto}",
+        "documentos_atualizados": total_atualizados,
+        "produtos_corrigidos": total_produtos_corrigidos,
+        "nota": "Os CFOPs originais foram preservados no campo 'cfop_original_xml'"
+    }
+
+
 @api_router.get("/xml/documents/emitentes/{company_id}")
 async def get_emitentes_for_company(
     company_id: str,
