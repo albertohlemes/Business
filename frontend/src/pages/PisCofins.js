@@ -534,9 +534,15 @@ const PisCofins = ({ user, onLogout }) => {
     if (!apuracao) return null;
     
     const regime = apuracao.empresa?.regime_tributario || 'LUCRO_REAL';
-    const dadosRegime = regime.toUpperCase().includes('REAL') ? apuracao.lucro_real : apuracao.lucro_presumido;
+    const isPresumido = regime.toUpperCase().includes('PRESUMIDO');
+    const dadosRegime = !isPresumido ? apuracao.lucro_real : apuracao.lucro_presumido;
     const tipoAtividade = selectedCompany?.tipo_atividade || 'comercio';
     const temServicos = tipoAtividade === 'servicos' || tipoAtividade === 'mista';
+    
+    // Alíquotas baseadas no regime
+    const aliquotaPIS = isPresumido ? '0,65%' : '1,65%';
+    const aliquotaCOFINS = isPresumido ? '3,00%' : '7,60%';
+    const regimeDesc = isPresumido ? 'Cumulativo' : 'Não-Cumulativo';
     
     // Saldo credor anterior
     const saldoCredorAnterior = dadosRegime.saldo_credor_anterior || { pis: 0, cofins: 0, icms: 0, origem: null };
@@ -593,7 +599,7 @@ const PisCofins = ({ user, onLogout }) => {
         <div className="mb-2">
           <h3 className="text-sm font-medium text-[#C8A951] mb-3 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            PIS (1,65%)
+            PIS ({aliquotaPIS})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <ResumoCard
@@ -625,7 +631,7 @@ const PisCofins = ({ user, onLogout }) => {
         <div className="mb-2">
           <h3 className="text-sm font-medium text-[#C8A951] mb-3 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-teal-500"></span>
-            COFINS (7,6%)
+            COFINS ({aliquotaCOFINS})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <ResumoCard
@@ -766,11 +772,11 @@ const PisCofins = ({ user, onLogout }) => {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-[#A1A1AA]">Base de Cálculo</span>
-                    <span className="text-white">{formatCurrency(dadosRegime.creditos.pis / 0.0165)}</span>
+                    <span className="text-white">{formatCurrency(dadosRegime.creditos.pis / (isPresumido ? 0.0065 : 0.0165) || 0)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-[#A1A1AA]">Alíquota</span>
-                    <span className="text-white">1,65%</span>
+                    <span className="text-white">{aliquotaPIS}</span>
                   </div>
                   <div className="flex justify-between text-sm font-semibold border-t border-[#2A2A2A] pt-2 mt-2">
                     <span className="text-[#A1A1AA]">Crédito PIS</span>
@@ -786,11 +792,11 @@ const PisCofins = ({ user, onLogout }) => {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-[#A1A1AA]">Base de Cálculo</span>
-                    <span className="text-white">{formatCurrency(dadosRegime.creditos.cofins / 0.076)}</span>
+                    <span className="text-white">{formatCurrency(dadosRegime.creditos.cofins / (isPresumido ? 0.03 : 0.076) || 0)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-[#A1A1AA]">Alíquota</span>
-                    <span className="text-white">7,60%</span>
+                    <span className="text-white">{aliquotaCOFINS}</span>
                   </div>
                   <div className="flex justify-between text-sm font-semibold border-t border-[#2A2A2A] pt-2 mt-2">
                     <span className="text-[#A1A1AA]">Crédito COFINS</span>
@@ -865,20 +871,20 @@ const PisCofins = ({ user, onLogout }) => {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-[#A1A1AA]">Base de Cálculo</span>
-                    <span className="text-white">{formatCurrency(dadosRegime.debitos_comercio.pis / 0.0165)}</span>
+                    <span className="text-white">{formatCurrency(dadosRegime.debitos_comercio.pis / (isPresumido ? 0.0065 : 0.0165) || 0)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#A1A1AA]">PIS (1,65%)</span>
+                    <span className="text-[#A1A1AA]">PIS ({aliquotaPIS})</span>
                     <span className="text-red-400">{formatCurrency(dadosRegime.debitos_comercio.pis)}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-[#A1A1AA]">Base de Cálculo</span>
-                    <span className="text-white">{formatCurrency(dadosRegime.debitos_comercio.cofins / 0.076)}</span>
+                    <span className="text-white">{formatCurrency(dadosRegime.debitos_comercio.cofins / (isPresumido ? 0.03 : 0.076) || 0)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#A1A1AA]">COFINS (7,60%)</span>
+                    <span className="text-[#A1A1AA]">COFINS ({aliquotaCOFINS})</span>
                     <span className="text-red-400">{formatCurrency(dadosRegime.debitos_comercio.cofins)}</span>
                   </div>
                 </div>
@@ -900,20 +906,20 @@ const PisCofins = ({ user, onLogout }) => {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-[#A1A1AA]">Base de Cálculo</span>
-                      <span className="text-white">{formatCurrency((dadosRegime.debitos_servicos?.pis || 0) / 0.0165)}</span>
+                      <span className="text-white">{formatCurrency((dadosRegime.debitos_servicos?.pis || 0) / (isPresumido ? 0.0065 : 0.0165) || 0)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-[#A1A1AA]">PIS (1,65%)</span>
+                      <span className="text-[#A1A1AA]">PIS ({aliquotaPIS})</span>
                       <span className="text-red-400">{formatCurrency(dadosRegime.debitos_servicos?.pis || 0)}</span>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-[#A1A1AA]">Base de Cálculo</span>
-                      <span className="text-white">{formatCurrency((dadosRegime.debitos_servicos?.cofins || 0) / 0.076)}</span>
+                      <span className="text-white">{formatCurrency((dadosRegime.debitos_servicos?.cofins || 0) / (isPresumido ? 0.03 : 0.076) || 0)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-[#A1A1AA]">COFINS (7,60%)</span>
+                      <span className="text-[#A1A1AA]">COFINS ({aliquotaCOFINS})</span>
                       <span className="text-red-400">{formatCurrency(dadosRegime.debitos_servicos?.cofins || 0)}</span>
                     </div>
                   </div>

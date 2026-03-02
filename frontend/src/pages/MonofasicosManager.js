@@ -58,10 +58,23 @@ export default function MonofasicosManager() {
     try {
       const response = await fetch(
         `${API}/api/simples-nacional/${companyId}/monofasicos?competencia=${encodeURIComponent(competencia)}`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
+        { 
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          } 
+        }
       );
       
-      const result = await response.json();
+      // Ler texto primeiro para evitar "body stream already read"
+      const responseText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        result = { detail: responseText || 'Erro desconhecido' };
+      }
       
       if (!response.ok) {
         throw new Error(result.detail || 'Erro ao carregar dados');
@@ -96,7 +109,9 @@ export default function MonofasicosManager() {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
           },
           body: JSON.stringify(body)
         }
@@ -137,7 +152,9 @@ export default function MonofasicosManager() {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
           },
           body: JSON.stringify({ competencia })
         }

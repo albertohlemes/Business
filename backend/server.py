@@ -1829,7 +1829,7 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                             totais['base_credito'] += valor_base
                     else:
                         # Usar a função calcular_pis_cofins_produto para determinar tributação
-                        regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
+                        regime_calc = 'LUCRO_PRESUMIDO' if is_presumido else 'LUCRO_REAL'
                         calc = calcular_pis_cofins_produto(
                             float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
                         )
@@ -1894,7 +1894,7 @@ async def calcular_pis_cofins_unificado(company_id: str, competencia: str, compa
                             totais['base_debito'] += valor_base
                     else:
                         # Usar a função calcular_pis_cofins_produto para determinar tributação
-                        regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
+                        regime_calc = 'LUCRO_PRESUMIDO' if is_presumido else 'LUCRO_REAL'
                         calc = calcular_pis_cofins_produto(
                             float(valor_base), ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
                         )
@@ -2250,8 +2250,11 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
     perfil_empresa = company.get('perfil_comercial', 'VAREJO') or 'VAREJO'
     perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
     perfil = perfis[0] if perfis else 'VAREJO'
-    regime = company.get('regime_tributario', 'lucro_real')
-    regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
+    regime = str(company.get('regime_tributario', 'lucro_real') or 'lucro_real').lower().strip()
+    regime_calc = 'LUCRO_REAL' if 'real' in regime else 'LUCRO_PRESUMIDO'
+    is_presumido = 'presumido' in regime
+    
+    logger.info(f"[CONFRONTO CFOP x CST] Empresa {company_id}: regime='{regime}', is_presumido={is_presumido}")
     
     # Categorias sem crédito/débito
     CATEGORIAS_SEM_CREDITO = ['devolucao', 'devolução', 'bonificacao', 'bonificação', 'brinde', 'transferencia', 'remessa', 'despesa', 'uso_consumo', 'imobilizado']
@@ -2341,46 +2344,57 @@ async def calcular_confronto_cfop_cst(company_id: str, competencia: str, company
                     is_cfop_saida = True
             
             if is_cfop_entrada:
-                # Determinar CST usando a MESMA função das outras telas
-                categoria_sem_credito = any(cat in categoria for cat in CATEGORIAS_SEM_CREDITO) if categoria else False
-                cfop_sem_credito = cfop in CFOPS_SEM_CREDITO_LOCAL
-                cfop_com_credito = cfop in CFOPS_COM_CREDITO
-                
-                # Lógica: CFOP especial tem prioridade (combustível p/ comercialização)
-                if cfop_com_credito and not categoria_sem_credito:
-                    cst = '50'  # Com crédito
-                    # Alíquotas baseadas no regime
-                    if regime == 'lucro_presumido':
-                        valor_pis = valor_base * Decimal('0.0065')  # 0,65%
-                        valor_cofins = valor_base * Decimal('0.03')  # 3%
+                # ============================================================
+                # LUCRO PRESUMIDO: NENHUMA ENTRADA GERA CRÉDITO!
+                # No regime cumulativo, não há direito a apropriar créditos.
+                # ============================================================
+                if is_presumido:
+                    # Verificar se é devolução de venda (gera estorno, não crédito)
+                    cfops_devolucao = ['1201', '1202', '1203', '1204', '1410', '1411', '2201', '2202', '2410', '2411']
+                    if cfop in cfops_devolucao:
+                        cst = '49'  # Estorno
+                        valor_pis = valor_base * Decimal('0.0065')
+                        valor_cofins = valor_base * Decimal('0.03')
                     else:
-                        valor_pis = valor_base * Decimal('0.0165')  # 1,65%
-                        valor_cofins = valor_base * Decimal('0.076')  # 7,6%
-                elif categoria_sem_credito or cfop_sem_credito:
-                    cst = '98'  # Desconsiderado
-                    valor_pis = Decimal('0')
-                    valor_cofins = Decimal('0')
-                else:
-                    # Usar MESMA função que as outras telas para garantir consistência
-                    calc = calcular_pis_cofins_produto(float(valor_base), ncm, cfop, 'entrada', perfil, regime_calc)
-                    
-                    # Determinar CST baseado no resultado
-                    if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
-                        cst = '50'  # Com crédito
-                        valor_pis = Decimal(str(calc.get('valor_pis', 0)))
-                        valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
-                    else:
-                        # Verificar tipo de não-crédito
-                        classificacao = calc.get('classificacao', {})
-                        tipo_trib = classificacao.get('tipo', '')
-                        if tipo_trib == 'ALIQUOTA_ZERO':
-                            cst = '73'
-                        elif tipo_trib == 'MONOFASICO':
-                            cst = '70'
-                        else:
-                            cst = '70'
+                        cst = '98'  # Sem crédito (desconsiderado)
                         valor_pis = Decimal('0')
                         valor_cofins = Decimal('0')
+                else:
+                    # LUCRO REAL: Verificar se gera crédito
+                    categoria_sem_credito = any(cat in categoria for cat in CATEGORIAS_SEM_CREDITO) if categoria else False
+                    cfop_sem_credito = cfop in CFOPS_SEM_CREDITO_LOCAL
+                    cfop_com_credito = cfop in CFOPS_COM_CREDITO
+                    
+                    # Lógica: CFOP especial tem prioridade (combustível p/ comercialização)
+                    if cfop_com_credito and not categoria_sem_credito:
+                        cst = '50'  # Com crédito
+                        valor_pis = valor_base * Decimal('0.0165')  # 1,65%
+                        valor_cofins = valor_base * Decimal('0.076')  # 7,6%
+                    elif categoria_sem_credito or cfop_sem_credito:
+                        cst = '98'  # Desconsiderado
+                        valor_pis = Decimal('0')
+                        valor_cofins = Decimal('0')
+                    else:
+                        # Usar MESMA função que as outras telas para garantir consistência
+                        calc = calcular_pis_cofins_produto(float(valor_base), ncm, cfop, 'entrada', perfil, regime_calc)
+                        
+                        # Determinar CST baseado no resultado
+                        if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
+                            cst = '50'  # Com crédito
+                            valor_pis = Decimal(str(calc.get('valor_pis', 0)))
+                            valor_cofins = Decimal(str(calc.get('valor_cofins', 0)))
+                        else:
+                            # Verificar tipo de não-crédito
+                            classificacao = calc.get('classificacao', {})
+                            tipo_trib = classificacao.get('tipo', '')
+                            if tipo_trib == 'ALIQUOTA_ZERO':
+                                cst = '73'
+                            elif tipo_trib == 'MONOFASICO':
+                                cst = '70'
+                            else:
+                                cst = '70'
+                            valor_pis = Decimal('0')
+                            valor_cofins = Decimal('0')
                 
                 chave = f"{cfop}_{cst}"
                 if chave not in entradas_cfop_cst:
@@ -15927,6 +15941,12 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
     
     from decimal import Decimal
     
+    # Normalizar regime para verificação consistente
+    regime_normalizado = str(regime or 'lucro_real').lower().strip()
+    is_presumido = 'presumido' in regime_normalizado
+    
+    logger.info(f"[APURACAO PIS/COFINS AGGREGATED] regime='{regime_normalizado}', is_presumido={is_presumido}")
+    
     # Obter perfil da empresa
     perfil_empresa = company.get('perfil_comercial', 'VAREJO') or 'VAREJO'
     perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
@@ -15936,6 +15956,8 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
     totais = {
         'creditos': {'pis': Decimal('0'), 'cofins': Decimal('0'), 'base': Decimal('0')},
         'debitos': {'pis': Decimal('0'), 'cofins': Decimal('0'), 'base': Decimal('0')},
+        'estorno_pis': Decimal('0'),
+        'estorno_cofins': Decimal('0'),
         'aliq_zero_entrada': Decimal('0'),
         'aliq_zero_saida': Decimal('0'),
         'monofasico_entrada': Decimal('0'),
@@ -16001,7 +16023,7 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
                 
                 # Usar calcular_pis_cofins_produto para determinar tributação
                 # Regime para cálculo: LUCRO_REAL ou LUCRO_PRESUMIDO
-                regime_calc = 'LUCRO_REAL' if regime == 'lucro_real' else 'LUCRO_PRESUMIDO'
+                regime_calc = 'LUCRO_PRESUMIDO' if is_presumido else 'LUCRO_REAL'
                 calc = calcular_pis_cofins_produto(
                     valor_base, ncm, cfop, tipo_operacao or 'saida', perfil, regime_calc
                 )
@@ -16010,7 +16032,18 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
                 tipo_produto = classificacao.get('tipo', '')
                 
                 if tipo_operacao == 'entrada':
-                    if calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
+                    # LUCRO PRESUMIDO: NENHUMA ENTRADA GERA CRÉDITO!
+                    if is_presumido:
+                        # Verificar se é devolução (gera estorno)
+                        cfops_devolucao = ['1201', '1202', '1203', '1204', '1410', '1411', '2201', '2202', '2410', '2411']
+                        if cfop in cfops_devolucao:
+                            # Estorno de débito
+                            pis_estorno = valor_base * Decimal('0.0065')
+                            cofins_estorno = valor_base * Decimal('0.03')
+                            totais['estorno_pis'] = totais.get('estorno_pis', Decimal('0')) + pis_estorno
+                            totais['estorno_cofins'] = totais.get('estorno_cofins', Decimal('0')) + cofins_estorno
+                        # Não gera crédito em nenhum caso para presumido
+                    elif calc.get('gera_credito', False) and calc.get('valor_pis', 0) > 0:
                         # Produto gera crédito
                         totais['creditos']['pis'] += Decimal(str(calc.get('valor_pis', 0)))
                         totais['creditos']['cofins'] += Decimal(str(calc.get('valor_cofins', 0)))
@@ -16055,6 +16088,16 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
     debito_pis = float(totais['debitos']['pis'])
     debito_cofins = float(totais['debitos']['cofins'])
     
+    # Estornos de débito (para Lucro Presumido - devoluções recebidas)
+    estorno_pis = float(totais.get('estorno_pis', Decimal('0')))
+    estorno_cofins = float(totais.get('estorno_cofins', Decimal('0')))
+    
+    # Aplicar estornos aos débitos
+    debito_pis_liquido = max(0, debito_pis - estorno_pis)
+    debito_cofins_liquido = max(0, debito_cofins - estorno_cofins)
+    
+    logger.info(f"APURACAO-PIS-COFINS: Débito bruto PIS={debito_pis:.2f}, estorno={estorno_pis:.2f}, líquido={debito_pis_liquido:.2f}")
+    
     # BUSCAR SALDO CREDOR ANTERIOR (do cadastro da empresa ou competência anterior)
     saldo_credor_anterior = await buscar_saldos_credores_anteriores(company_id, competencia, company)
     saldo_anterior_pis = saldo_credor_anterior.get('pis', 0)
@@ -16062,13 +16105,13 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
     
     logger.info(f"APURACAO-PIS-COFINS: Saldo anterior PIS={saldo_anterior_pis:.2f}, COFINS={saldo_anterior_cofins:.2f}")
     
-    # Saldo do período (sem considerar saldo anterior)
-    saldo_periodo_pis = debito_pis - credito_pis
-    saldo_periodo_cofins = debito_cofins - credito_cofins
+    # Saldo do período (sem considerar saldo anterior) - usar débitos líquidos
+    saldo_periodo_pis = debito_pis_liquido - credito_pis
+    saldo_periodo_cofins = debito_cofins_liquido - credito_cofins
     
-    # Saldo FINAL considerando saldo anterior
-    saldo_pis = debito_pis - credito_pis - saldo_anterior_pis
-    saldo_cofins = debito_cofins - credito_cofins - saldo_anterior_cofins
+    # Saldo FINAL considerando saldo anterior - usar débitos líquidos
+    saldo_pis = debito_pis_liquido - credito_pis - saldo_anterior_pis
+    saldo_cofins = debito_cofins_liquido - credito_cofins - saldo_anterior_cofins
     
     base_credito = float(totais['creditos']['base'])
     base_debito = float(totais['debitos']['base'])
@@ -16107,8 +16150,12 @@ async def _get_apuracao_pis_cofins_aggregated(company: dict, company_id: str, co
             "base_debito": round(base_debito, 2),
             "credito_pis": round(credito_pis, 2),
             "credito_cofins": round(credito_cofins, 2),
-            "debito_pis": round(debito_pis, 2),
-            "debito_cofins": round(debito_cofins, 2),
+            "debito_pis": round(debito_pis_liquido, 2),  # Usar débito líquido (após estornos)
+            "debito_cofins": round(debito_cofins_liquido, 2),  # Usar débito líquido (após estornos)
+            "debito_pis_bruto": round(debito_pis, 2),  # Débito bruto (antes de estornos)
+            "debito_cofins_bruto": round(debito_cofins, 2),  # Débito bruto (antes de estornos)
+            "estorno_pis": round(estorno_pis, 2),
+            "estorno_cofins": round(estorno_cofins, 2),
             # Saldo do período (sem considerar anterior)
             "saldo_periodo_pis": round(saldo_periodo_pis, 2),
             "saldo_periodo_cofins": round(saldo_periodo_cofins, 2),
