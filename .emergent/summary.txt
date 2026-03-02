@@ -1,82 +1,91 @@
 <analysis>**original_problem_statement:**
-O usuário iniciou a sessão para corrigir uma série de bugs críticos na apuração fiscal de PIS/COFINS e na importação de dados via SIEG.
+O usuário iniciou a sessão com uma série de bugs e requisições de funcionalidades, que foram sendo expandidas ao longo da conversa:
 
-1.  **Bug de Classificação de CFOP/CST (Principal)**:
-    *   CFOPs de entrada (ex: bonificação 5910) estavam sendo tratados como saída, distorcendo os cálculos de débito e crédito.
-    *   A classificação de CST de PIS/COFINS estava incorreta para CFOPs de venda (ex: 5102 com CST 49).
-    *   A lógica de conversão de CFOP não era aplicada corretamente com base na categoria do produto (ex: uma venda  classificada como  deveria ser convertida para , não ).
-    *   Um caso específico onde a empresa emite uma nota para si mesma () estava sendo convertido incorretamente.
-    *   Houve confusão sobre quais CFOPs deveriam gerar um alerta para validação do usuário versus quais deveriam ser convertidos automaticamente.
+**Bugs Iniciais e da Sessão:**
+1.  **SIEG Silent Import Failure (BLOCKER)**: A importação via SIEG para a empresa DI PIETRA PORCELANATOS falhava silenciosamente, reportando sucesso mas não salvando nenhum documento. O agente adicionou logs detalhados e um endpoint de diagnóstico para investigar, mas não pôde reproduzir o bug devido à ausência de dados no ambiente de preview.
+2.  **ICMS Credit Bug (RESOLVED)**: Empresas com benefício fiscal de restaurante (ex: MAC) estavam recebendo créditos de ICMS indevidamente. O agente identificou que o bug ocorria apenas na lógica de cálculo otimizada (agregada) para mais de 500 documentos e aplicou a correção para zerar os créditos corretamente nesse cenário.
+3.  **Dashboard Calculation Bug (RESOLVED)**: Na tela principal, o card Total Saídas mostrava um valor diferente da soma dos seus componentes (NFe, NFCe, etc.). O agente corrigiu a lógica para que o total seja a soma direta dos componentes, eliminando a divergência.
+4.  **PIS/COFINS Rate Bug (RESOLVED)**: Empresas do regime Lucro Presumido estavam sendo calculadas com as alíquotas do Lucro Real (1.65%/7.6%) em vez das corretas (0.65%/3%). O agente corrigiu a lógica de apuração para aplicar as alíquotas de acordo com o regime tributário da empresa.
+5.  **SIEG Scheduler Bug (RESOLVED)**: A sincronização automática do SIEG estava agendada em duplicidade e, mais criticamente, usava uma função stub que não importava os documentos, apenas os contava. A funcionalidade foi corrigida para usar a mesma lógica da sincronização manual, garantindo a importação, e para registrar os logs corretamente.
+6.  **Large Upload Failure (IN PROGRESS)**: Uma usuária (vanessa) enfrenta um erro de  no frontend que trava a importação de um grande volume de arquivos (falha no arquivo 1020 de 1235), enquanto para outro usuário funciona. O agente suspeita de um problema no cliente (navegador/extensões) e adicionou tratamento de erro mais robusto no frontend.
+7.  **User Permission on Upload (Partially Addressed)**: Relacionado ao item acima, o usuário suspeitava de um problema de permissão. O agente confirmou que o controle é feito por  no perfil do usuário e adicionou logs e um endpoint de diagnóstico de permissão para facilitar a administração, embora o erro final pareça ser do frontend.
 
-2.  **Bugs de Integração SIEG**:
-    *   Uma empresa (REPUBLIC C.A PIZZA E CHOPP LTDA) mostrava importação bem-sucedida, mas os dashboards apareciam zerados.
-    *   Uma segunda empresa (DI PIETRA PORCELANATOS) também mostrava importação bem-sucedida (16 documentos), mas absolutamente nenhum dado era salvo no banco de dados.
-
-3.  **Requisição de Feature**:
-    *   Adicionar as colunas Descrição do Serviço e Retenções na listagem de Notas Fiscais de Serviço Tomados (NFS-e).
-    *   Adicionar o campo  nas telas de Alerta de CFOPs e Classificação Inteligente.
+**Features Iniciais e da Sessão:**
+1.  **NFS-e Columns (USER VERIFICATION PENDING)**: Adicionar Descrição do Serviço e Retenções na listagem de NFS-e. O código foi implementado no backend e frontend, mas não pôde ser verificado visualmente por falta de dados de teste.
+2.  **New NFS-e Layout (GINFES) (RESOLVED)**: O usuário forneceu um XML de NFS-e (layout GINFES com namespaces) que não era suportado. O agente implementou um novo parser, normalizou a estrutura e integrou-o aos endpoints de preview e importação. O problema foi resolvido e testado com sucesso em um ambiente simulado.
+3.  **Monofásicos Management UI (COMPLETED)**: O usuário solicitou uma tela para gerenciar exceções de produtos/NCMs monofásicos para empresas do Simples Nacional. O agente implementou uma solução full-stack:
+    *   **Backend**: Novos endpoints para visualizar os monofásicos e adicionar/remover exceções (por produto ou NCM), salvando-as no documento da empresa no MongoDB.
+    *   **Frontend**: Uma nova página () com tabelas para NCMs e Produtos, permitindo ao usuário gerenciar as exceções.
+    *   **Integração**: Um botão foi adicionado na tela do Simples Nacional para acessar a nova página de gerenciamento.
 
 **User's preferred language**: Português (pt-BR)
 
 **what currently exists?**
-O agente realizou uma extensa sessão de depuração e implementação, focada principalmente no .
-
-1.  **Correção do Bug de PIS/COFINS**: A lógica de conversão de CFOP foi completamente reestruturada. O agente corrigiu o fluxo de importação do SIEG para converter corretamente os CFOPs de entrada, criou e executou múltiplos scripts para corrigir dados históricos inconsistentes no MongoDB, e implementou as regras de negócio específicas solicitadas pelo usuário:
-    *   CFOPs de operações distintas (bonificação, remessa, etc.) agora são convertidos e geram um alerta para validação manual.
-    *   CFOPs de venda padrão (5102, 5401) são convertidos automaticamente com base no histórico e na categoria do produto (revenda, insumo, etc.).
-    *   Notas onde  mantêm seu CFOP original e não são convertidas.
-2.  **Implementação de Features**:
-    *   O  foi adicionado aos endpoints e à lógica dos alertas de CFOP e da classificação inteligente.
-    *   As colunas Serviço e Total de Retenções foram adicionadas à listagem de NFS-e no frontend () e o backend foi ajustado para fornecer os dados.
+A aplicação possui um backend monolítico em FastAPI () e um frontend em React. Foram realizadas diversas correções críticas na lógica fiscal (ICMS, PIS/COFINS), na integração com o SIEG (scheduler) e no parsing de documentos (NFS-e GINFES). Foi adicionada uma nova funcionalidade full-stack para gerenciamento de produtos/NCMs monofásicos. A estabilidade geral foi melhorada, mas o código continua complexo e com desafios de testabilidade devido à falta de dados no ambiente de preview.
 
 **Last working item**:
--   **Last item agent was working**: Investigando um bug crítico onde a sincronização SIEG para a empresa DI PIETRA PORCELANATOS reporta sucesso, mas não salva nenhum documento no banco de dados. O agente usou um endpoint de diagnóstico e confirmou que, embora a API SIEG retorne 12 XMLs, a contagem de documentos no banco é zero. A suspeita recai sobre a função  em , que pode estar descartando silenciosamente todos os documentos como duplicatas, mesmo que não existam.
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: N (A investigação estava em andamento)
--   **Which testing method agent to use?**: Backend testing agent. O próximo agente deve focar em depurar a função  e  em  para entender por que os documentos da empresa DI PIETRA PORCELANATOS (ID: ) estão sendo descartados. Será necessário simular ou analisar o fluxo para esta empresa.
+-   **Last item agent was working**: Implementação da funcionalidade de gestão de exceções de monofásicos para empresas do Simples Nacional. O agente criou os endpoints de backend, a lógica de cálculo atualizada e a tela de gerenciamento no frontend.
+-   **Status**: USER VERIFICATION PENDING
+-   **Agent Testing Done**: Y (O agente testou os endpoints do backend com  e verificou a renderização da nova página no frontend com screenshots, mas a funcionalidade completa com dados reais não foi testada).
+-   **Which testing method agent to use?**: Frontend testing agent. O agente deve instruir o testador a:
+    1.  Navegar até a apuração do Simples Nacional para uma empresa de teste.
+    2.  Clicar no novo botão Gerenciar Monofásicos.
+    3.  Verificar se a nova tela carrega com as abas Produtos e NCMs.
+    4.  Testar a funcionalidade de adicionar e remover exceções e verificar se a apuração é reprocessada com os novos valores.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: **(P0, BLOCKER)** A importação via SIEG falha silenciosamente para algumas empresas (ex: DI PIETRA PORCELANATOS), reportando sucesso mas não salvando nenhum documento no banco.
--   **Issue 2**: **(P0, BLOCKER)** A integração SIEG não funciona no ambiente de produção do próprio usuário (problema original do handoff, aguardando que o usuário configure as variáveis de ambiente).
--   **Issue 3**: **(P1, CRITICAL RECURRING)** Processamento incorreto de CFOPs de transferência (ex: 5152), um bug recorrente não abordado nesta sessão.
+-   **Issue 1**: **(P0, BLOCKER)** A importação via SIEG falha silenciosamente para algumas empresas. Logs foram adicionados, mas o bug não foi reproduzido nem corrigido. É a principal causa de integridade de dados.
+-   **Issue 2**: **(P0, CRITICAL)** O upload de um grande volume de arquivos trava para um usuário específico (vanessa) com um erro de  no frontend, impedindo a importação.
+-   **Issue 3**: **(P1, RECURRING)** Processamento incorreto de CFOPs de transferência (ex: 5152), um bug recorrente mencionado no handoff inicial que ainda não foi abordado.
 
 **Issues Detail**:
 -   **Issue 1: SIEG silent import failure**
-    -   **Attempted fixes**: A investigação confirmou o bug usando um endpoint de diagnóstico (). A hipótese é que a função  em  está incorretamente descartando os XMLs como duplicatas.
+    -   **Attempted fixes**: O agente não conseguiu reproduzir o bug por falta de dados. Em vez disso, adicionou logs detalhados nas funções  e  e corrigiu uma falha lógica potencial com chaves de NFe vazias. Criou um endpoint de diagnóstico () para ajudar a investigar no ambiente de produção.
     -   **Next debug checklist**:
-        1.  Analisar a lógica em  em torno da chamada a  (linha ~7269) e a subsequente chamada a  (linha ~7308).
-        2.  Adicionar logs detalhados para ver quais chaves de NFe estão sendo verificadas e por que estão sendo consideradas duplicatas para a empresa DI PIETRA.
-        3.  Verificar se existe alguma condição de borda relacionada à empresa ou ao período que causa esse comportamento.
-    -   **Why fix this issue and what will be achieved with the fix?**: A importação de dados é a base de todo o sistema. Uma falha silenciosa corrompe a integridade dos dados e torna a aplicação inútil.
+        1.  Pedir ao usuário para executar a sincronização na empresa problemática (DI PIETRA PORCELANATOS).
+        2.  Analisar os logs do backend () para ver os novos logs detalhados e entender em que ponto os XMLs estão sendo descartados.
+        3.  Usar o endpoint de diagnóstico  para simular a importação e obter um relatório detalhado.
+    -   **Why fix this issue and what will be achieved with the fix?**: A importação de dados é o coração do sistema. Uma falha silenciosa compromete toda a aplicação.
     -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y (Reportado para duas empresas diferentes com comportamentos distintos).
+    -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: Não, mas bloqueado pela necessidade de testar no ambiente do usuário.
+
+-   **Issue 2: Large file upload hangs**
+    -   **Attempted fixes**: O agente identificou o erro como sendo do lado do cliente (). A suspeita é de um conflito com extensões do navegador ou ferramentas de desenvolvimento. Uma tentativa de correção foi adicionar tratamento de erro mais explícito no  do hook  para evitar a falha silenciosa.
+    -   **Next debug checklist**:
+        1.  Pedir ao usuário para tentar o upload em uma janela anônima do navegador (para desativar extensões).
+        2.  Verificar o console do navegador no momento em que o upload trava para ver se a nova mensagem de erro aparece.
+        3.  Investigar a possibilidade de refatorar o upload para usar um Web Worker, isolando o processo da thread principal da UI.
+    -   **Why fix this issue and what will be achieved with the fix?**: Impede que os usuários importem grandes lotes de documentos, que é um caso de uso principal.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: Não.
 
 **In progress Task List**:
--   **Task 1**: Exibir Descrição do Serviço e Retenções na listagem de NFS-e.
-    -   **Where to resume**: O código foi implementado no frontend () e backend ().
-    -   **What will be achieved with this?**: O usuário terá mais visibilidade sobre os serviços tomados diretamente na tela de listagem de documentos.
-    -   **Status**: USER VERIFICATION PENDING (A funcionalidade foi implementada, mas não pôde ser verificada visualmente com dados reais durante a sessão).
-    -   **Should Test frontend/backend/both after fix?**: frontend (com screenshot tool, usando uma empresa que tenha NFS-e, como a REPUBLIC C.A PIZZA E CHOPP LTDA).
-    -   **Blocked on something**: Não.
+-   **Task 1**: Verificação da funcionalidade de colunas na listagem de NFS-e.
+    -   **Where to resume**: A funcionalidade está implementada. É necessário popular o banco de dados com documentos NFS-e para uma empresa de teste para poder verificar visualmente.
+    -   **What will be achieved with this?**: O usuário terá mais visibilidade sobre os serviços tomados na tela de documentos.
+    -   **Status**: USER VERIFICATION PENDING
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on something**: Falta de dados de teste no ambiente.
 
 **Upcoming and Future Tasks**
+-   **(P0)** **Refatorar  (CRÍTICO)**: O arquivo monolítico com mais de 35.000 linhas é a fonte de instabilidade, bugs de sintaxe e dificuldade de manutenção. É urgente extrair as lógicas de negócio (fiscal, SIEG, parsers) e endpoints para módulos dedicados em ,  e .
 -   **(P1)** Resolver o bug recorrente de **processamento de CFOPs de transferência** (Issue 3).
--   **(P1)** Refatorar : Extrair lógicas fiscais, de banco de dados e de endpoints para módulos dedicados para reduzir a complexidade do arquivo monolítico.
--   **(P1)** Implementar um totalizador por CST nos detalhamentos de PIS/COFINS (solicitação antiga).
+-   **(P2)** Implementar um totalizador por CST nos detalhamentos de PIS/COFINS (solicitação antiga).
 -   **(P2)** Corrigir o bug do Modal de seleção de empresa sobrepondo a UI (problema antigo).
 
 **Completed work in this session**
--   **Lógica de CFOP/CST Corrigida**: Resolvido o bug central de classificação de PIS/COFINS, implementando um sistema de regras com várias camadas para conversão de CFOP:
-    -   CFOPs de operações distintas (ex: bonificação 5910 -> 1910) agora geram um alerta para validação do usuário.
-    -   CFOPs de venda padrão (ex: 5102) são convertidos automaticamente para CFOPs de compra (ex: 1102) baseados na categoria do produto.
-    -   Notas de auto-emissão (emitente = destinatário) não têm seus CFOPs convertidos.
--   **Backfill de Dados**: Múltiplos scripts de correção foram executados para limpar e corrigir os dados de CFOP e produtos no MongoDB que foram importados incorretamente.
--   **Feature: Adição de CST ICMS**: O CST de ICMS com sua descrição foi adicionado às telas de Alerta de CFOP e Classificação Inteligente.
--   **Diagnóstico SIEG**: Criado um endpoint de diagnóstico () que foi crucial para identificar o bug da importação silenciosa.
--   **Investigação de Bug de Dashboard**: Investigado e (temporariamente) resolvido um problema onde o dashboard aparecia zerado para uma empresa após a sincronização SIEG.
+-   **Bug de ICMS para Restaurantes (RESOLVED)**: Corrigido o cálculo de ICMS para empresas com benefício fiscal de restaurante, que não estava zerando os créditos na lógica de agregação.
+-   **Bug de Alíquotas PIS/COFINS (RESOLVED)**: Corrigida a lógica para aplicar as alíquotas corretas (0.65%/3%) para empresas do regime Lucro Presumido.
+-   **Bug do Dashboard (RESOLVED)**: Corrigido o cálculo do total de saídas no dashboard para corresponder à soma de seus componentes.
+-   **Bug do Agendador SIEG (RESOLVED)**: A sincronização automática agora utiliza a mesma lógica de importação completa da sincronização manual e registra os logs corretamente.
+-   **Feature: Parser de NFS-e (GINFES) (RESOLVED)**: Implementado suporte a um novo layout de XML de NFS-e, incluindo um normalizador de namespaces e integração com os endpoints de preview e importação.
+-   **Feature: Gerenciador de Monofásicos (COMPLETED)**: Implementada uma solução full-stack para que o usuário possa gerenciar exceções de produtos/NCMs monofásicos, com UI no frontend e endpoints no backend.
+-   **Diagnósticos e Logging**: Adicionados logs detalhados e endpoints de diagnóstico para o bug da importação SIEG e para verificação de permissões de usuário.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: A arquitetura monolítica do  e o processamento incorreto de CFOPs de transferência.
@@ -86,59 +95,118 @@ O agente realizou uma extensa sessão de depuração e implementação, focada p
 **Code Architecture**
 
 
+**Key Technical Concepts**
+-   Backend: FastAPI, MongoDB (Pymongo)
+-   Frontend: React, JavaScript
+-   Lógica de Negócio: Regras fiscais complexas do Brasil (PIS/COFINS, ICMS, Simples Nacional, CFOP, NCM, Regimes Tributários).
+-   Arquitetura: Monolito de backend com alto acoplamento, necessitando urgentemente de refatoração.
+
+**key DB schema**
+-   **companies**: Contém configurações da empresa, incluindo , , e as novas  (com , , , ).
+-   **users**: Contém informações do usuário, incluindo  e  que controlam o acesso.
+
 **All files of reference**
--   
--   
+-    (arquivo principal modificado em quase todas as tarefas)
+-    (nova tela de gestão)
+-    (lógica de upload de arquivos)
+-    (lógica de sincronização automática)
+-    (artefato do usuário para o parser GINFES)
 
 **Areas that need refactoring**:
--   ** (CRÍTICO)**: Com mais de 25.000 linhas, este arquivo é extremamente frágil e difícil de manter. A lógica fiscal complexa (PIS/COFINS, classificação, CFOP) e os endpoints de API devem ser extraídos para seus próprios módulos em  e .
+-   ** (CRÍTICO)**: A principal prioridade. A extração da lógica fiscal, parsers de XML e endpoints para módulos separados é essencial para a estabilidade e manutenibilidade do projeto. Os longos ciclos de depuração de sintaxe durante a sessão foram um sintoma direto desse problema.
 
 **key api endpoints**
--   : Endpoint principal de apuração, agora retornando dados corretos.
--   : Endpoint de alertas, agora com lógica de CFOPs distintos e auto-emissão corrigida.
--   : Endpoint da classificação inteligente.
--   : A função por trás deste endpoint () contém o bug da importação silenciosa.
--   : **NOVO ENDPOINT DE DIAGNÓSTICO** criado nesta sessão.
+-   : (NOVO) Adiciona exceções de monofásicos.
+-   : (NOVO) Obtém a lista de produtos/NCMs para a gestão de monofásicos.
+-   : (MODIFICADO) Endpoint de preview de NFS-e, agora com suporte ao layout GINFES.
+-   : (MODIFICADO) Endpoint de apuração de ICMS, com a lógica de benefício fiscal corrigida.
+-   : (MODIFICADO) Endpoint de apuração PIS/COFINS, com as alíquotas corrigidas por regime.
+-   : Função por trás () é a que funciona e agora é chamada pelo scheduler.
 
 **Critical Info for New Agent**
--   **Bug da Importação Silenciosa é Prioridade Máxima**: O problema da DI PIETRA PORCELANATOS onde a importação SIEG não salva dados é um blocker. A investigação deve começar no , focando nas funções  e .
--   **A Lógica de CFOP é Complexa**: Não faça alterações na lógica de conversão de CFOP sem entender completamente as três regras principais que foram estabelecidas: 1) auto-emissão, 2) operações distintas com alerta, 3) conversão automática por categoria. O usuário foi muito específico e corrigiu o agente várias vezes para chegar a esta lógica.
--   **Credenciais de Produção Foram Fornecidas**: O usuário compartilhou credenciais de login para o ambiente de produção. Use-as com cuidado, primariamente para verificação e diagnóstico, não para testes destrutivos.
--   **Refatoração é Urgente**: Embora os bugs sejam a prioridade, lembre-se que a causa raiz de muitos problemas é a complexidade do . Qualquer oportunidade de refatorar de forma segura deve ser considerada.
-
-**documents and test reports created in this job**
--    (atualizado)
+-   **Prioridades Máximas**: Resolva os dois blockers: a falha silenciosa na importação do SIEG (Issue 1) e o travamento no upload de arquivos grandes (Issue 2). A integridade dos dados e a usabilidade principal dependem disso.
+-   **Refatoração é Urgente**: A causa raiz de muitos bugs e da lentidão no desenvolvimento é o monolito . Planeje e proponha a refatoração como uma tarefa de alta prioridade assim que os blockers forem mitigados. Qualquer nova funcionalidade aumenta o débito técnico exponencialmente.
+-   **Ambiente de Teste vs. Produção**: Esteja ciente de que o ambiente de preview não possui dados. Muitos bugs fiscais e de importação não podem ser reproduzidos diretamente. Você precisará confiar na correção lógica, adicionar logging extensivo e talvez solicitar que o usuário teste em seu ambiente.
+-   **Complexidade Fiscal**: As regras fiscais são muito específicas. Não altere as lógicas de cálculo sem entender completamente o contexto fornecido pelo usuário. As correções feitas para ICMS e PIS/COFINS foram baseadas em requisitos muito diretos.
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **User (msg 429)**: Reporta o bug da importação silenciosa para a empresa DI PIETRA PORCELANATOS. (Status: IN PROGRESS).
--   **User (msg 378)**: Informa que a sincronização manual resolveu o problema do dashboard zerado e solicita a adição das colunas Serviço e Retenções na lista de NFS-e. (Status: Feature implementada, pendente de verificação).
--   **User (msg 366)**: Fornece o link e as credenciais para o ambiente de produção. (Status: Handled).
--   **User (msg 364)**: Pergunta se o problema do dashboard zerado foi resolvido ou apenas diagnosticado. (Status: Handled).
--   **User (msg 338)**: Reporta o bug do dashboard zerado para a empresa REPUBLIC após a sincronização SIEG. (Status: Investigado, parece resolvido).
--   **User (msg 336)**: Confirma o entendimento da lógica de CFOP por categoria. (Status: Handled).
--   **User (msg 305)**: Reporta o bug de que a conversão de CFOP não estava usando o CFOP correto para a categoria do produto (ex: revenda). (Status: RESOLVED).
--   **User (msg 284)**: Reporta o bug de que notas de auto-emissão (emitente=destinatário) estavam sendo convertidas incorretamente. (Status: RESOLVED).
--   **User (msg 273)**: Corrige o agente, esclarecendo que apenas CFOPs *distintos* devem gerar alerta, não todos os CFOPs de venda. (Status: RESOLVED).
--   **User (msg 244)**: Pede para que todos os CFOPs distintos passem por validação, o que foi inicialmente mal interpretado pelo agente. (Status: RESOLVED após mais esclarecimentos).
+-   **(msg 628)**: Solicita a criação da tela de gerenciamento de monofásicos. (Status: COMPLETED)
+-   **(msg 609)**: Pede esclarecimentos sobre o comportamento da nova sincronização automática do SIEG. (Status: Addressed, RESOLVED)
+-   **(msg 582)**: Reporta o bug da sincronização automática do SIEG (duplicidade e não importação). (Status: RESOLVED)
+-   **(msg 521)**: Reporta o bug das alíquotas de PIS/COFINS erradas para Lucro Presumido. (Status: RESOLVED)
+-   **(msg 460)**: Clarifica o bug do upload: é um erro de JS  e um bug de cálculo no dashboard. (Status: Dashboard bug RESOLVED,  bug IN PROGRESS)
+-   **(msg 411)**: Reporta o erro na importação de cupons para a usuária vanessa. (Status: IN PROGRESS)
+-   **(msg 348)**: Reporta que o novo parser de NFS-e não está funcionando na tela de preview. (Status: RESOLVED)
+-   **(msg 295)**: Envia um novo layout de XML de NFS-e (GINFES) para ser suportado. (Status: RESOLVED)
+-   **(msg 242)**: Reporta o bug dos créditos de ICMS indevidos para empresas com benefício de restaurante. (Status: RESOLVED)
+-   **(msg 237-241)**: Mensagens do agente finalizando a sessão anterior.
 
 **Project Health Check:**
--   **Broken**: A funcionalidade de importação de dados via SIEG está criticamente quebrada, com um bug de falha silenciosa que impede a importação de dados para certas empresas.
+-   **Broken**:
+    -   A importação de dados via SIEG (automática e manual) tem uma falha silenciosa não resolvida que pode levar à perda de dados.
+    -   O upload de arquivos em grande volume está quebrado para alguns usuários, impedindo um fluxo de trabalho essencial.
+-   **Mocked**: N/A
 
 **3rd Party Integrations**
--   **SIEG**: Integração de automação fiscal, fonte da maioria dos dados e dos bugs críticos atuais.
+-   **SIEG**: Plataforma de automação fiscal, integrada para busca de documentos (NFe, NFCe, CTe, NFSe). A integração é central para a aplicação e fonte de bugs críticos.
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: Múltiplos scripts de correção de dados foram criados em , mas não são testes reutilizáveis.
--   **Known regressions**: Nenhuma. Regressões introduzidas pelo agente durante a sessão foram rapidamente identificadas pelo usuário e corrigidas.
+-   **Test files created**: Nenhum arquivo de teste ============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: anyio-4.12.1
+collected 667 items / 1 error
 
-**Credentials to test flow:**
--   **Login**:  / 
--   **Empresas para Testes**:
-    -    (CNPJ ): Boa para testar a apuração de PIS/COFINS e alertas de CFOP.
-    -    (ID ): Usar para verificar a feature das colunas de NFS-e.
-    -    (ID da empresa: ): Empresa central para depurar o bug da importação silenciosa do SIEG.
+==================================== ERRORS ====================================
+__________________ ERROR collecting test_ai_classification.py __________________
+import file mismatch:
+imported module 'test_ai_classification' has this __file__ attribute:
+  /app/backend/tests/test_ai_classification.py
+which is not the same as the test file we want to collect:
+  /app/test_ai_classification.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules
+=============================== warnings summary ===============================
+../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
+  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
 
-**What agent forgot to execute**
--   O agente priorizou os bugs críticos reportados pelo usuário e, como resultado, não abordou as tarefas planejadas do handoff anterior, como a refatoração do  ou a correção do bug de CFOPs de transferência. Isso foi uma decisão de priorização reativa, não um esquecimento.</analysis>
+../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/server.py:47117
+  /app/backend/server.py:47117: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+backend/server.py:47123
+  /app/backend/server.py:47123: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR test_ai_classification.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+========================= 6 warnings, 1 error in 4.35s ========================= foi criado. Vários scripts de teste pontuais foram executados via .
+-   **Known regressions**: Nenhuma regressão foi identificada nesta sessão.</analysis>
