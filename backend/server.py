@@ -32703,6 +32703,13 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     # Definir company_id para uso posterior
     company_id = request.company_id
     
+    # Buscar exceções de monofásicos configuradas pelo usuário
+    excecoes_monofasicos = await db.excecoes_monofasicos.find_one(
+        {"company_id": company_id}, 
+        {"_id": 0}
+    ) or {"ncms_excluidos": [], "ncms_incluidos": [], "produtos_excluidos": []}
+    ncms_excluidos_usuario = set(excecoes_monofasicos.get("ncms_excluidos", []))
+    
     # Verificar se é Simples Nacional
     if company.get('regime_tributario') != 'simples_nacional':
         raise HTTPException(status_code=400, detail="Esta empresa não é optante pelo Simples Nacional")
@@ -32863,8 +32870,13 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
                 produtos_st_mes += valor
             
             # Verificar tipo de isenção de PIS/COFINS (prioridade: monofásico > alíquota zero)
-            if is_ncm_monofasico(ncm):
-                # Monofásicos - tributação concentrada na fonte
+            # RESPEITAR exceções configuradas pelo usuário
+            ncm_str = str(ncm).replace(".", "").replace("-", "").replace(" ", "")
+            ncm_4dig = ncm_str[:4] if len(ncm_str) >= 4 else ncm_str
+            is_excluido_pelo_usuario = ncm_str in ncms_excluidos_usuario or ncm_4dig in ncms_excluidos_usuario
+            
+            if is_ncm_monofasico(ncm) and not is_excluido_pelo_usuario:
+                # Monofásicos - tributação concentrada na fonte (NÃO excluído pelo usuário)
                 produtos_monofasicos_mes += valor
             elif is_ncm_aliquota_zero(ncm) or is_ncm_cesta_basica(ncm):
                 # Alíquota zero - cesta básica e outros produtos com isenção legal
