@@ -85,8 +85,21 @@ export default function MonofasicosManager() {
     setProcessing(true);
     try {
       const isNcm = activeTab === 'ncm';
+      
+      // Mapear ações do frontend para ações do backend
+      // "remover" = tirar do monofásico (volta a tributar) = excluir_ncm
+      // "adicionar" = marcar como monofásico = restaurar_ncm ou incluir_ncm
+      let acaoBackend;
+      if (acao === 'remover') {
+        acaoBackend = isNcm ? 'excluir_ncm' : 'excluir_produto';
+      } else if (acao === 'adicionar') {
+        acaoBackend = isNcm ? 'restaurar_ncm' : 'restaurar_produto';
+      } else {
+        acaoBackend = acao;
+      }
+      
       const body = {
-        acao,
+        acao: acaoBackend,
         ncms: isNcm ? items : [],
         produtos: !isNcm ? items : [],
         motivo: `Ação ${acao} via interface`

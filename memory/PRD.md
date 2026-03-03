@@ -19,24 +19,26 @@ Sistema de gestão fiscal brasileiro com funcionalidades para importação de do
 
 # CHANGELOG
 
-## 2025-03-02 - Correção Frontend MonofasicosManager e PisCofins
+## 2025-03-02 - Correções Múltiplas
 
-### Monofásicos - Erro "Objects are not valid as React child"
-- **Problema**: Ao clicar em "Gerir Monofásicos" a tela dava erro porque `data.empresa` era um objeto `{id, razao_social, regime}` e estava sendo renderizado diretamente como filho de React
-- **Solução**: 
-  - Alterado `{data?.empresa || 'Empresa'}` para `{data?.empresa?.razao_social || 'Empresa'}`
-  - Corrigido mapeamento de campos da API (`agrupamento_ncm`, `agrupamento_produtos`, `resumo`) para estrutura esperada pelo frontend
+### Monofásicos - Erro "Ação inválida: remover"
+- **Problema**: Frontend enviava `remover`/`adicionar`, backend esperava `excluir_ncm`/`restaurar_ncm`
+- **Correção**: Mapeamento de ações no frontend `MonofasicosManager.js`
 - **Files**: `/app/frontend/src/pages/MonofasicosManager.js`
 
-### Monofásicos - Erro 500 no Reprocessamento
-- **Problema**: Erro `TypeError: float() argument must be a string or a real number, not 'dict'` ao reprocessar
-- **Causa**: O campo `historico_faturamento` contém objetos `{valor, origem, ...}` em vez de números simples
-- **Solução**: Verificar se `valor_data` é dict e extrair `.get('valor', 0)`
-- **Files**: `/app/backend/server.py` linha 33638
+### Dashboard Simples Nacional - Total Saídas dobrando
+- **Problema**: `mes_atual + servicos_prestados` duplicava serviços (mes_atual já inclui NFS-e)
+- **Correção**: Usar apenas `mes_atual`
+- **Files**: `/app/frontend/src/pages/SimplesNacionalDashboard.js`
 
-### PIS/COFINS - Aba Apuração
-- **Status**: Funcionando corretamente
-- **Verificado**: Alíquotas dinâmicas por regime (0.65%/3% para Lucro Presumido, 1.65%/7.6% para Lucro Real)
+### Monofásicos - Erro "Objects are not valid as React child"
+- **Correção**: `data.empresa?.razao_social` + mapeamento de campos API
+
+### Monofásicos - Erro 500 no Reprocessamento
+- **Correção**: `historico_faturamento` com objetos `{valor, origem}`
+
+### PIS/COFINS - Tela em Branco
+- **Correção**: `perfil` → `perfil_empresa` na linha 30435
 
 ---
 

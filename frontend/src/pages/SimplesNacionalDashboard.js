@@ -444,9 +444,8 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                   </div>
                   <p className="text-2xl font-bold text-white">
                     {formatCurrency(
-                      selectedCompany?.tipo_atividade === 'mista'
-                        ? (data.faturamento?.mes_atual || 0) + (data.faturamento?.servicos_prestados || 0)
-                        : data.faturamento?.mes_atual || 0
+                      // mes_atual já inclui servicos_prestados, não somar de novo
+                      data.faturamento?.mes_atual || 0
                     )}
                   </p>
                   <p className="text-xs text-[#666] mt-1">
