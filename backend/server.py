@@ -33593,22 +33593,17 @@ async def reprocessar_calculo_simples_nacional(
     logger.info(f"[REPROCESSAR MONOFASICOS] Encontrados {len(docs_saida)} documentos de saída para {company_id}/{competencia}")
     
     # Buscar exceções de monofásicos configuradas pelo usuário
-    excecoes = await db.monofasicos_excecoes.find({
-        "company_id": company_id,
-        "ativo": True
-    }).to_list(10000)
+    # CORRIGIDO: Usar a mesma coleção e estrutura do endpoint de configuração
+    excecoes_doc = await db.excecoes_monofasicos.find_one(
+        {"company_id": company_id},
+        {"_id": 0}
+    ) or {"ncms_excluidos": [], "ncms_incluidos": [], "produtos_excluidos": []}
     
     # Criar sets para busca rápida
-    ncms_excluidos = set()  # NCMs que o usuário REMOVEU do monofásico (voltam a tributar)
-    ncms_adicionados = set()  # NCMs que o usuário ADICIONOU como monofásico
+    ncms_excluidos = set(excecoes_doc.get("ncms_excluidos", []))  # NCMs que o usuário REMOVEU do monofásico (voltam a tributar)
+    ncms_adicionados = set(excecoes_doc.get("ncms_incluidos", []))  # NCMs que o usuário ADICIONOU como monofásico
     
-    for exc in excecoes:
-        ncm = exc.get('ncm', '')
-        acao = exc.get('acao', '')
-        if acao == 'remover':  # Usuário removeu do monofásico = volta a tributar
-            ncms_excluidos.add(ncm)
-        elif acao == 'adicionar':  # Usuário adicionou como monofásico = não tributa
-            ncms_adicionados.add(ncm)
+    logger.info(f"[REPROCESSAR MONOFASICOS] Exceções carregadas: excluídos={ncms_excluidos}, adicionados={ncms_adicionados}")
     
     # Calcular faturamento total e valor dos monofásicos
     faturamento_total = 0
@@ -33620,7 +33615,8 @@ async def reprocessar_calculo_simples_nacional(
         faturamento_total += doc_valor
         
         for prod in doc.get('produtos', []):
-            ncm = str(prod.get('ncm', '') or '').replace('.', '').strip()
+            ncm = str(prod.get('ncm', '') or '').replace('.', '').replace('-', '').replace(' ', '').strip()
+            ncm_4dig = ncm[:4] if len(ncm) >= 4 else ncm
             valor_prod = float(prod.get('valor_total', 0) or 0)
             
             # Verificar se é monofásico (usando a mesma lógica do endpoint GET)
@@ -33628,11 +33624,16 @@ async def reprocessar_calculo_simples_nacional(
             classificacao = classificar_ncm_comercio(ncm, 'VAREJO')
             is_monofasico_padrao = classificacao.get('tipo') == 'MONOFASICO'
             
+            # Verificar se o NCM foi excluído pelo usuário (verificar NCM completo e 4 dígitos)
+            is_excluido = ncm in ncms_excluidos or ncm_4dig in ncms_excluidos
+            is_adicionado = ncm in ncms_adicionados or ncm_4dig in ncms_adicionados
+            
             # Aplicar exceções do usuário
-            if ncm in ncms_excluidos:
+            if is_excluido:
                 # Usuário removeu do monofásico - TRIBUTA normalmente
                 valor_tributavel += valor_prod
-            elif ncm in ncms_adicionados or is_monofasico_padrao:
+                logger.info(f"[REPROCESSAR] NCM {ncm} EXCLUÍDO pelo usuário - valor R$ {valor_prod:.2f} será tributado")
+            elif is_adicionado or is_monofasico_padrao:
                 # É monofásico (padrão ou adicionado pelo usuário) - NÃO tributa PIS/COFINS
                 valor_monofasico += valor_prod
             else:
